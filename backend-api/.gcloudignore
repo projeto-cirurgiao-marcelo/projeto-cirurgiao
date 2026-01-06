@@ -1,0 +1,11 @@
+# Ignore node_modules
+node_modules/
+.git/
+dist/
+.env
+.env.*
+*.log
+coverage/
+uploads/*
+test/
+*.spec.ts
