@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.gitignore
+*.md
+.env
+.env.*
+*.log
+npm-debug.log*
+coverage
+.nyc_output
+.DS_Store
+uploads/*
+!uploads/.gitkeep
+test
+*.spec.ts
+jest.config.js
