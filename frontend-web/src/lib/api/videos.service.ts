@@ -207,9 +207,9 @@ export const videosService = {
   },
 
   /**
-   * Upload de vídeo via TUS diretamente para Cloudflare
+   * Upload de vídeo direto para Cloudflare via HTTP (Direct Creator Upload)
    * O arquivo é enviado diretamente do navegador para o Cloudflare, sem passar pelo backend
-   * Suporta arquivos grandes com upload resumível
+   * A URL de Direct Upload do Cloudflare aceita upload HTTP simples (FormData)
    */
   async uploadVideoTusDirect(
     moduleId: string,
@@ -223,50 +223,66 @@ export const videosService = {
       onStatusChange?.('preparing', 'Preparando upload...');
       const { uploadURL, uid, videoId, video } = await this.getDirectUploadUrl(moduleId, metadata);
       
-      console.log('[TUS Direct] Upload URL obtained:', { uploadURL, uid, videoId });
+      console.log('[Direct Upload] Upload URL obtained:', { uploadURL, uid, videoId });
       
-      // Fase 2: Upload TUS diretamente para Cloudflare
+      // Fase 2: Upload HTTP direto para Cloudflare (Direct Creator Upload)
+      // A URL do Direct Upload aceita FormData com o arquivo
       onStatusChange?.('uploading', 'Enviando para Cloudflare...');
       
       return new Promise((resolve, reject) => {
-        const upload = new tus.Upload(file, {
-          endpoint: uploadURL, // URL direta do Cloudflare, NÃO do backend!
-          chunkSize: 50 * 1024 * 1024, // 50MB chunks (recomendado pelo Cloudflare)
-          retryDelays: [0, 3000, 5000, 10000, 20000], // Retry em caso de falha
-          metadata: {
-            filename: file.name,
-            filetype: file.type || 'video/mp4',
-            name: metadata.title,
-          },
-          onError: (error) => {
-            console.error('[TUS Direct] Upload error:', error);
-            onStatusChange?.('error', error.message);
-            reject(new Error(`Erro no upload TUS: ${error.message}`));
-          },
-          onProgress: (bytesUploaded, bytesTotal) => {
-            const percentage = (bytesUploaded / bytesTotal) * 100;
-            console.log(`[TUS Direct] Progress: ${percentage.toFixed(2)}%`);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+        
+        // Configurar evento de progresso
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentage = (event.loaded / event.total) * 100;
+            console.log(`[Direct Upload] Progress: ${percentage.toFixed(2)}%`);
             onProgress?.(percentage);
-          },
-          onSuccess: () => {
-            console.log('[TUS Direct] Upload completed successfully');
+          }
+        });
+        
+        // Configurar evento de conclusão
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('[Direct Upload] Upload completed successfully');
             onStatusChange?.('processing', 'Upload concluído! Processando...');
             
-            // Retornar o vídeo criado (o status será atualizado pelo polling)
             resolve({
               ...video,
               uploadStatus: 'PROCESSING' as const,
               uploadProgress: 100,
             });
-          },
+          } else {
+            console.error('[Direct Upload] Upload failed:', xhr.status, xhr.responseText);
+            onStatusChange?.('error', `Erro HTTP ${xhr.status}`);
+            reject(new Error(`Erro no upload: HTTP ${xhr.status} - ${xhr.responseText}`));
+          }
         });
-
+        
+        // Configurar evento de erro
+        xhr.addEventListener('error', () => {
+          console.error('[Direct Upload] Network error');
+          onStatusChange?.('error', 'Erro de rede');
+          reject(new Error('Erro de rede ao fazer upload'));
+        });
+        
+        // Configurar evento de abort
+        xhr.addEventListener('abort', () => {
+          console.log('[Direct Upload] Upload aborted');
+          onStatusChange?.('error', 'Upload cancelado');
+          reject(new Error('Upload cancelado'));
+        });
+        
         // Iniciar upload
-        console.log('[TUS Direct] Starting upload...');
-        upload.start();
+        console.log('[Direct Upload] Starting upload to:', uploadURL);
+        xhr.open('POST', uploadURL);
+        xhr.send(formData);
       });
     } catch (error: any) {
-      console.error('[TUS Direct] Error:', error);
+      console.error('[Direct Upload] Error:', error);
       onStatusChange?.('error', error.message);
       throw error;
     }
