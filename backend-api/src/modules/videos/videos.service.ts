@@ -599,35 +599,45 @@ export class VideosService {
 
   /**
    * Deletar vídeo (também remove do Cloudflare Stream)
+   * IMPORTANTE: Mesmo se a deleção do Cloudflare falhar, o vídeo é removido do banco
    */
   async remove(id: string): Promise<void> {
     // Verificar se o vídeo existe
     const video = await this.findOne(id);
 
-    try {
-      // Deletar do Cloudflare Stream (se tiver cloudflareId)
-      if (video.cloudflareId) {
+    // Tentar deletar do Cloudflare Stream (se tiver cloudflareId)
+    // Não bloqueia a deleção do banco se falhar
+    if (video.cloudflareId) {
+      try {
         await this.cloudflareStream.deleteVideo(video.cloudflareId);
+        this.logger.log(`Video deleted from Cloudflare: ${video.cloudflareId}`);
+      } catch (cloudflareError) {
+        // Log do erro mas continua com a deleção do banco
+        this.logger.warn(`Failed to delete video from Cloudflare (${video.cloudflareId}), continuing with DB deletion: ${cloudflareError.message}`);
       }
+    }
 
-      // Deletar arquivo temporário se existir
-      if (video.tempFilePath) {
-        try {
-          await unlinkAsync(video.tempFilePath);
-        } catch (deleteError) {
-          // Ignorar erro de deleção
-        }
+    // Deletar arquivo temporário se existir
+    if (video.tempFilePath) {
+      try {
+        await unlinkAsync(video.tempFilePath);
+        this.logger.log(`Temp file deleted: ${video.tempFilePath}`);
+      } catch (deleteError) {
+        // Ignorar erro de deleção de arquivo temp
+        this.logger.warn(`Failed to delete temp file: ${video.tempFilePath}`);
       }
+    }
 
+    try {
       // Deletar do banco
       await this.prisma.video.delete({
         where: { id },
       });
 
-      this.logger.log(`Video deleted: ${id}`);
-    } catch (error) {
-      this.logger.error(`Error deleting video ${id}`, error);
-      throw new BadRequestException('Erro ao deletar vídeo');
+      this.logger.log(`Video deleted from database: ${id}`);
+    } catch (dbError) {
+      this.logger.error(`Error deleting video ${id} from database`, dbError);
+      throw new BadRequestException('Erro ao deletar vídeo do banco de dados');
     }
   }
 
