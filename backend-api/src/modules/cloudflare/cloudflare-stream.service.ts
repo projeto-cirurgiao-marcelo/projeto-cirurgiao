@@ -454,7 +454,7 @@ export class CloudflareStreamService {
               filetype: 'video/mp4',
               name: metadata?.name || filename,
               requiresignedurls: 'false',
-              allowedorigins: '*',
+              // Não enviar allowedorigins - deixar vazio para não restringir origens
             }),
           },
         },
@@ -479,6 +479,19 @@ export class CloudflareStreamService {
       this.logger.log(`TUS upload URL obtained: ${tusUploadUrl}`);
       this.logger.log(`Video UID: ${uid}`);
 
+      // Atualizar configurações de segurança do vídeo (desabilitar URLs assinadas)
+      // Os metadados TUS nem sempre aplicam essas configurações corretamente
+      try {
+        await this.updateVideoSecuritySettings(uid, {
+          requireSignedURLs: false,
+          allowedOrigins: [], // Array vazio = sem restrição de origem
+        });
+        this.logger.log(`Video ${uid} security settings updated: requireSignedURLs=false, allowedOrigins=[]`);
+      } catch (securityError) {
+        this.logger.warn(`Failed to update security settings for video ${uid}:`, securityError);
+        // Não falhar o upload por causa disso - o admin pode ajustar manualmente
+      }
+
       return {
         tusUploadUrl,
         uid,
@@ -489,6 +502,35 @@ export class CloudflareStreamService {
       
       throw new BadRequestException(
         `Failed to get TUS upload URL: ${error?.response?.data?.errors?.[0]?.message || error.message}`
+      );
+    }
+  }
+
+  /**
+   * Atualizar configurações de segurança de um vídeo
+   * Permite desabilitar URLs assinadas e configurar origens permitidas
+   */
+  async updateVideoSecuritySettings(
+    videoId: string,
+    settings: { requireSignedURLs?: boolean; allowedOrigins?: string[] },
+  ): Promise<void> {
+    try {
+      this.logger.log(`Updating security settings for video ${videoId}: ${JSON.stringify(settings)}`);
+
+      const response = await this.apiClient.post<UploadVideoResponse>(`/${videoId}`, {
+        requireSignedURLs: settings.requireSignedURLs,
+        allowedOrigins: settings.allowedOrigins,
+      });
+
+      if (!response.data.success) {
+        throw new BadRequestException(`Failed to update security settings: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      this.logger.log(`Security settings updated for video ${videoId}`);
+    } catch (error: any) {
+      this.logger.error(`Error updating security settings for ${videoId}`, error?.response?.data || error.message);
+      throw new BadRequestException(
+        `Failed to update security settings: ${error?.response?.data?.errors?.[0]?.message || error.message}`
       );
     }
   }

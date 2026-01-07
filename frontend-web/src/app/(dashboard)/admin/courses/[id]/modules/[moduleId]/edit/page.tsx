@@ -1,20 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, ArrowLeft, Save } from 'lucide-react';
+import { 
+  Loader2, 
+  ArrowLeft, 
+  Save, 
+  Plus, 
+  Trash2, 
+  GripVertical, 
+  Video as VideoIcon,
+  Upload,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  FileVideo,
+  X
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { modulesService } from '@/lib/api';
-import type { Module } from '@/lib/types/course.types';
+import { modulesService, videosService } from '@/lib/api';
+import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types';
 
 const moduleFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
@@ -23,6 +50,344 @@ const moduleFormSchema = z.object({
 
 type ModuleFormValues = z.infer<typeof moduleFormSchema>;
 
+// Componente de status do vídeo
+function VideoStatusBadge({ status }: { status: VideoUploadStatus }) {
+  const statusConfig = {
+    PENDING: { label: 'Pendente', variant: 'secondary' as const, icon: Clock },
+    UPLOADING: { label: 'Enviando', variant: 'default' as const, icon: Upload },
+    PROCESSING: { label: 'Processando', variant: 'default' as const, icon: Loader2 },
+    READY: { label: 'Pronto', variant: 'default' as const, icon: CheckCircle },
+    ERROR: { label: 'Erro', variant: 'destructive' as const, icon: AlertCircle },
+  };
+
+  const config = statusConfig[status] || statusConfig.PENDING;
+  const Icon = config.icon;
+
+  return (
+    <Badge variant={config.variant} className="gap-1">
+      <Icon className={`h-3 w-3 ${status === 'PROCESSING' || status === 'UPLOADING' ? 'animate-spin' : ''}`} />
+      {config.label}
+    </Badge>
+  );
+}
+
+// Componente de item de vídeo arrastável
+function VideoItem({ 
+  video, 
+  onDelete, 
+  onTogglePublish,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  isDragging,
+}: { 
+  video: Video;
+  onDelete: () => void;
+  onTogglePublish: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  isDragging: boolean;
+}) {
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return '--:--';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div 
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={`flex items-center gap-3 p-3 bg-background border rounded-lg transition-all ${
+        isDragging ? 'opacity-50 border-dashed border-primary' : 'hover:bg-muted/50'
+      }`}
+    >
+      {/* Handle de arrasto */}
+      <div className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
+        <GripVertical className="h-5 w-5" />
+      </div>
+
+      {/* Ordem */}
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+        {video.order}
+      </div>
+
+      {/* Thumbnail ou ícone */}
+      <div className="w-16 h-10 bg-muted rounded flex items-center justify-center overflow-hidden">
+        {video.thumbnailUrl ? (
+          <img src={video.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <FileVideo className="h-5 w-5 text-muted-foreground" />
+        )}
+      </div>
+
+      {/* Informações */}
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{video.title}</p>
+        <p className="text-sm text-muted-foreground">
+          Duração: {formatDuration(video.duration)}
+        </p>
+      </div>
+
+      {/* Status */}
+      <VideoStatusBadge status={video.uploadStatus} />
+
+      {/* Botão publicar/despublicar */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onTogglePublish}
+        title={video.isPublished ? 'Despublicar' : 'Publicar'}
+        disabled={video.uploadStatus !== 'READY'}
+      >
+        {video.isPublished ? (
+          <Eye className="h-4 w-4 text-green-600" />
+        ) : (
+          <EyeOff className="h-4 w-4 text-muted-foreground" />
+        )}
+      </Button>
+
+      {/* Botão deletar */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onDelete}
+        className="text-destructive hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+// Componente de upload de vídeo
+function VideoUploadDialog({
+  open,
+  onOpenChange,
+  moduleId,
+  nextOrder,
+  onUploadComplete,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  moduleId: string;
+  nextOrder: number;
+  onUploadComplete: (video: Video) => void;
+}) {
+  const { toast } = useToast();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      // Auto-preencher título com nome do arquivo (sem extensão)
+      if (!title) {
+        const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, '');
+        setTitle(nameWithoutExt);
+      }
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file || !title.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione um arquivo e informe o título',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      const video = await videosService.uploadVideoTusDirect(
+        moduleId,
+        file,
+        {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          order: nextOrder,
+        },
+        (progress) => {
+          setUploadProgress(progress);
+        },
+        (status, message) => {
+          setUploadStatus(message || status);
+        }
+      );
+
+      toast({
+        title: 'Upload iniciado',
+        description: 'O vídeo está sendo processado pelo Cloudflare.',
+      });
+
+      onUploadComplete(video);
+      onOpenChange(false);
+      
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setFile(null);
+      setUploadProgress(0);
+      setUploadStatus('');
+    } catch (error: any) {
+      console.error('Erro no upload:', error);
+      toast({
+        title: 'Erro no upload',
+        description: error.message || 'Não foi possível fazer o upload do vídeo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Adicionar Novo Vídeo</DialogTitle>
+          <DialogDescription>
+            Faça upload de um vídeo para este módulo. Arquivos grandes são suportados.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {/* Título */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Título *</label>
+            <Input
+              placeholder="Ex: Aula 01 - Introdução"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={isUploading}
+            />
+          </div>
+
+          {/* Descrição */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Descrição (opcional)</label>
+            <Textarea
+              placeholder="Descreva o conteúdo do vídeo..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={isUploading}
+              rows={3}
+            />
+          </div>
+
+          {/* Seleção de arquivo */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Arquivo de Vídeo *</label>
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                file ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-muted-foreground/25 hover:border-primary'
+              }`}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                onChange={handleFileChange}
+                className="hidden"
+                disabled={isUploading}
+              />
+              {file ? (
+                <div className="flex items-center justify-center gap-3">
+                  <FileVideo className="h-8 w-8 text-green-600" />
+                  <div className="text-left">
+                    <p className="font-medium truncate max-w-[250px]">{file.name}</p>
+                    <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
+                  </div>
+                  {!isUploading && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFile(null);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Clique para selecionar ou arraste um vídeo
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    MP4, MOV, AVI, MKV (até 30GB)
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Progresso de upload */}
+          {isUploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>{uploadStatus}</span>
+                <span>{uploadProgress.toFixed(0)}%</span>
+              </div>
+              <Progress value={uploadProgress} />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isUploading}
+          >
+            Cancelar
+          </Button>
+          <Button onClick={handleUpload} disabled={!file || !title.trim() || isUploading}>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Fazer Upload
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Componente principal
 export default function EditModulePage() {
   const params = useParams();
   const router = useRouter();
@@ -33,6 +398,12 @@ export default function EditModulePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [module, setModule] = useState<Module | null>(null);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(true);
+  const [draggedVideoId, setDraggedVideoId] = useState<string | null>(null);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [deleteConfirmVideo, setDeleteConfirmVideo] = useState<Video | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleFormSchema),
@@ -49,8 +420,6 @@ export default function EditModulePage() {
         setIsLoading(true);
         const data = await modulesService.findOne(moduleId);
         setModule(data);
-
-        // Preencher formulário
         form.reset({
           title: data.title,
           description: data.description || '',
@@ -69,25 +438,71 @@ export default function EditModulePage() {
     };
 
     loadModule();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleId, courseId]);
+  }, [moduleId, courseId, form, toast, router]);
 
+  // Carregar vídeos do módulo
+  const loadVideos = useCallback(async () => {
+    try {
+      setIsLoadingVideos(true);
+      const data = await videosService.findAll(moduleId);
+      // Ordenar por ordem
+      setVideos(data.sort((a, b) => a.order - b.order));
+    } catch (error) {
+      console.error('Erro ao carregar vídeos:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os vídeos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  }, [moduleId, toast]);
+
+  useEffect(() => {
+    loadVideos();
+  }, [loadVideos]);
+
+  // Polling para atualizar status de vídeos em processamento
+  useEffect(() => {
+    const processingVideos = videos.filter(
+      v => v.uploadStatus === 'UPLOADING' || v.uploadStatus === 'PROCESSING'
+    );
+
+    if (processingVideos.length === 0) return;
+
+    const interval = setInterval(async () => {
+      for (const video of processingVideos) {
+        try {
+          const status = await videosService.getUploadStatus(video.id);
+          if (status.uploadStatus !== video.uploadStatus) {
+            setVideos(prev => prev.map(v => 
+              v.id === video.id 
+                ? { ...v, uploadStatus: status.uploadStatus, uploadProgress: status.uploadProgress }
+                : v
+            ));
+          }
+        } catch (error) {
+          console.error('Erro ao verificar status:', error);
+        }
+      }
+    }, 5000); // Verificar a cada 5 segundos
+
+    return () => clearInterval(interval);
+  }, [videos]);
+
+  // Submeter formulário do módulo
   const onSubmit = async (values: ModuleFormValues) => {
     try {
       setIsSubmitting(true);
-
       await modulesService.update(moduleId, {
         title: values.title,
         description: values.description || undefined,
       });
-
       toast({
         title: 'Sucesso',
         description: 'Módulo atualizado com sucesso!',
       });
-
-      // Redirecionar para página de edição do curso
-      router.push(`/admin/courses/${courseId}/edit`);
     } catch (error) {
       console.error('Erro ao atualizar módulo:', error);
       toast({
@@ -99,6 +514,124 @@ export default function EditModulePage() {
       setIsSubmitting(false);
     }
   };
+
+  // Handlers de drag and drop
+  const handleDragStart = (videoId: string) => (e: React.DragEvent) => {
+    setDraggedVideoId(videoId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (targetVideoId: string) => async (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    if (!draggedVideoId || draggedVideoId === targetVideoId) {
+      setDraggedVideoId(null);
+      return;
+    }
+
+    const draggedIndex = videos.findIndex(v => v.id === draggedVideoId);
+    const targetIndex = videos.findIndex(v => v.id === targetVideoId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedVideoId(null);
+      return;
+    }
+
+    // Reordenar localmente
+    const newVideos = [...videos];
+    const [removed] = newVideos.splice(draggedIndex, 1);
+    newVideos.splice(targetIndex, 0, removed);
+
+    // Atualizar ordens
+    const reorderedVideos = newVideos.map((v, index) => ({
+      ...v,
+      order: index + 1,
+    }));
+
+    setVideos(reorderedVideos);
+    setDraggedVideoId(null);
+
+    // Salvar no backend
+    try {
+      await videosService.reorder(moduleId, {
+        videoOrders: reorderedVideos.map(v => ({ id: v.id, order: v.order })),
+      });
+      toast({
+        title: 'Sucesso',
+        description: 'Ordem dos vídeos atualizada!',
+      });
+    } catch (error) {
+      console.error('Erro ao reordenar:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível reordenar os vídeos.',
+        variant: 'destructive',
+      });
+      // Recarregar para reverter
+      loadVideos();
+    }
+  };
+
+  // Toggle publicar/despublicar
+  const handleTogglePublish = async (videoId: string) => {
+    try {
+      const updatedVideo = await videosService.togglePublish(videoId);
+      setVideos(prev => prev.map(v => 
+        v.id === videoId ? { ...v, isPublished: updatedVideo.isPublished } : v
+      ));
+      toast({
+        title: 'Sucesso',
+        description: updatedVideo.isPublished ? 'Vídeo publicado!' : 'Vídeo despublicado!',
+      });
+    } catch (error) {
+      console.error('Erro ao alterar publicação:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível alterar o status de publicação.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Deletar vídeo
+  const handleDeleteVideo = async () => {
+    if (!deleteConfirmVideo) return;
+
+    try {
+      setIsDeleting(true);
+      await videosService.delete(deleteConfirmVideo.id);
+      setVideos(prev => prev.filter(v => v.id !== deleteConfirmVideo.id));
+      toast({
+        title: 'Sucesso',
+        description: 'Vídeo deletado com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao deletar:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível deletar o vídeo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmVideo(null);
+    }
+  };
+
+  // Callback quando upload completa
+  const handleUploadComplete = (video: Video) => {
+    setVideos(prev => [...prev, video].sort((a, b) => a.order - b.order));
+  };
+
+  // Próxima ordem disponível
+  const nextOrder = videos.length > 0 
+    ? Math.max(...videos.map(v => v.order)) + 1 
+    : 1;
 
   if (isLoading) {
     return (
@@ -113,7 +646,7 @@ export default function EditModulePage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-3xl">
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Button
@@ -126,17 +659,17 @@ export default function EditModulePage() {
         <div>
           <h1 className="text-3xl font-bold">Editar Módulo</h1>
           <p className="text-muted-foreground">
-            Atualize as informações do módulo
+            Atualize as informações e gerencie os vídeos do módulo
           </p>
         </div>
       </div>
 
-      {/* Formulário */}
-      <Card>
+      {/* Formulário do Módulo */}
+      <Card className="mb-8">
         <CardHeader>
           <CardTitle>Informações do Módulo</CardTitle>
           <CardDescription>
-            Atualize os dados do módulo
+            Atualize o título e a descrição do módulo
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -149,7 +682,7 @@ export default function EditModulePage() {
                   <FormItem>
                     <FormLabel>Título do Módulo</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Introdução ao React" {...field} />
+                      <Input placeholder="Ex: Introdução à Cirurgia" {...field} />
                     </FormControl>
                     <FormDescription>
                       O título principal do módulo
@@ -168,7 +701,7 @@ export default function EditModulePage() {
                     <FormControl>
                       <Textarea
                         placeholder="Descreva o conteúdo do módulo..."
-                        className="min-h-[120px]"
+                        className="min-h-[100px]"
                         {...field}
                       />
                     </FormControl>
@@ -180,15 +713,7 @@ export default function EditModulePage() {
                 )}
               />
 
-              <div className="flex justify-end gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push(`/admin/courses/${courseId}/edit`)}
-                  disabled={isSubmitting}
-                >
-                  Cancelar
-                </Button>
+              <div className="flex justify-end">
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
@@ -198,7 +723,7 @@ export default function EditModulePage() {
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      Salvar Alterações
+                      Salvar Informações
                     </>
                   )}
                 </Button>
@@ -207,6 +732,120 @@ export default function EditModulePage() {
           </Form>
         </CardContent>
       </Card>
+
+      {/* Seção de Vídeos */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <VideoIcon className="h-5 w-5" />
+                Vídeos do Módulo
+              </CardTitle>
+              <CardDescription>
+                Gerencie os vídeos deste módulo. Arraste para reordenar.
+              </CardDescription>
+            </div>
+            <Button onClick={() => setIsUploadDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Vídeo
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoadingVideos ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : videos.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed rounded-lg">
+              <VideoIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Nenhum vídeo ainda</h3>
+              <p className="text-muted-foreground mb-4">
+                Adicione vídeos para começar a construir seu módulo.
+              </p>
+              <Button onClick={() => setIsUploadDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar Primeiro Vídeo
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {videos.map((video) => (
+                <VideoItem
+                  key={video.id}
+                  video={video}
+                  onDelete={() => setDeleteConfirmVideo(video)}
+                  onTogglePublish={() => handleTogglePublish(video.id)}
+                  onDragStart={handleDragStart(video.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop(video.id)}
+                  isDragging={draggedVideoId === video.id}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Botão Voltar */}
+      <div className="mt-8 flex justify-between">
+        <Button
+          variant="outline"
+          onClick={() => router.push(`/admin/courses/${courseId}/edit`)}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para o Curso
+        </Button>
+      </div>
+
+      {/* Dialog de Upload */}
+      <VideoUploadDialog
+        open={isUploadDialogOpen}
+        onOpenChange={setIsUploadDialogOpen}
+        moduleId={moduleId}
+        nextOrder={nextOrder}
+        onUploadComplete={handleUploadComplete}
+      />
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={!!deleteConfirmVideo} onOpenChange={() => setDeleteConfirmVideo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir o vídeo &quot;{deleteConfirmVideo?.title}&quot;?
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmVideo(null)}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteVideo}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir Vídeo
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

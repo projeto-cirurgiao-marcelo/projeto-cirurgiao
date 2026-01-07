@@ -320,8 +320,9 @@ export class VideosService {
   async getUploadStatus(videoId: string): Promise<UploadStatusResponse> {
     const video = await this.findOne(videoId);
 
-    // Se o vídeo está em PROCESSING, verificar se já está pronto no Cloudflare
-    if (video.uploadStatus === 'PROCESSING' && video.cloudflareId) {
+    // Se o vídeo está em PROCESSING ou UPLOADING com cloudflareId, verificar se já está pronto no Cloudflare
+    // Isso é necessário porque no upload TUS direto, o frontend não atualiza o progresso no banco
+    if ((video.uploadStatus === 'PROCESSING' || video.uploadStatus === 'UPLOADING') && video.cloudflareId) {
       try {
         const cloudflareDetails = await this.cloudflareStream.getVideoDetails(video.cloudflareId);
         
@@ -331,11 +332,14 @@ export class VideosService {
             where: { id: videoId },
             data: {
               uploadStatus: 'READY',
+              uploadProgress: 100,
               duration: cloudflareDetails.duration,
               thumbnailUrl: cloudflareDetails.thumbnailUrl,
               cloudflareUrl: cloudflareDetails.playbackUrl,
             },
           });
+
+          this.logger.log(`Video ${videoId} updated to READY from Cloudflare`);
 
           return {
             id: video.id,
@@ -345,6 +349,29 @@ export class VideosService {
             cloudflareId: video.cloudflareId,
             cloudflareUrl: cloudflareDetails.playbackUrl,
             readyToStream: true,
+          };
+        } else {
+          // Vídeo ainda processando no Cloudflare, atualizar para PROCESSING
+          if (video.uploadStatus === 'UPLOADING') {
+            await this.prisma.video.update({
+              where: { id: videoId },
+              data: {
+                uploadStatus: 'PROCESSING',
+                uploadProgress: 100,
+              },
+            });
+
+            this.logger.log(`Video ${videoId} updated to PROCESSING (Cloudflare encoding)`);
+          }
+
+          return {
+            id: video.id,
+            uploadStatus: 'PROCESSING',
+            uploadProgress: 100,
+            uploadError: null,
+            cloudflareId: video.cloudflareId,
+            cloudflareUrl: video.cloudflareUrl,
+            readyToStream: false,
           };
         }
       } catch (error) {
