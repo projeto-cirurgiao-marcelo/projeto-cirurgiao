@@ -404,6 +404,14 @@ export default function EditModulePage() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [deleteConfirmVideo, setDeleteConfirmVideo] = useState<Video | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Refs para evitar loops
+  const moduleLoadedRef = useRef(false);
+  const videosLoadedRef = useRef(false);
+  const videosRef = useRef<Video[]>([]);
+  
+  // Manter ref atualizado
+  videosRef.current = videos;
 
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleFormSchema),
@@ -413,8 +421,11 @@ export default function EditModulePage() {
     },
   });
 
-  // Carregar dados do módulo
+  // Carregar dados do módulo (apenas uma vez)
   useEffect(() => {
+    if (moduleLoadedRef.current) return;
+    moduleLoadedRef.current = true;
+    
     let isMounted = true;
     
     const loadModule = async () => {
@@ -452,9 +463,9 @@ export default function EditModulePage() {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleId, courseId]);
+  }, [moduleId]);
 
-  // Carregar vídeos do módulo
+  // Carregar vídeos do módulo (apenas uma vez)
   const loadVideos = useCallback(async () => {
     try {
       setIsLoadingVideos(true);
@@ -463,29 +474,28 @@ export default function EditModulePage() {
       setVideos(data.sort((a, b) => a.order - b.order));
     } catch (error) {
       console.error('Erro ao carregar vídeos:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os vídeos.',
-        variant: 'destructive',
-      });
     } finally {
       setIsLoadingVideos(false);
     }
-  }, [moduleId, toast]);
+  }, [moduleId]);
 
   useEffect(() => {
+    if (videosLoadedRef.current) return;
+    videosLoadedRef.current = true;
     loadVideos();
-  }, [loadVideos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleId]);
 
   // Polling para atualizar status de vídeos em processamento
   useEffect(() => {
-    const processingVideos = videos.filter(
-      v => v.uploadStatus === 'UPLOADING' || v.uploadStatus === 'PROCESSING'
-    );
+    const checkProcessingVideos = async () => {
+      const currentVideos = videosRef.current;
+      const processingVideos = currentVideos.filter(
+        v => v.uploadStatus === 'UPLOADING' || v.uploadStatus === 'PROCESSING'
+      );
 
-    if (processingVideos.length === 0) return;
+      if (processingVideos.length === 0) return;
 
-    const interval = setInterval(async () => {
       for (const video of processingVideos) {
         try {
           const status = await videosService.getUploadStatus(video.id);
@@ -500,10 +510,12 @@ export default function EditModulePage() {
           console.error('Erro ao verificar status:', error);
         }
       }
-    }, 5000); // Verificar a cada 5 segundos
+    };
+
+    const interval = setInterval(checkProcessingVideos, 5000);
 
     return () => clearInterval(interval);
-  }, [videos]);
+  }, []); // Sem dependências - usa refs
 
   // Submeter formulário do módulo
   const onSubmit = async (values: ModuleFormValues) => {
