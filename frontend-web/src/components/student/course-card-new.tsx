@@ -160,12 +160,6 @@ export function CourseCardNew({
               <Video className="h-4 w-4" />
               <span>{progress.totalVideos} aulas</span>
             </div>
-            {isEnrolled && progress.totalWatchTime > 0 && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>{Math.round(progress.totalWatchTime / 60)}min</span>
-              </div>
-            )}
           </div>
 
           {/* Seção de progresso OU preço */}
