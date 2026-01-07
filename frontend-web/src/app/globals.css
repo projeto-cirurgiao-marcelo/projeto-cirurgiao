@@ -44,80 +44,425 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* ===== PROJETO CIRURGIÃO - DESIGN SYSTEM ===== */
+  /* Inspirado em Coursera - Versão Light (Padrão) */
+
+  /* === Border Radius === */
+  --radius: 0.5rem; /* 8px - base */
+  --radius-sm: 0.25rem; /* 4px */
+  --radius-md: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+  --radius-xl: 1.5rem; /* 24px */
+  --radius-full: 9999px;
+
+  /* === Primary Colors (Azul Médico - Coursera Style) === */
+  --primary-50: 227 242 253; /* #E3F2FD */
+  --primary-100: 187 222 251; /* #BBDEFB */
+  --primary-200: 144 202 249; /* #90CAF9 */
+  --primary-300: 100 181 246; /* #64B5F6 */
+  --primary-400: 66 165 245; /* #42A5F5 */
+  --primary-500: 33 150 243; /* #2196F3 - Principal */
+  --primary-600: 30 136 229; /* #1E88E5 */
+  --primary-700: 25 118 210; /* #1976D2 */
+  --primary-800: 21 101 192; /* #1565C0 */
+  --primary-900: 13 71 161; /* #0D47A1 */
+
+  /* === Accent Colors (Verde Sucesso - Gamificação) === */
+  --accent-50: 232 245 233; /* #E8F5E9 */
+  --accent-100: 200 230 201; /* #C8E6C9 */
+  --accent-200: 165 214 167; /* #A5D6A7 */
+  --accent-300: 129 199 132; /* #81C784 */
+  --accent-400: 102 187 106; /* #66BB6A */
+  --accent-500: 76 175 80; /* #4CAF50 - Conquistas */
+  --accent-600: 67 160 71; /* #43A047 */
+  --accent-700: 56 142 60; /* #388E3C */
+  --accent-800: 46 125 50; /* #2E7D32 */
+  --accent-900: 27 94 32; /* #1B5E20 */
+
+  /* === Secondary Colors (Laranja Energia - Streaks) === */
+  --secondary-50: 255 243 224; /* #FFF3E0 */
+  --secondary-100: 255 224 178; /* #FFE0B2 */
+  --secondary-200: 255 204 128; /* #FFCC80 */
+  --secondary-300: 255 183 77; /* #FFB74D */
+  --secondary-400: 255 167 38; /* #FFA726 */
+  --secondary-500: 255 152 0; /* #FF9800 - Streak */
+  --secondary-600: 251 140 0; /* #FB8C00 */
+  --secondary-700: 245 124 0; /* #F57C00 */
+  --secondary-800: 239 108 0; /* #EF6C00 */
+  --secondary-900: 230 81 0; /* #E65100 */
+
+  /* === Neutral Colors (Background e Texto) === */
+  --bg-primary: 255 255 255; /* #FFFFFF */
+  --bg-secondary: 245 247 250; /* #F5F7FA */
+  --bg-tertiary: 232 236 240; /* #E8ECF0 */
+
+  --text-primary: 26 26 26; /* #1A1A1A */
+  --text-secondary: 82 82 82; /* #525252 */
+  --text-tertiary: 115 115 115; /* #737373 */
+  --text-disabled: 163 163 163; /* #A3A3A3 */
+
+  /* === Functional Colors === */
+  --success: 16 185 129; /* #10B981 */
+  --warning: 245 158 11; /* #F59E0B */
+  --error: 239 68 68; /* #EF4444 */
+  --info: 59 130 246; /* #3B82F6 */
+
+  /* === Progress Colors === */
+  --progress-empty: 229 231 235; /* #E5E7EB */
+  --progress-partial: 252 211 77; /* #FCD34D */
+  --progress-complete: 16 185 129; /* #10B981 */
+
+  /* === Gamification Colors === */
+  --gold: 245 158 11; /* #F59E0B */
+  --silver: 148 163 184; /* #94A3B8 */
+  --bronze: 205 127 50; /* #CD7F32 */
+  --platinum: 229 228 226; /* #E5E4E2 */
+
+  /* === Shadows === */
+  --shadow-color: 0 0 0;
+  --shadow-sm: 0 1px 2px 0 rgb(var(--shadow-color) / 0.05);
+  --shadow-base: 0 1px 3px 0 rgb(var(--shadow-color) / 0.1), 0 1px 2px 0 rgb(var(--shadow-color) / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(var(--shadow-color) / 0.1), 0 2px 4px -1px rgb(var(--shadow-color) / 0.06);
+  --shadow-lg: 0 10px 15px -3px rgb(var(--shadow-color) / 0.1), 0 4px 6px -2px rgb(var(--shadow-color) / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(var(--shadow-color) / 0.1), 0 10px 10px -5px rgb(var(--shadow-color) / 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgb(var(--shadow-color) / 0.25);
+
+  /* === Glow Effects (Gamificação) === */
+  --glow-success: 0 0 20px rgba(76, 175, 80, 0.4);
+  --glow-primary: 0 0 20px rgba(33, 150, 243, 0.4);
+  --glow-gold: 0 0 25px rgba(245, 158, 11, 0.5);
+
+  /* === Transições === */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  /* === Spacing (8pt grid) === */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
+  --space-24: 6rem; /* 96px */
+
+  /* === Compatibilidade com shadcn/ui === */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-primary);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-primary);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--primary-500);
+  --primary-foreground: 255 255 255;
+  --secondary: var(--bg-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-secondary);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--accent-500);
+  --accent-foreground: 255 255 255;
+  --destructive: var(--error);
+  --destructive-foreground: 255 255 255;
+  --border: 229 231 235; /* Gray-200 */
+  --input: 229 231 235;
+  --ring: var(--primary-500);
+
+  /* Charts */
+  --chart-1: var(--primary-500);
+  --chart-2: var(--accent-500);
+  --chart-3: var(--secondary-500);
+  --chart-4: var(--info);
+  --chart-5: var(--warning);
+
+  /* Sidebar (Admin) */
+  --sidebar: var(--bg-primary);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--primary-500);
+  --sidebar-primary-foreground: 255 255 255;
+  --sidebar-accent: var(--bg-secondary);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* === Dark Mode === */
+  --bg-primary: 15 23 42; /* #0F172A - Slate-900 */
+  --bg-secondary: 30 41 59; /* #1E293B - Slate-800 */
+  --bg-tertiary: 51 65 85; /* #334155 - Slate-700 */
+
+  --text-primary: 248 250 252; /* #F8FAFC - Slate-50 */
+  --text-secondary: 203 213 225; /* #CBD5E1 - Slate-300 */
+  --text-tertiary: 148 163 184; /* #94A3B8 - Slate-400 */
+  --text-disabled: 100 116 139; /* #64748B - Slate-500 */
+
+  /* Compatibilidade shadcn/ui */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-secondary);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-secondary);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--primary-500);
+  --primary-foreground: 255 255 255;
+  --secondary: var(--bg-tertiary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-tertiary);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--accent-500);
+  --accent-foreground: 255 255 255;
+  --destructive: var(--error);
+  --destructive-foreground: 255 255 255;
+  --border: 51 65 85; /* Slate-700 */
+  --input: 51 65 85;
+  --ring: var(--primary-500);
+
+  /* Charts (Dark Mode) */
+  --chart-1: var(--primary-400);
+  --chart-2: var(--accent-400);
+  --chart-3: var(--secondary-400);
+  --chart-4: var(--info);
+  --chart-5: var(--warning);
+
+  /* Sidebar (Dark Mode) */
+  --sidebar: var(--bg-secondary);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--primary-500);
+  --sidebar-primary-foreground: 255 255 255;
+  --sidebar-accent: var(--bg-tertiary);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: 51 65 85;
+  --sidebar-ring: var(--primary-500);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Tipografia */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Scrollbar customizada */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary/20;
+    border-radius: 100vw;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30;
+    border-radius: 100vw;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  /* Focus visible global */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+    border-radius: 4px;
+  }
+
+  /* Skip link para acessibilidade */
+  .skip-link {
+    @apply absolute -top-10 left-0 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-md;
+    @apply focus:top-4 focus:left-4 transition-all duration-200;
+  }
+
+  /* Animações de redução de movimento */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* === Utility Classes === */
+
+  /* Shadows */
+  .shadow-glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+
+  .shadow-glow-success {
+    box-shadow: var(--glow-success);
+  }
+
+  .shadow-glow-gold {
+    box-shadow: var(--glow-gold);
+  }
+
+  /* Transitions */
+  .transition-base {
+    transition: all var(--duration-base) cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .transition-fast {
+    transition: all var(--duration-fast) cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .transition-slow {
+    transition: all var(--duration-slow) cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  /* Card hover effect (estilo Coursera) */
+  .card-hover {
+    transition: all var(--duration-base) cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-0.25rem);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+  }
+
+  /* Badge unlock animation */
+  @keyframes badgeUnlock {
+    0% {
+      opacity: 0;
+      transform: scale(0.5) rotate(-10deg);
+    }
+    50% {
+      transform: scale(1.1) rotate(5deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  .badge-unlock {
+    animation: badgeUnlock 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Shimmer loading effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -468px 0;
+    }
+    100% {
+      background-position: 468px 0;
+    }
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--bg-secondary)) 0px,
+      rgb(var(--bg-tertiary)) 40px,
+      rgb(var(--bg-secondary)) 80px
+    );
+    background-size: 468px;
+    animation: shimmer 1.2s infinite;
+  }
+
+  /* Progress bar animations */
+  .progress-bar {
+    position: relative;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: rgb(var(--progress-empty));
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .progress-fill-low {
+    background: rgb(var(--secondary-500)); /* Laranja */
+  }
+
+  .progress-fill-medium {
+    background: rgb(var(--progress-partial)); /* Amarelo */
+  }
+
+  .progress-fill-high {
+    background: rgb(var(--progress-complete)); /* Verde */
+  }
+
+  /* Modal animations */
+  @keyframes modalSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .modal-content {
+    animation: modalSlideUp 200ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .modal-backdrop {
+    animation: fadeIn 200ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  /* Gamification - Level Up Animation */
+  @keyframes levelUp {
+    0% {
+      transform: scale(0) rotate(0deg);
+    }
+    50% {
+      transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+      transform: scale(1) rotate(360deg);
+    }
+  }
+
+  .level-up {
+    animation: levelUp 600ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Pulse animation (para streaks) */
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
 
