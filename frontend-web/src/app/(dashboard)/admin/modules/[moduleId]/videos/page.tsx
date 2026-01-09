@@ -675,7 +675,7 @@ export default function ModuleVideosPage() {
 
       {/* Modal de Upload */}
       <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] bg-background">
           <DialogHeader>
             <DialogTitle>Adicionar Vídeo</DialogTitle>
             <DialogDescription>

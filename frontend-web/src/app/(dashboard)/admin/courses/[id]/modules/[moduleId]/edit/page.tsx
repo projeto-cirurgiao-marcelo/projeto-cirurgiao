@@ -20,7 +20,8 @@ import {
   CheckCircle,
   Clock,
   FileVideo,
-  X
+  X,
+  Link2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -179,13 +180,29 @@ function VideoUploadDialog({
   onUploadComplete: (video: Video) => void;
 }) {
   const { toast } = useToast();
+  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset ao fechar
+  const handleClose = (isOpen: boolean) => {
+    if (!isOpen) {
+      setUploadMode('file');
+      setTitle('');
+      setDescription('');
+      setFile(null);
+      setVideoUrl('');
+      setUploadProgress(0);
+      setUploadStatus('');
+    }
+    onOpenChange(isOpen);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -235,19 +252,59 @@ function VideoUploadDialog({
       });
 
       onUploadComplete(video);
-      onOpenChange(false);
-      
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setFile(null);
-      setUploadProgress(0);
-      setUploadStatus('');
+      handleClose(false);
     } catch (error: any) {
       console.error('Erro no upload:', error);
       toast({
         title: 'Erro no upload',
         description: error.message || 'Não foi possível fazer o upload do vídeo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSubmitFromUrl = async () => {
+    if (!videoUrl.trim() || !title.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Preencha a URL e o título do vídeo',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+      toast({
+        title: 'URL inválida',
+        description: 'A URL deve começar com http:// ou https://',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+
+      const video = await videosService.createFromUrl(moduleId, videoUrl, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        order: nextOrder,
+      });
+
+      toast({
+        title: 'Vídeo adicionado!',
+        description: 'O Cloudflare está baixando e processando o vídeo.',
+      });
+
+      onUploadComplete(video);
+      handleClose(false);
+    } catch (error: any) {
+      console.error('Erro ao criar vídeo da URL:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível criar o vídeo a partir da URL.',
         variant: 'destructive',
       });
     } finally {
@@ -264,124 +321,233 @@ function VideoUploadDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[500px] bg-background">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Vídeo</DialogTitle>
           <DialogDescription>
-            Faça upload de um vídeo para este módulo. Arquivos grandes são suportados.
+            Faça upload de um arquivo ou insira uma URL externa.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Título */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Título *</label>
-            <Input
-              placeholder="Ex: Aula 01 - Introdução"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+          {/* Toggle entre Upload e URL */}
+          <div className="flex gap-2 p-1 bg-muted rounded-lg">
+            <Button
+              variant={uploadMode === 'file' ? 'default' : 'ghost'}
+              className="flex-1"
+              onClick={() => {
+                setUploadMode('file');
+                setVideoUrl('');
+              }}
               disabled={isUploading}
-            />
-          </div>
-
-          {/* Descrição */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Descrição (opcional)</label>
-            <Textarea
-              placeholder="Descreva o conteúdo do vídeo..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={isUploading}
-              rows={3}
-            />
-          </div>
-
-          {/* Seleção de arquivo */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Arquivo de Vídeo *</label>
-            <div 
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                file ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-muted-foreground/25 hover:border-primary'
-              }`}
-              onClick={() => !isUploading && fileInputRef.current?.click()}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/*"
-                onChange={handleFileChange}
-                className="hidden"
-                disabled={isUploading}
-              />
-              {file ? (
-                <div className="flex items-center justify-center gap-3">
-                  <FileVideo className="h-8 w-8 text-green-600" />
-                  <div className="text-left">
-                    <p className="font-medium truncate max-w-[250px]">{file.name}</p>
-                    <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
-                  </div>
-                  {!isUploading && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFile(null);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload de Arquivo
+            </Button>
+            <Button
+              variant={uploadMode === 'url' ? 'default' : 'ghost'}
+              className="flex-1"
+              onClick={() => {
+                setUploadMode('url');
+                setFile(null);
+              }}
+              disabled={isUploading}
+            >
+              <Link2 className="mr-2 h-4 w-4" />
+              URL Externa
+            </Button>
+          </div>
+
+          {/* Modo: Upload de Arquivo */}
+          {uploadMode === 'file' && (
+            <>
+              {/* Seleção de arquivo */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Arquivo de Vídeo *</label>
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                    file ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-muted-foreground/25 hover:border-primary'
+                  }`}
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="video/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                  {file ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <FileVideo className="h-8 w-8 text-green-600" />
+                      <div className="text-left">
+                        <p className="font-medium truncate max-w-[250px]">{file.name}</p>
+                        <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
+                      </div>
+                      {!isUploading && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFile(null);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Clique para selecionar ou arraste um vídeo
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        MP4, MOV, AVI, MKV (até 30GB)
+                      </p>
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div>
-                  <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Clique para selecionar ou arraste um vídeo
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    MP4, MOV, AVI, MKV (até 30GB)
-                  </p>
+              </div>
+
+              {/* Título */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Título *</label>
+                <Input
+                  placeholder="Ex: Aula 01 - Introdução"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={isUploading}
+                />
+              </div>
+
+              {/* Descrição */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Descrição (opcional)</label>
+                <Textarea
+                  placeholder="Descreva o conteúdo do vídeo..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={isUploading}
+                  rows={3}
+                />
+              </div>
+
+              {/* Progresso de upload */}
+              {isUploading && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>{uploadStatus || 'Enviando...'}</span>
+                    <span>{uploadProgress.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={uploadProgress} />
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Progresso de upload */}
-          {isUploading && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>{uploadStatus}</span>
-                <span>{uploadProgress.toFixed(0)}%</span>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => handleClose(false)}
+                  disabled={isUploading}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleUpload} disabled={!file || !title.trim() || isUploading}>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Fazer Upload
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {/* Modo: URL Externa */}
+          {uploadMode === 'url' && (
+            <>
+              {/* URL */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">URL do Vídeo *</label>
+                <Input
+                  placeholder="https://exemplo.com/video.mp4"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  disabled={isUploading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Insira a URL direta para o arquivo de vídeo
+                </p>
               </div>
-              <Progress value={uploadProgress} />
-            </div>
+
+              {/* Título */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Título *</label>
+                <Input
+                  placeholder="Ex: Aula 01 - Introdução"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={isUploading}
+                />
+              </div>
+
+              {/* Descrição */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Descrição (opcional)</label>
+                <Textarea
+                  placeholder="Descreva o conteúdo do vídeo..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={isUploading}
+                  rows={3}
+                />
+              </div>
+
+              {/* Loading */}
+              {isUploading && (
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Enviando URL para o Cloudflare...</span>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => handleClose(false)}
+                  disabled={isUploading}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleSubmitFromUrl} 
+                  disabled={!videoUrl.trim() || !title.trim() || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="mr-2 h-4 w-4" />
+                      Adicionar da URL
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
           )}
         </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isUploading}
-          >
-            Cancelar
-          </Button>
-          <Button onClick={handleUpload} disabled={!file || !title.trim() || isUploading}>
-            {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Enviando...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Fazer Upload
-              </>
-            )}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
