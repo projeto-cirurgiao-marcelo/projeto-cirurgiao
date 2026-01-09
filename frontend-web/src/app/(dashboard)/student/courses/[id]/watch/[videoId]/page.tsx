@@ -9,6 +9,7 @@ import { progressService, CourseProgress } from '@/lib/api/progress.service';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock } from 'lucide-react';
 import { Course, Video as VideoType } from '@/lib/types/course.types';
+import { StreamDataResponse } from '@/lib/api/videos.service';
 import { Stream } from '@cloudflare/stream-react';
 
 export default function VideoPlayerPage() {
@@ -20,7 +21,7 @@ export default function VideoPlayerPage() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [currentVideo, setCurrentVideo] = useState<VideoType | null>(null);
-  const [streamData, setStreamData] = useState<{ cloudflareId: string; cloudflareUrl: string } | null>(null);
+  const [streamData, setStreamData] = useState<StreamDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -91,21 +92,27 @@ export default function VideoPlayerPage() {
       ]);
 
       // Verificar se o vídeo está pronto para streaming
-      if (!videoData.cloudflareId) {
-        setError('Vídeo ainda não foi enviado ao Cloudflare Stream');
-        setCourse(courseData);
-        setCurrentVideo(videoData);
-        return;
+      // Para vídeos embed externos, não precisa de cloudflareId
+      const isEmbedVideo = videoData.videoSource && videoData.videoSource !== 'cloudflare';
+      
+      if (!isEmbedVideo) {
+        // Vídeo Cloudflare - verificar cloudflareId
+        if (!videoData.cloudflareId) {
+          setError('Vídeo ainda não foi enviado ao Cloudflare Stream');
+          setCourse(courseData);
+          setCurrentVideo(videoData);
+          return;
+        }
+
+        if (videoData.uploadStatus !== 'READY') {
+          setError(`Vídeo ainda está sendo processado (Status: ${videoData.uploadStatus})`);
+          setCourse(courseData);
+          setCurrentVideo(videoData);
+          return;
+        }
       }
 
-      if (videoData.uploadStatus !== 'READY') {
-        setError(`Vídeo ainda está sendo processado (Status: ${videoData.uploadStatus})`);
-        setCourse(courseData);
-        setCurrentVideo(videoData);
-        return;
-      }
-
-      // Buscar URL do stream
+      // Buscar URL do stream (Cloudflare ou embed)
       const streamInfo = await videosService.getStreamUrl(videoId);
 
       // Configurar progresso atual do vídeo
@@ -302,7 +309,13 @@ export default function VideoPlayerPage() {
     );
   }
 
-  if (error || !currentVideo || !streamData) {
+  // Verificar se temos dados válidos para renderizar
+  const hasValidStreamData = streamData && (
+    (streamData.type === 'cloudflare' && streamData.cloudflareId) ||
+    (streamData.type === 'embed' && streamData.embedUrl)
+  );
+
+  if (error || !currentVideo || !hasValidStreamData) {
     return (
       <div className="min-h-screen bg-black text-white p-8">
         <div className="container mx-auto max-w-4xl">
@@ -373,7 +386,8 @@ export default function VideoPlayerPage() {
           <div className="lg:col-span-2">
             {/* Player Container */}
             <div className="bg-black rounded-lg overflow-hidden border border-gray-800 mb-4" style={{ aspectRatio: '16/9' }}>
-              {streamData?.cloudflareId ? (
+              {streamData?.type === 'cloudflare' && streamData.cloudflareId ? (
+                // Player Cloudflare Stream
                 <Stream
                   controls
                   src={streamData.cloudflareId.split('?')[0]}
@@ -383,6 +397,16 @@ export default function VideoPlayerPage() {
                   className="w-full h-full"
                   onTimeUpdate={handleTimeUpdate}
                   onEnded={handleVideoEnded}
+                />
+              ) : streamData?.type === 'embed' && streamData.embedUrl ? (
+                // Player Embed Externo (YouTube, Vimeo, Panda, etc)
+                <iframe
+                  src={streamData.embedUrl}
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  title={currentVideo.title}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-900">

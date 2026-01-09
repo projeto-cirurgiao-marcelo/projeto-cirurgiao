@@ -16,6 +16,15 @@ export interface DirectUploadResponse {
   video: Video;
 }
 
+// Interface para dados de streaming (Cloudflare ou embed)
+export interface StreamDataResponse {
+  type: 'cloudflare' | 'embed';
+  cloudflareId?: string;
+  cloudflareUrl?: string;
+  embedUrl?: string;
+  videoSource?: 'youtube' | 'vimeo' | 'external' | 'cloudflare';
+}
+
 // Interface para status de upload
 export interface UploadStatusResponse {
   id: string;
@@ -172,21 +181,34 @@ export const videosService = {
 
   /**
    * Obter URL de streaming do vídeo para o player
+   * Suporta tanto vídeos Cloudflare quanto embeds externos
    */
-  async getStreamUrl(id: string): Promise<{ cloudflareId: string; cloudflareUrl: string }> {
+  async getStreamUrl(id: string): Promise<StreamDataResponse> {
     const video = await this.findOne(id);
-    
-    if (!video.cloudflareId || !video.cloudflareUrl) {
-      throw new Error('Vídeo ainda não está disponível para streaming');
-    }
     
     if (!video.isPublished) {
       throw new Error('Este vídeo não está publicado');
     }
     
+    // Verificar se é um vídeo embed externo
+    if (video.videoSource && video.videoSource !== 'cloudflare' && video.externalUrl) {
+      return {
+        type: 'embed',
+        embedUrl: video.externalUrl,
+        videoSource: video.videoSource as 'youtube' | 'vimeo' | 'external',
+      };
+    }
+    
+    // Vídeo Cloudflare
+    if (!video.cloudflareId || !video.cloudflareUrl) {
+      throw new Error('Vídeo ainda não está disponível para streaming');
+    }
+    
     return {
+      type: 'cloudflare',
       cloudflareId: video.cloudflareId,
       cloudflareUrl: video.cloudflareUrl,
+      videoSource: 'cloudflare',
     };
   },
 
