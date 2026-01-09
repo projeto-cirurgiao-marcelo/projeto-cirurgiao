@@ -40,6 +40,25 @@ export const videosService = {
   },
 
   /**
+   * Criar vídeo a partir de URL externa
+   * O Cloudflare irá baixar e processar o vídeo automaticamente
+   * @param moduleId ID do módulo
+   * @param url URL do vídeo (link direto para arquivo .mp4, etc)
+   * @param metadata Título, descrição e ordem
+   */
+  async createFromUrl(
+    moduleId: string,
+    url: string,
+    metadata: { title: string; description?: string; order: number }
+  ): Promise<Video> {
+    const response = await apiClient.post<Video>(`/modules/${moduleId}/videos/from-url`, {
+      url,
+      ...metadata,
+    });
+    return response.data;
+  },
+
+  /**
    * Listar vídeos de um módulo
    */
   async findAll(moduleId: string): Promise<Video[]> {
