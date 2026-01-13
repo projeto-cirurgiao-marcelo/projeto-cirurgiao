@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -18,10 +19,19 @@ export const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
+    // Pega o token do Zustand store primeiro (mais confiável que localStorage)
+    const firebaseToken = useAuthStore.getState().firebaseToken;
+    
+    // Fallback para localStorage se não estiver no store ainda
+    const localToken = localStorage.getItem('firebaseToken') || localStorage.getItem('accessToken');
+    
+    const token = firebaseToken || localToken;
     
     if (token && config.headers) {
+      console.log('🔑 [API Client] Token anexado ao header:', token.substring(0, 20) + '...');
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('⚠️ [API Client] Nenhum token disponível para a requisição');
     }
     
     return config;
@@ -32,54 +42,23 @@ apiClient.interceptors.request.use(
 );
 
 /**
- * Interceptor de resposta para tratamento de erros e refresh token
+ * Interceptor de resposta para tratamento de erros
+ * Firebase gerencia refresh automaticamente
  */
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-    // Se o erro for 401 e não for uma tentativa de retry
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        // Tenta renovar o token
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-        // Atualiza os tokens no localStorage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-
-        // Atualiza o header da requisição original
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        }
-
-        // Refaz a requisição original
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        // Se falhar ao renovar o token, limpa o localStorage e redireciona para login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        
-        // Redireciona para login
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
-        
-        return Promise.reject(refreshError);
+    // Se o erro for 401, significa que o token expirou ou é inválido
+    if (error.response?.status === 401) {
+      // Limpa o localStorage e redireciona para login
+      localStorage.removeItem('firebaseToken');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      
+      // Redireciona para login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
       }
     }
 

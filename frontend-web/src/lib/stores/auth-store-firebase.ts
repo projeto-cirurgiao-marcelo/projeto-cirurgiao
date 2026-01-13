@@ -189,9 +189,7 @@ export const useAuthStore = create<AuthStore>()(
        * Carrega usuário do Firebase e valida com backend
        */
       loadUser: async () => {
-        // Tenta pegar o token do state (hidratado pelo persist) primeiro
-        const currentState = get();
-        const token = currentState.firebaseToken || localStorage.getItem('firebaseToken');
+        const token = localStorage.getItem('firebaseToken');
         
         if (!token) {
           console.log('⚠️ [loadUser] Sem token Firebase');
@@ -221,12 +219,8 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
-          
-          // Sincroniza localStorage
-          localStorage.setItem('firebaseToken', token);
-          localStorage.setItem('user', JSON.stringify(backendUser));
         } catch (error: any) {
-          console.error('❌ [loadUser] Token inválido ou expirado:', error);
+          console.error('❌ [loadUser] Token inválido ou expirado');
           
           // Token inválido - limpa tudo
           localStorage.removeItem('firebaseToken');

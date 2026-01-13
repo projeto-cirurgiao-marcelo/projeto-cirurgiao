@@ -124,29 +124,31 @@ export default function MyCoursesPage() {
   // Mostrar loading enquanto aguarda hidratação ou carregamento do usuário
   if (!hasHydrated || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-gray-800 sticky top-0 bg-black/95 backdrop-blur z-10">
+      <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur z-10 shadow-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <BookOpen className="h-6 w-6 text-red-500" />
-              <h1 className="text-xl font-bold">Projeto Cirurgião</h1>
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
+                <BookOpen className="h-5 w-5 text-white" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Projeto Cirurgião</h1>
             </div>
 
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-gray-400">{user.email}</p>
+                <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                <p className="text-xs text-gray-500">{user.email}</p>
               </div>
-              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-white hover:bg-gray-800">
+              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
@@ -156,13 +158,15 @@ export default function MyCoursesPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-12 w-12 animate-spin text-red-500" />
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         </div>
       ) : enrolledCourses.length === 0 && availableCourses.length === 0 ? (
         <div className="container mx-auto px-6 py-20 text-center">
-          <BookOpen className="h-24 w-24 mx-auto text-gray-600 mb-6" />
-          <h3 className="text-2xl font-semibold mb-3">Nenhum curso disponível</h3>
-          <p className="text-gray-400">
+          <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-6">
+            <BookOpen className="h-24 w-24 mx-auto text-gray-400" />
+          </div>
+          <h3 className="text-2xl font-bold mb-3 text-gray-900 tracking-tight">Nenhum curso disponível</h3>
+          <p className="text-gray-600">
             Novos cursos serão adicionados em breve
           </p>
         </div>
@@ -172,13 +176,13 @@ export default function MyCoursesPage() {
           {inProgressCourses.length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Continue Assistindo</h2>
+                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Continue Assistindo</h2>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('left', 'continue-scroll')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </Button>
@@ -186,7 +190,7 @@ export default function MyCoursesPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('right', 'continue-scroll')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronRight className="h-6 w-6" />
                   </Button>
@@ -210,13 +214,13 @@ export default function MyCoursesPage() {
           {enrolledCourses.length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Meus Cursos</h2>
+                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Meus Cursos</h2>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('left', 'enrolled-scroll')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </Button>
@@ -224,7 +228,7 @@ export default function MyCoursesPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('right', 'enrolled-scroll')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronRight className="h-6 w-6" />
                   </Button>
@@ -248,13 +252,13 @@ export default function MyCoursesPage() {
           {availableCourses.length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Cursos Disponíveis</h2>
+                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Cursos Disponíveis</h2>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('left', 'available-scroll-1')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </Button>
@@ -262,7 +266,7 @@ export default function MyCoursesPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('right', 'available-scroll-1')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronRight className="h-6 w-6" />
                   </Button>
@@ -286,13 +290,13 @@ export default function MyCoursesPage() {
           {availableCourses.length > 9 && (
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Mais Cursos</h2>
+                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Mais Cursos</h2>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('left', 'available-scroll-2')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </Button>
@@ -300,7 +304,7 @@ export default function MyCoursesPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('right', 'available-scroll-2')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronRight className="h-6 w-6" />
                   </Button>
@@ -324,13 +328,13 @@ export default function MyCoursesPage() {
           {availableCourses.length > 18 && (
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Explore Mais</h2>
+                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Explore Mais</h2>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('left', 'available-scroll-3')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </Button>
@@ -338,7 +342,7 @@ export default function MyCoursesPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => scrollContainer('right', 'available-scroll-3')}
-                    className="text-white hover:bg-gray-800"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
                   >
                     <ChevronRight className="h-6 w-6" />
                   </Button>

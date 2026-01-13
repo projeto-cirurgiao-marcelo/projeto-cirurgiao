@@ -30,10 +30,13 @@ export function CourseCard({ course }: CourseCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-xl hover:scale-105 cursor-pointer flex flex-col h-full bg-gray-900 border-gray-800">
+    <Card className="group relative overflow-hidden bg-white border-gray-200 hover:border-blue-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full rounded-lg">
+      {/* Borda superior colorida - aparece no hover */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      
       <Link href={`/student/courses/${course.id}`} className="flex flex-col h-full">
         {/* Thumbnail */}
-        <div className="relative aspect-video bg-gray-800">
+        <div className="relative aspect-video bg-gray-100">
           {course.thumbnailUrl ? (
             <Image
               src={course.thumbnailUrl}
@@ -42,41 +45,41 @@ export function CourseCard({ course }: CourseCardProps) {
               className="object-cover"
             />
           ) : (
-            <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-800 via-gray-900 to-black">
-              <Play className="h-16 w-16 text-gray-600" />
+            <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+              <Play className="h-16 w-16 text-gray-400" />
             </div>
           )}
           
           {/* Badge de status ou bloqueio */}
           {!isEnrolled && (
-            <div className="absolute top-3 right-3 bg-yellow-600 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-lg">
+            <div className="absolute top-3 right-3 bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1 rounded font-semibold text-xs uppercase tracking-wide flex items-center gap-1 shadow-sm">
               <Lock className="h-3 w-3" />
               Disponível
             </div>
           )}
           {isEnrolled && isCompleted && (
-            <div className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-lg">
+            <div className="absolute top-3 right-3 bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1 rounded font-semibold text-xs uppercase tracking-wide flex items-center gap-1 shadow-sm">
               <CheckCircle2 className="h-3 w-3" />
               Concluído
             </div>
           )}
           {isEnrolled && isStarted && !isCompleted && (
-            <div className="absolute top-3 right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-lg">
+            <div className="absolute top-3 right-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1 rounded font-semibold text-xs uppercase tracking-wide flex items-center gap-1 shadow-sm">
               <Play className="h-3 w-3" />
               {Math.round(progress.percentage)}%
             </div>
           )}
         </div>
 
-        <CardContent className="p-4 flex-1 flex flex-col bg-gray-900">
+        <CardContent className="p-4 flex-1 flex flex-col bg-white">
           {/* Título */}
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 text-white">
+          <h3 className="font-semibold text-lg mb-2 line-clamp-2 text-gray-900 group-hover:text-blue-600 transition-colors">
             {course.title}
           </h3>
 
           {/* Descrição */}
           {course.description && (
-            <p className="text-sm text-gray-400 mb-4 line-clamp-2">
+            <p className="text-sm text-gray-600 mb-4 line-clamp-2">
               {course.description}
             </p>
           )}
@@ -89,21 +92,27 @@ export function CourseCard({ course }: CourseCardProps) {
               {/* Progresso para cursos matriculados */}
               <div className="space-y-2 mb-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">
+                  <span className="text-gray-600">
                     {progress.watchedVideos} de {progress.totalVideos} aulas
                   </span>
-                  <span className="font-medium text-white">{Math.round(progress.percentage)}%</span>
+                  <span className="font-semibold text-gray-900">{Math.round(progress.percentage)}%</span>
                 </div>
-                <Progress value={progress.percentage} className="h-2 bg-gray-800" />
+                {/* Progress bar com gradiente premium */}
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500 ease-out"
+                    style={{width: `${progress.percentage}%`}}
+                  />
+                </div>
               </div>
 
               {/* Última aula assistida */}
               {isStarted && progress.lastWatchedVideo && !isCompleted && (
-                <div className="pt-3 border-t border-gray-800 flex items-start gap-2 text-sm text-gray-400">
-                  <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div className="pt-3 border-t border-gray-200 flex items-start gap-2 text-sm text-gray-600">
+                  <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-400" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs">Última aula:</p>
-                    <p className="font-medium text-gray-200 truncate">
+                    <p className="text-xs text-gray-500">Última aula:</p>
+                    <p className="font-medium text-gray-900 truncate">
                       {progress.lastWatchedVideo.title}
                     </p>
                   </div>
@@ -113,9 +122,9 @@ export function CourseCard({ course }: CourseCardProps) {
           ) : (
             <>
               {/* Botão de compra para cursos não matriculados */}
-              <div className="pt-3 border-t border-gray-800 space-y-3">
+              <div className="pt-3 border-t border-gray-200 space-y-3">
                 <Button 
-                  className="w-full bg-red-600 hover:bg-red-700 text-white" 
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-primary hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 rounded-md font-semibold" 
                   size="lg"
                   onClick={handlePurchase}
                 >

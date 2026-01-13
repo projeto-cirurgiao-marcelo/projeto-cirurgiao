@@ -5,14 +5,14 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold tracking-tight transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive active:scale-[0.98]",
   {
     variants: {
       variant: {
         default:
-          "bg-[rgb(var(--primary-500))] text-white hover:bg-[rgb(var(--primary-600))] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm",
+          "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-primary hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-primary",
         destructive:
-          "bg-[rgb(var(--error))] text-white hover:bg-[rgb(var(--error))]/90 hover:shadow-md focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+          "bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-error hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-error focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
           "border-2 border-[rgb(var(--primary-500))] bg-background text-[rgb(var(--primary-500))] hover:bg-[rgb(var(--primary-50))] dark:hover:bg-[rgb(var(--primary-900))]/20 shadow-sm hover:shadow-md",
         secondary:
@@ -22,9 +22,9 @@ const buttonVariants = cva(
         link:
           "text-[rgb(var(--primary-500))] underline-offset-4 hover:underline hover:text-[rgb(var(--primary-700))]",
         success:
-          "bg-[rgb(var(--accent-500))] text-white hover:bg-[rgb(var(--accent-600))] hover:shadow-md hover:-translate-y-0.5",
+          "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-success hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0",
         warning:
-          "bg-[rgb(var(--warning))] text-white hover:bg-[rgb(var(--warning))]/90 hover:shadow-md",
+          "bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0",
       },
       size: {
         default: "h-10 px-6 py-2.5 text-base has-[>svg]:px-4",

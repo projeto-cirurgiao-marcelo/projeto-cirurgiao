@@ -34,13 +34,18 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await login(data);
+      await login(data.email, data.password);
       // Pegar o usuário do store após o login
       const currentUser = useAuthStore.getState().user;
+      
+      console.log('✅ [Login] Usuário logado:', currentUser);
+      
       // Redirecionar baseado no tipo de usuário
-      if (currentUser?.role === 'ADMIN') {
-        router.push('/admin/courses');
+      if (currentUser?.role === 'ADMIN' || currentUser?.role === 'INSTRUCTOR') {
+        console.log('🔄 [Login] Redirecionando ADMIN para /admin');
+        router.push('/admin');
       } else {
+        console.log('🔄 [Login] Redirecionando STUDENT para /student/my-courses');
         router.push('/student/my-courses');
       }
     } catch (err: any) {

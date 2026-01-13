@@ -1,0 +1,429 @@
+/* ===== IMPORT FONTES PREMIUM ===== */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Source Code Pro', 'Consolas', 'Monaco', monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* ===== PROJETO CIRURGIÃO - DESIGN SYSTEM PREMIUM ===== */
+  /* Paleta Profissional: Cirurgia + Medicina + Premium */
+
+  /* === Border Radius - Mais Profissional === */
+  --radius-none: 0;
+  --radius-sm: 0.125rem; /* 2px - muito sutil */
+  --radius-base: 0.25rem; /* 4px - padrão */
+  --radius-md: 0.375rem; /* 6px - médio */
+  --radius-lg: 0.5rem; /* 8px - grande */
+  --radius-xl: 0.75rem; /* 12px - extra grande */
+  --radius-2xl: 1rem; /* 16px - cards especiais */
+  --radius-full: 9999px;
+
+  /* Compatibilidade shadcn */
+  --radius: 0.5rem; /* 8px */
+
+  /* === AZUL CIRÚRGICO PROFISSIONAL === */
+  --primary-50: 235 243 255; /* #EBF3FF */
+  --primary-100: 209 228 255; /* #D1E4FF */
+  --primary-200: 168 203 255; /* #A8CBFF */
+  --primary-300: 122 175 255; /* #7AAFFF */
+  --primary-400: 77 145 255; /* #4D91FF */
+  --primary-500: 37 99 235; /* #2563EB ⭐ */
+  --primary-600: 30 64 175; /* #1E40AF */
+  --primary-700: 30 58 138; /* #1E3A8A */
+  --primary-800: 30 45 95; /* #1E2D5F */
+  --primary-900: 15 23 41; /* #0F1729 */
+
+  /* === VERDE SAÚDE PREMIUM === */
+  --success-50: 236 253 245; /* #ECFDF5 */
+  --success-100: 209 250 229; /* #D1FAE5 */
+  --success-200: 167 243 208; /* #A7F3D0 */
+  --success-300: 110 231 183; /* #6EE7B7 */
+  --success-400: 52 211 153; /* #34D399 */
+  --success-500: 5 150 105; /* #059669 ⭐ */
+  --success-600: 4 120 87; /* #047857 */
+  --success-700: 6 95 70; /* #065F46 */
+  --success-800: 6 78 59; /* #064E3B */
+  --success-900: 2 44 34; /* #022C22 */
+
+  /* === VERMELHO MÉDICO ELEGANTE === */
+  --error-50: 254 242 242; /* #FEF2F2 */
+  --error-100: 254 226 226; /* #FEE2E2 */
+  --error-200: 254 202 202; /* #FECACA */
+  --error-300: 252 165 165; /* #FCA5A5 */
+  --error-400: 248 113 113; /* #F87171 */
+  --error-500: 220 38 38; /* #DC2626 ⭐ */
+  --error-600: 185 28 28; /* #B91C1C */
+  --error-700: 153 27 27; /* #991B1B */
+  --error-800: 127 29 29; /* #7F1D1D */
+  --error-900: 69 10 10; /* #450A0A */
+
+  /* === ÂMBAR PREMIUM === */
+  --warning-50: 255 251 235; /* #FFFBEB */
+  --warning-100: 254 243 199; /* #FEF3C7 */
+  --warning-200: 253 230 138; /* #FDE68A */
+  --warning-300: 252 211 77; /* #FCD34D */
+  --warning-400: 251 191 36; /* #FBBF24 */
+  --warning-500: 245 158 11; /* #F59E0B ⭐ */
+  --warning-600: 217 119 6; /* #D97706 */
+  --warning-700: 180 83 9; /* #B45309 */
+  --warning-800: 146 64 14; /* #92400E */
+  --warning-900: 120 53 15; /* #78350F */
+
+  /* === CINZAS PREMIUM === */
+  --gray-50: 249 250 251; /* #F9FAFB */
+  --gray-100: 243 244 246; /* #F3F4F6 */
+  --gray-200: 229 231 235; /* #E5E7EB */
+  --gray-300: 209 213 219; /* #D1D5DB */
+  --gray-400: 156 163 175; /* #9CA3AF */
+  --gray-500: 107 114 128; /* #6B7280 */
+  --gray-600: 75 85 99; /* #4B5563 */
+  --gray-700: 55 65 81; /* #374151 */
+  --gray-800: 31 41 55; /* #1F2937 */
+  --gray-900: 17 24 39; /* #111827 */
+
+  /* === DOURADO PREMIUM (Gamificação) === */
+  --gold-50: 255 251 235; /* #FFFBEB */
+  --gold-100: 254 243 199; /* #FEF3C7 */
+  --gold-200: 253 230 138; /* #FDE68A */
+  --gold-300: 252 211 77; /* #FCD34D */
+  --gold-400: 251 191 36; /* #FBBF24 */
+  --gold-500: 245 158 11; /* #F59E0B */
+  --gold-600: 217 119 6; /* #D97706 */
+  --gold-700: 180 83 9; /* #B45309 */
+  --gold-800: 146 64 14; /* #92400E */
+  --gold-900: 120 53 15; /* #78350F */
+
+  /* === PRATA E BRONZE === */
+  --silver: 148 163 184; /* #94A3B8 */
+  --bronze: 180 83 9; /* #B45309 */
+  --platinum: 229 228 226; /* #E5E4E2 */
+
+  /* === Cores Secundárias (Accent - Verde) === */
+  --accent-50: var(--success-50);
+  --accent-100: var(--success-100);
+  --accent-200: var(--success-200);
+  --accent-300: var(--success-300);
+  --accent-400: var(--success-400);
+  --accent-500: var(--success-500);
+  --accent-600: var(--success-600);
+  --accent-700: var(--success-700);
+  --accent-800: var(--success-800);
+  --accent-900: var(--success-900);
+
+  /* === Secondary (Âmbar) === */
+  --secondary-50: var(--warning-50);
+  --secondary-100: var(--warning-100);
+  --secondary-200: var(--warning-200);
+  --secondary-300: var(--warning-300);
+  --secondary-400: var(--warning-400);
+  --secondary-500: var(--warning-500);
+  --secondary-600: var(--warning-600);
+  --secondary-700: var(--warning-700);
+  --secondary-800: var(--warning-800);
+  --secondary-900: var(--warning-900);
+
+  /* === Backgrounds === */
+  --bg-primary: 255 255 255; /* #FFFFFF */
+  --bg-secondary: 249 250 251; /* #F9FAFB */
+  --bg-tertiary: 243 244 246; /* #F3F4F6 */
+
+  /* === Textos === */
+  --text-primary: 17 24 39; /* #111827 */
+  --text-secondary: 75 85 99; /* #4B5563 */
+  --text-tertiary: 107 114 128; /* #6B7280 */
+  --text-disabled: 156 163 175; /* #9CA3AF */
+
+  /* === Functional Colors === */
+  --success: 5 150 105; /* #059669 */
+  --warning: 245 158 11; /* #F59E0B */
+  --error: 220 38 38; /* #DC2626 */
+  --info: 37 99 235; /* #2563EB */
+
+  /* === Progress Colors === */
+  --progress-empty: 229 231 235; /* #E5E7EB */
+  --progress-partial: 252 211 77; /* #FCD34D */
+  --progress-complete: 5 150 105; /* #059669 */
+
+  /* === Sombras Premium === */
+  --shadow-color: 0 0 0;
+  --shadow-xs: 0 1px 2px 0 rgb(var(--shadow-color) / 0.05);
+  --shadow-sm: 0 2px 4px 0 rgb(var(--shadow-color) / 0.06), 0 1px 2px 0 rgb(var(--shadow-color) / 0.03);
+  --shadow-base: 0 4px 6px -1px rgb(var(--shadow-color) / 0.08), 0 2px 4px -1px rgb(var(--shadow-color) / 0.04);
+  --shadow-md: 0 10px 15px -3px rgb(var(--shadow-color) / 0.1), 0 4px 6px -2px rgb(var(--shadow-color) / 0.05);
+  --shadow-lg: 0 20px 25px -5px rgb(var(--shadow-color) / 0.12), 0 10px 10px -5px rgb(var(--shadow-color) / 0.04);
+  --shadow-xl: 0 25px 50px -12px rgb(var(--shadow-color) / 0.25);
+  --shadow-2xl: 0 35px 60px -15px rgb(var(--shadow-color) / 0.3);
+
+  /* Sombras Coloridas */
+  --shadow-primary: 0 10px 25px -5px rgb(37 99 235 / 0.2), 0 4px 6px -2px rgb(37 99 235 / 0.1);
+  --shadow-success: 0 10px 25px -5px rgb(5 150 105 / 0.2), 0 4px 6px -2px rgb(5 150 105 / 0.1);
+  --shadow-error: 0 10px 25px -5px rgb(220 38 38 / 0.2), 0 4px 6px -2px rgb(220 38 38 / 0.1);
+
+  /* === Glow Effects === */
+  --glow-primary: 0 0 20px rgba(37, 99, 235, 0.4);
+  --glow-success: 0 0 20px rgba(5, 150, 105, 0.4);
+  --glow-gold: 0 0 25px rgba(245, 158, 11, 0.5);
+
+  /* === Transições === */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  /* === Spacing (8pt grid) === */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* === Compatibilidade shadcn/ui === */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-primary);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-primary);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--primary-500);
+  --primary-foreground: 255 255 255;
+  --secondary: var(--bg-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-secondary);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--accent-500);
+  --accent-foreground: 255 255 255;
+  --destructive: var(--error-500);
+  --destructive-foreground: 255 255 255;
+  --border: var(--gray-200);
+  --input: var(--gray-200);
+  --ring: var(--primary-500);
+
+  /* Charts */
+  --chart-1: var(--primary-500);
+  --chart-2: var(--success-500);
+  --chart-3: var(--warning-500);
+  --chart-4: var(--info);
+  --chart-5: var(--error-500);
+
+  /* Sidebar */
+  --sidebar: var(--bg-primary);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--primary-500);
+  --sidebar-primary-foreground: 255 255 255;
+  --sidebar-accent: var(--bg-secondary);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+.dark {
+  /* === Dark Mode Premium === */
+  --bg-primary: 15 23 41; /* #0F1729 - primary-900 */
+  --bg-secondary: 30 45 95; /* #1E2D5F - primary-800 */
+  --bg-tertiary: 30 58 138; /* #1E3A8A - primary-700 */
+
+  --text-primary: 249 250 251; /* #F9FAFB */
+  --text-secondary: 209 213 219; /* #D1D5DB */
+  --text-tertiary: 156 163 175; /* #9CA3AF */
+  --text-disabled: 107 114 128; /* #6B7280 */
+
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-secondary);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-secondary);
+  --popover-foreground: var(--text-primary);
+  --muted: var(--bg-tertiary);
+  --muted-foreground: var(--text-secondary);
+  --border: var(--primary-700);
+  --input: var(--primary-700);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    letter-spacing: -0.01em; /* Tighter tracking */
+  }
+
+  /* Tipografia Premium */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+
+  /* Scrollbar Premium */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgb(var(--gray-100));
+    border-radius: 100vw;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--gray-400));
+    border-radius: 100vw;
+    border: 2px solid rgb(var(--gray-100));
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--gray-500));
+  }
+
+  /* Focus Premium */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2;
+    outline-color: rgb(var(--primary-500));
+    border-radius: 6px;
+  }
+}
+
+@layer utilities {
+  /* Shadows Premium */
+  .shadow-premium {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-premium-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shadow-primary {
+    box-shadow: var(--shadow-primary);
+  }
+
+  .shadow-success {
+    box-shadow: var(--shadow-success);
+  }
+
+  /* Card Premium Hover */
+  .card-premium {
+    @apply transition-all duration-300 ease-out;
+    @apply hover:-translate-y-1;
+  }
+  
+  .card-premium:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Gradient Text */
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, rgb(var(--primary-500)), rgb(var(--primary-700)));
+  }
+
+  .text-gradient-success {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, rgb(var(--success-500)), rgb(var(--success-700)));
+  }
+
+  /* Border Premium */
+  .border-premium {
+    border: 1.5px solid rgb(var(--gray-200));
+  }
+
+  /* Button Premium */
+  .btn-premium {
+    @apply transition-all duration-200 ease-out;
+    @apply hover:-translate-y-0.5 active:translate-y-0;
+  }
+}
+
+/* Sonner Toast Premium */
+[data-sonner-toast] {
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 500 !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background-color: rgb(var(--success-500)) !important;
+  border: none !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background-color: rgb(var(--error-500)) !important;
+  border: none !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  background-color: rgb(var(--warning-500)) !important;
+  border: none !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  background-color: rgb(var(--primary-500)) !important;
+  border: none !important;
+}

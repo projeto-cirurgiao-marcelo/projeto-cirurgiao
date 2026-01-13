@@ -199,6 +199,7 @@ function VideoUploadDialog({
       setDescription('');
       setFile(null);
       setVideoUrl('');
+      setEmbedUrl('');
       setUploadProgress(0);
       setUploadStatus('');
     }
@@ -323,7 +324,7 @@ function VideoUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-background">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Vídeo</DialogTitle>
           <DialogDescription>
@@ -711,14 +712,6 @@ export default function EditModulePage() {
   const [deleteConfirmVideo, setDeleteConfirmVideo] = useState<Video | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Refs para evitar loops
-  const moduleLoadedRef = useRef(false);
-  const videosLoadedRef = useRef(false);
-  const videosRef = useRef<Video[]>([]);
-  
-  // Manter ref atualizado
-  videosRef.current = videos;
-
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleFormSchema),
     defaultValues: {
@@ -727,28 +720,26 @@ export default function EditModulePage() {
     },
   });
 
-  // Carregar dados do módulo (apenas uma vez)
+  // Carregar dados do módulo
   useEffect(() => {
-    if (moduleLoadedRef.current) return;
-    moduleLoadedRef.current = true;
-    
-    let isMounted = true;
+    const abortController = new AbortController();
     
     const loadModule = async () => {
       try {
         setIsLoading(true);
         const data = await modulesService.findOne(moduleId);
         
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setModule(data);
           form.reset({
             title: data.title,
             description: data.description || '',
           });
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError' || error.name === 'CanceledError') return;
         console.error('Erro ao carregar módulo:', error);
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           toast({
             title: 'Erro',
             description: 'Não foi possível carregar o módulo.',
@@ -757,7 +748,7 @@ export default function EditModulePage() {
           router.push(`/admin/courses/${courseId}/edit`);
         }
       } finally {
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setIsLoading(false);
         }
       }
@@ -766,19 +757,19 @@ export default function EditModulePage() {
     loadModule();
     
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleId]);
 
-  // Carregar vídeos do módulo (apenas uma vez)
+  // Carregar vídeos do módulo
   const loadVideos = useCallback(async () => {
     try {
       setIsLoadingVideos(true);
       const data = await videosService.findAll(moduleId);
-      // Ordenar por ordem
       setVideos(data.sort((a, b) => a.order - b.order));
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'CanceledError') return;
       console.error('Erro ao carregar vídeos:', error);
     } finally {
       setIsLoadingVideos(false);
@@ -786,17 +777,13 @@ export default function EditModulePage() {
   }, [moduleId]);
 
   useEffect(() => {
-    if (videosLoadedRef.current) return;
-    videosLoadedRef.current = true;
     loadVideos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleId]);
+  }, [loadVideos]);
 
   // Polling para atualizar status de vídeos em processamento
   useEffect(() => {
     const checkProcessingVideos = async () => {
-      const currentVideos = videosRef.current;
-      const processingVideos = currentVideos.filter(
+      const processingVideos = videos.filter(
         v => v.uploadStatus === 'UPLOADING' || v.uploadStatus === 'PROCESSING'
       );
 
@@ -821,7 +808,7 @@ export default function EditModulePage() {
     const interval = setInterval(checkProcessingVideos, 5000);
 
     return () => clearInterval(interval);
-  }, []); // Sem dependências - usa refs
+  }, [videos]);
 
   // Submeter formulário do módulo
   const onSubmit = async (values: ModuleFormValues) => {

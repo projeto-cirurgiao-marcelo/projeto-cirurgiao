@@ -34,12 +34,20 @@ export function RegisterForm() {
     setError(null);
 
     try {
-      // Remove confirmPassword antes de enviar para a API
-      const { confirmPassword, ...registerData } = data;
-      await register(registerData);
-      router.push('/dashboard');
+      // Chamar register com parâmetros individuais (Firebase)
+      await register(data.email, data.password, data.name);
+      
+      // Pegar o usuário do store após o registro
+      const currentUser = useAuthStore.getState().user;
+      
+      // Redirecionar baseado no tipo de usuário
+      if (currentUser?.role === 'ADMIN' || currentUser?.role === 'INSTRUCTOR') {
+        router.push('/admin');
+      } else {
+        router.push('/student/my-courses');
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao criar conta. Tente novamente.');
+      setError(err.response?.data?.message || err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

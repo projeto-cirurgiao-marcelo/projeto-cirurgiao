@@ -137,22 +137,22 @@ export default function CourseDetailPage() {
   // Mostrar loading enquanto aguarda hidratação
   if (!hasHydrated || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-black text-white p-8">
+      <div className="min-h-screen bg-gray-50 p-8">
         <div className="container mx-auto">
-          <Button variant="ghost" onClick={() => router.push('/student/my-courses')} className="text-white hover:bg-gray-800">
+          <Button variant="ghost" onClick={() => router.push('/student/my-courses')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
           <div className="text-center py-12">
-            <p className="text-red-500">{error || 'Curso não encontrado'}</p>
+            <p className="text-red-600 font-semibold">{error || 'Curso não encontrado'}</p>
           </div>
         </div>
       </div>
@@ -160,14 +160,14 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header com progresso */}
-      <div className="border-b border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-200 bg-white shadow-sm">
         <div className="container mx-auto px-6 py-6">
           <Button 
             variant="ghost" 
             onClick={() => router.push('/student/my-courses')} 
-            className="mb-4 text-white hover:bg-gray-800"
+            className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar aos Cursos
@@ -175,12 +175,12 @@ export default function CourseDetailPage() {
           
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
+              <h1 className="text-4xl font-bold mb-2 text-gray-900 tracking-tight">{course.title}</h1>
               {course.description && (
-                <p className="text-gray-400 mb-4">{course.description}</p>
+                <p className="text-gray-600 mb-4 text-lg">{course.description}</p>
               )}
               
-              <div className="flex items-center gap-4 text-sm text-gray-400">
+              <div className="flex items-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <BookOpen className="h-4 w-4" />
                   <span>{course.modules?.length || 0} módulos</span>
@@ -193,19 +193,25 @@ export default function CourseDetailPage() {
             </div>
 
             <div className="lg:w-80">
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-md">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-white">Seu Progresso</span>
-                  <span className="text-sm font-bold text-white">{progress}%</span>
+                  <span className="text-sm font-semibold text-gray-900">Seu Progresso</span>
+                  <span className="text-lg font-bold text-blue-600">{progress}%</span>
                 </div>
-                <Progress value={progress} className="h-2 mb-4 bg-gray-700" />
-                <p className="text-xs text-gray-400 mb-4">
+                {/* Progress bar com gradiente */}
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                    style={{width: `${progress}%`}}
+                  />
+                </div>
+                <p className="text-xs text-gray-600 mb-4">
                   {completedVideos} de {totalVideos} aulas concluídas
                 </p>
                 
                 {!hasStarted ? (
                   <Button 
-                    className="w-full bg-red-600 hover:bg-red-700" 
+                    className="w-full" 
                     size="lg"
                     onClick={handleStartCourse}
                     disabled={totalVideos === 0}
@@ -215,7 +221,8 @@ export default function CourseDetailPage() {
                   </Button>
                 ) : progress === 100 ? (
                   <Button 
-                    className="w-full bg-green-600 hover:bg-green-700" 
+                    variant="success"
+                    className="w-full" 
                     size="lg"
                     onClick={handleStartCourse}
                   >
@@ -224,7 +231,7 @@ export default function CourseDetailPage() {
                   </Button>
                 ) : (
                   <Button 
-                    className="w-full bg-red-600 hover:bg-red-700" 
+                    className="w-full" 
                     size="lg"
                     onClick={handleContinueCourse}
                   >
@@ -240,12 +247,14 @@ export default function CourseDetailPage() {
 
       {/* Conteúdo do curso */}
       <div className="container mx-auto px-6 py-8">
-        <h2 className="text-2xl font-bold mb-6">Conteúdo do Curso</h2>
+        <h2 className="text-3xl font-bold mb-6 text-gray-900 tracking-tight">Conteúdo do Curso</h2>
         
         {!course.modules || course.modules.length === 0 ? (
-          <div className="text-center py-12 border border-gray-800 rounded-lg bg-gray-900">
-            <BookOpen className="h-16 w-16 mx-auto text-gray-600 mb-4" />
-            <p className="text-gray-400">
+          <div className="text-center py-12 border border-gray-200 rounded-lg bg-white shadow-sm">
+            <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-4">
+              <BookOpen className="h-16 w-16 mx-auto text-gray-400" />
+            </div>
+            <p className="text-gray-600">
               Este curso ainda não possui módulos cadastrados
             </p>
           </div>
@@ -262,22 +271,22 @@ export default function CourseDetailPage() {
                 <AccordionItem 
                   key={module.id} 
                   value={module.id}
-                  className="border border-gray-800 rounded-lg px-4 bg-gray-900"
+                  className="border border-gray-200 rounded-lg px-4 bg-white shadow-sm"
                 >
                   <AccordionTrigger className="hover:no-underline">
                     <div className="flex items-center justify-between w-full pr-4">
                       <div className="flex items-center gap-3 text-left">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-600/20 flex items-center justify-center text-sm font-semibold text-red-500">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
                           {moduleIndex + 1}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-white">{module.title}</h3>
-                          <p className="text-sm text-gray-400">
+                          <h3 className="font-bold text-gray-900">{module.title}</h3>
+                          <p className="text-sm text-gray-500">
                             {moduleVideos.length} aulas • {moduleCompletedCount} concluídas
                           </p>
                         </div>
                       </div>
-                      <div className={`text-sm font-medium ${moduleProgress === 100 ? 'text-green-500' : 'text-red-500'}`}>
+                      <div className={`text-sm font-semibold ${moduleProgress === 100 ? 'text-green-600' : 'text-blue-600'}`}>
                         {moduleProgress}%
                       </div>
                     </div>
@@ -285,13 +294,13 @@ export default function CourseDetailPage() {
                   
                   <AccordionContent>
                     {module.description && (
-                      <p className="text-sm text-gray-400 mb-4 px-11">
+                      <p className="text-sm text-gray-600 mb-4 px-11">
                         {module.description}
                       </p>
                     )}
                     
                     {moduleVideos.length === 0 ? (
-                      <p className="text-sm text-gray-400 px-11 py-4">
+                      <p className="text-sm text-gray-500 px-11 py-4">
                         Nenhuma aula neste módulo
                       </p>
                     ) : (
@@ -307,39 +316,39 @@ export default function CourseDetailPage() {
                               onClick={() => isPublished ? handleVideoClick(video.id) : null}
                               disabled={!isPublished}
                               className={`
-                                w-full flex items-center gap-3 px-11 py-3 rounded-lg transition-colors text-left
+                                w-full flex items-center gap-3 px-11 py-3 rounded-lg transition-all duration-200 text-left border
                                 ${!isPublished 
-                                  ? 'opacity-50 cursor-not-allowed' 
+                                  ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-50' 
                                   : completed
-                                    ? 'bg-green-600/10 hover:bg-green-600/20'
+                                    ? 'bg-green-50 border-green-200 hover:bg-green-100 hover:shadow-sm'
                                     : watched
-                                      ? 'bg-yellow-600/10 hover:bg-yellow-600/20'
-                                      : 'hover:bg-gray-800'
+                                      ? 'bg-amber-50 border-amber-200 hover:bg-amber-100 hover:shadow-sm'
+                                      : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-blue-200 hover:shadow-sm'
                                 }
                               `}
                             >
                               <div className="flex-shrink-0">
                                 {completed ? (
-                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                  <CheckCircle2 className="h-5 w-5 text-green-600" />
                                 ) : watched ? (
-                                  <Clock className="h-5 w-5 text-yellow-500" />
+                                  <Clock className="h-5 w-5 text-amber-600" />
                                 ) : isPublished ? (
-                                  <Circle className="h-5 w-5 text-gray-500" />
+                                  <Circle className="h-5 w-5 text-gray-400" />
                                 ) : (
-                                  <Lock className="h-5 w-5 text-gray-500" />
+                                  <Lock className="h-5 w-5 text-gray-400" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className={`font-medium truncate ${completed ? 'text-green-400' : watched ? 'text-yellow-400' : 'text-white'}`}>
+                                <p className={`font-semibold truncate ${completed ? 'text-green-700' : watched ? 'text-amber-700' : 'text-gray-900'}`}>
                                   {videoIndex + 1}. {video.title}
                                 </p>
                                 {video.description && (
-                                  <p className="text-sm text-gray-400 truncate">
+                                  <p className="text-sm text-gray-600 truncate">
                                     {video.description}
                                   </p>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                              <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
                                 <Clock className="h-4 w-4" />
                                 <span>{formatDuration(video.duration)}</span>
                               </div>
