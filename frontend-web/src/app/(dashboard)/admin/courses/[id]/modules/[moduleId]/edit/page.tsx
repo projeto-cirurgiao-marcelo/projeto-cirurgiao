@@ -21,7 +21,8 @@ import {
   Clock,
   FileVideo,
   X,
-  Link2
+  Link2,
+  Pencil
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { modulesService, videosService } from '@/lib/api';
 import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types';
+import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 
 const moduleFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
@@ -75,6 +77,7 @@ function VideoStatusBadge({ status }: { status: VideoUploadStatus }) {
 // Componente de item de vídeo arrastável
 function VideoItem({ 
   video, 
+  onEdit,
   onDelete, 
   onTogglePublish,
   onDragStart,
@@ -83,6 +86,7 @@ function VideoItem({
   isDragging,
 }: { 
   video: Video;
+  onEdit: () => void;
   onDelete: () => void;
   onTogglePublish: () => void;
   onDragStart: (e: React.DragEvent) => void;
@@ -137,6 +141,16 @@ function VideoItem({
       {/* Status */}
       <VideoStatusBadge status={video.uploadStatus} />
 
+      {/* Botão editar */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onEdit}
+        title="Editar detalhes"
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+
       {/* Botão publicar/despublicar */}
       <Button
         variant="ghost"
@@ -189,6 +203,7 @@ function VideoUploadDialog({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset ao fechar
@@ -200,6 +215,7 @@ function VideoUploadDialog({
       setFile(null);
       setVideoUrl('');
       setEmbedUrl('');
+      setThumbnailUrl('');
       setUploadProgress(0);
       setUploadStatus('');
     }
@@ -238,8 +254,9 @@ function VideoUploadDialog({
         {
           title: title.trim(),
           description: description.trim() || undefined,
+          thumbnailUrl: thumbnailUrl || undefined,
           order: nextOrder,
-        },
+        } as any,
         (progress) => {
           setUploadProgress(progress);
         },
@@ -292,8 +309,9 @@ function VideoUploadDialog({
       const video = await videosService.createFromUrl(moduleId, videoUrl, {
         title: title.trim(),
         description: description.trim() || undefined,
+        thumbnailUrl: thumbnailUrl || undefined,
         order: nextOrder,
-      });
+      } as any);
 
       toast({
         title: 'Vídeo adicionado!',
@@ -451,6 +469,20 @@ function VideoUploadDialog({
                   disabled={isUploading}
                   rows={3}
                 />
+              </div>
+
+              {/* Thumbnail */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Thumbnail do Vídeo (opcional)</label>
+                <ThumbnailUpload
+                  value={thumbnailUrl}
+                  onChange={setThumbnailUrl}
+                  aspectRatio="horizontal"
+                  label="Thumbnail"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se não fornecer, o Cloudflare gerará automaticamente
+                </p>
               </div>
 
               {/* Progresso de upload */}
@@ -652,8 +684,9 @@ function VideoUploadDialog({
                       const video = await videosService.createFromEmbed(moduleId, embedUrl, {
                         title: title.trim(),
                         description: description.trim() || undefined,
+                        thumbnailUrl: thumbnailUrl || undefined,
                         order: nextOrder,
-                      });
+                      } as any);
                       toast({
                         title: 'Vídeo adicionado!',
                         description: 'O vídeo embed foi salvo com sucesso.',
@@ -709,6 +742,7 @@ export default function EditModulePage() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(true);
   const [draggedVideoId, setDraggedVideoId] = useState<string | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [deleteConfirmVideo, setDeleteConfirmVideo] = useState<Video | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -814,10 +848,23 @@ export default function EditModulePage() {
   const onSubmit = async (values: ModuleFormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Se description está vazia, enviar null para limpar o campo
+      const description = values.description?.trim();
+      
       await modulesService.update(moduleId, {
         title: values.title,
-        description: values.description || undefined,
+        description: description || null,
+      } as any);
+      
+      // Recarregar módulo para confirmar mudanças
+      const updatedModule = await modulesService.findOne(moduleId);
+      setModule(updatedModule);
+      form.reset({
+        title: updatedModule.title,
+        description: updatedModule.description || '',
       });
+      
       toast({
         title: 'Sucesso',
         description: 'Módulo atualizado com sucesso!',
@@ -1094,6 +1141,7 @@ export default function EditModulePage() {
                 <VideoItem
                   key={video.id}
                   video={video}
+                  onEdit={() => setEditingVideo(video)}
                   onDelete={() => setDeleteConfirmVideo(video)}
                   onTogglePublish={() => handleTogglePublish(video.id)}
                   onDragStart={handleDragStart(video.id)}
@@ -1126,6 +1174,68 @@ export default function EditModulePage() {
         nextOrder={nextOrder}
         onUploadComplete={handleUploadComplete}
       />
+
+      {/* Dialog de Edição de Vídeo */}
+      <Dialog open={!!editingVideo} onOpenChange={(open) => !open && setEditingVideo(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Detalhes do Vídeo</DialogTitle>
+            <DialogDescription>
+              Atualize título, descrição e thumbnail
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Título *</label>
+              <Input
+                value={editingVideo?.title || ''}
+                onChange={(e) => setEditingVideo(prev => prev ? {...prev, title: e.target.value} : null)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descrição (opcional)</label>
+              <Textarea
+                value={editingVideo?.description || ''}
+                onChange={(e) => setEditingVideo(prev => prev ? {...prev, description: e.target.value} : null)}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Thumbnail (opcional)</label>
+              <ThumbnailUpload
+                value={editingVideo?.thumbnailUrl || ''}
+                onChange={(url) => setEditingVideo(prev => prev ? {...prev, thumbnailUrl: url} : null)}
+                aspectRatio="horizontal"
+                label="Thumbnail"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingVideo(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={async () => {
+              if (!editingVideo) return;
+              try {
+                await videosService.update(editingVideo.id, {
+                  title: editingVideo.title,
+                  description: editingVideo.description || undefined,
+                  thumbnailUrl: editingVideo.thumbnailUrl || undefined,
+                } as any);
+                setVideos(prev => prev.map(v => v.id === editingVideo.id ? editingVideo : v));
+                toast({ title: 'Sucesso', description: 'Vídeo atualizado!' });
+                setEditingVideo(null);
+              } catch (error) {
+                console.error('Erro:', error);
+                toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' });
+              }
+            }}>
+              <Save className="mr-2 h-4 w-4" />
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de Confirmação de Exclusão */}
       <Dialog open={!!deleteConfirmVideo} onOpenChange={() => setDeleteConfirmVideo(null)}>

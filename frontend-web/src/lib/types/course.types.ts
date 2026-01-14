@@ -8,7 +8,10 @@ export interface Course {
   slug: string;
   description: string | null;
   price: number;
-  thumbnailUrl: string | null;
+  thumbnailUrl: string | null; // Deprecated - usar thumbnailHorizontal
+  thumbnail: string | null; // Deprecated - manter para compatibilidade
+  thumbnailVertical: string | null; // Thumbnail vertical (9:16)
+  thumbnailHorizontal: string | null; // Thumbnail horizontal (16:9)
   isPublished: boolean;
   instructorId: string;
   createdAt: string;
@@ -69,14 +72,20 @@ export interface CreateCourseDto {
   title: string;
   description?: string;
   price: number;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string; // Deprecated
+  thumbnail?: string; // Deprecated
+  thumbnailVertical?: string;
+  thumbnailHorizontal?: string;
 }
 
 export interface UpdateCourseDto {
   title?: string;
   description?: string;
   price?: number;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string; // Deprecated
+  thumbnail?: string; // Deprecated
+  thumbnailVertical?: string;
+  thumbnailHorizontal?: string;
   isPublished?: boolean;
 }
 

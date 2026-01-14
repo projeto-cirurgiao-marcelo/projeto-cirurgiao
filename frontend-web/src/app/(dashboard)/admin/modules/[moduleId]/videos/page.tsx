@@ -592,9 +592,16 @@ export default function ModuleVideosPage() {
                                     {video.isPublished ? 'Publicado' : 'Rascunho'}
                                   </Badge>
                                 )}
-                                {video.duration && video.duration > 0 && (
-                                  <Badge variant="outline">
+                                {video.uploadStatus === 'READY' && video.duration && video.duration > 0 && (
+                                  <Badge variant="outline" className="gap-1">
+                                    <Clock className="h-3 w-3" />
                                     {formatDuration(video.duration)}
+                                  </Badge>
+                                )}
+                                {video.uploadStatus === 'READY' && (!video.duration || video.duration === 0) && (
+                                  <Badge variant="outline" className="gap-1 bg-amber-50 text-amber-700 border-amber-200">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {video.externalUrl || video.videoSource !== 'cloudflare' ? 'Vídeo externo' : 'Sem duração'}
                                   </Badge>
                                 )}
                               </div>
@@ -617,12 +624,14 @@ export default function ModuleVideosPage() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                              {video.uploadStatus === 'PROCESSING' && (
+                              {/* Só mostrar sync para vídeos do Cloudflare (não embed) */}
+                              {!video.externalUrl && video.videoSource === 'cloudflare' && (video.uploadStatus === 'PROCESSING' || (video.uploadStatus === 'READY' && (!video.duration || video.duration === 0))) && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleSyncVideo(video.id)}
-                                  title="Sincronizar com Cloudflare"
+                                  title="Sincronizar metadados com Cloudflare"
+                                  className={video.uploadStatus === 'READY' && (!video.duration || video.duration === 0) ? 'text-amber-600 hover:text-amber-700' : ''}
                                 >
                                   <RefreshCw className="h-4 w-4" />
                                 </Button>

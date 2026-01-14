@@ -37,9 +37,9 @@ export function CourseCard({ course }: CourseCardProps) {
       <Link href={`/student/courses/${course.id}`} className="flex flex-col h-full">
         {/* Thumbnail */}
         <div className="relative aspect-video bg-gray-100">
-          {course.thumbnailUrl ? (
+          {(course.thumbnailHorizontal || course.thumbnailVertical || course.thumbnail) ? (
             <Image
-              src={course.thumbnailUrl}
+              src={course.thumbnailHorizontal || course.thumbnailVertical || course.thumbnail || ''}
               alt={course.title}
               fill
               className="object-cover"

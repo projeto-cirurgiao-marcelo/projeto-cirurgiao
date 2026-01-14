@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, ArrowLeft, Save, Plus, GripVertical, Pencil, Trash2, Video } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Plus, GripVertical, Pencil, Trash2, Video, ChevronDown, ChevronUp } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,14 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { coursesService, modulesService } from '@/lib/api';
 import type { Course, Module } from '@/lib/types/course.types';
+import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 
 const courseFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().min(10, 'A descrição deve ter no mínimo 10 caracteres'),
   price: z.string().min(1, 'O preço é obrigatório'),
-  thumbnailUrl: z.string().url('URL inválida').optional().or(z.literal('')),
+  thumbnailVertical: z.string().url('URL inválida').optional().or(z.literal('')),
+  thumbnailHorizontal: z.string().url('URL inválida').optional().or(z.literal('')),
 });
 
 type CourseFormValues = z.infer<typeof courseFormSchema>;
@@ -39,6 +41,22 @@ export default function EditCoursePage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [isLoadingModules, setIsLoadingModules] = useState(false);
+  
+  // Estado colapsável persistente
+  const [isCourseInfoCollapsed, setIsCourseInfoCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('course-info-collapsed');
+      return saved === 'true';
+    }
+    return false;
+  });
+
+  // Salvar estado no localStorage quando mudar
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('course-info-collapsed', String(isCourseInfoCollapsed));
+    }
+  }, [isCourseInfoCollapsed]);
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
@@ -46,7 +64,8 @@ export default function EditCoursePage() {
       title: '',
       description: '',
       price: '',
-      thumbnailUrl: '',
+      thumbnailVertical: '',
+      thumbnailHorizontal: '',
     },
   });
 
@@ -63,7 +82,8 @@ export default function EditCoursePage() {
           title: data.title,
           description: data.description || '',
           price: typeof data.price === 'number' ? data.price.toString() : data.price,
-          thumbnailUrl: data.thumbnailUrl || '',
+          thumbnailVertical: data.thumbnailVertical || '',
+          thumbnailHorizontal: data.thumbnailHorizontal || data.thumbnail || '',
         });
 
         // Carregar módulos
@@ -112,7 +132,8 @@ export default function EditCoursePage() {
         title: values.title,
         description: values.description,
         price: parseFloat(values.price),
-        thumbnail: values.thumbnailUrl || undefined,
+        thumbnailVertical: values.thumbnailVertical || undefined,
+        thumbnailHorizontal: values.thumbnailHorizontal || undefined,
       };
 
       await coursesService.update(courseId, updateData);
@@ -150,22 +171,37 @@ export default function EditCoursePage() {
 
     try {
       // Enviar nova ordem para API
+      // Garantir que order seja um inteiro (parseInt para evitar problemas de validação)
       const updates = items.map((module, index) => ({
         id: module.id,
-        order: index + 1,
+        order: parseInt(String(index + 1), 10),
       }));
 
-      await modulesService.reorder(courseId, { modules: updates });
+      const payload = { modules: updates };
+      console.log('=== INÍCIO DEBUG REORDENAÇÃO ===');
+      console.log('CourseId:', courseId);
+      console.log('Payload completo:', JSON.stringify(payload, null, 2));
+      console.log('Tipo de cada order:', updates.map(u => `${u.id}: ${typeof u.order} (${u.order})`));
+      console.log('=== FIM DEBUG ===');
+
+      await modulesService.reorder(courseId, payload);
 
       toast({
         title: 'Sucesso',
         description: 'Ordem dos módulos atualizada!',
       });
-    } catch (error) {
-      console.error('Erro ao reordenar módulos:', error);
+    } catch (error: any) {
+      console.error('Erro completo ao reordenar módulos:', error);
+      console.error('Response:', error.response);
+      console.error('Data:', error.response?.data);
+      
+      const errorMessage = Array.isArray(error.response?.data?.message)
+        ? error.response.data.message.join(', ')
+        : error.response?.data?.message || error.message || 'Não foi possível reordenar os módulos.';
+      
       toast({
-        title: 'Erro',
-        description: 'Não foi possível reordenar os módulos.',
+        title: 'Erro ao reordenar',
+        description: errorMessage,
         variant: 'destructive',
       });
       // Reverter mudança
@@ -234,13 +270,37 @@ export default function EditCoursePage() {
 
       {/* Formulário de Edição */}
       <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Informações do Curso</CardTitle>
-          <CardDescription>
-            Atualize os dados básicos do curso
-          </CardDescription>
+        <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setIsCourseInfoCollapsed(!isCourseInfoCollapsed)}>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Informações do Curso</CardTitle>
+              <CardDescription>
+                Atualize os dados básicos do curso
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCourseInfoCollapsed(!isCourseInfoCollapsed);
+              }}
+            >
+              {isCourseInfoCollapsed ? (
+                <ChevronDown className="h-5 w-5" />
+              ) : (
+                <ChevronUp className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        <div
+          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            isCourseInfoCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+          }`}
+        >
+          <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -281,49 +341,83 @@ export default function EditCoursePage() {
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço (R$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="99.90"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Valor do curso em reais
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="99.90"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Valor do curso em reais
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="thumbnailUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL da Thumbnail (Opcional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://exemplo.com/imagem.jpg"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Imagem de capa do curso
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <Separator className="my-6" />
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Thumbnails do Curso</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Faça upload das imagens de capa do curso. Forneça as duas versões para melhor experiência em diferentes dispositivos.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <FormField
+                    control={form.control}
+                    name="thumbnailHorizontal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thumbnail Horizontal (16:9)</FormLabel>
+                        <FormControl>
+                          <ThumbnailUpload
+                            value={field.value}
+                            onChange={field.onChange}
+                            aspectRatio="horizontal"
+                            label="Thumbnail horizontal"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Imagem para exibição em desktop e tablet
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="thumbnailVertical"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thumbnail Vertical (9:16) - Opcional</FormLabel>
+                        <FormControl>
+                          <ThumbnailUpload
+                            value={field.value}
+                            onChange={field.onChange}
+                            aspectRatio="vertical"
+                            label="Thumbnail vertical"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Imagem para exibição em dispositivos móveis
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end">
@@ -343,7 +437,8 @@ export default function EditCoursePage() {
               </div>
             </form>
           </Form>
-        </CardContent>
+          </CardContent>
+        </div>
       </Card>
 
       <Separator className="my-8" />
@@ -418,7 +513,7 @@ export default function EditCoursePage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-sm font-medium text-muted-foreground">
-                                  Módulo {module.order}
+                                  Módulo {index + 1}
                                 </span>
                                 <Badge variant="outline">
                                   {module._count?.videos || 0} vídeos
