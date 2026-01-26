@@ -131,31 +131,7 @@ export default function MyCoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur z-10 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
-                <BookOpen className="h-5 w-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Projeto Cirurgião</h1>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
-              </div>
-              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <>
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
@@ -171,13 +147,13 @@ export default function MyCoursesPage() {
           </p>
         </div>
       ) : (
-        <main className="container mx-auto px-6 py-8 space-y-12">
+        <main className="container mx-auto px-4 md:px-6 py-6 md:py-8 space-y-8 md:space-y-12">
           {/* Continue Assistindo */}
           {inProgressCourses.length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Continue Assistindo</h2>
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Continue Assistindo</h2>
+                <div className="flex gap-1 md:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -198,11 +174,11 @@ export default function MyCoursesPage() {
               </div>
               <div
                 id="continue-scroll"
-                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {inProgressCourses.map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[280px]">
+                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
                     <CourseCard course={course} />
                   </div>
                 ))}
@@ -213,9 +189,9 @@ export default function MyCoursesPage() {
           {/* Meus Cursos */}
           {enrolledCourses.length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Meus Cursos</h2>
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Meus Cursos</h2>
+                <div className="flex gap-1 md:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -236,11 +212,11 @@ export default function MyCoursesPage() {
               </div>
               <div
                 id="enrolled-scroll"
-                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {enrolledCourses.map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[280px]">
+                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
                     <CourseCard course={course} />
                   </div>
                 ))}
@@ -251,9 +227,9 @@ export default function MyCoursesPage() {
           {/* Cursos Disponíveis - Linha 1 */}
           {availableCourses.length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Cursos Disponíveis</h2>
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Cursos Disponíveis</h2>
+                <div className="flex gap-1 md:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -274,11 +250,11 @@ export default function MyCoursesPage() {
               </div>
               <div
                 id="available-scroll-1"
-                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {availableCourses.slice(0, 9).map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[280px]">
+                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
                     <CourseCard course={course} />
                   </div>
                 ))}
@@ -289,9 +265,9 @@ export default function MyCoursesPage() {
           {/* Cursos Disponíveis - Linha 2 */}
           {availableCourses.length > 9 && (
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Mais Cursos</h2>
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Mais Cursos</h2>
+                <div className="flex gap-1 md:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -312,11 +288,11 @@ export default function MyCoursesPage() {
               </div>
               <div
                 id="available-scroll-2"
-                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {availableCourses.slice(9, 18).map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[280px]">
+                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
                     <CourseCard course={course} />
                   </div>
                 ))}
@@ -327,9 +303,9 @@ export default function MyCoursesPage() {
           {/* Todos os Cursos - Linha 3 */}
           {availableCourses.length > 18 && (
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Explore Mais</h2>
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Explore Mais</h2>
+                <div className="flex gap-1 md:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -350,11 +326,11 @@ export default function MyCoursesPage() {
               </div>
               <div
                 id="available-scroll-3"
-                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {availableCourses.slice(18).map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[280px]">
+                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
                     <CourseCard course={course} />
                   </div>
                 ))}
@@ -369,6 +345,6 @@ export default function MyCoursesPage() {
           display: none;
         }
       `}</style>
-    </div>
+    </>
   );
 }

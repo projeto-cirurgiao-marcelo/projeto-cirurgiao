@@ -45,6 +45,8 @@ import { useToast } from '@/hooks/use-toast';
 import { modulesService, videosService } from '@/lib/api';
 import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types';
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
+import { VideoMaterialsManager } from '@/components/admin/video-materials-manager';
+import { VideoTranscriptManager } from '@/components/admin/video-transcript-manager';
 
 const moduleFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
@@ -1023,8 +1025,8 @@ export default function EditModulePage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Editar Módulo</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Editar Módulo</h1>
+          <p className="text-gray-600 mt-2">
             Atualize as informações e gerencie os vídeos do módulo
           </p>
         </div>
@@ -1177,38 +1179,56 @@ export default function EditModulePage() {
 
       {/* Dialog de Edição de Vídeo */}
       <Dialog open={!!editingVideo} onOpenChange={(open) => !open && setEditingVideo(null)}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Detalhes do Vídeo</DialogTitle>
             <DialogDescription>
-              Atualize título, descrição e thumbnail
+              Atualize título, descrição, thumbnail e materiais didáticos
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Título *</label>
-              <Input
-                value={editingVideo?.title || ''}
-                onChange={(e) => setEditingVideo(prev => prev ? {...prev, title: e.target.value} : null)}
-              />
+          <div className="space-y-6 py-4">
+            {/* Informações Básicas */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Informações Básicas</h3>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Título *</label>
+                <Input
+                  value={editingVideo?.title || ''}
+                  onChange={(e) => setEditingVideo(prev => prev ? {...prev, title: e.target.value} : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Descrição (opcional)</label>
+                <Textarea
+                  value={editingVideo?.description || ''}
+                  onChange={(e) => setEditingVideo(prev => prev ? {...prev, description: e.target.value} : null)}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Thumbnail (opcional)</label>
+                <ThumbnailUpload
+                  value={editingVideo?.thumbnailUrl || ''}
+                  onChange={(url) => setEditingVideo(prev => prev ? {...prev, thumbnailUrl: url} : null)}
+                  aspectRatio="horizontal"
+                  label="Thumbnail"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Descrição (opcional)</label>
-              <Textarea
-                value={editingVideo?.description || ''}
-                onChange={(e) => setEditingVideo(prev => prev ? {...prev, description: e.target.value} : null)}
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Thumbnail (opcional)</label>
-              <ThumbnailUpload
-                value={editingVideo?.thumbnailUrl || ''}
-                onChange={(url) => setEditingVideo(prev => prev ? {...prev, thumbnailUrl: url} : null)}
-                aspectRatio="horizontal"
-                label="Thumbnail"
-              />
-            </div>
+
+            {/* Materiais Didáticos */}
+            {editingVideo && (
+              <div className="border-t pt-4">
+                <VideoMaterialsManager videoId={editingVideo.id} />
+              </div>
+            )}
+
+            {/* Transcrição do Vídeo */}
+            {editingVideo && (
+              <div className="border-t pt-4">
+                <VideoTranscriptManager videoId={editingVideo.id} />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingVideo(null)}>

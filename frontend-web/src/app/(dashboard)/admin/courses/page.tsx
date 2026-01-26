@@ -86,21 +86,22 @@ export default function CoursesPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Meus Cursos</h1>
-        <p className="text-gray-600 mt-1">Gerencie seus cursos e conteúdos</p>
+        <h1 className="text-2xl md:text-4xl font-bold text-gray-900 tracking-tight">Meus Cursos</h1>
+        <p className="text-sm md:text-base text-gray-600 mt-1">Gerencie seus cursos e conteúdos</p>
       </div>
 
       {/* Grid de Cursos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      {/* Mobile: 2 colunas, Tablet: 3 colunas, Desktop: 4-5 colunas */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
         {/* Card de Novo Curso */}
         <button
           onClick={() => router.push('/admin/courses/new')}
-          className="group aspect-[9/16] border-2 border-dashed border-gray-300 rounded-2xl hover:border-blue-500 transition-all hover:shadow-lg bg-gray-50/50 hover:bg-blue-50/50 flex flex-col items-center justify-center gap-4"
+          className="group aspect-[9/16] border-2 border-dashed border-gray-300 rounded-xl md:rounded-2xl hover:border-blue-500 transition-all hover:shadow-lg bg-gray-50/50 hover:bg-blue-50/50 flex flex-col items-center justify-center gap-2 md:gap-4"
         >
-          <div className="w-16 h-16 rounded-full bg-gray-200 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-            <Plus className="w-8 h-8 text-gray-400 group-hover:text-blue-600 transition-colors" />
+          <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-gray-200 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+            <Plus className="w-5 h-5 md:w-8 md:h-8 text-gray-400 group-hover:text-blue-600 transition-colors" />
           </div>
-          <p className="text-gray-600 group-hover:text-blue-600 font-medium transition-colors">
+          <p className="text-xs md:text-base text-gray-600 group-hover:text-blue-600 font-medium transition-colors">
             Novo curso
           </p>
         </button>
@@ -109,7 +110,7 @@ export default function CoursesPage() {
         {courses.map((course) => (
           <div
             key={course.id}
-            className="group aspect-[9/16] rounded-2xl overflow-hidden relative shadow-md hover:shadow-2xl transition-all duration-300"
+            className="group aspect-[9/16] rounded-xl md:rounded-2xl overflow-hidden relative shadow-md hover:shadow-2xl transition-all duration-300"
           >
             {/* Background com Thumbnail Vertical */}
             <div 
@@ -136,32 +137,33 @@ export default function CoursesPage() {
 
             {/* Badge de Status */}
             {course.isPublished && (
-              <div className="absolute top-3 right-3 z-10">
-                <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg">
+              <div className="absolute top-2 right-2 md:top-3 md:right-3 z-10">
+                <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1">
                   Publicado
                 </Badge>
               </div>
             )}
 
             {/* Conteúdo do Card */}
-            <div className="absolute inset-x-0 bottom-0 z-10 p-4 space-y-3">
+            <div className="absolute inset-x-0 bottom-0 z-10 p-2 md:p-4 space-y-1.5 md:space-y-3">
               {/* Título */}
-              <h3 className="text-white font-bold text-lg line-clamp-2 leading-tight">
+              <h3 className="text-white font-bold text-xs md:text-lg line-clamp-2 leading-tight">
                 {course.title}
               </h3>
 
               {/* Botões de Ação */}
-              <div className="flex gap-2">
+              <div className="flex gap-1 md:gap-2">
                 <Button
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     router.push(`/admin/courses/${course.id}/edit`);
                   }}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] md:text-sm h-7 md:h-9 px-2 md:px-3"
                 >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Editar
+                  <Edit className="w-3 h-3 md:w-4 md:h-4 mr-0.5 md:mr-1" />
+                  <span className="hidden sm:inline">Editar</span>
+                  <span className="sm:hidden">Edit</span>
                 </Button>
                 <Button
                   size="sm"
@@ -171,9 +173,9 @@ export default function CoursesPage() {
                     handleDelete(course.id);
                   }}
                   disabled={deleting === course.id}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-red-600 hover:bg-red-700 h-7 md:h-9 px-2 md:px-3"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                 </Button>
               </div>
             </div>

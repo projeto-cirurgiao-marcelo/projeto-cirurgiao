@@ -96,8 +96,8 @@ export default function NewCoursePage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
-        <h1 className="text-3xl font-bold">Criar Novo Curso</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Criar Novo Curso</h1>
+        <p className="text-gray-600 mt-2">
           Preencha as informações básicas do curso
         </p>
       </div>

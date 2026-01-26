@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useRouter } from 'next/navigation';
 
-export function AdminHeader() {
+export function StudentHeader() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
 
@@ -35,7 +35,7 @@ export function AdminHeader() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             type="search"
-            placeholder="Buscar cursos, alunos, vídeos..."
+            placeholder="Buscar cursos, aulas..."
             className="pl-10 bg-gray-50 dark:bg-gray-800 border-none"
           />
         </div>
@@ -43,7 +43,7 @@ export function AdminHeader() {
         {/* Título em mobile quando search está oculto */}
         <div className="sm:hidden flex-1 text-center">
           <span className="text-sm font-semibold text-gray-900 dark:text-white">
-            Admin
+            Meus Cursos
           </span>
         </div>
 
@@ -66,11 +66,11 @@ export function AdminHeader() {
               <Button variant="ghost" className="flex items-center gap-2 px-2">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white text-xs">
-                    {user?.name?.charAt(0).toUpperCase() || 'A'}
+                    {user?.name?.charAt(0).toUpperCase() || 'E'}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium hidden lg:block">
-                  {user?.name || 'Admin'}
+                  {user?.name || 'Estudante'}
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -80,7 +80,10 @@ export function AdminHeader() {
               <DropdownMenuItem>
                 <span className="text-sm truncate">{user?.email}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+              <DropdownMenuItem onClick={() => router.push('/student/profile')}>
+                Meu Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/student/settings')}>
                 Configurações
               </DropdownMenuItem>
               <DropdownMenuSeparator />

@@ -68,7 +68,7 @@ export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
         <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg">
           <Avatar className="h-10 w-10">
             <AvatarImage src={undefined} alt={user?.name || ''} />
-            <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white text-sm font-semibold">
+            <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white text-sm font-semibold">
               {getUserInitials()}
             </AvatarFallback>
           </Avatar>
@@ -139,7 +139,7 @@ export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
         >
           <Avatar className="h-8 w-8">
             <AvatarImage src={undefined} alt={user?.name || ''} />
-            <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white text-xs font-semibold">
+            <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white text-xs font-semibold">
               {getUserInitials()}
             </AvatarFallback>
           </Avatar>
@@ -155,7 +155,7 @@ export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
               <AvatarImage src={undefined} alt={user?.name || ''} />
-              <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white font-semibold">
+              <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white font-semibold">
                 {getUserInitials()}
               </AvatarFallback>
             </Avatar>

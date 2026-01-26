@@ -3,15 +3,15 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { AdminSidebar } from '@/components/layout/admin-sidebar';
-import { AdminHeader } from '@/components/layout/admin-header';
+import { StudentSidebar } from '@/components/layout/student-sidebar';
+import { StudentHeader } from '@/components/layout/student-header';
 import { Loader2 } from 'lucide-react';
 
 /**
- * Layout compartilhado para todas as páginas admin
+ * Layout compartilhado para todas as páginas de estudante
  * Inclui sidebar e header automaticamente
  */
-export default function AdminLayout({
+export default function StudentLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -22,14 +22,14 @@ export default function AdminLayout({
   useEffect(() => {
     // Aguarda a hidratação e o carregamento antes de verificar autenticação
     if (hasHydrated && !isLoading && !isAuthenticated) {
-      console.log('🔴 [Admin Layout] Usuário não autenticado, redirecionando para login');
+      console.log('🔴 [Student Layout] Usuário não autenticado, redirecionando para login');
       router.push('/login');
     }
     
-    // Verificar se é admin
-    if (hasHydrated && !isLoading && isAuthenticated && user?.role !== 'ADMIN') {
-      console.log('🔴 [Admin Layout] Usuário não é admin, redirecionando');
-      router.push('/student/my-courses');
+    // Verificar se é estudante (ou permitir ADMIN também para testes)
+    if (hasHydrated && !isLoading && isAuthenticated && user?.role === 'INSTRUCTOR') {
+      console.log('🔴 [Student Layout] Usuário é instrutor, redirecionando');
+      router.push('/admin');
     }
   }, [hasHydrated, isLoading, isAuthenticated, user, router]);
 
@@ -46,14 +46,19 @@ export default function AdminLayout({
   }
 
   // Se não estiver autenticado após hidratação, não renderiza nada (o useEffect vai redirecionar)
-  if (!isAuthenticated || !user || user.role !== 'ADMIN') {
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  // Permitir ADMIN e STUDENT acessarem a área de estudante
+  if (user.role !== 'STUDENT' && user.role !== 'ADMIN') {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <AdminSidebar />
-      <AdminHeader />
+      <StudentSidebar />
+      <StudentHeader />
       
       {/* Main Content Area - com margin para sidebar e header */}
       {/* Mobile: sem margem esquerda, padding menor */}

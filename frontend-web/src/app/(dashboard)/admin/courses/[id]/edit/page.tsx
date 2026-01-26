@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, ArrowLeft, Save, Plus, GripVertical, Pencil, Trash2, Video, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Plus, GripVertical, Pencil, Trash2, Video, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ export default function EditCoursePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTogglingPublish, setIsTogglingPublish] = useState(false);
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [isLoadingModules, setIsLoadingModules] = useState(false);
@@ -209,6 +210,31 @@ export default function EditCoursePage() {
     }
   };
 
+  // Toggle publicação do curso
+  const handleTogglePublish = async () => {
+    try {
+      setIsTogglingPublish(true);
+      const updatedCourse = await coursesService.togglePublish(courseId);
+      setCourse(updatedCourse);
+      
+      toast({
+        title: 'Sucesso',
+        description: updatedCourse.isPublished 
+          ? 'Curso publicado com sucesso!' 
+          : 'Curso despublicado com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao alterar status de publicação:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível alterar o status de publicação.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTogglingPublish(false);
+    }
+  };
+
   // Deletar módulo
   const handleDeleteModule = async (moduleId: string) => {
     if (!confirm('Tem certeza que deseja deletar este módulo? Esta ação não pode ser desfeita.')) {
@@ -257,15 +283,39 @@ export default function EditCoursePage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Editar Curso</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Editar Curso</h1>
+            <p className="text-gray-600 mt-2">
               Atualize as informações do curso e gerencie seus módulos
             </p>
           </div>
         </div>
-        <Badge variant={course.isPublished ? 'default' : 'secondary'}>
-          {course.isPublished ? 'Publicado' : 'Rascunho'}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant={course.isPublished ? 'default' : 'secondary'}>
+            {course.isPublished ? 'Publicado' : 'Rascunho'}
+          </Badge>
+          <Button
+            onClick={handleTogglePublish}
+            disabled={isTogglingPublish}
+            variant={course.isPublished ? 'outline' : 'default'}
+          >
+            {isTogglingPublish ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processando...
+              </>
+            ) : course.isPublished ? (
+              <>
+                <EyeOff className="mr-2 h-4 w-4" />
+                Despublicar
+              </>
+            ) : (
+              <>
+                <Eye className="mr-2 h-4 w-4" />
+                Publicar Curso
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Formulário de Edição */}

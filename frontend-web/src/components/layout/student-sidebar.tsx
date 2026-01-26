@@ -7,13 +7,15 @@ import { cn } from '@/lib/utils';
 import {
   Home,
   BookOpen,
-  Users,
-  Folders,
-  Video,
+  PlayCircle,
+  Award,
+  User,
   Settings,
   GraduationCap,
   Menu,
-  X,
+  Library,
+  Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,35 +34,48 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
-    href: '/admin',
+    title: 'Meus Cursos',
+    href: '/student/my-courses',
     icon: Home,
   },
   {
-    title: 'Cursos',
-    href: '/admin/courses',
-    icon: BookOpen,
+    title: 'Explorar Cursos',
+    href: '/student/courses',
+    icon: Library,
   },
   {
-    title: 'Alunos',
-    href: '/admin/students',
-    icon: Users,
+    title: 'Em Progresso',
+    href: '/student/in-progress',
+    icon: PlayCircle,
   },
   {
-    title: 'Módulos',
-    href: '/admin/modules',
-    icon: Folders,
+    title: 'Concluídos',
+    href: '/student/completed',
+    icon: Award,
   },
   {
-    title: 'Vídeos',
-    href: '/admin/videos',
-    icon: Video,
+    title: 'Fórum',
+    href: '/student/forum',
+    icon: MessageSquare,
   },
-  {
-    title: 'Configurações',
-    href: '/admin/settings',
-    icon: Settings,
-  },
+  // TODO: Implementar rotas adicionais
+  // Veja MAPEAMENTO_ROTAS_ESTUDANTE_15-01-2026.md para detalhes
+  
+  // {
+  //   title: 'Histórico',
+  //   href: '/student/history',
+  //   icon: Clock,
+  // },
+  // {
+  //   title: 'Meu Perfil',
+  //   href: '/student/profile',
+  //   icon: User,
+  // },
+  // {
+  //   title: 'Configurações',
+  //   href: '/student/settings',
+  //   icon: Settings,
+  // },
 ];
 
 // Componente de navegação reutilizável
@@ -69,13 +84,17 @@ function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
 
   return (
     <nav className="flex-1 space-y-1 p-4">
-      {navItems.map((item) => {
+      {navItems.map((item, index) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href;
+        // Lógica mais precisa: exato match OU começa com o href + '/' (para sub-rotas)
+        const isActive = pathname === item.href || 
+          (pathname.startsWith(item.href + '/') && 
+           // Evitar ativar /student/courses quando estiver em /student/courses/[id]
+           !(item.href === '/student/courses' && pathname.includes('/student/courses/')));
 
         return (
           <Link
-            key={item.href}
+            key={`${item.href}-${index}`}
             href={item.href}
             onClick={onItemClick}
             className={cn(
@@ -104,7 +123,7 @@ function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
 // Logo reutilizável
 function SidebarLogo() {
   return (
-    <Link href="/admin" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+    <Link href="/student/my-courses" className="flex items-center gap-2 transition-opacity hover:opacity-80">
       <img 
         src="/logoblack.webp" 
         alt="Cirurgião Academy" 
@@ -157,7 +176,7 @@ export function DesktopSidebar() {
 }
 
 // Componente principal que combina ambos
-export function AdminSidebar() {
+export function StudentSidebar() {
   return (
     <>
       {/* Sidebar Desktop - visível apenas em md+ */}
