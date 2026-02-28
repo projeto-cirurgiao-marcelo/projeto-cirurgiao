@@ -14,6 +14,7 @@ interface VideoBreadcrumbsProps {
   courseName: string;
   courseId: string;
   moduleName?: string;
+  moduleId?: string;
   videoName: string;
   className?: string;
 }
@@ -22,6 +23,7 @@ export function VideoBreadcrumbs({
   courseName,
   courseId,
   moduleName,
+  moduleId,
   videoName,
   className,
 }: VideoBreadcrumbsProps) {
@@ -41,6 +43,7 @@ export function VideoBreadcrumbs({
   if (moduleName) {
     items.push({
       label: truncate(moduleName, 20),
+      href: moduleId ? `/student/courses/${courseId}/modules/${moduleId}` : undefined,
     });
   }
 

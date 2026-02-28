@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
@@ -19,6 +20,7 @@ import { Course } from '@/lib/types/course.types';
 export default function CoursesPage() {
   const router = useRouter();
   const { user, isAuthenticated, hasHydrated } = useAuthStore();
+  const { isStudentView } = useViewModeStore();
   const [allCourses, setAllCourses] = useState<any[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
@@ -33,13 +35,13 @@ export default function CoursesPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN' && !isStudentView) {
       router.push('/admin/courses');
       return;
     }
 
     loadCourses();
-  }, [isAuthenticated, user, hasHydrated]);
+  }, [isAuthenticated, user, hasHydrated, isStudentView]);
 
   useEffect(() => {
     // Filtrar cursos quando o termo de busca mudar

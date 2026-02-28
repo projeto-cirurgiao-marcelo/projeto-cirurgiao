@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -16,10 +23,11 @@ import { useToast } from '@/hooks/use-toast';
 export default function NewTopicPage() {
   const params = useParams();
   const router = useRouter();
-  const categoryId = params.categoryId as string;
+  const initialCategoryId = params.categoryId as string;
   const { toast } = useToast();
 
-  const [category, setCategory] = useState<ForumCategory | null>(null);
+  const [categories, setCategories] = useState<ForumCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,20 +35,28 @@ export default function NewTopicPage() {
     content: '',
   });
 
-  useEffect(() => {
-    loadCategory();
-  }, [categoryId]);
+  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
-  const loadCategory = async () => {
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
     try {
       setLoading(true);
-      const data = await forumCategoriesService.getById(categoryId);
-      setCategory(data);
+      const data = await forumCategoriesService.getAll();
+      setCategories(data);
+      // Garantir que a categoria inicial existe na lista
+      if (initialCategoryId && data.some((c: ForumCategory) => c.id === initialCategoryId)) {
+        setSelectedCategoryId(initialCategoryId);
+      } else if (data.length > 0) {
+        setSelectedCategoryId(data[0].id);
+      }
     } catch (err) {
-      console.error('Erro ao carregar categoria:', err);
+      console.error('Erro ao carregar categorias:', err);
       toast({
         title: 'Erro',
-        description: 'Erro ao carregar categoria',
+        description: 'Erro ao carregar categorias',
         variant: 'destructive',
       });
       router.push('/student/forum');
@@ -52,7 +68,7 @@ export default function NewTopicPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim() || !formData.content.trim()) {
+    if (!formData.title.trim() || !formData.content.trim() || !selectedCategoryId) {
       toast({
         title: 'Erro',
         description: 'Por favor, preencha todos os campos',
@@ -66,7 +82,7 @@ export default function NewTopicPage() {
       const newTopic = await forumService.createTopic({
         title: formData.title,
         content: formData.content,
-        categoryId,
+        categoryId: selectedCategoryId,
       });
 
       toast({
@@ -95,21 +111,17 @@ export default function NewTopicPage() {
     );
   }
 
-  if (!category) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* Header Premium */}
       <div className="mb-8">
         <Link
-          href={`/student/forum/${categoryId}`}
+          href={`/student/forum/${selectedCategoryId}`}
           className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors mb-6 group"
         >
           <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" />
-          Voltar para {category.name}
+          Voltar para {selectedCategory?.name || 'Fórum'}
         </Link>
 
         <div className="space-y-3">
@@ -117,7 +129,7 @@ export default function NewTopicPage() {
             Novo Tópico
           </h1>
           <p className="text-lg text-gray-600">
-            Crie um novo tópico em <span className="font-semibold text-gray-900">{category.name}</span>
+            Crie um novo tópico de discussão
           </p>
         </div>
       </div>
@@ -130,6 +142,39 @@ export default function NewTopicPage() {
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-primary-600"></div>
 
           <div className="p-8 space-y-8">
+            {/* Category Selector */}
+            <div className="space-y-3">
+              <Label htmlFor="category" className="text-base font-semibold text-gray-900">
+                Categoria <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={selectedCategoryId}
+                onValueChange={setSelectedCategoryId}
+                disabled={submitting}
+              >
+                <SelectTrigger className="h-12 text-base border-gray-300 focus:border-primary-500 focus:ring-primary-500/20">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{cat.name}</span>
+                        {cat.description && (
+                          <span className="text-xs text-gray-400 hidden sm:inline">
+                            — {cat.description}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-500">
+                Escolha a categoria mais adequada para sua discussão
+              </p>
+            </div>
+
             {/* Title Premium */}
             <div className="space-y-3">
               <Label htmlFor="title" className="text-base font-semibold text-gray-900">
@@ -191,7 +236,7 @@ export default function NewTopicPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <ul className="space-y-2.5 ml-11">
                   <li className="flex items-start gap-2 text-sm text-gray-700">
                     <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -242,7 +287,7 @@ export default function NewTopicPage() {
           </Button>
           <Button
             type="submit"
-            disabled={submitting || !formData.title.trim() || !formData.content.trim()}
+            disabled={submitting || !formData.title.trim() || !formData.content.trim() || !selectedCategoryId}
             className="min-w-[160px] h-11 font-semibold shadow-sm hover:shadow-md transition-all"
           >
             {submitting ? (

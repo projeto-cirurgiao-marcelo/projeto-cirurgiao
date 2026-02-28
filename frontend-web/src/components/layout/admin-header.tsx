@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Bell, Menu, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,10 +13,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { useRouter } from 'next/navigation';
 
 export function AdminHeader() {
   const { user, logout } = useAuthStore();
+  const { setStudentView } = useViewModeStore();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -54,6 +56,20 @@ export function AdminHeader() {
             <Search className="h-5 w-5" />
           </Button>
 
+          {/* Visao Estudante */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden md:flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+            onClick={() => {
+              setStudentView(true);
+              router.push('/student/my-courses');
+            }}
+          >
+            <Eye className="h-4 w-4" />
+            <span className="text-xs font-medium">Visao Estudante</span>
+          </Button>
+
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -61,7 +77,7 @@ export function AdminHeader() {
           </Button>
 
           {/* User Menu */}
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
                 <Avatar className="h-8 w-8">

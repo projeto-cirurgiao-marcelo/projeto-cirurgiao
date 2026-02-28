@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Menu, ShieldCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,12 +14,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { useRouter } from 'next/navigation';
+import { NotificationCenter } from './notification-center';
 
 export function StudentHeader() {
   const { user, logout } = useAuthStore();
   const { isCollapsed } = useSidebarStore();
+  const { isStudentView, setStudentView } = useViewModeStore();
   const router = useRouter();
+  const isAdminViewing = user?.role === 'ADMIN' && isStudentView;
 
   const handleLogout = async () => {
     await logout();
@@ -55,19 +59,32 @@ export function StudentHeader() {
 
         {/* Right Section */}
         <div className="flex items-center gap-2 md:gap-4">
+          {/* Voltar ao Admin */}
+          {isAdminViewing && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100 hover:text-amber-800"
+              onClick={() => {
+                setStudentView(false);
+                router.push('/admin');
+              }}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span className="text-xs font-medium hidden sm:inline">Voltar ao Admin</span>
+            </Button>
+          )}
+
           {/* Search button mobile */}
           <Button variant="ghost" size="icon" className="sm:hidden">
             <Search className="h-5 w-5" />
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[rgb(var(--destructive))]" />
-          </Button>
+          <NotificationCenter />
 
           {/* User Menu */}
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
                 <Avatar className="h-8 w-8">

@@ -50,14 +50,44 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     // Se o erro for 401, significa que o token expirou ou é inválido
     if (error.response?.status === 401) {
-      // Limpa o localStorage e redireciona para login
-      localStorage.removeItem('firebaseToken');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      
-      // Redireciona para login
+      // Verificar se já estamos na página de login para evitar loop
       if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        
+        // Não redirecionar se já estiver na página de login
+        if (currentPath === '/login' || currentPath === '/register') {
+          return Promise.reject(error);
+        }
+        
+        // Verificar se é uma rota crítica de autenticação (não redirecionar para rotas secundárias)
+        const requestUrl = error.config?.url || '';
+        const isAuthRoute = requestUrl.includes('/auth/') || requestUrl.includes('/users/me');
+        const isCriticalRoute = requestUrl.includes('/courses') || requestUrl.includes('/modules') || requestUrl.includes('/videos');
+        
+        // Só redirecionar para login se for uma rota crítica ou de autenticação
+        // Rotas secundárias como captions, materials, chat, etc. não devem causar redirecionamento
+        const isSecondaryRoute = requestUrl.includes('/captions') ||
+                                  requestUrl.includes('/materials') ||
+                                  requestUrl.includes('/transcripts') ||
+                                  requestUrl.includes('/notes') ||
+                                  requestUrl.includes('/likes') ||
+                                  requestUrl.includes('/chat') ||
+                                  requestUrl.includes('/users/students') ||
+                                  requestUrl.includes('/forum');
+        
+        if (isSecondaryRoute) {
+          // Para rotas secundárias, apenas rejeitar o erro sem redirecionar
+          console.warn('⚠️ [API Client] Erro 401 em rota secundária, não redirecionando:', requestUrl);
+          return Promise.reject(error);
+        }
+        
+        // Para rotas principais, limpar tokens e redirecionar
+        console.warn('⚠️ [API Client] Erro 401 em rota principal, redirecionando para login:', requestUrl);
+        localStorage.removeItem('firebaseToken');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        
         window.location.href = '/login';
       }
     }

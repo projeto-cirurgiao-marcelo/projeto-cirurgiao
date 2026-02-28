@@ -4,9 +4,11 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { StudentSidebar } from '@/components/layout/student-sidebar';
 import { StudentHeader } from '@/components/layout/student-header';
-import { Loader2 } from 'lucide-react';
+import { GamificationProvider } from '@/components/gamification/GamificationProvider';
+import { Loader2, Eye, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -20,7 +22,9 @@ export default function StudentLayout({
 }) {
   const router = useRouter();
   const { user, isAuthenticated, hasHydrated, isLoading } = useAuthStore();
-  const { isCollapsed } = useSidebarStore(); // Mover para o topo, antes de qualquer return
+  const { isCollapsed } = useSidebarStore();
+  const { isStudentView, setStudentView } = useViewModeStore();
+  const isAdminViewing = user?.role === 'ADMIN' && isStudentView;
 
   useEffect(() => {
     // Aguarda a hidratação e o carregamento antes de verificar autenticação
@@ -59,20 +63,49 @@ export default function StudentLayout({
   }
 
   return (
+    <GamificationProvider>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <StudentSidebar />
       <StudentHeader />
       
-      {/* Main Content Area - com margin dinâmica para sidebar e header */}
-      {/* Mobile: sem margem esquerda, padding menor */}
-      {/* Desktop: margem esquerda ajusta conforme sidebar (80px colapsado, 240px expandido) */}
+      {/* Banner de Visao Estudante para Admin */}
+      {isAdminViewing && (
+        <div className={cn(
+          "fixed top-16 right-0 z-20 transition-all duration-300",
+          "left-0",
+          isCollapsed ? "md:left-20" : "md:left-60"
+        )}>
+          <div className="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200">
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-800">
+                Voce esta visualizando como Estudante
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setStudentView(false);
+                router.push('/admin');
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Voltar ao Admin
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
       <main className={cn(
-        "mt-16 p-4 md:p-6 lg:p-8 transition-all duration-300",
-        "ml-0", // Mobile: sem margem
-        isCollapsed ? "md:ml-20" : "md:ml-60" // Desktop: margem dinâmica
+        "p-4 md:p-6 lg:p-8 transition-all duration-300",
+        isAdminViewing ? "mt-[104px]" : "mt-16",
+        "ml-0",
+        isCollapsed ? "md:ml-20" : "md:ml-60"
       )}>
         {children}
       </main>
     </div>
+    </GamificationProvider>
   );
 }

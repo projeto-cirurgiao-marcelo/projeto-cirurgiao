@@ -127,3 +127,26 @@ export interface TopicsResponse {
 export interface VoteResponse {
   message: string;
 }
+
+// Report types
+export type ReportReason = 'SPAM' | 'INAPPROPRIATE' | 'OFFENSIVE' | 'OFF_TOPIC' | 'OTHER';
+export type ReportStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+
+export interface CreateReportDto {
+  topicId: string;
+  reason: ReportReason;
+  description?: string;
+}
+
+export interface ForumReport {
+  id: string;
+  topicId: string;
+  reporterId: string;
+  reason: ReportReason;
+  description: string | null;
+  status: ReportStatus;
+  createdAt: string;
+  updatedAt: string;
+  topic?: { id: string; title: string };
+  reporter?: { id: string; name: string; email: string };
+}

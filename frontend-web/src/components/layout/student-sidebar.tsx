@@ -18,6 +18,7 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
+  Gamepad2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,6 +56,11 @@ const navItems: NavItem[] = [
     title: 'Concluídos',
     href: '/student/completed',
     icon: Award,
+  },
+  {
+    title: 'Gamificação',
+    href: '/student/gamification',
+    icon: Gamepad2,
   },
   {
     title: 'Fórum',

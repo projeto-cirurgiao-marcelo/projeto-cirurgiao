@@ -107,34 +107,35 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       /**
-       * Registra novo usuário no Firebase
+       * Registra novo usuário via rota secreta → cria no Firebase Auth + PostgreSQL
+       * Depois faz login normal via Firebase para obter token
        */
       register: async (email: string, password: string, name: string) => {
         set({ isLoading: true, error: null });
 
         try {
-          console.log('🔥 [Firebase] Iniciando registro...');
-          
-          // 1. Cria conta no Firebase
-          const firebaseResult = await firebaseAuthService.register(email, password, name);
-          
+          // 1. Cria usuário via rota secreta (backend cria no Firebase Auth + PostgreSQL)
+          await axios.post(`${API_URL}/aulas/92339018203`, {
+            email,
+            password,
+            name,
+          });
+
+          // 2. Faz login no Firebase client-side para obter token
+          const firebaseResult = await firebaseAuthService.login(email, password);
+
           if (!firebaseResult.success || !firebaseResult.token) {
-            throw new Error(firebaseResult.error || 'Falha no registro Firebase');
+            throw new Error(firebaseResult.error || 'Conta criada, mas falha no login automático');
           }
 
-          console.log('✅ [Firebase] Registro bem sucedido');
-          console.log('🔄 [Backend] Sincronizando usuário...');
-
-          // 2. Sincroniza com backend
+          // 3. Sincroniza com backend para obter dados do usuário com role
           const backendResponse = await axios.post(`${API_URL}/auth/firebase-login`, {
             firebaseToken: firebaseResult.token,
           });
 
           const backendUser = backendResponse.data.user;
 
-          console.log('✅ [Backend] Usuário criado:', backendUser);
-
-          // 3. Salva no estado
+          // 4. Salva no estado
           set({
             user: backendUser,
             firebaseUser: firebaseResult.user,
@@ -144,7 +145,7 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
 
-          // 4. Salva no localStorage
+          // 5. Salva no localStorage
           localStorage.setItem('firebaseToken', firebaseResult.token);
           localStorage.setItem('user', JSON.stringify(backendUser));
         } catch (error: any) {

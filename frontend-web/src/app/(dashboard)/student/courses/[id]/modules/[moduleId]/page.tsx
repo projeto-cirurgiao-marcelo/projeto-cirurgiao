@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ export default function ModuleDetailPage() {
   const courseId = params.id as string;
   const moduleId = params.moduleId as string;
   const { user, isAuthenticated, hasHydrated } = useAuthStore();
+  const { isStudentView } = useViewModeStore();
   const [course, setCourse] = useState<Course | null>(null);
   const [module, setModule] = useState<Module | null>(null);
   const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
@@ -32,14 +34,14 @@ export default function ModuleDetailPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN' && !isStudentView) {
       router.push('/admin/courses');
       return;
     }
 
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user, courseId, moduleId, hasHydrated]);
+  }, [isAuthenticated, user, courseId, moduleId, hasHydrated, isStudentView]);
 
   const loadData = async () => {
     try {

@@ -135,7 +135,7 @@ export interface UpdateVideoDto {
 }
 
 export interface ReorderVideosDto {
-  videoOrders: Array<{
+  videos: Array<{
     id: string;
     order: number;
   }>;

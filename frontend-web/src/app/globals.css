@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -41,6 +41,22 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  
+  /* === Cores Médicas Profissionais (Rebranding 2026) === */
+  --color-medical-50: #f0f7ff;
+  --color-medical-100: #e0effe;
+  --color-medical-200: #bae0fd;
+  --color-medical-300: #7ccbfd;
+  --color-medical-400: #36b3fa;
+  --color-medical-500: #0c9eee;
+  --color-medical-600: #0284c7;
+  --color-medical-700: #0369a1;
+  --color-medical-800: #075985;
+  --color-medical-900: #0c4a6e;
+  --color-medical-950: #083045;
+  
+  --color-medical-success: #059669;
+  --color-medical-success-light: #d1fae5;
 }
 
 :root {
