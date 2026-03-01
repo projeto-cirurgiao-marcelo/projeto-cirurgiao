@@ -1,6 +1,7 @@
 'use client';
 
-import { Search, Bell, Menu, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,26 +14,38 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useSidebarStore } from '@/lib/stores/sidebar-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
+import { NotificationCenter } from '@/components/layout/notification-center';
 import { useRouter } from 'next/navigation';
-
 export function AdminHeader() {
-  const { user, logout } = useAuthStore();
-  const { setStudentView } = useViewModeStore();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const { isCollapsed } = useSidebarStore();
+  const { enterStudentView } = useViewModeStore();
   const router = useRouter();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+  };
+
+  const handleViewAsStudent = () => {
+    enterStudentView();
+    router.push('/student/courses');
   };
 
   return (
-    <header className="fixed left-0 md:left-60 right-0 top-0 z-30 h-16 border-b border-[rgb(var(--border))] bg-white dark:bg-gray-900">
+    <header
+      className={`fixed right-0 top-0 z-30 h-16 border-b border-[rgb(var(--border))] bg-white dark:bg-gray-900 transition-all duration-300 ${
+        isCollapsed ? 'left-0 md:left-16' : 'left-0 md:left-60'
+      }`}
+    >
       <div className="flex h-full items-center justify-between px-4 md:px-6">
-        {/* Espaço para o botão hamburguer em mobile */}
+        {/* Espaço para o botão hambúrguer em mobile */}
         <div className="w-12 md:hidden" />
-        
-        {/* Search Bar - oculto em mobile pequeno, visível em sm+ */}
+
+        {/* Search Bar */}
         <div className="relative hidden sm:block w-full max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
@@ -42,7 +55,7 @@ export function AdminHeader() {
           />
         </div>
 
-        {/* Título em mobile quando search está oculto */}
+        {/* Título em mobile */}
         <div className="sm:hidden flex-1 text-center">
           <span className="text-sm font-semibold text-gray-900 dark:text-white">
             Admin
@@ -51,40 +64,47 @@ export function AdminHeader() {
 
         {/* Right Section */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Search button mobile */}
           <Button variant="ghost" size="icon" className="sm:hidden">
             <Search className="h-5 w-5" />
           </Button>
 
-          {/* Visao Estudante */}
+          {/* View as Student */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="hidden md:flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-            onClick={() => {
-              setStudentView(true);
-              router.push('/student/my-courses');
-            }}
+            className="hidden sm:inline-flex gap-1.5 text-gray-600 hover:text-blue-600"
+            onClick={handleViewAsStudent}
           >
             <Eye className="h-4 w-4" />
-            <span className="text-xs font-medium">Visao Estudante</span>
+            <span className="hidden md:inline">Visão Estudante</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="sm:hidden"
+            onClick={handleViewAsStudent}
+            title="Visão Estudante"
+          >
+            <Eye className="h-5 w-5" />
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[rgb(var(--destructive))]" />
-          </Button>
+          <NotificationCenter />
 
           {/* User Menu */}
-          <DropdownMenu modal={false}>
+          <DropdownMenu modal={false} open={profileOpen} onOpenChange={setProfileOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white text-xs">
-                    {user?.name?.charAt(0).toUpperCase() || 'A'}
-                  </AvatarFallback>
-                </Avatar>
+                <div
+                  className="transition-transform duration-200"
+                  style={{ transform: profileOpen ? 'scale(1.1)' : 'scale(1)' }}
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white text-xs">
+                      {user?.name?.charAt(0).toUpperCase() || 'A'}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
                 <span className="text-sm font-medium hidden lg:block">
                   {user?.name || 'Admin'}
                 </span>

@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import * as tus from 'tus-js-client';
 import type {
   Video,
   CreateVideoDto,
@@ -368,6 +367,8 @@ export const videosService = {
 
       // Fase 2: Upload TUS diretamente para Cloudflare
       onStatusChange?.('uploading', 'Enviando diretamente para Cloudflare...');
+
+      const tus = await import('tus-js-client');
 
       return new Promise((resolve, reject) => {
         const upload = new tus.Upload(file, {

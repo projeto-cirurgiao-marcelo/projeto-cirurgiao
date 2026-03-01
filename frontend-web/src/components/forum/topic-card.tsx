@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Pin, Lock, CheckCircle, Eye, MessageSquare, ThumbsUp, ThumbsDown, PlayCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Pin, Lock, CheckCircle, Eye, MessageSquare, ThumbsUp, ThumbsDown, PlayCircle, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ForumTopic } from '@/lib/types/forum.types';
 
@@ -16,76 +15,85 @@ export function TopicCard({ topic }: TopicCardProps) {
 
   return (
     <Link href={`/student/forum/topic/${topic.id}`} className="group block">
-      <div className="relative overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
-        {/* Borda superior colorida */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-        <div className="p-6">
-          <div className="flex items-start gap-4">
-            {/* Score Premium */}
-            <div className={cn(
-              'flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-lg border-2 transition-all',
-              score > 0 && 'bg-green-50 border-green-200 text-green-700',
-              score < 0 && 'bg-red-50 border-red-200 text-red-700',
-              score === 0 && 'bg-gray-50 border-gray-200 text-gray-600'
-            )}>
-              <span className="text-xl font-bold leading-none">
-                {score > 0 && '+'}
-                {score}
-              </span>
-              <span className="text-[10px] font-medium mt-0.5 uppercase tracking-wide">
-                votos
-              </span>
+      <div className={cn(
+        'relative bg-white rounded-xl border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
+        topic.isPinned ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200 hover:border-blue-200'
+      )}>
+        <div className="p-5">
+          <div className="flex gap-4">
+            {/* Vote Score */}
+            <div className="hidden sm:flex flex-col items-center gap-0.5 flex-shrink-0">
+              <div className={cn(
+                'w-12 rounded-lg border px-2 py-2.5 text-center transition-colors',
+                score > 0 && 'bg-emerald-50 border-emerald-200',
+                score < 0 && 'bg-red-50 border-red-200',
+                score === 0 && 'bg-gray-50 border-gray-200'
+              )}>
+                <ChevronUp className={cn(
+                  'w-4 h-4 mx-auto mb-0.5',
+                  score > 0 ? 'text-emerald-500' : 'text-gray-300'
+                )} />
+                <span className={cn(
+                  'text-lg font-bold leading-none block',
+                  score > 0 && 'text-emerald-700',
+                  score < 0 && 'text-red-600',
+                  score === 0 && 'text-gray-500'
+                )}>
+                  {score}
+                </span>
+                <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider mt-0.5 block">
+                  votos
+                </span>
+              </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-w-0 space-y-3">
-              {/* Badges */}
+            <div className="flex-1 min-w-0">
+              {/* Status Badges */}
               {(topic.isPinned || topic.isClosed || topic.isSolved) && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
                   {topic.isPinned && (
-                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100 font-semibold">
-                      <Pin className="h-3 w-3 mr-1" />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                      <Pin className="h-3 w-3" />
                       Fixado
-                    </Badge>
-                  )}
-                  {topic.isClosed && (
-                    <Badge variant="outline" className="border-gray-300 text-gray-700 font-semibold">
-                      <Lock className="h-3 w-3 mr-1" />
-                      Fechado
-                    </Badge>
+                    </span>
                   )}
                   {topic.isSolved && (
-                    <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100 font-semibold">
-                      <CheckCircle className="h-3 w-3 mr-1" />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      <CheckCircle className="h-3 w-3" />
                       Resolvido
-                    </Badge>
+                    </span>
+                  )}
+                  {topic.isClosed && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                      <Lock className="h-3 w-3" />
+                      Fechado
+                    </span>
                   )}
                 </div>
               )}
 
-              {/* Título */}
-              <h3 className="font-bold text-lg text-gray-900 leading-tight line-clamp-2 group-hover:text-primary-600 transition-colors">
+              {/* Title */}
+              <h3 className="font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
                 {topic.title}
               </h3>
 
-              {/* Preview do conteúdo */}
-              <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+              {/* Content Preview */}
+              <p className="text-sm text-gray-500 mt-1 line-clamp-1 leading-relaxed">
                 {topic.content}
               </p>
 
-              {/* Metadados */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                {/* Autor e data */}
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-semibold text-primary-700">
+              {/* Footer */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3">
+                {/* Author */}
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[11px] font-bold text-blue-700">
                       {topic.author.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className="font-medium text-gray-700">{topic.author.name}</span>
-                  <span className="text-gray-400">•</span>
-                  <span className="text-gray-500">
+                  <span className="text-sm font-medium text-gray-700">{topic.author.name}</span>
+                  <span className="text-xs text-gray-400">
                     {formatDistanceToNow(new Date(topic.createdAt), {
                       addSuffix: true,
                       locale: ptBR,
@@ -94,38 +102,32 @@ export function TopicCard({ topic }: TopicCardProps) {
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1.5">
-                    <Eye className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">{topic.views}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <MessageSquare className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">{replyCount}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-green-600">
-                      <ThumbsUp className="h-4 w-4" />
-                      <span className="font-medium">{topic.upvotes}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-red-600">
-                      <ThumbsDown className="h-4 w-4" />
-                      <span className="font-medium">{topic.downvotes}</span>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-3 text-xs text-gray-400 ml-auto">
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span className="font-medium text-gray-500">{replyCount}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span className="font-medium text-gray-500">{topic.views}</span>
+                  </span>
+                  {/* Mobile vote score */}
+                  <span className={cn(
+                    'flex items-center gap-1 sm:hidden',
+                    score > 0 ? 'text-emerald-500' : score < 0 ? 'text-red-500' : 'text-gray-400'
+                  )}>
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                    <span className="font-medium">{score}</span>
+                  </span>
                 </div>
               </div>
 
-              {/* Vídeo associado */}
+              {/* Related Video */}
               {topic.video && (
-                <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-sm text-primary-600">
-                    <PlayCircle className="h-4 w-4" />
-                    <span className="font-medium">Relacionado ao vídeo:</span>
-                  </div>
-                  <span className="text-sm text-gray-700 font-medium truncate">
+                <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-gray-100">
+                  <PlayCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <span className="text-xs text-gray-500">Sobre:</span>
+                  <span className="text-xs font-medium text-blue-600 truncate">
                     {topic.video.title}
                   </span>
                 </div>

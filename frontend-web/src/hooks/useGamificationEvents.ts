@@ -9,7 +9,6 @@ const POLLING_INTERVAL = 30_000;
 /**
  * Hook para polling de eventos de gamificacao.
  * Automaticamente inicia/para com base no estado de autenticacao.
- * Normalmente nao precisa ser usado diretamente — o GamificationProvider ja faz isso.
  */
 export function useGamificationEvents() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -26,7 +25,6 @@ export function useGamificationEvents() {
       return;
     }
 
-    // Initial fetch
     fetchEvents();
 
     intervalRef.current = setInterval(fetchEvents, POLLING_INTERVAL);

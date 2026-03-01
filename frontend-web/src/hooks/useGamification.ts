@@ -13,7 +13,6 @@ export function useGamification() {
   const error = useGamificationStore((s) => s.profileError);
   const fetchProfile = useGamificationStore((s) => s.fetchProfile);
 
-  // Modal triggers (for external use)
   const triggerLevelUp = useGamificationStore((s) => s.triggerLevelUp);
   const triggerBadgeUnlock = useGamificationStore((s) => s.triggerBadgeUnlock);
   const showXpPopup = useGamificationStore((s) => s.showXpPopup);
@@ -29,7 +28,6 @@ export function useGamification() {
     isLoading,
     error,
     refetch: fetchProfile,
-    // Utilities
     triggerLevelUp,
     triggerBadgeUnlock,
     showXpPopup,

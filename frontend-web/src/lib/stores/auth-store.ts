@@ -87,10 +87,6 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
-
-          // 4. Salva no localStorage
-          localStorage.setItem('firebaseToken', firebaseResult.token);
-          localStorage.setItem('user', JSON.stringify(backendUser));
         } catch (error: any) {
           console.error('❌ [Login] Erro:', error);
           const errorMessage = error.response?.data?.message || error.message || 'Erro ao fazer login';
@@ -107,35 +103,34 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       /**
-       * Registra novo usuário via rota secreta → cria no Firebase Auth + PostgreSQL
-       * Depois faz login normal via Firebase para obter token
+       * Registra novo usuário no Firebase
        */
       register: async (email: string, password: string, name: string) => {
         set({ isLoading: true, error: null });
 
         try {
-          // 1. Cria usuário via rota secreta (backend cria no Firebase Auth + PostgreSQL)
-          await axios.post(`${API_URL}/aulas/92339018203`, {
-            email,
-            password,
-            name,
-          });
-
-          // 2. Faz login no Firebase client-side para obter token
-          const firebaseResult = await firebaseAuthService.login(email, password);
-
+          console.log('🔥 [Firebase] Iniciando registro...');
+          
+          // 1. Cria conta no Firebase
+          const firebaseResult = await firebaseAuthService.register(email, password, name);
+          
           if (!firebaseResult.success || !firebaseResult.token) {
-            throw new Error(firebaseResult.error || 'Conta criada, mas falha no login automático');
+            throw new Error(firebaseResult.error || 'Falha no registro Firebase');
           }
 
-          // 3. Sincroniza com backend para obter dados do usuário com role
+          console.log('✅ [Firebase] Registro bem sucedido');
+          console.log('🔄 [Backend] Sincronizando usuário...');
+
+          // 2. Sincroniza com backend
           const backendResponse = await axios.post(`${API_URL}/auth/firebase-login`, {
             firebaseToken: firebaseResult.token,
           });
 
           const backendUser = backendResponse.data.user;
 
-          // 4. Salva no estado
+          console.log('✅ [Backend] Usuário criado:', backendUser);
+
+          // 3. Salva no estado (Zustand persist handles localStorage)
           set({
             user: backendUser,
             firebaseUser: firebaseResult.user,
@@ -144,10 +139,6 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
-
-          // 5. Salva no localStorage
-          localStorage.setItem('firebaseToken', firebaseResult.token);
-          localStorage.setItem('user', JSON.stringify(backendUser));
         } catch (error: any) {
           console.error('❌ [Register] Erro:', error);
           const errorMessage = error.response?.data?.message || error.message || 'Erro ao registrar';
@@ -164,7 +155,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       /**
-       * Realiza logout
+       * Realiza logout e redireciona para /login
        */
       logout: async () => {
         try {
@@ -172,10 +163,7 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           console.error('❌ [Logout] Erro:', error);
         } finally {
-          // Limpa tudo
-          localStorage.removeItem('firebaseToken');
-          localStorage.removeItem('user');
-          
+          // Zustand persist will clear localStorage automatically
           set({
             user: null,
             firebaseUser: null,
@@ -183,6 +171,10 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: false,
             error: null,
           });
+          // Redirect to login — uses window.location to ensure full state reset
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
         }
       },
 
@@ -222,16 +214,8 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
-          
-          // Sincroniza localStorage
-          localStorage.setItem('firebaseToken', token);
-          localStorage.setItem('user', JSON.stringify(backendUser));
         } catch (error: any) {
           console.error('❌ [loadUser] Token inválido ou expirado:', error);
-          
-          // Token inválido - limpa tudo
-          localStorage.removeItem('firebaseToken');
-          localStorage.removeItem('user');
           
           set({
             user: null,

@@ -2,11 +2,9 @@ import { apiClient } from './client';
 import type {
   ForumTopic,
   ForumReply,
-  ForumReport,
   CreateTopicDto,
   UpdateTopicDto,
   CreateReplyDto,
-  CreateReportDto,
   VoteTopicDto,
   VoteReplyDto,
   TopicsResponse,
@@ -100,16 +98,6 @@ export const forumService = {
    */
   async voteOnReply(data: VoteReplyDto): Promise<VoteResponse> {
     const response = await apiClient.post<VoteResponse>('/forum/votes/replies', data);
-    return response.data;
-  },
-
-  // ==================== DENÚNCIAS ====================
-
-  /**
-   * Denunciar um tópico
-   */
-  async reportTopic(data: CreateReportDto): Promise<ForumReport> {
-    const response = await apiClient.post<ForumReport>('/forum/reports', data);
     return response.data;
   },
 };

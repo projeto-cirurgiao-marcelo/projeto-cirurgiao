@@ -54,7 +54,7 @@ const navItems: NavItem[] = [
 
 export function CourseraHeader() {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,13 +76,13 @@ export function CourseraHeader() {
           {/* Logo */}
           <Link
             href={user?.role === 'ADMIN' ? '/admin/courses' : '/student/my-courses'}
-            className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[rgb(var(--primary-500))] text-white shadow-md">
               <GraduationCap className="h-5 w-5" />
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="text-xs font-bold text-gray-900 leading-tight">
+              <span className="text-xs font-bold text-gray-900 leading-tight tracking-tight">
                 Projeto
               </span>
               <span className="text-[10px] font-semibold text-[rgb(var(--primary-500))] leading-tight">
@@ -101,7 +101,7 @@ export function CourseraHeader() {
                     'text-sm font-medium',
                     isActive(item.href)
                       ? 'bg-[rgb(var(--primary-500))] text-white hover:bg-[rgb(var(--primary-600))]'
-                      : 'text-gray-700 hover:text-[rgb(var(--primary-600))] hover:bg-gray-100'
+                      : 'text-gray-600 hover:text-[rgb(var(--primary-600))] hover:bg-blue-50'
                   )}
                 >
                   {item.label}
@@ -119,7 +119,7 @@ export function CourseraHeader() {
                 placeholder="Buscar cursos, vídeos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                className="pl-10 bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-300 focus:ring-blue-200 transition-colors"
               />
             </div>
           </div>

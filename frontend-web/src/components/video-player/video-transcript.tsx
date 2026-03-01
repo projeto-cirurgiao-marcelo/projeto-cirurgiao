@@ -18,31 +18,13 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Chave para persistência no localStorage
-const TRANSCRIPT_EXPANDED_KEY = 'video-transcript-expanded';
-
 export function VideoTranscript({ videoId, currentTime, onSeek }: VideoTranscriptProps) {
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false); // Inicia fechado por padrão
+  const [expanded, setExpanded] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeSegmentRef = useRef<HTMLButtonElement>(null);
-
-  // Carrega o estado do acordeon do localStorage na montagem
-  useEffect(() => {
-    const savedState = localStorage.getItem(TRANSCRIPT_EXPANDED_KEY);
-    if (savedState !== null) {
-      setExpanded(savedState === 'true');
-    }
-  }, []);
-
-  // Salva o estado do acordeon no localStorage quando muda
-  const handleToggleExpanded = () => {
-    const newState = !expanded;
-    setExpanded(newState);
-    localStorage.setItem(TRANSCRIPT_EXPANDED_KEY, String(newState));
-  };
 
   // Carrega a transcrição
   useEffect(() => {
@@ -73,30 +55,18 @@ export function VideoTranscript({ videoId, currentTime, onSeek }: VideoTranscrip
     return -1;
   }, [transcript?.segments, currentTime]);
 
-  // Auto-scroll para o segmento ativo (apenas dentro do container, sem afetar a página)
+  // Auto-scroll para o segmento ativo
   useEffect(() => {
     if (autoScroll && activeSegmentRef.current && containerRef.current) {
       const container = containerRef.current;
       const element = activeSegmentRef.current;
       
-      // Calcula a posição relativa do elemento dentro do container
-      const elementTop = element.offsetTop;
-      const elementHeight = element.offsetHeight;
-      const containerHeight = container.clientHeight;
-      const containerScrollTop = container.scrollTop;
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
       
-      // Verifica se o elemento está fora da área visível do container
-      const elementBottom = elementTop + elementHeight;
-      const visibleTop = containerScrollTop;
-      const visibleBottom = containerScrollTop + containerHeight;
-      
-      if (elementTop < visibleTop || elementBottom > visibleBottom) {
-        // Centraliza o elemento no container (scroll apenas interno)
-        const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
-        container.scrollTo({
-          top: Math.max(0, targetScrollTop),
-          behavior: 'smooth'
-        });
+      // Verifica se o elemento está fora da área visível
+      if (elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
   }, [activeSegmentIndex, autoScroll]);
@@ -130,7 +100,7 @@ export function VideoTranscript({ videoId, currentTime, onSeek }: VideoTranscrip
     <div className="bg-white border-2 border-gray-200 rounded-lg shadow-sm overflow-hidden">
       {/* Header */}
       <button
-        onClick={handleToggleExpanded}
+        onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-2">

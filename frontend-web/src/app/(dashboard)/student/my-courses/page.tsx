@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
@@ -17,8 +16,10 @@ import { Course } from '@/lib/types/course.types';
  */
 export default function MyCoursesPage() {
   const router = useRouter();
-  const { user, isAuthenticated, logout, hasHydrated } = useAuthStore();
-  const { isStudentView } = useViewModeStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const logout = useAuthStore((s) => s.logout);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,13 +35,13 @@ export default function MyCoursesPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN' && !isStudentView) {
+    if (user?.role === 'ADMIN') {
       router.push('/admin/courses');
       return;
     }
 
     loadCourses();
-  }, [isAuthenticated, user, hasHydrated, isStudentView]);
+  }, [isAuthenticated, user, hasHydrated]);
 
   const loadCourses = async () => {
     try {
@@ -106,7 +107,6 @@ export default function MyCoursesPage() {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
   };
 
   // Separar cursos em progresso (iniciados mas não concluídos)

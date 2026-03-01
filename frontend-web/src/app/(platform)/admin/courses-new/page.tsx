@@ -16,7 +16,7 @@ import type { Course } from '@/lib/types/course.types';
  */
 export default function AdminCoursesPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

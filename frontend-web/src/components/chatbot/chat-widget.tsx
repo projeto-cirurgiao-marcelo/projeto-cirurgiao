@@ -177,7 +177,7 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
             'rounded-full w-14 h-14 shadow-lg',
             isOpen
               ? 'bg-gray-600 hover:bg-gray-700'
-              : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700'
+              : 'bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700'
           )}
         >
           <AnimatePresence mode="wait">
@@ -215,7 +215,7 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
             className="fixed bottom-24 left-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[600px] max-h-[calc(100vh-150px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-4 text-white">
+            <div className="bg-gradient-to-r from-emerald-500 to-blue-600 p-4 text-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                   <Sparkles className="h-5 w-5" />

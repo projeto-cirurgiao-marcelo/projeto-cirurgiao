@@ -47,8 +47,6 @@ import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types'
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 import { VideoMaterialsManager } from '@/components/admin/video-materials-manager';
 import { VideoTranscriptManager } from '@/components/admin/video-transcript-manager';
-import { VideoCaptionsManager } from '@/components/admin/video-captions-manager';
-import { VideoQuizManager } from '@/components/admin/video-quiz-manager';
 
 const moduleFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
@@ -929,7 +927,7 @@ export default function EditModulePage() {
     // Salvar no backend
     try {
       await videosService.reorder(moduleId, {
-        videos: reorderedVideos.map(v => ({ id: v.id, order: v.order })),
+        videoOrders: reorderedVideos.map(v => ({ id: v.id, order: v.order })),
       });
       toast({
         title: 'Sucesso',
@@ -1307,24 +1305,6 @@ export default function EditModulePage() {
             {editingVideo && (
               <div className="border-t pt-4">
                 <VideoTranscriptManager videoId={editingVideo.id} />
-              </div>
-            )}
-
-            {/* Legendas / Captions */}
-            {editingVideo && (
-              <div className="border-t pt-4">
-                <VideoCaptionsManager 
-                  videoId={editingVideo.id} 
-                  videoStatus={editingVideo.uploadStatus}
-                  cloudflareId={editingVideo.cloudflareId}
-                />
-              </div>
-            )}
-
-            {/* Quiz Gamificado */}
-            {editingVideo && (
-              <div className="border-t pt-4">
-                <VideoQuizManager videoId={editingVideo.id} />
               </div>
             )}
           </div>

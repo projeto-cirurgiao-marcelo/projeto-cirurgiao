@@ -52,7 +52,7 @@ function getCategoryForEvent(
   }
 }
 
-// ===== Icon Map (explicit imports for tree-shaking) =====
+// ===== Icon Map =====
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Sparkles,
@@ -96,20 +96,20 @@ function formatTime(dateString: string) {
 
 function getIconBg(type: NotificationDisplay['type']) {
   const map: Record<string, string> = {
-    success: 'bg-emerald-100 dark:bg-emerald-900/30',
-    warning: 'bg-amber-100 dark:bg-amber-900/30',
-    error: 'bg-red-100 dark:bg-red-900/30',
-    info: 'bg-blue-100 dark:bg-blue-900/30',
+    success: 'bg-emerald-100',
+    warning: 'bg-amber-100',
+    error: 'bg-red-100',
+    info: 'bg-blue-100',
   };
   return map[type] || map.info;
 }
 
 function getIconColor(type: NotificationDisplay['type']) {
   const map: Record<string, string> = {
-    success: 'text-emerald-600 dark:text-emerald-400',
-    warning: 'text-amber-600 dark:text-amber-400',
-    error: 'text-red-600 dark:text-red-400',
-    info: 'text-blue-600 dark:text-blue-400',
+    success: 'text-emerald-600',
+    warning: 'text-amber-600',
+    error: 'text-red-600',
+    info: 'text-blue-600',
   };
   return map[type] || map.info;
 }
@@ -130,17 +130,13 @@ function NotificationItem({
   return (
     <div
       className={`group relative flex gap-3 px-4 py-3 transition-colors cursor-default ${
-        isUnread
-          ? 'bg-blue-50/50 dark:bg-blue-950/20'
-          : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+        isUnread ? 'bg-blue-50/50' : 'hover:bg-gray-50'
       }`}
     >
-      {/* Unread indicator dot */}
       {isUnread && (
-        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400" />
+        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-500" />
       )}
 
-      {/* Icon */}
       <div
         className={`flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-full ${getIconBg(notification.type)}`}
       >
@@ -150,51 +146,41 @@ function NotificationItem({
         />
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <h4
             className={`text-sm leading-tight ${
               isUnread
-                ? 'font-semibold text-gray-900 dark:text-white'
-                : 'font-medium text-gray-600 dark:text-gray-400'
+                ? 'font-semibold text-gray-900'
+                : 'font-medium text-gray-600'
             }`}
           >
             {notification.title}
           </h4>
-          <span className="flex-shrink-0 text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap mt-0.5">
+          <span className="flex-shrink-0 text-[11px] text-gray-400 whitespace-nowrap mt-0.5">
             {formatTime(notification.createdAt)}
           </span>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">
+        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
           {notification.message}
         </p>
       </div>
 
-      {/* Action buttons - visible on hover */}
       {isUnread && (
         <div className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onMarkRead();
-            }}
-            className="p-1 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMarkRead(); }}
+            className="p-1 rounded-md hover:bg-emerald-100 transition-colors"
             title="Marcar como lida"
           >
-            <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <Check className="h-3.5 w-3.5 text-emerald-600" />
           </button>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDismiss();
-            }}
-            className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(); }}
+            className="p-1 rounded-md hover:bg-gray-200 transition-colors"
             title="Dispensar"
           >
-            <X className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+            <X className="h-3.5 w-3.5 text-gray-400" />
           </button>
         </div>
       )}
@@ -215,17 +201,16 @@ export function NotificationCenter() {
     dismiss,
   } = useNotificationStore();
 
+  const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch history on first mount
   useEffect(() => {
     if (!hasLoaded) {
       fetchHistory();
     }
   }, [hasLoaded, fetchHistory]);
 
-  // Tab counts
   const counts = useMemo(() => {
     const progress = notifications.filter(
       (n) => getCategoryForEvent(n.eventType) === 'progress',
@@ -236,7 +221,6 @@ export function NotificationCenter() {
     return { all: notifications.length, progress, achievements };
   }, [notifications]);
 
-  // Filtered notifications
   const filtered = useMemo(() => {
     if (activeTab === 'all') return notifications;
     return notifications.filter(
@@ -244,7 +228,6 @@ export function NotificationCenter() {
     );
   }, [notifications, activeTab]);
 
-  // Refresh handler
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchHistory();
@@ -252,12 +235,14 @@ export function NotificationCenter() {
   };
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+          <Bell className={`h-5 w-5 transition-transform duration-300 ${open ? 'animate-[bell-ring_0.5s_ease-in-out]' : ''}`} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+            <span
+              className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white animate-[badge-pop_0.3s_ease-out]"
+            >
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -266,53 +251,41 @@ export function NotificationCenter() {
 
       <DropdownMenuContent
         align="end"
-        className="w-[400px] p-0 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700"
+        className="w-[340px] sm:w-[400px] p-0 rounded-xl shadow-xl border border-gray-200"
         sideOffset={8}
       >
-        {/* ===== Header ===== */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-            Notificacoes
-          </h3>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-900">Notificacoes</h3>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleRefresh();
-            }}
-            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRefresh(); }}
+            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
             title="Atualizar"
           >
             <RefreshCw
-              className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                isRefreshing ? 'animate-spin' : ''
-              }`}
+              className={`h-4 w-4 text-gray-500 transition-transform ${isRefreshing ? 'animate-spin' : ''}`}
             />
           </button>
         </div>
 
-        {/* ===== Filter Tabs ===== */}
-        <div className="flex gap-1.5 px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+        {/* Filter Tabs */}
+        <div className="flex gap-1.5 px-4 py-2.5 border-b border-gray-100 bg-gray-50/50">
           {FILTER_TABS.map(({ key, label }) => (
             <button
               key={key}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveTab(key);
-              }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveTab(key); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeTab === key
-                  ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
-                  : 'bg-white text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               {label}
               <span
                 className={`inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full px-1 text-[10px] font-bold ${
                   activeTab === key
-                    ? 'bg-white/20 text-white dark:bg-gray-900/20 dark:text-gray-900'
-                    : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-gray-100 text-gray-500'
                 }`}
               >
                 {counts[key]}
@@ -321,24 +294,22 @@ export function NotificationCenter() {
           ))}
         </div>
 
-        {/* ===== Notification List ===== */}
-        <ScrollArea className="h-[380px]">
+        {/* Notification List */}
+        <ScrollArea className="h-[320px] sm:h-[380px]">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
-                <Inbox className="h-7 w-7 text-gray-400 dark:text-gray-500" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 mb-4">
+                <Inbox className="h-7 w-7 text-gray-400" />
               </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                Nenhuma notificacao
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-[220px]">
+              <p className="text-sm font-medium text-gray-900">Nenhuma notificacao</p>
+              <p className="text-xs text-gray-500 mt-1 max-w-[220px]">
                 {activeTab === 'all'
                   ? 'Voce esta em dia! Novas conquistas aparecerao aqui.'
                   : 'Nenhuma notificacao nesta categoria.'}
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="divide-y divide-gray-100">
               {filtered.map((notification) => (
                 <NotificationItem
                   key={notification.id}
@@ -351,28 +322,20 @@ export function NotificationCenter() {
           )}
         </ScrollArea>
 
-        {/* ===== Footer ===== */}
+        {/* Footer */}
         {notifications.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30">
+          <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50/30">
             {unreadCount > 0 ? (
               <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  markAllAsRead();
-                }}
-                className="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 underline-offset-2 hover:underline transition-colors"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); markAllAsRead(); }}
+                className="text-xs font-medium text-emerald-600 hover:text-emerald-700 underline-offset-2 hover:underline transition-colors"
               >
                 Marcar todas como lidas
               </button>
             ) : (
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                Todas lidas
-              </span>
+              <span className="text-xs text-gray-400">Todas lidas</span>
             )}
-            <span className="text-[11px] text-gray-400 dark:text-gray-500">
-              {notifications.length} notificacoes
-            </span>
+            <span className="text-[11px] text-gray-400">{notifications.length} notificacoes</span>
           </div>
         )}
       </DropdownMenuContent>

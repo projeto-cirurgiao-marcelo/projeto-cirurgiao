@@ -119,7 +119,7 @@ export function CourseCardNew({
           )}
         </div>
 
-        <CardContent className="p-5 flex-1 flex flex-col">
+        <CardContent className="p-3 sm:p-4 md:p-5 flex-1 flex flex-col">
           {/* Título */}
           <h3 className="font-semibold text-lg leading-tight mb-2 line-clamp-2 text-foreground group-hover:text-[rgb(var(--primary-600))] transition-colors">
             {course.title}
@@ -230,7 +230,7 @@ export function CourseCardNew({
                 )}
               </div>
 
-              <Button className="w-full" variant="default" size="lg">
+              <Button className="w-full h-10 md:h-11" variant="default">
                 Ver Curso
               </Button>
 

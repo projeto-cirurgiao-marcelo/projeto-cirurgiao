@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
 import { Loader2, PlayCircle, TrendingUp } from 'lucide-react';
@@ -14,8 +13,9 @@ import { Loader2, PlayCircle, TrendingUp } from 'lucide-react';
  */
 export default function InProgressPage() {
   const router = useRouter();
-  const { user, isAuthenticated, hasHydrated } = useAuthStore();
-  const { isStudentView } = useViewModeStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,13 +27,13 @@ export default function InProgressPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN' && !isStudentView) {
+    if (user?.role === 'ADMIN') {
       router.push('/admin/courses');
       return;
     }
 
     loadInProgressCourses();
-  }, [isAuthenticated, user, hasHydrated, isStudentView]);
+  }, [isAuthenticated, user, hasHydrated]);
 
   const loadInProgressCourses = async () => {
     try {

@@ -10,24 +10,23 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Loader2, ArrowLeft } from 'lucide-react';
+  Loader2,
+  ArrowLeft,
+  Lightbulb,
+  CheckCircle2,
+  PenLine,
+} from 'lucide-react';
+import { PageTransition } from '@/components/shared/page-transition';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
 export default function NewTopicPage() {
   const params = useParams();
   const router = useRouter();
-  const initialCategoryId = params.categoryId as string;
+  const categoryId = params.categoryId as string;
   const { toast } = useToast();
 
-  const [categories, setCategories] = useState<ForumCategory[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
+  const [category, setCategory] = useState<ForumCategory | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -35,28 +34,20 @@ export default function NewTopicPage() {
     content: '',
   });
 
-  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
-
   useEffect(() => {
-    loadCategories();
-  }, []);
+    loadCategory();
+  }, [categoryId]);
 
-  const loadCategories = async () => {
+  const loadCategory = async () => {
     try {
       setLoading(true);
-      const data = await forumCategoriesService.getAll();
-      setCategories(data);
-      // Garantir que a categoria inicial existe na lista
-      if (initialCategoryId && data.some((c: ForumCategory) => c.id === initialCategoryId)) {
-        setSelectedCategoryId(initialCategoryId);
-      } else if (data.length > 0) {
-        setSelectedCategoryId(data[0].id);
-      }
+      const data = await forumCategoriesService.getById(categoryId);
+      setCategory(data);
     } catch (err) {
-      console.error('Erro ao carregar categorias:', err);
+      console.error('Erro ao carregar categoria:', err);
       toast({
         title: 'Erro',
-        description: 'Erro ao carregar categorias',
+        description: 'Erro ao carregar categoria',
         variant: 'destructive',
       });
       router.push('/student/forum');
@@ -68,7 +59,7 @@ export default function NewTopicPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim() || !formData.content.trim() || !selectedCategoryId) {
+    if (!formData.title.trim() || !formData.content.trim()) {
       toast({
         title: 'Erro',
         description: 'Por favor, preencha todos os campos',
@@ -82,7 +73,7 @@ export default function NewTopicPage() {
       const newTopic = await forumService.createTopic({
         title: formData.title,
         content: formData.content,
-        categoryId: selectedCategoryId,
+        categoryId,
       });
 
       toast({
@@ -106,207 +97,151 @@ export default function NewTopicPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Carregando...</p>
+        </div>
       </div>
     );
   }
 
+  if (!category) {
+    return null;
+  }
+
+  const titleLength = formData.title.length;
+  const isValid = formData.title.trim().length >= 5 && formData.content.trim().length >= 10;
+
   return (
+    <PageTransition>
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header Premium */}
-      <div className="mb-8">
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Back Link */}
         <Link
-          href={`/student/forum/${selectedCategoryId}`}
-          className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors mb-6 group"
+          href={`/student/forum/${categoryId}`}
+          className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors mb-6 group"
         >
-          <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" />
-          Voltar para {selectedCategory?.name || 'Fórum'}
+          <ArrowLeft className="h-4 w-4 mr-1.5 transition-transform group-hover:-translate-x-0.5" />
+          Voltar para {category.name}
         </Link>
 
-        <div className="space-y-3">
-          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
-            Novo Tópico
-          </h1>
-          <p className="text-lg text-gray-600">
-            Crie um novo tópico de discussão
-          </p>
-        </div>
-      </div>
-
-      {/* Form Premium */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Card Premium com borda superior */}
-        <div className="relative overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
-          {/* Borda superior colorida */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-primary-600"></div>
-
-          <div className="p-8 space-y-8">
-            {/* Category Selector */}
-            <div className="space-y-3">
-              <Label htmlFor="category" className="text-base font-semibold text-gray-900">
-                Categoria <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={selectedCategoryId}
-                onValueChange={setSelectedCategoryId}
-                disabled={submitting}
-              >
-                <SelectTrigger className="h-12 text-base border-gray-300 focus:border-primary-500 focus:ring-primary-500/20">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{cat.name}</span>
-                        {cat.description && (
-                          <span className="text-xs text-gray-400 hidden sm:inline">
-                            — {cat.description}
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <PenLine className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+                Novo Tópico
+              </h1>
               <p className="text-sm text-gray-500">
-                Escolha a categoria mais adequada para sua discussão
+                em <span className="font-medium text-gray-700">{category.name}</span>
               </p>
-            </div>
-
-            {/* Title Premium */}
-            <div className="space-y-3">
-              <Label htmlFor="title" className="text-base font-semibold text-gray-900">
-                Título <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Digite um título claro e descritivo"
-                disabled={submitting}
-                maxLength={200}
-                className="h-12 text-base border-gray-300 focus:border-primary-500 focus:ring-primary-500/20"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500">
-                  Um bom título ajuda outros estudantes a encontrar sua discussão
-                </p>
-                <p className="text-xs font-medium text-gray-400">
-                  {formData.title.length}/200
-                </p>
-              </div>
-            </div>
-
-            {/* Content Premium */}
-            <div className="space-y-3">
-              <Label htmlFor="content" className="text-base font-semibold text-gray-900">
-                Conteúdo <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="Descreva sua dúvida ou discussão em detalhes...&#10;&#10;• Explique o contexto&#10;• Inclua exemplos se relevante&#10;• Seja específico sobre o que precisa"
-                className="min-h-[240px] text-base border-gray-300 focus:border-primary-500 focus:ring-primary-500/20 resize-none"
-                disabled={submitting}
-              />
-              <p className="text-sm text-gray-500">
-                Quanto mais detalhes você fornecer, melhores serão as respostas
-              </p>
-            </div>
-
-            {/* Guidelines Premium */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
-              <div className="relative">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-base mb-1">
-                      Dicas para um tópico de qualidade
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Siga estas orientações para obter as melhores respostas
-                    </p>
-                  </div>
-                </div>
-
-                <ul className="space-y-2.5 ml-11">
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span><strong className="font-semibold">Seja específico:</strong> Use um título claro que descreva exatamente sua dúvida</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span><strong className="font-semibold">Forneça contexto:</strong> Explique a situação e o que você já tentou</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span><strong className="font-semibold">Use exemplos:</strong> Inclua casos práticos quando relevante</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span><strong className="font-semibold">Seja respeitoso:</strong> Mantenha um tom profissional e cordial</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span><strong className="font-semibold">Pesquise antes:</strong> Verifique se sua dúvida já foi respondida</span>
-                  </li>
-                </ul>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Actions Premium */}
-        <div className="flex items-center justify-between gap-4 pt-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => router.back()}
-            disabled={submitting}
-            className="font-medium"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            disabled={submitting || !formData.title.trim() || !formData.content.trim() || !selectedCategoryId}
-            className="min-w-[160px] h-11 font-semibold shadow-sm hover:shadow-md transition-all"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Criando...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Criar Tópico
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="p-6 space-y-6">
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-semibold text-gray-900">
+                  Título
+                </Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Escreva um título claro e descritivo"
+                  disabled={submitting}
+                  maxLength={200}
+                  className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-500/20 rounded-xl"
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-400">
+                    Mínimo 5 caracteres
+                  </p>
+                  <p className={`text-xs font-medium ${titleLength > 180 ? 'text-amber-500' : 'text-gray-400'}`}>
+                    {titleLength}/200
+                  </p>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="space-y-2">
+                <Label htmlFor="content" className="text-sm font-semibold text-gray-900">
+                  Conteúdo
+                </Label>
+                <Textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  placeholder={"Descreva sua dúvida ou discussão em detalhes...\n\nExplique o contexto e seja específico sobre o que precisa"}
+                  className="min-h-[200px] border-gray-200 focus:border-blue-400 focus:ring-blue-500/20 resize-none rounded-xl"
+                  disabled={submitting}
+                />
+                <p className="text-xs text-gray-400">
+                  Mínimo 10 caracteres. Quanto mais detalhes, melhores serão as respostas.
+                </p>
+              </div>
+            </div>
+
+            {/* Guidelines */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Dicas para um bom tópico</p>
+                  <ul className="space-y-1.5">
+                    {[
+                      'Use um título claro que descreva exatamente sua dúvida',
+                      'Forneça contexto e explique o que você já tentou',
+                      'Inclua exemplos práticos quando relevante',
+                      'Verifique se sua dúvida já foi respondida antes',
+                    ].map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.back()}
+              disabled={submitting}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting || !isValid}
+              className="bg-blue-600 hover:bg-blue-700 font-semibold min-w-[140px]"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                'Criar Tópico'
+              )}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
+    </PageTransition>
   );
 }

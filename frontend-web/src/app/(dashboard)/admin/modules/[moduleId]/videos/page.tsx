@@ -3,7 +3,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Upload, Eye, EyeOff, X, FileVideo, RefreshCw, AlertCircle, CheckCircle2, Clock, Link2 } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import dynamic from 'next/dynamic';
+import type { DropResult } from '@hello-pangea/dnd';
+
+const DragDropContext = dynamic(
+  () => import('@hello-pangea/dnd').then((mod) => mod.DragDropContext),
+  { ssr: false }
+);
+const Droppable = dynamic(
+  () => import('@hello-pangea/dnd').then((mod) => mod.Droppable),
+  { ssr: false }
+);
+const Draggable = dynamic(
+  () => import('@hello-pangea/dnd').then((mod) => mod.Draggable),
+  { ssr: false }
+);
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -187,7 +201,7 @@ export default function ModuleVideosPage() {
         order: index + 1,
       }));
 
-      await videosService.reorder(moduleId, { videos: updates });
+      await videosService.reorder(moduleId, { videoOrders: updates });
 
       toast({
         title: 'Sucesso',

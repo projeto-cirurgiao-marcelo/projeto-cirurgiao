@@ -16,18 +16,12 @@ import {
   Library,
   Clock,
   MessageSquare,
+  Trophy,
   ChevronLeft,
   ChevronRight,
-  Gamepad2,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
 
 interface NavItem {
@@ -58,22 +52,22 @@ const navItems: NavItem[] = [
     icon: Award,
   },
   {
-    title: 'Gamificação',
-    href: '/student/gamification',
-    icon: Gamepad2,
-  },
-  {
     title: 'Fórum',
     href: '/student/forum',
     icon: MessageSquare,
   },
+  {
+    title: 'Conquistas',
+    href: '/student/gamification',
+    icon: Trophy,
+  },
 ];
 
 // Componente de navegação reutilizável
-function SidebarNav({ 
-  onItemClick, 
-  isCollapsed = false 
-}: { 
+function SidebarNav({
+  onItemClick,
+  isCollapsed = false,
+}: {
   onItemClick?: () => void;
   isCollapsed?: boolean;
 }) {
@@ -83,11 +77,13 @@ function SidebarNav({
     <nav className="flex-1 space-y-1 p-4">
       {navItems.map((item, index) => {
         const Icon = item.icon;
-        // Lógica mais precisa: exato match OU começa com o href + '/' (para sub-rotas)
-        const isActive = pathname === item.href || 
-          (pathname.startsWith(item.href + '/') && 
-           // Evitar ativar /student/courses quando estiver em /student/courses/[id]
-           !(item.href === '/student/courses' && pathname.includes('/student/courses/')));
+        const isActive =
+          pathname === item.href ||
+          (pathname.startsWith(item.href + '/') &&
+            !(
+              item.href === '/student/courses' &&
+              pathname.includes('/student/courses/')
+            ));
 
         return (
           <Link
@@ -99,7 +95,7 @@ function SidebarNav({
               isActive
                 ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-l-4 border-blue-600 shadow-sm'
                 : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800',
-              isCollapsed && 'justify-center px-2'
+              isCollapsed && 'justify-center px-2',
             )}
             title={isCollapsed ? item.title : undefined}
           >
@@ -108,7 +104,7 @@ function SidebarNav({
                 'h-5 w-5 flex-shrink-0',
                 isActive
                   ? 'text-blue-600'
-                  : 'text-gray-500 dark:text-gray-400'
+                  : 'text-gray-500 dark:text-gray-400',
               )}
             />
             {!isCollapsed && <span>{item.title}</span>}
@@ -122,23 +118,23 @@ function SidebarNav({
 // Logo reutilizável
 function SidebarLogo({ isCollapsed = false }: { isCollapsed?: boolean }) {
   return (
-    <Link 
-      href="/student/my-courses" 
+    <Link
+      href="/student/my-courses"
       className={cn(
-        "flex items-center gap-2 transition-opacity hover:opacity-80",
-        isCollapsed && "justify-center"
+        'flex items-center gap-2 transition-opacity hover:opacity-80',
+        isCollapsed && 'justify-center',
       )}
     >
       {isCollapsed ? (
-        <img 
-          src="/icone-logo.png" 
-          alt="Logo" 
+        <img
+          src="/icone-logo.png"
+          alt="Logo"
           className="h-8 w-8 object-contain"
         />
       ) : (
-        <img 
-          src="/logoblack.webp" 
-          alt="Cirurgião Academy" 
+        <img
+          src="/logoblack.webp"
+          alt="Cirurgião Academy"
           className="h-10 w-auto object-contain"
         />
       )}
@@ -146,30 +142,52 @@ function SidebarLogo({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-// Sidebar Mobile (Sheet/Drawer)
+// Sidebar Mobile (drawer com CSS transitions - sem framer-motion)
 export function MobileSidebar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden fixed left-4 top-4 z-50 bg-white dark:bg-gray-900 shadow-md border border-gray-200 dark:border-gray-700"
+    <>
+      {/* Hamburger / Close button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden fixed left-4 top-4 z-50 bg-white dark:bg-gray-900 shadow-md border border-gray-200 dark:border-gray-700"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? 'Fechar menu' : 'Abrir menu'}
+      >
+        <div
+          className="transition-transform duration-200"
+          style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
         >
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Abrir menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-60 p-0">
-        <SheetHeader className="h-16 flex items-center border-b-2 border-gray-200 px-6">
-          <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
-          <SidebarLogo />
-        </SheetHeader>
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </div>
+      </Button>
+
+      {/* Overlay */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/50 md:hidden transition-opacity duration-250 ${
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setOpen(false)}
+        aria-hidden
+      />
+
+      {/* Drawer */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-60 border-r-2 border-gray-200 bg-white dark:bg-gray-900 shadow-xl md:hidden flex flex-col transition-transform duration-300 ease-out ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Header com logo icone */}
+        <div className="flex h-16 items-center border-b-2 border-gray-200 px-4">
+          <SidebarLogo isCollapsed />
+        </div>
+
+        {/* Navigation */}
         <SidebarNav onItemClick={() => setOpen(false)} />
-      </SheetContent>
-    </Sheet>
+      </aside>
+    </>
   );
 }
 
@@ -178,26 +196,26 @@ export function DesktopSidebar() {
   const { isCollapsed, toggleSidebar } = useSidebarStore();
 
   return (
-    <aside 
+    <aside
       className={cn(
-        "hidden md:block fixed left-0 top-0 z-40 h-screen border-r-2 border-gray-200 bg-white dark:bg-gray-900 transition-all duration-300",
-        isCollapsed ? "w-20" : "w-60"
+        'hidden md:block fixed left-0 top-0 z-40 h-screen border-r-2 border-gray-200 bg-white dark:bg-gray-900 transition-all duration-300',
+        isCollapsed ? 'w-20' : 'w-60',
       )}
     >
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b-2 border-gray-200 px-4">
         <SidebarLogo isCollapsed={isCollapsed} />
-        
+
         {/* Toggle Button */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
           className={cn(
-            "h-8 w-8 rounded-full hover:bg-gray-100 transition-all",
-            isCollapsed && "mx-auto"
+            'h-8 w-8 rounded-full hover:bg-gray-100 transition-all',
+            isCollapsed && 'mx-auto',
           )}
-          title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+          title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -219,7 +237,7 @@ export function StudentSidebar() {
     <>
       {/* Sidebar Desktop - visível apenas em md+ */}
       <DesktopSidebar />
-      
+
       {/* Sidebar Mobile - visível apenas em < md */}
       <MobileSidebar />
     </>

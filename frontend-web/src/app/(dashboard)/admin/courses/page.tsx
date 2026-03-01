@@ -6,20 +6,39 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { coursesService, getErrorMessage } from '@/lib/api';
 import type { Course } from '@/lib/types/course.types';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  BookOpen,
+  Users,
+  Layers,
+  MoreVertical,
+  Loader2,
+  Grid3X3,
+  List,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { PageTransition, StaggerContainer, StaggerItem } from '@/components/shared/page-transition';
 
-/**
- * Página de listagem de cursos (Admin) - Layout de Vitrine
- */
+type ViewMode = 'grid' | 'list';
+
 export default function CoursesPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const { toast } = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   useEffect(() => {
     if (user && (user.role === 'ADMIN' || user.role === 'INSTRUCTOR')) {
@@ -30,10 +49,10 @@ export default function CoursesPage() {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const response = user?.role === 'ADMIN' 
+      const response = user?.role === 'ADMIN'
         ? await coursesService.findAll({ page: 1, limit: 100 })
         : await coursesService.findMyCourses();
-      
+
       const coursesData = Array.isArray(response) ? response : (response.data || []);
       setCourses(coursesData);
     } catch (error) {
@@ -71,136 +90,300 @@ export default function CoursesPage() {
     }
   };
 
+  const filteredCourses = searchQuery
+    ? courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : courses;
+
+  const publishedCount = courses.filter(c => c.isPublished).length;
+  const totalStudents = courses.reduce((acc, c) => acc + (c._count?.enrollments || 0), 0);
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
-          <p className="text-sm font-medium text-gray-600">Carregando cursos...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-3" />
+          <p className="text-sm text-gray-500 font-medium">Carregando cursos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <PageTransition>
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-4xl font-bold text-gray-900 tracking-tight">Meus Cursos</h1>
-        <p className="text-sm md:text-base text-gray-600 mt-1">Gerencie seus cursos e conteúdos</p>
-      </div>
-
-      {/* Grid de Cursos */}
-      {/* Mobile: 2 colunas, Tablet: 3 colunas, Desktop: 4-5 colunas */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-        {/* Card de Novo Curso */}
-        <button
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+            Meus Cursos
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Gerencie seus cursos e conteúdos</p>
+        </div>
+        <Button
           onClick={() => router.push('/admin/courses/new')}
-          className="group aspect-[9/16] border-2 border-dashed border-gray-300 rounded-xl md:rounded-2xl hover:border-blue-500 transition-all hover:shadow-lg bg-gray-50/50 hover:bg-blue-50/50 flex flex-col items-center justify-center gap-2 md:gap-4"
+          className="bg-blue-600 hover:bg-blue-700 font-semibold shadow-sm shrink-0"
         >
-          <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-gray-200 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-            <Plus className="w-5 h-5 md:w-8 md:h-8 text-gray-400 group-hover:text-blue-600 transition-colors" />
-          </div>
-          <p className="text-xs md:text-base text-gray-600 group-hover:text-blue-600 font-medium transition-colors">
-            Novo curso
-          </p>
-        </button>
-
-        {/* Cards de Cursos */}
-        {courses.map((course) => (
-          <div
-            key={course.id}
-            className="group aspect-[9/16] rounded-xl md:rounded-2xl overflow-hidden relative shadow-md hover:shadow-2xl transition-all duration-300"
-          >
-            {/* Background com Thumbnail Vertical */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-              style={{
-                backgroundImage: course.thumbnailVertical 
-                  ? `url(${course.thumbnailVertical})`
-                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              }}
-            >
-              {/* Overlay escuro */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20"></div>
-              
-              {/* Padrão quando não tem thumbnail */}
-              {!course.thumbnailVertical && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-white/90 px-4">
-                    <div className="text-6xl font-bold mb-2">📚</div>
-                    <p className="text-sm font-medium">Adicione uma thumbnail</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Badge de Status */}
-            {course.isPublished && (
-              <div className="absolute top-2 right-2 md:top-3 md:right-3 z-10">
-                <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1">
-                  Publicado
-                </Badge>
-              </div>
-            )}
-
-            {/* Conteúdo do Card */}
-            <div className="absolute inset-x-0 bottom-0 z-10 p-2 md:p-4 space-y-1.5 md:space-y-3">
-              {/* Título */}
-              <h3 className="text-white font-bold text-xs md:text-lg line-clamp-2 leading-tight">
-                {course.title}
-              </h3>
-
-              {/* Botões de Ação */}
-              <div className="flex gap-1 md:gap-2">
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/admin/courses/${course.id}/edit`);
-                  }}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] md:text-sm h-7 md:h-9 px-2 md:px-3"
-                >
-                  <Edit className="w-3 h-3 md:w-4 md:h-4 mr-0.5 md:mr-1" />
-                  <span className="hidden sm:inline">Editar</span>
-                  <span className="sm:hidden">Edit</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(course.id);
-                  }}
-                  disabled={deleting === course.id}
-                  className="bg-red-600 hover:bg-red-700 h-7 md:h-9 px-2 md:px-3"
-                >
-                  <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
+          <Plus className="w-4 h-4 mr-1.5" />
+          Novo Curso
+        </Button>
       </div>
 
-      {/* Mensagem quando não há cursos */}
-      {courses.length === 0 && (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-            <Plus className="w-8 h-8 text-gray-400" />
+      {/* Quick Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+            <BookOpen className="w-4 h-4 text-blue-600" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            Nenhum curso encontrado
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Comece criando seu primeiro curso
-          </p>
-          <Button onClick={() => router.push('/admin/courses/new')} size="lg">
-            <Plus className="mr-2 h-4 w-4" />
+          <div>
+            <p className="text-lg font-bold text-gray-900">{courses.length}</p>
+            <p className="text-xs text-gray-500">Total</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <Layers className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900">{publishedCount}</p>
+            <p className="text-xs text-gray-500">Publicados</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+            <Users className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900">{totalStudents}</p>
+            <p className="text-xs text-gray-500">Alunos</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search & View Toggle */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar cursos..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <Grid3X3 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Courses */}
+      {filteredCourses.length === 0 && !searchQuery ? (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="w-10 h-10 text-gray-300" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Nenhum curso encontrado</h3>
+          <p className="text-sm text-gray-500 mb-5">Comece criando seu primeiro curso</p>
+          <Button onClick={() => router.push('/admin/courses/new')} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-1.5 h-4 w-4" />
             Criar Primeiro Curso
           </Button>
         </div>
+      ) : filteredCourses.length === 0 && searchQuery ? (
+        <div className="text-center py-12">
+          <Search className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">Nenhum curso encontrado para "{searchQuery}"</p>
+        </div>
+      ) : viewMode === 'grid' ? (
+        <StaggerContainer className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+          {/* New Course Card */}
+          <StaggerItem>
+          <button
+            onClick={() => router.push('/admin/courses/new')}
+            className="group aspect-[9/16] border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-400 transition-all hover:shadow-md bg-gray-50/50 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-3"
+          >
+            <div className="w-12 h-12 rounded-full bg-gray-200 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+              <Plus className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors" />
+            </div>
+            <p className="text-sm text-gray-500 group-hover:text-blue-600 font-semibold transition-colors">
+              Novo curso
+            </p>
+          </button>
+          </StaggerItem>
+
+          {/* Course Cards */}
+          {filteredCourses.map((course) => (
+            <StaggerItem key={course.id}>
+            <div
+              className="group aspect-[9/16] rounded-xl overflow-hidden relative shadow-sm hover:shadow-xl transition-all duration-300"
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+                style={{
+                  backgroundImage: course.thumbnailVertical
+                    ? `url(${course.thumbnailVertical})`
+                    : 'linear-gradient(135deg, #0F766E 0%, #059669 50%, #0D9488 100%)',
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              </div>
+
+              {/* Status Badge */}
+              <div className="absolute top-2.5 right-2.5 z-10">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm ${
+                  course.isPublished
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-amber-500 text-white'
+                }`}>
+                  {course.isPublished ? 'Publicado' : 'Rascunho'}
+                </span>
+              </div>
+
+              {/* Content */}
+              <div className="absolute inset-x-0 bottom-0 z-10 p-3 space-y-2">
+                <h3 className="text-white font-bold text-sm line-clamp-2 leading-tight">
+                  {course.title}
+                </h3>
+
+                {/* Stats */}
+                <div className="flex items-center gap-2 text-[10px] text-white/70">
+                  <span className="flex items-center gap-0.5">
+                    <Users className="w-3 h-3" />
+                    {course._count?.enrollments || 0}
+                  </span>
+                  <span className="flex items-center gap-0.5">
+                    <Layers className="w-3 h-3" />
+                    {course._count?.modules || 0}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/admin/courses/${course.id}/edit`);
+                    }}
+                    className="flex-1 bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border border-white/20 h-8 text-xs font-semibold"
+                  >
+                    <Edit className="w-3 h-3 mr-1" />
+                    Editar
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border border-white/20 h-8 w-8 p-0"
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/admin/courses/${course.id}/edit`);
+                        }}
+                        className="cursor-pointer text-sm"
+                      >
+                        <Edit className="mr-2 h-3.5 w-3.5" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(course.id);
+                        }}
+                        disabled={deleting === course.id}
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer text-sm"
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        Deletar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </div>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      ) : (
+        /* List View */
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="divide-y divide-gray-100">
+            {filteredCourses.map((course) => (
+              <div key={course.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
+                {/* Thumbnail */}
+                <div
+                  className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0 border border-gray-200"
+                  style={{
+                    backgroundImage: course.thumbnailVertical
+                      ? `url(${course.thumbnailVertical})`
+                      : 'linear-gradient(135deg, #0F766E 0%, #059669 100%)',
+                  }}
+                />
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 text-sm truncate">{course.title}</h4>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      {course._count?.enrollments || 0} alunos
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      {course._count?.modules || 0} módulos
+                    </span>
+                  </div>
+                </div>
+                {/* Status */}
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                  course.isPublished
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
+                  {course.isPublished ? 'Publicado' : 'Rascunho'}
+                </span>
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/admin/courses/${course.id}/edit`)}
+                    className="h-8 text-xs"
+                  >
+                    <Edit className="w-3 h-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDelete(course.id)}
+                    disabled={deleting === course.id}
+                    className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
+    </PageTransition>
   );
 }

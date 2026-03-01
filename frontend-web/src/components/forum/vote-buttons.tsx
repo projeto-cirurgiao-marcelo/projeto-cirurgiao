@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { forumService } from '@/lib/api/forum.service';
 import { toast } from 'sonner';
@@ -12,7 +11,7 @@ interface VoteButtonsProps {
   id: string;
   initialUpvotes?: number;
   initialDownvotes?: number;
-  userVote?: number | null; // 1, -1, ou null
+  userVote?: number | null;
   onVoteChange?: () => void;
 }
 
@@ -35,10 +34,8 @@ export function VoteButtons({
     setIsLoading(true);
 
     try {
-      // Se clicar no mesmo voto, remove (toggle)
       const newVote = currentVote === value ? null : value;
 
-      // Atualizar UI otimisticamente
       if (currentVote === 1) {
         setUpvotes((prev) => prev - 1);
       } else if (currentVote === -1) {
@@ -53,7 +50,6 @@ export function VoteButtons({
 
       setCurrentVote(newVote);
 
-      // Chamar API
       if (type === 'topic') {
         await forumService.voteOnTopic({ topicId: id, value });
       } else {
@@ -62,11 +58,10 @@ export function VoteButtons({
 
       onVoteChange?.();
     } catch (error) {
-      // Reverter em caso de erro
       setUpvotes(initialUpvotes);
       setDownvotes(initialDownvotes);
       setCurrentVote(userVote);
-      
+
       toast.error('Erro ao votar. Tente novamente.');
       console.error('Erro ao votar:', error);
     } finally {
@@ -77,44 +72,44 @@ export function VoteButtons({
   const score = upvotes - downvotes;
 
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="ghost"
-        size="sm"
+    <div className="flex items-center gap-1">
+      <button
         onClick={() => handleVote(1)}
         disabled={isLoading}
         className={cn(
-          'gap-1.5 transition-colors',
-          currentVote === 1 && 'text-green-600 hover:text-green-700'
+          'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
+          currentVote === 1
+            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-150'
+            : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
         )}
       >
-        <ThumbsUp className={cn('h-4 w-4', currentVote === 1 && 'fill-current')} />
-        <span className="text-sm font-medium">{upvotes}</span>
-      </Button>
+        <ChevronUp className={cn('w-4 h-4', currentVote === 1 && 'text-emerald-600')} />
+        <span>{upvotes}</span>
+      </button>
 
-      <div className={cn(
-        'text-sm font-semibold px-2',
-        score > 0 && 'text-green-600',
-        score < 0 && 'text-red-600',
-        score === 0 && 'text-muted-foreground'
+      <span className={cn(
+        'text-sm font-bold px-1.5 min-w-[24px] text-center tabular-nums',
+        score > 0 && 'text-emerald-600',
+        score < 0 && 'text-red-500',
+        score === 0 && 'text-gray-400'
       )}>
         {score > 0 && '+'}
         {score}
-      </div>
+      </span>
 
-      <Button
-        variant="ghost"
-        size="sm"
+      <button
         onClick={() => handleVote(-1)}
         disabled={isLoading}
         className={cn(
-          'gap-1.5 transition-colors',
-          currentVote === -1 && 'text-red-600 hover:text-red-700'
+          'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
+          currentVote === -1
+            ? 'bg-red-100 text-red-600 hover:bg-red-150'
+            : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
         )}
       >
-        <ThumbsDown className={cn('h-4 w-4', currentVote === -1 && 'fill-current')} />
-        <span className="text-sm font-medium">{downvotes}</span>
-      </Button>
+        <ChevronDown className={cn('w-4 h-4', currentVote === -1 && 'text-red-500')} />
+        <span>{downvotes}</span>
+      </button>
     </div>
   );
 }

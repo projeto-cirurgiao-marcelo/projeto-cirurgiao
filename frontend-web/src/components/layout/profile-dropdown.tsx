@@ -31,12 +31,12 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const [open, setOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
   };
 
   const getUserInitials = () => {

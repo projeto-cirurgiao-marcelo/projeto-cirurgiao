@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
 import { HeroBanner } from '@/components/student/hero-banner';
-import { Loader2, Library, Search, Filter } from 'lucide-react';
+import { Loader2, Library, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Course } from '@/lib/types/course.types';
@@ -19,10 +18,10 @@ import { Course } from '@/lib/types/course.types';
  */
 export default function CoursesPage() {
   const router = useRouter();
-  const { user, isAuthenticated, hasHydrated } = useAuthStore();
-  const { isStudentView } = useViewModeStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const [allCourses, setAllCourses] = useState<any[]>([]);
-  const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,26 +34,22 @@ export default function CoursesPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN' && !isStudentView) {
+    if (user?.role === 'ADMIN') {
       router.push('/admin/courses');
       return;
     }
 
     loadCourses();
-  }, [isAuthenticated, user, hasHydrated, isStudentView]);
+  }, [isAuthenticated, user, hasHydrated]);
 
-  useEffect(() => {
-    // Filtrar cursos quando o termo de busca mudar
-    if (searchTerm.trim() === '') {
-      setFilteredCourses(allCourses);
-    } else {
-      const term = searchTerm.toLowerCase();
-      const filtered = allCourses.filter(course =>
-        course.title.toLowerCase().includes(term) ||
-        course.description?.toLowerCase().includes(term)
-      );
-      setFilteredCourses(filtered);
-    }
+  // Derive filtered courses during render — no useEffect needed
+  const filteredCourses = useMemo(() => {
+    if (searchTerm.trim() === '') return allCourses;
+    const term = searchTerm.toLowerCase();
+    return allCourses.filter(course =>
+      course.title.toLowerCase().includes(term) ||
+      course.description?.toLowerCase().includes(term)
+    );
   }, [searchTerm, allCourses]);
 
   const loadCourses = async () => {
@@ -66,13 +61,15 @@ export default function CoursesPage() {
       ]);
 
       const allCoursesArray = Array.isArray(allCoursesData) ? allCoursesData : allCoursesData.data || [];
-      const enrolledIdsSet = new Set(enrolledData.map((c: any) => c.id));
+      // Build index Map for O(1) lookups instead of find() inside map()
+      const enrolledMap = new Map(enrolledData.map((c: any) => [c.id, c]));
+      const enrolledIdsSet = new Set(enrolledMap.keys());
       setEnrolledIds(enrolledIdsSet);
 
       // Mapear todos os cursos com informação de matrícula
       const coursesWithEnrollment = allCoursesArray.map((course: Course) => {
-        const isEnrolled = enrolledIdsSet.has(course.id);
-        const enrolledCourse = enrolledData.find((c: any) => c.id === course.id);
+        const enrolledCourse = enrolledMap.get(course.id);
+        const isEnrolled = !!enrolledCourse;
 
         const totalVideos = course.modules?.reduce((sum: number, m: any) =>
           sum + (m.videos?.length || 0), 0
@@ -100,7 +97,6 @@ export default function CoursesPage() {
       });
 
       setAllCourses(coursesWithEnrollment);
-      setFilteredCourses(coursesWithEnrollment);
     } catch (error) {
       console.error('Erro ao carregar cursos:', error);
     } finally {

@@ -25,7 +25,10 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, isAuthenticated, hasHydrated, isLoading } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
   useEffect(() => {
     // Aguarda a hidratação e o carregamento antes de verificar autenticação

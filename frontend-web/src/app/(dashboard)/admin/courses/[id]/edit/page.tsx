@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, ArrowLeft, Save, Plus, GripVertical, Pencil, Trash2, Video, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import dynamic from 'next/dynamic';
+import type { DropResult } from '@hello-pangea/dnd';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,19 @@ import { useToast } from '@/hooks/use-toast';
 import { coursesService, modulesService } from '@/lib/api';
 import type { Course, Module } from '@/lib/types/course.types';
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
+
+const DragDropContext = dynamic(
+  () => import('@hello-pangea/dnd').then((mod) => mod.DragDropContext),
+  { ssr: false }
+);
+const Droppable = dynamic(
+  () => import('@hello-pangea/dnd').then((mod) => mod.Droppable),
+  { ssr: false }
+);
+const Draggable = dynamic(
+  () => import('@hello-pangea/dnd').then((mod) => mod.Draggable),
+  { ssr: false }
+);
 
 const courseFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),

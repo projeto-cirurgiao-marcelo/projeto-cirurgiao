@@ -1,7 +1,3 @@
-/**
- * Tipos para gestão de usuários/alunos no painel administrativo
- */
-
 export type UserRole = 'ADMIN' | 'INSTRUCTOR' | 'STUDENT';
 
 export interface User {
@@ -61,9 +57,6 @@ export interface StudentsOverviewResponse {
   topCourses: TopCourseInfo[];
 }
 
-/**
- * Detalhes de matricula para a pagina de detalhe do aluno
- */
 export interface StudentEnrollmentDetail {
   id: string;
   courseId: string;
@@ -77,9 +70,6 @@ export interface StudentEnrollmentDetail {
   enrolledAt: string;
 }
 
-/**
- * Resultado de quiz recente do aluno
- */
 export interface StudentQuizResult {
   id: string;
   quizTitle: string;
@@ -87,13 +77,10 @@ export interface StudentQuizResult {
   moduleTitle: string | null;
   correctCount: number;
   totalQuestions: number;
-  percentage: number; // já é 0-100%
+  percentage: number;
   attemptedAt: string;
 }
 
-/**
- * Resposta completa do endpoint GET /users/students/:id
- */
 export interface StudentDetailResponse {
   id: string;
   email: string;

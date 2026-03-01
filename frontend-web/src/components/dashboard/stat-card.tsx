@@ -1,5 +1,4 @@
 import { LucideIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -13,11 +12,27 @@ interface StatCardProps {
   color?: 'primary' | 'success' | 'warning' | 'secondary';
 }
 
-const colorClasses = {
-  primary: 'bg-[rgb(var(--primary-500)/0.1)] text-[rgb(var(--primary-500))]',
-  success: 'bg-[rgb(var(--accent-500)/0.1)] text-[rgb(var(--accent-500))]',
-  warning: 'bg-[rgb(var(--secondary-500)/0.1)] text-[rgb(var(--secondary-500))]',
-  secondary: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+const colorConfig = {
+  primary: {
+    iconBg: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+    trendUp: 'text-blue-600',
+  },
+  success: {
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
+    trendUp: 'text-emerald-600',
+  },
+  warning: {
+    iconBg: 'bg-amber-50',
+    iconColor: 'text-amber-600',
+    trendUp: 'text-amber-600',
+  },
+  secondary: {
+    iconBg: 'bg-gray-100',
+    iconColor: 'text-gray-600',
+    trendUp: 'text-gray-600',
+  },
 };
 
 export function StatCard({
@@ -27,37 +42,39 @@ export function StatCard({
   trend,
   color = 'primary',
 }: StatCardProps) {
+  const config = colorConfig[color];
+
   return (
-    <Card className="card-hover">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              {title}
-            </p>
-            <h3 className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-              {value}
-            </h3>
-            {trend && (
-              <p className="mt-2 flex items-center gap-1 text-sm">
-                <span
-                  className={cn(
-                    'font-semibold',
-                    trend.value >= 0 ? 'text-green-600' : 'text-red-600'
-                  )}
-                >
-                  {trend.value >= 0 ? '+' : ''}
-                  {trend.value}%
-                </span>
-                <span className="text-gray-500">{trend.label}</span>
-              </p>
-            )}
-          </div>
-          <div className={cn('rounded-full p-3', colorClasses[color])}>
-            <Icon className="h-6 w-6" />
-          </div>
+    <div className="bg-white rounded-xl border border-gray-200 p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            {title}
+          </p>
+          <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+            {value}
+          </p>
+          {trend && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span
+                className={cn(
+                  'inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-bold',
+                  trend.value >= 0
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : 'bg-red-50 text-red-600'
+                )}
+              >
+                {trend.value >= 0 ? '+' : ''}
+                {trend.value}%
+              </span>
+              <span className="text-xs text-gray-400">{trend.label}</span>
+            </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
+        <div className={cn('w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0', config.iconBg)}>
+          <Icon className={cn('h-5 w-5', config.iconColor)} />
+        </div>
+      </div>
+    </div>
   );
 }
