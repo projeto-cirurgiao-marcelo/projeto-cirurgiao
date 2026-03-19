@@ -1464,7 +1464,7 @@ export default function EditModulePage() {
                       const cfMatch = url.match(/cloudflarestream\.com\/([a-f0-9]{32})/);
                       setEditingVideo(prev => prev ? {
                         ...prev,
-                        externalUrl: url || undefined,
+                        externalUrl: url || null,
                         cloudflareId: cfMatch ? cfMatch[1] : prev.cloudflareId,
                         videoSource: url.includes('cloudflarestream.com') ? 'cloudflare' as any
                           : url.includes('youtube.com') || url.includes('youtu.be') ? 'youtube' as any
