@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
 import { Loader2, Award, Trophy, Calendar } from 'lucide-react';
@@ -16,6 +17,7 @@ export default function CompletedPage() {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const { isAdminViewingAsStudent } = useViewModeStore();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +29,7 @@ export default function CompletedPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN' && !isAdminViewingAsStudent) {
       router.push('/admin/courses');
       return;
     }
@@ -203,14 +205,8 @@ export default function CompletedPage() {
           {/* Lista de cursos concluídos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {courses.map((course) => (
-              <div key={course.id} className="relative">
+              <div key={course.id}>
                 <CourseCard course={course} />
-                {/* Badge de conclusão */}
-                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
-                  <Award className="h-3 w-3" />
-                  Concluído
-                </div>
-                {/* Data de conclusão */}
                 {course.enrollment.completedAt && (
                   <div className="mt-2 text-xs text-gray-500 text-center">
                     Concluído em {formatCompletionDate(course.enrollment.completedAt)}

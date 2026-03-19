@@ -119,8 +119,8 @@ export function ReplyCard({
             <VoteButtons
               type="reply"
               id={reply.id}
-              initialUpvotes={0}
-              initialDownvotes={0}
+              initialUpvotes={reply.upvotes || 0}
+              initialDownvotes={reply.downvotes || 0}
               onVoteChange={onVoteChange}
             />
           </div>

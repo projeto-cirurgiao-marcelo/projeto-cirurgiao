@@ -72,16 +72,16 @@ export function QuizLockedCard({ watchProgress = 0, hasQuiz }: QuizLockedCardPro
           {/* Instruções */}
           <div className="rounded-md sm:rounded-lg bg-white border border-slate-200 p-3 sm:p-4 space-y-2 sm:space-y-3">
             <h4 className="text-xs sm:text-sm font-medium text-slate-700 flex items-center gap-1.5 sm:gap-2">
-              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-medical-600 flex-shrink-0" />
+              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
               Como desbloquear:
             </h4>
             <ul className="text-xs sm:text-sm text-slate-600 space-y-1.5 sm:space-y-2">
               <li className="flex items-start gap-1.5 sm:gap-2">
-                <span className="text-medical-600 font-bold">1.</span>
+                <span className="text-blue-600 font-bold">1.</span>
                 <span>Assista a aula até o final</span>
               </li>
               <li className="flex items-start gap-1.5 sm:gap-2">
-                <span className="text-medical-600 font-bold">2.</span>
+                <span className="text-blue-600 font-bold">2.</span>
                 <span>Ou clique em "Marcar como Concluído"</span>
               </li>
             </ul>

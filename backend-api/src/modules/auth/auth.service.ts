@@ -161,21 +161,18 @@ export class AuthService {
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
     this.logger.log(`Solicitação de recuperação de senha para: ${forgotPasswordDto.email}`);
-    
-    const user = await this.prisma.user.findUnique({
-      where: { email: forgotPasswordDto.email },
-    });
 
-    if (!user) {
-      // Por segurança, não informamos se o usuário existe ou não
-      this.logger.warn(`Recuperação de senha: Usuário não encontrado - ${forgotPasswordDto.email}`);
-      return { message: 'Se o email estiver cadastrado, você receberá as instruções para redefinir sua senha.' };
+    // Envia e-mail de recuperação direto via Firebase Identity Toolkit REST API.
+    // Não depende do PostgreSQL — o Firebase valida se o e-mail existe internamente.
+    // Se o e-mail não existir no Firebase, retorna EMAIL_NOT_FOUND (capturado silenciosamente).
+    try {
+      await this.firebaseAdmin.sendPasswordResetEmail(forgotPasswordDto.email);
+      this.logger.log(`E-mail de recuperação enviado para ${forgotPasswordDto.email}`);
+    } catch (error) {
+      // Silencioso: por segurança, não informamos se o e-mail existe ou não
+      this.logger.warn(`Recuperação de senha falhou para ${forgotPasswordDto.email}: ${error.message}`);
     }
 
-    // TODO: Implementar envio de email real
-    // Por enquanto, apenas logamos que a funcionalidade foi acionada
-    this.logger.warn(`Recuperação de senha solicitada para ${user.email}, mas serviço de email não está configurado.`);
-    
     return { message: 'Se o email estiver cadastrado, você receberá as instruções para redefinir sua senha.' };
   }
 
@@ -195,23 +192,29 @@ export class AuthService {
 
     this.logger.log(`Token Firebase válido para: ${decodedToken.email}`);
 
-    // Busca ou cria o usuário no PostgreSQL
+    // Busca o usuário no PostgreSQL
     let user = await this.prisma.user.findUnique({
       where: { email: decodedToken.email },
     });
 
-    if (!user) {
-      // Criar novo usuário
-      this.logger.log(`Criando novo usuário no banco: ${decodedToken.email}`);
-      
+    // Auto-cria usuário se existe no Firebase mas não no PostgreSQL
+    // (mesmo comportamento do FirebaseAuthGuard)
+    if (!user && decodedToken.email) {
+      this.logger.log(`Auto-criando usuário a partir do Firebase: ${decodedToken.email}`);
       user = await this.prisma.user.create({
         data: {
           email: decodedToken.email,
           name: decodedToken.name || decodedToken.email.split('@')[0],
-          password: '', // Firebase gerencia a senha
-          role: Role.STUDENT, // Novo usuário sempre começa como STUDENT
+          password: '',
+          role: Role.STUDENT,
+          isActive: true,
         },
       });
+    }
+
+    if (!user) {
+      this.logger.warn(`Login negado: não foi possível autenticar - ${decodedToken.email}`);
+      throw new UnauthorizedException('Não foi possível autenticar o usuário.');
     }
 
     if (!user.isActive) {
@@ -220,6 +223,11 @@ export class AuthService {
 
     this.logger.log(`Login Firebase bem sucedido para: ${user.email}`);
 
+    // Busca o perfil para verificar se o onboarding foi completado
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId: user.id },
+    });
+
     // Retorna os dados do usuário (sem gerar JWT, usa o token Firebase)
     return {
       user: {
@@ -227,10 +235,58 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        onboardingCompleted: profile?.onboardingCompleted ?? false,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
       firebaseToken: firebaseLoginDto.firebaseToken,
+    };
+  }
+
+  /**
+   * Registro via rota secreta /aulas/92339018203
+   * Cria o usuário no Firebase Auth + PostgreSQL
+   */
+  async secureRegister(registerDto: RegisterDto) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: registerDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email já cadastrado');
+    }
+
+    // Cria o usuário no Firebase Auth via Admin SDK
+    const firebaseUser = await this.firebaseAdmin.createUser(
+      registerDto.email,
+      registerDto.password,
+      registerDto.name,
+    );
+
+    if (!firebaseUser) {
+      throw new ConflictException('Erro ao criar usuário no Firebase');
+    }
+
+    // Cria o usuário no PostgreSQL
+    const user = await this.prisma.user.create({
+      data: {
+        email: registerDto.email,
+        password: '', // Firebase gerencia a senha
+        name: registerDto.name,
+        role: registerDto.role || Role.STUDENT,
+      },
+    });
+
+    this.logger.log(`Novo usuário registrado via rota secreta: ${user.email}`);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      message: 'Usuário criado com sucesso',
     };
   }
 

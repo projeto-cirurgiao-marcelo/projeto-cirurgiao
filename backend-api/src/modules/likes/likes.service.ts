@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 
 export interface LikeStatus {
   totalLikes: number;
@@ -8,7 +9,10 @@ export interface LikeStatus {
 
 @Injectable()
 export class LikesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gamificationService: GamificationService,
+  ) {}
 
   /**
    * Obter status de likes de um vídeo
@@ -79,6 +83,11 @@ export class LikesService {
           userId,
         },
       });
+
+      // Gamificação
+      try {
+        await this.gamificationService.processAction(userId, 'video_like', 2, 'Curtiu um vídeo', videoId);
+      } catch (err) { /* gamification should not break likes */ }
     }
 
     // Retornar status atualizado

@@ -209,9 +209,9 @@ export default function CoursesPage() {
         <StaggerContainer className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {/* New Course Card */}
           <StaggerItem>
-          <button
+          <div
             onClick={() => router.push('/admin/courses/new')}
-            className="group aspect-[9/16] border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-400 transition-all hover:shadow-md bg-gray-50/50 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-3"
+            className="group aspect-[9/16] border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-400 transition-all hover:shadow-md bg-gray-50/50 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-3 cursor-pointer w-full h-full"
           >
             <div className="w-12 h-12 rounded-full bg-gray-200 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
               <Plus className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors" />
@@ -219,7 +219,7 @@ export default function CoursesPage() {
             <p className="text-sm text-gray-500 group-hover:text-blue-600 font-semibold transition-colors">
               Novo curso
             </p>
-          </button>
+          </div>
           </StaggerItem>
 
           {/* Course Cards */}

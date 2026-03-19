@@ -297,4 +297,40 @@ export class VideosController {
     await this.checkInstructorPermission(video.moduleId, req.user.sub, req.user.role);
     return this.videosService.syncWithCloudflare(id);
   }
+
+  /**
+   * Upload de thumbnail personalizada para o vídeo
+   * POST /videos/:id/thumbnail
+   * Body: multipart/form-data com campo 'file' (imagem jpeg/png/webp)
+   * Sobrescreve a thumbnail auto-gerada pelo Cloudflare Stream
+   */
+  @Post('videos/:id/thumbnail')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB max
+      },
+    }),
+  )
+  async uploadThumbnail(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Arquivo de imagem é obrigatório');
+    }
+
+    const video = await this.videosService.findOne(id);
+    await this.checkInstructorPermission(video.moduleId, req.user.sub, req.user.role);
+
+    return this.videosService.uploadThumbnail(
+      id,
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+    );
+  }
 }

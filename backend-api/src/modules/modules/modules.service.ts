@@ -1,15 +1,21 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { ReorderModulesDto } from './dto/reorder-modules.dto';
 import { Module } from '@prisma/client';
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+
 @Injectable()
 export class ModulesService {
   private readonly logger = new Logger(ModulesService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cloudflareR2: CloudflareR2Service,
+  ) {}
 
   /**
    * Criar um novo módulo
@@ -272,5 +278,74 @@ export class ModulesService {
     });
 
     return lastModule ? lastModule.order + 1 : 0;
+  }
+
+  /**
+   * Upload de thumbnail para o módulo
+   * @param moduleId - ID do módulo
+   * @param file - Arquivo de imagem (Buffer)
+   * @param originalName - Nome original do arquivo
+   * @param contentType - Tipo MIME do arquivo
+   * @param orientation - 'horizontal' ou 'vertical'
+   */
+  async uploadThumbnail(
+    moduleId: string,
+    file: Buffer,
+    originalName: string,
+    contentType: string,
+    orientation: 'horizontal' | 'vertical' = 'horizontal',
+  ): Promise<Module> {
+    // Verificar se o módulo existe
+    const existingModule = await this.findOne(moduleId);
+
+    // Validar tipo de imagem
+    if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
+      throw new BadRequestException(
+        `Tipo de arquivo não permitido. Use: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+      );
+    }
+
+    try {
+      // Gerar chave única para o arquivo no R2
+      const ext = originalName.split('.').pop() || 'jpg';
+      const timestamp = Date.now();
+      const key = `thumbnails/modules/${moduleId}/${timestamp}-${orientation}.${ext}`;
+
+      // Upload para R2
+      this.logger.log(`Uploading module thumbnail: ${key}`);
+      const uploadResult = await this.cloudflareR2.uploadFile(file, key, contentType);
+
+      // Atualizar o campo correto no banco
+      const updateData: Record<string, string> = {};
+      if (orientation === 'horizontal') {
+        updateData.thumbnailHorizontal = uploadResult.url;
+      } else {
+        updateData.thumbnailVertical = uploadResult.url;
+      }
+
+      // Também atualizar o campo genérico 'thumbnail' se for horizontal
+      if (orientation === 'horizontal') {
+        updateData.thumbnail = uploadResult.url;
+      }
+
+      const updatedModule = await this.prisma.module.update({
+        where: { id: moduleId },
+        data: updateData,
+        include: {
+          videos: {
+            orderBy: {
+              order: 'asc',
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Module thumbnail uploaded successfully: ${moduleId} (${orientation})`);
+
+      return updatedModule;
+    } catch (error) {
+      this.logger.error(`Error uploading thumbnail for module ${moduleId}`, error);
+      throw new BadRequestException('Erro ao fazer upload da thumbnail');
+    }
   }
 }

@@ -10,6 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Loader2,
   ArrowLeft,
   Lightbulb,
@@ -27,6 +34,8 @@ export default function NewTopicPage() {
   const { toast } = useToast();
 
   const [category, setCategory] = useState<ForumCategory | null>(null);
+  const [allCategories, setAllCategories] = useState<ForumCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(categoryId);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -35,14 +44,19 @@ export default function NewTopicPage() {
   });
 
   useEffect(() => {
-    loadCategory();
+    loadData();
   }, [categoryId]);
 
-  const loadCategory = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await forumCategoriesService.getById(categoryId);
-      setCategory(data);
+      const [categoryData, categoriesData] = await Promise.all([
+        forumCategoriesService.getById(categoryId),
+        forumCategoriesService.getAll(),
+      ]);
+      setCategory(categoryData);
+      setAllCategories(categoriesData);
+      setSelectedCategoryId(categoryId);
     } catch (err) {
       console.error('Erro ao carregar categoria:', err);
       toast({
@@ -73,7 +87,7 @@ export default function NewTopicPage() {
       const newTopic = await forumService.createTopic({
         title: formData.title,
         content: formData.content,
-        categoryId,
+        categoryId: selectedCategoryId,
       });
 
       toast({
@@ -136,7 +150,9 @@ export default function NewTopicPage() {
                 Novo Tópico
               </h1>
               <p className="text-sm text-gray-500">
-                em <span className="font-medium text-gray-700">{category.name}</span>
+                em <span className="font-medium text-gray-700">
+                  {allCategories.find(c => c.id === selectedCategoryId)?.name || category.name}
+                </span>
               </p>
             </div>
           </div>
@@ -146,6 +162,31 @@ export default function NewTopicPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="p-6 space-y-6">
+              {/* Categoria */}
+              {allCategories.length > 1 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-900">
+                    Categoria
+                  </Label>
+                  <Select
+                    value={selectedCategoryId}
+                    onValueChange={setSelectedCategoryId}
+                    disabled={submitting}
+                  >
+                    <SelectTrigger className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-500/20 rounded-xl">
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allCategories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-sm font-semibold text-gray-900">

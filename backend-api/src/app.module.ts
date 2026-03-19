@@ -16,6 +16,12 @@ import { NotesModule } from './modules/notes/notes.module';
 import { TranscriptsModule } from './modules/transcripts/transcripts.module';
 import { ForumCategoriesModule } from './modules/forum-categories/forum-categories.module';
 import { ForumModule } from './modules/forum/forum.module';
+import { CaptionsModule } from './modules/captions/captions.module';
+import { AiSummariesModule } from './modules/ai-summaries/ai-summaries.module';
+import { QuizzesModule } from './modules/quizzes/quizzes.module';
+import { AiChatModule } from './modules/ai-chat/ai-chat.module';
+import { ProfileModule } from './modules/profile/profile.module';
+import { GamificationModule } from './modules/gamification/gamification.module';
 
 @Module({
   imports: [
@@ -39,6 +45,12 @@ import { ForumModule } from './modules/forum/forum.module';
     TranscriptsModule,
     ForumCategoriesModule,
     ForumModule,
+    CaptionsModule,
+    AiSummariesModule,
+    QuizzesModule,
+    AiChatModule,
+    ProfileModule,
+    GamificationModule,
   ],
 })
 export class AppModule {}

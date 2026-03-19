@@ -68,13 +68,13 @@ export function QuizResults({
 
           {/* Estatísticas */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
-            <div className="rounded-lg border bg-background p-3 sm:p-4 text-center">
+            <div className="rounded-lg border bg-white p-3 sm:p-4 text-center">
               <div className="text-xl sm:text-2xl font-bold text-green-600">
                 {result.correctCount}
               </div>
               <div className="text-xs sm:text-sm text-muted-foreground">Acertos</div>
             </div>
-            <div className="rounded-lg border bg-background p-3 sm:p-4 text-center">
+            <div className="rounded-lg border bg-white p-3 sm:p-4 text-center">
               <div className="text-xl sm:text-2xl font-bold text-red-600">
                 {result.totalQuestions - result.correctCount}
               </div>
@@ -140,7 +140,7 @@ export function QuizResults({
                   )}
 
                   {answer.explanation && (
-                    <div className="rounded bg-background/50 p-2 sm:p-3 text-xs sm:text-sm">
+                    <div className="rounded bg-white/50 p-2 sm:p-3 text-xs sm:text-sm">
                       <div className="font-medium mb-0.5 sm:mb-1">💡 Explicação:</div>
                       <div className="text-muted-foreground">{answer.explanation}</div>
                     </div>

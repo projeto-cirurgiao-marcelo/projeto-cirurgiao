@@ -69,11 +69,28 @@ export default function QuizPage() {
     }
   };
 
-  // Tentar novamente
-  const handleRetry = () => {
-    setResult(null);
-    setShowIntro(true);
-    loadQuiz();
+  // Tentar novamente — gera um quiz novo via IA
+  const handleRetry = async () => {
+    if (!quiz?.videoId) {
+      handleBack();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setResult(null);
+      setShowIntro(true);
+      // Gera um quiz completamente novo
+      const newQuiz = await quizzesService.generateQuiz(quiz.videoId, {
+        questionCount: 5,
+        passingScore: 70,
+      });
+      // Navega para o novo quiz
+      router.replace(`/student/courses/${courseId}/quiz/${newQuiz.id}`);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao gerar novo quiz');
+      setIsLoading(false);
+    }
   };
 
   // Voltar para o vídeo

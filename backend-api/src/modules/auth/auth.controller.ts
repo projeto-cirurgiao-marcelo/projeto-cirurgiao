@@ -10,19 +10,23 @@ import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { GetUser } from './decorators/get-user.decorator';
 
 @ApiTags('auth')
-@Controller('auth')
+@Controller()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  @ApiOperation({ summary: 'Registrar novo usuário' })
+  /**
+   * Rota secreta de registro - cria usuário no Firebase + PostgreSQL
+   * Acessível apenas por quem conhece a URL
+   */
+  @Post('aulas/92339018203')
+  @ApiOperation({ summary: 'Registrar novo usuário (rota protegida)' })
   @ApiResponse({ status: 201, description: 'Usuário registrado com sucesso' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async secureRegister(@Body() registerDto: RegisterDto) {
+    return this.authService.secureRegister(registerDto);
   }
 
-  @Post('login')
+  @Post('auth/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Fazer login' })
   @ApiResponse({ status: 200, description: 'Login realizado com sucesso' })
@@ -31,7 +35,7 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @Post('firebase-login')
+  @Post('auth/firebase-login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login com Firebase' })
   @ApiResponse({ status: 200, description: 'Login Firebase realizado com sucesso' })
@@ -40,7 +44,7 @@ export class AuthController {
     return this.authService.firebaseLogin(firebaseLoginDto);
   }
 
-  @Post('refresh')
+  @Post('auth/refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar tokens' })
   @ApiResponse({ status: 200, description: 'Tokens renovados com sucesso' })
@@ -49,7 +53,7 @@ export class AuthController {
     return this.authService.refreshTokens(refreshTokenDto.refreshToken);
   }
 
-  @Post('forgot-password')
+  @Post('auth/forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Solicitar recuperação de senha' })
   @ApiResponse({ status: 200, description: 'Solicitação recebida com sucesso' })
@@ -57,7 +61,7 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
-  @Post('logout')
+  @Post('auth/logout')
   @UseGuards(FirebaseAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
@@ -67,7 +71,7 @@ export class AuthController {
     return this.authService.logout(userId);
   }
 
-  @Get('me')
+  @Get('auth/me')
   @UseGuards(FirebaseAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obter perfil do usuário autenticado' })

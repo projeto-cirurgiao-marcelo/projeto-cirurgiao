@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 import { SaveProgressDto, UpdateProgressDto } from './dto/save-progress.dto';
 import { Progress } from '@prisma/client';
 
@@ -29,7 +30,10 @@ export interface VideoProgressItem {
 export class ProgressService {
   private readonly logger = new Logger(ProgressService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gamificationService: GamificationService,
+  ) {}
 
   /**
    * Salvar ou atualizar progresso de um vídeo
@@ -37,7 +41,7 @@ export class ProgressService {
    */
   async saveProgress(userId: string, saveProgressDto: SaveProgressDto): Promise<Progress> {
     try {
-      const { videoId, watchTime, completed } = saveProgressDto;
+      const { videoId, watchTime, completed, videoDuration } = saveProgressDto;
 
       // Verificar se o vídeo existe e obter o courseId
       const video = await this.prisma.video.findUnique({
@@ -53,6 +57,15 @@ export class ProgressService {
 
       if (!video) {
         throw new NotFoundException('Vídeo não encontrado');
+      }
+
+      // Atualizar duração do vídeo se reportada pelo player e ainda não definida
+      if (videoDuration && videoDuration > 0 && (!video.duration || video.duration === 0)) {
+        await this.prisma.video.update({
+          where: { id: videoId },
+          data: { duration: Math.round(videoDuration) },
+        });
+        this.logger.log(`Video ${videoId} duration updated from player: ${Math.round(videoDuration)}s`);
       }
 
       // Criar matrícula automaticamente se não existir
@@ -213,7 +226,7 @@ export class ProgressService {
     const watchedVideos = videos.filter((v) => v.watched).length;
     const completedVideos = videos.filter((v) => v.completed).length;
     const totalWatchTime = videos.reduce((sum, v) => sum + v.watchTime, 0);
-    const progressPercentage = totalVideos > 0 ? Math.round((watchedVideos / totalVideos) * 100) : 0;
+    const progressPercentage = totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
 
     return {
       courseId,
@@ -292,16 +305,22 @@ export class ProgressService {
 
       if (allVideoIds.length === 0) return;
 
-      // Contar vídeos assistidos (watched)
-      const watchedCount = await this.prisma.progress.count({
+      // Contar vídeos concluídos (completed)
+      const completedCount = await this.prisma.progress.count({
         where: {
           userId,
           videoId: { in: allVideoIds },
-          watched: true,
+          completed: true,
         },
       });
 
-      const progressPercentage = Math.round((watchedCount / allVideoIds.length) * 100);
+      const progressPercentage = Math.round((completedCount / allVideoIds.length) * 100);
+
+      // Verificar se o curso estava incompleto antes
+      const enrollment = await this.prisma.enrollment.findFirst({
+        where: { userId, courseId },
+      });
+      const wasAlreadyCompleted = !!enrollment?.completedAt;
 
       // Atualizar matrícula
       await this.prisma.enrollment.updateMany({
@@ -316,6 +335,21 @@ export class ProgressService {
       });
 
       this.logger.log(`Enrollment progress updated: ${progressPercentage}% for user ${userId} in course ${courseId}`);
+
+      // Gamificação: conceder XP por completar curso
+      if (progressPercentage === 100 && !wasAlreadyCompleted) {
+        try {
+          await this.gamificationService.processAction(
+            userId,
+            'course_complete',
+            500,
+            'Completou um curso',
+            courseId,
+          );
+        } catch (err) {
+          this.logger.warn('Gamification course_complete failed', err);
+        }
+      }
     } catch (error) {
       this.logger.error(`Error updating enrollment progress`, error);
     }
@@ -336,12 +370,13 @@ export class ProgressService {
         throw new Error('videoId é obrigatório');
       }
 
-      // Verificar se o vídeo existe e obter courseId
+      // Verificar se o vídeo existe e obter courseId e moduleId
       const video = await this.prisma.video.findUnique({
         where: { id: videoId },
         include: {
           module: {
             select: {
+              id: true,
               courseId: true,
             },
           },
@@ -399,6 +434,69 @@ export class ProgressService {
       // Atualizar progresso da matrícula
       await this.updateEnrollmentProgress(userId, courseId);
 
+      // Gamificação: conceder XP por completar vídeo
+      try {
+        await this.gamificationService.processAction(
+          userId,
+          'video_complete',
+          25,
+          'Completou vídeo',
+          videoId,
+        );
+      } catch (err) {
+        this.logger.warn('Gamification processAction failed', err);
+      }
+
+      // Gamificação: verificar milestone de vídeos assistidos (a cada 10 vídeos)
+      try {
+        const totalCompleted = await this.prisma.progress.count({
+          where: { userId, completed: true },
+        });
+        if (totalCompleted > 0 && totalCompleted % 10 === 0) {
+          await this.gamificationService.processAction(
+            userId,
+            'video_milestone',
+            5,
+            `Marco: ${totalCompleted} vídeos assistidos`,
+            `milestone_${totalCompleted}`,
+          );
+          this.logger.log(`Video milestone reached: ${totalCompleted} videos by user ${userId}`);
+        }
+      } catch (err) {
+        this.logger.warn('Gamification video_milestone check failed', err);
+      }
+
+      // Gamificação: verificar se completou o módulo inteiro
+      try {
+        const moduleId = video.module.id;
+        if (moduleId) {
+          const moduleVideos = await this.prisma.video.findMany({
+            where: { moduleId },
+            select: { id: true },
+          });
+          const moduleVideoIds = moduleVideos.map(v => v.id);
+          const completedInModule = await this.prisma.progress.count({
+            where: {
+              userId,
+              videoId: { in: moduleVideoIds },
+              completed: true,
+            },
+          });
+          if (completedInModule === moduleVideoIds.length && moduleVideoIds.length > 0) {
+            await this.gamificationService.processAction(
+              userId,
+              'module_complete',
+              100,
+              'Completou módulo',
+              moduleId,
+            );
+            this.logger.log(`Module ${moduleId} completed by user ${userId} — 100 XP awarded`);
+          }
+        }
+      } catch (err) {
+        this.logger.warn('Gamification module_complete check failed', err);
+      }
+
       return progress;
     } catch (error) {
       this.logger.error(`Error marking video ${videoId} as completed`, error);
@@ -410,6 +508,19 @@ export class ProgressService {
    * Marcar vídeo como não completo
    */
   async markAsIncomplete(userId: string, videoId: string): Promise<Progress> {
+    const video = await this.prisma.video.findUnique({
+      where: { id: videoId },
+      include: {
+        module: {
+          select: { courseId: true },
+        },
+      },
+    });
+
+    if (!video) {
+      throw new NotFoundException('Vídeo não encontrado');
+    }
+
     const progress = await this.prisma.progress.findUnique({
       where: {
         userId_videoId: {
@@ -423,13 +534,18 @@ export class ProgressService {
       throw new NotFoundException('Progresso não encontrado');
     }
 
-    return this.prisma.progress.update({
+    const updated = await this.prisma.progress.update({
       where: { id: progress.id },
       data: {
         completed: false,
         completedAt: null,
       },
     });
+
+    // Recalcular progresso do enrollment
+    await this.updateEnrollmentProgress(userId, video.module.courseId);
+
+    return updated;
   }
 
   /**
@@ -573,8 +689,8 @@ export class ProgressService {
         }
       }
 
-      const progressPercentage = totalVideos > 0 
-        ? Math.round((watchedVideos / totalVideos) * 100) 
+      const progressPercentage = totalVideos > 0
+        ? Math.round((completedVideos / totalVideos) * 100)
         : 0;
 
       return {

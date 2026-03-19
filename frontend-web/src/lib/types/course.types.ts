@@ -132,6 +132,11 @@ export interface UpdateVideoDto {
   duration?: number;
   order?: number;
   isPublished?: boolean;
+  cloudflareId?: string;
+  cloudflareUrl?: string;
+  externalUrl?: string;
+  videoSource?: 'cloudflare' | 'youtube' | 'vimeo' | 'external';
+  uploadStatus?: VideoUploadStatus;
 }
 
 export interface ReorderVideosDto {

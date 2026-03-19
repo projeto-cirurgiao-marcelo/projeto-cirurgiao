@@ -14,6 +14,7 @@ import { ForumService } from './forum.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { CreateReplyDto } from './dto/create-reply.dto';
+import { CreateReportDto } from './dto/create-report.dto';
 import { VoteTopicDto, VoteReplyDto } from './dto/vote.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 
@@ -134,5 +135,45 @@ export class ForumController {
   @Post('votes/replies')
   voteOnReply(@Request() req, @Body() voteReplyDto: VoteReplyDto) {
     return this.forumService.voteOnReply(req.user.userId, voteReplyDto);
+  }
+
+  // ==================== SOLUÇÕES ====================
+
+  /**
+   * Marcar resposta como solução
+   */
+  @Post('topics/:topicId/solution/:replyId')
+  markSolution(
+    @Request() req,
+    @Param('topicId') topicId: string,
+    @Param('replyId') replyId: string,
+  ) {
+    return this.forumService.markReplyAsSolution(req.user.userId, topicId, replyId);
+  }
+
+  // ==================== DENÚNCIAS ====================
+
+  /**
+   * Denunciar um tópico
+   */
+  @Post('reports')
+  reportTopic(@Request() req, @Body() createReportDto: CreateReportDto) {
+    return this.forumService.reportTopic(req.user.userId, createReportDto);
+  }
+
+  /**
+   * Listar denúncias (ADMIN only)
+   */
+  @Get('reports')
+  findAllReports(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.forumService.findAllReports({
+      status,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
@@ -20,6 +21,7 @@ export default function MyCoursesPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logout = useAuthStore((s) => s.logout);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const { isAdminViewingAsStudent } = useViewModeStore();
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export default function MyCoursesPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN' && !isAdminViewingAsStudent) {
       router.push('/admin/courses');
       return;
     }

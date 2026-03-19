@@ -10,7 +10,11 @@ import {
   Request,
   Query,
   ForbiddenException,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -128,5 +132,47 @@ export class CoursesController {
     }
 
     return this.coursesService.togglePublish(id);
+  }
+
+  /**
+   * Upload de thumbnail do curso
+   * POST /courses/:id/thumbnail?orientation=horizontal|vertical
+   * Body: multipart/form-data com campo 'file' (imagem jpeg/png/webp)
+   */
+  @Post(':id/thumbnail')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB max
+      },
+    }),
+  )
+  async uploadThumbnail(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Query('orientation') orientation: 'horizontal' | 'vertical' = 'horizontal',
+    @Request() req,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Arquivo de imagem é obrigatório');
+    }
+
+    // Verificar se o usuário é o instrutor do curso ou ADMIN
+    if (req.user.role !== Role.ADMIN) {
+      const isInstructor = await this.coursesService.isInstructor(id, req.user.userId);
+      if (!isInstructor) {
+        throw new ForbiddenException('Você não tem permissão para alterar a thumbnail deste curso');
+      }
+    }
+
+    return this.coursesService.uploadThumbnail(
+      id,
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      orientation,
+    );
   }
 }

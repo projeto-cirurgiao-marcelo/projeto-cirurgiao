@@ -568,7 +568,7 @@ export default function ModuleVideosPage() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             className={`
-                              flex items-center gap-4 p-4 border rounded-lg bg-card
+                              flex items-center gap-4 p-4 border rounded-lg bg-white
                               ${snapshot.isDragging ? 'shadow-lg' : ''}
                               ${video.uploadStatus === 'ERROR' ? 'border-destructive/50 bg-destructive/5' : ''}
                             `}
@@ -698,7 +698,7 @@ export default function ModuleVideosPage() {
 
       {/* Modal de Upload */}
       <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-background">
+        <DialogContent className="sm:max-w-[600px] bg-white">
           <DialogHeader>
             <DialogTitle>Adicionar Vídeo</DialogTitle>
             <DialogDescription>

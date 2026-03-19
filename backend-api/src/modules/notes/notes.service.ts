@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 
 @Injectable()
 export class NotesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gamificationService: GamificationService,
+  ) {}
 
   /**
    * Criar uma nova nota para um vídeo
@@ -29,6 +33,11 @@ export class NotesService {
         timestamp: createNoteDto.timestamp,
       },
     });
+
+    // Gamificação
+    try {
+      await this.gamificationService.processAction(userId, 'video_note', 5, 'Criou anotação', note.id);
+    } catch (err) { /* gamification should not break notes */ }
 
     return note;
   }

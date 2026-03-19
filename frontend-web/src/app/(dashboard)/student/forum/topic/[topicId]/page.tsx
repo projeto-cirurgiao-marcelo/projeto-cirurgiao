@@ -3,11 +3,36 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { forumService } from '@/lib/api/forum.service';
-import { ForumTopic } from '@/lib/types/forum.types';
+import { ForumTopic, ForumReply, ReportReason } from '@/lib/types/forum.types';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { VoteButtons } from '@/components/forum/vote-buttons';
 import { ReplyCard } from '@/components/forum/reply-card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Loader2,
   ArrowLeft,
@@ -19,24 +44,59 @@ import {
   Send,
   PlayCircle,
   ChevronRight,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Flag,
+  AlertTriangle,
 } from 'lucide-react';
-import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/shared/page-transition';
+import { PageTransition, StaggerContainer, StaggerItem } from '@/components/shared/page-transition';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+
+const REPORT_REASONS: { value: ReportReason; label: string }[] = [
+  { value: 'SPAM', label: 'Spam' },
+  { value: 'INAPPROPRIATE', label: 'Conteúdo inadequado' },
+  { value: 'OFFENSIVE', label: 'Conteúdo ofensivo' },
+  { value: 'OFF_TOPIC', label: 'Fora do tópico' },
+  { value: 'OTHER', label: 'Outro motivo' },
+];
 
 export default function TopicDetailPage() {
   const params = useParams();
   const router = useRouter();
   const topicId = params.topicId as string;
   const { toast } = useToast();
+  const user = useAuthStore((s) => s.user);
 
   const [topic, setTopic] = useState<ForumTopic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Estado de edição de tópico
+  const [isEditingTopic, setIsEditingTopic] = useState(false);
+  const [editTopicTitle, setEditTopicTitle] = useState('');
+  const [editTopicContent, setEditTopicContent] = useState('');
+  const [savingTopic, setSavingTopic] = useState(false);
+
+  // Estado de edição de resposta
+  const [editingReply, setEditingReply] = useState<ForumReply | null>(null);
+  const [editReplyContent, setEditReplyContent] = useState('');
+  const [savingReply, setSavingReply] = useState(false);
+
+  // Estado de denúncia
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportReason | ''>('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const currentUserId = user?.id;
+  const isAdmin = user?.role === 'ADMIN';
+  const isTopicAuthor = currentUserId === topic?.authorId;
 
   useEffect(() => {
     loadTopic();
@@ -56,41 +116,167 @@ export default function TopicDetailPage() {
     }
   };
 
+  // ===== RESPOSTAS =====
+
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!replyContent.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Por favor, escreva uma resposta',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro', description: 'Por favor, escreva uma resposta', variant: 'destructive' });
       return;
     }
 
     try {
       setSubmitting(true);
-      await forumService.createReply({
-        topicId,
-        content: replyContent,
-      });
-
-      toast({
-        title: 'Sucesso',
-        description: 'Resposta enviada com sucesso',
-      });
-
+      await forumService.createReply({ topicId, content: replyContent });
+      toast({ title: 'Sucesso', description: 'Resposta enviada com sucesso' });
       setReplyContent('');
       await loadTopic();
     } catch (err) {
       console.error('Erro ao enviar resposta:', err);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao enviar resposta',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro', description: 'Erro ao enviar resposta', variant: 'destructive' });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditReply = (reply: ForumReply) => {
+    setEditingReply(reply);
+    setEditReplyContent(reply.content);
+  };
+
+  const handleSaveEditReply = async () => {
+    if (!editingReply || !editReplyContent.trim()) return;
+
+    try {
+      setSavingReply(true);
+      await forumService.updateReply(editingReply.id, editReplyContent.trim());
+      toast({ title: 'Sucesso', description: 'Resposta atualizada' });
+      setEditingReply(null);
+      setEditReplyContent('');
+      await loadTopic();
+    } catch (err) {
+      console.error('Erro ao editar resposta:', err);
+      toast({ title: 'Erro', description: 'Erro ao atualizar resposta', variant: 'destructive' });
+    } finally {
+      setSavingReply(false);
+    }
+  };
+
+  const handleDeleteReply = async (replyId: string) => {
+    if (!confirm('Tem certeza que deseja deletar esta resposta?')) return;
+
+    try {
+      await forumService.deleteReply(replyId);
+      toast({ title: 'Sucesso', description: 'Resposta deletada' });
+      await loadTopic();
+    } catch (err) {
+      console.error('Erro ao deletar resposta:', err);
+      toast({ title: 'Erro', description: 'Erro ao deletar resposta', variant: 'destructive' });
+    }
+  };
+
+  // ===== TÓPICO =====
+
+  const handleEditTopic = () => {
+    if (!topic) return;
+    setEditTopicTitle(topic.title);
+    setEditTopicContent(topic.content);
+    setIsEditingTopic(true);
+  };
+
+  const handleSaveEditTopic = async () => {
+    if (!editTopicTitle.trim() || !editTopicContent.trim()) return;
+
+    try {
+      setSavingTopic(true);
+      await forumService.updateTopic(topicId, {
+        title: editTopicTitle.trim(),
+        content: editTopicContent.trim(),
+      });
+      toast({ title: 'Sucesso', description: 'Tópico atualizado' });
+      setIsEditingTopic(false);
+      await loadTopic();
+    } catch (err) {
+      console.error('Erro ao editar tópico:', err);
+      toast({ title: 'Erro', description: 'Erro ao atualizar tópico', variant: 'destructive' });
+    } finally {
+      setSavingTopic(false);
+    }
+  };
+
+  const handleDeleteTopic = async () => {
+    if (!confirm('Tem certeza que deseja deletar este tópico? Todas as respostas também serão removidas.')) return;
+
+    try {
+      await forumService.deleteTopic(topicId);
+      toast({ title: 'Sucesso', description: 'Tópico deletado' });
+      router.push('/student/forum');
+    } catch (err) {
+      console.error('Erro ao deletar tópico:', err);
+      toast({ title: 'Erro', description: 'Erro ao deletar tópico', variant: 'destructive' });
+    }
+  };
+
+  // ===== ADMIN: Pin/Close/Solve =====
+
+  const handleTogglePin = async () => {
+    if (!topic) return;
+    try {
+      await forumService.updateTopic(topicId, { isPinned: !topic.isPinned });
+      toast({ title: 'Sucesso', description: topic.isPinned ? 'Tópico desafixado' : 'Tópico fixado' });
+      await loadTopic();
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao alterar fixação', variant: 'destructive' });
+    }
+  };
+
+  const handleToggleClose = async () => {
+    if (!topic) return;
+    try {
+      await forumService.updateTopic(topicId, { isClosed: !topic.isClosed });
+      toast({ title: 'Sucesso', description: topic.isClosed ? 'Tópico reaberto' : 'Tópico fechado' });
+      await loadTopic();
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao alterar status', variant: 'destructive' });
+    }
+  };
+
+  const handleToggleSolved = async () => {
+    if (!topic) return;
+    try {
+      await forumService.updateTopic(topicId, { isSolved: !topic.isSolved });
+      toast({ title: 'Sucesso', description: topic.isSolved ? 'Desmarcado como resolvido' : 'Marcado como resolvido' });
+      await loadTopic();
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao alterar status', variant: 'destructive' });
+    }
+  };
+
+  // ===== DENÚNCIA =====
+
+  const handleSubmitReport = async () => {
+    if (!reportReason) {
+      toast({ title: 'Erro', description: 'Selecione um motivo', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setSubmittingReport(true);
+      await forumService.reportTopic({
+        topicId,
+        reason: reportReason as ReportReason,
+        description: reportDescription.trim() || undefined,
+      });
+      toast({ title: 'Denúncia enviada', description: 'Obrigado por ajudar a manter a comunidade segura.' });
+      setIsReportDialogOpen(false);
+      setReportReason('');
+      setReportDescription('');
+    } catch (err: any) {
+      console.error('Erro ao enviar denúncia:', err);
+      const message = err?.response?.data?.message || 'Erro ao enviar denúncia';
+      toast({ title: 'Erro', description: message, variant: 'destructive' });
+    } finally {
+      setSubmittingReport(false);
     }
   };
 
@@ -183,9 +369,69 @@ export default function TopicDetailPage() {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight mb-4">
-                  {topic.title}
-                </h1>
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">
+                    {topic.title}
+                  </h1>
+
+                  {/* Menu de ações do tópico */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 flex-shrink-0">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {/* Ações do autor */}
+                      {(isTopicAuthor || isAdmin) && (
+                        <>
+                          <DropdownMenuItem onClick={handleEditTopic} className="cursor-pointer">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar tópico
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={handleDeleteTopic}
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Deletar tópico
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+
+                      {/* Ações de admin */}
+                      {isAdmin && (
+                        <>
+                          <DropdownMenuItem onClick={handleTogglePin} className="cursor-pointer">
+                            <Pin className="mr-2 h-4 w-4" />
+                            {topic.isPinned ? 'Desafixar' : 'Fixar tópico'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleToggleClose} className="cursor-pointer">
+                            <Lock className="mr-2 h-4 w-4" />
+                            {topic.isClosed ? 'Reabrir' : 'Fechar tópico'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleToggleSolved} className="cursor-pointer">
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            {topic.isSolved ? 'Desmarcar resolvido' : 'Marcar como resolvido'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+
+                      {/* Denúncia (todos os usuários) */}
+                      {!isTopicAuthor && (
+                        <DropdownMenuItem
+                          onClick={() => setIsReportDialogOpen(true)}
+                          className="text-orange-600 focus:text-orange-600 focus:bg-orange-50 cursor-pointer"
+                        >
+                          <Flag className="mr-2 h-4 w-4" />
+                          Denunciar
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
                 <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed mb-5">
                   <p className="whitespace-pre-wrap">{topic.content}</p>
@@ -265,6 +511,10 @@ export default function TopicDetailPage() {
                 <StaggerItem key={reply.id}>
                   <ReplyCard
                     reply={reply}
+                    currentUserId={currentUserId}
+                    isAdmin={isAdmin}
+                    onEdit={handleEditReply}
+                    onDelete={handleDeleteReply}
                     onVoteChange={loadTopic}
                   />
                 </StaggerItem>
@@ -325,6 +575,128 @@ export default function TopicDetailPage() {
         )}
       </div>
     </div>
+
+    {/* Dialog: Editar Tópico */}
+    <Dialog open={isEditingTopic} onOpenChange={setIsEditingTopic}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Editar Tópico</DialogTitle>
+          <DialogDescription>Atualize o título e conteúdo do tópico</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-title">Título</Label>
+            <Input
+              id="edit-title"
+              value={editTopicTitle}
+              onChange={(e) => setEditTopicTitle(e.target.value)}
+              placeholder="Título do tópico"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-content">Conteúdo</Label>
+            <Textarea
+              id="edit-content"
+              value={editTopicContent}
+              onChange={(e) => setEditTopicContent(e.target.value)}
+              placeholder="Conteúdo do tópico"
+              className="min-h-[150px]"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsEditingTopic(false)} disabled={savingTopic}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSaveEditTopic} disabled={savingTopic || !editTopicTitle.trim() || !editTopicContent.trim()}>
+            {savingTopic ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Dialog: Editar Resposta */}
+    <Dialog open={!!editingReply} onOpenChange={(open) => !open && setEditingReply(null)}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Editar Resposta</DialogTitle>
+          <DialogDescription>Atualize o conteúdo da sua resposta</DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <Textarea
+            value={editReplyContent}
+            onChange={(e) => setEditReplyContent(e.target.value)}
+            placeholder="Conteúdo da resposta"
+            className="min-h-[150px]"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setEditingReply(null)} disabled={savingReply}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSaveEditReply} disabled={savingReply || !editReplyContent.trim()}>
+            {savingReply ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Dialog: Denúncia */}
+    <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-500" />
+            Denunciar Tópico
+          </DialogTitle>
+          <DialogDescription>
+            Ajude-nos a manter a comunidade segura reportando conteúdo inadequado.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Motivo da denúncia *</Label>
+            <Select value={reportReason} onValueChange={(v) => setReportReason(v as ReportReason)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o motivo" />
+              </SelectTrigger>
+              <SelectContent>
+                {REPORT_REASONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Descrição (opcional)</Label>
+            <Textarea
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              placeholder="Descreva o problema com mais detalhes..."
+              className="min-h-[80px]"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsReportDialogOpen(false)} disabled={submittingReport}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmitReport}
+            disabled={submittingReport || !reportReason}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            {submittingReport ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Flag className="h-4 w-4 mr-2" />}
+            Enviar Denúncia
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     </PageTransition>
   );
 }

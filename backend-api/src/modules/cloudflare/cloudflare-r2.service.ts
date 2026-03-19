@@ -30,15 +30,16 @@ export class CloudflareR2Service {
   private readonly s3Client: S3Client;
   private readonly bucket: string;
   private readonly endpoint: string;
-  private readonly accountId: string;
+  private readonly publicUrl: string;
 
   constructor(private configService: ConfigService) {
-    this.accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID');
-    const apiToken = this.configService.get<string>('CLOUDFLARE_API_TOKEN');
+    const r2AccessKeyId = this.configService.get<string>('CLOUDFLARE_R2_ACCESS_KEY_ID');
+    const r2SecretAccessKey = this.configService.get<string>('CLOUDFLARE_R2_SECRET_ACCESS_KEY');
     this.bucket = this.configService.get<string>('CLOUDFLARE_R2_BUCKET');
     this.endpoint = this.configService.get<string>('CLOUDFLARE_R2_ENDPOINT');
+    this.publicUrl = this.configService.get<string>('CLOUDFLARE_R2_PUBLIC_URL');
 
-    if (!this.accountId || !apiToken || !this.bucket || !this.endpoint) {
+    if (!r2AccessKeyId || !r2SecretAccessKey || !this.bucket || !this.endpoint) {
       this.logger.warn('Cloudflare R2 credentials not fully configured - R2 features will be disabled');
       // Não lançar erro, apenas avisar
       return;
@@ -49,8 +50,8 @@ export class CloudflareR2Service {
         region: 'auto',
         endpoint: this.endpoint,
         credentials: {
-          accessKeyId: this.accountId,
-          secretAccessKey: apiToken,
+          accessKeyId: r2AccessKeyId,
+          secretAccessKey: r2SecretAccessKey,
         },
       });
 
@@ -83,7 +84,7 @@ export class CloudflareR2Service {
 
       await this.s3Client.send(command);
 
-      const url = `${this.endpoint}/${this.bucket}/${key}`;
+      const url = this.getPublicUrl(key);
 
       this.logger.log(`File uploaded successfully: ${key}`);
 
@@ -301,6 +302,10 @@ export class CloudflareR2Service {
    * Obter URL pública do arquivo
    */
   getPublicUrl(key: string): string {
+    if (this.publicUrl) {
+      return `${this.publicUrl}/${key}`;
+    }
+    // Fallback para o endpoint direto se publicUrl não estiver configurado
     return `${this.endpoint}/${this.bucket}/${key}`;
   }
 }

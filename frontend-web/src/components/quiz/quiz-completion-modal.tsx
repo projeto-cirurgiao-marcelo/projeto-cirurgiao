@@ -131,14 +131,14 @@ export function QuizCompletionModal({
               <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
                 {/* Card do Quiz */}
                 <motion.div 
-                  className="rounded-lg sm:rounded-xl border-2 border-medical-200 bg-medical-50/50 p-3 sm:p-4"
+                  className="rounded-lg sm:rounded-xl border-2 border-blue-200 bg-blue-50/50 p-3 sm:p-4"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
                   <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                      <Target className="h-4 w-4 sm:h-5 sm:w-5 text-medical-600 flex-shrink-0" />
+                      <Target className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
                       <h3 className="font-semibold text-slate-900 text-sm sm:text-base truncate">Quiz Disponível!</h3>
                     </div>
                     <Badge className={`${getDifficultyColor(quiz.difficulty)} text-white text-[10px] sm:text-xs flex-shrink-0`}>
@@ -172,14 +172,14 @@ export function QuizCompletionModal({
 
                   {/* Estatísticas anteriores */}
                   {stats && stats.totalAttempts > 0 && (
-                    <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-medical-200">
+                    <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-blue-200">
                       <div className="flex items-center justify-between text-xs sm:text-sm">
                         <span className="text-slate-600 flex items-center gap-1">
                           <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
                           <span className="hidden xs:inline">Melhor pontuação:</span>
                           <span className="xs:hidden">Melhor:</span>
                         </span>
-                        <span className="font-bold text-medical-600">{stats.bestScore}%</span>
+                        <span className="font-bold text-blue-600">{stats.bestScore}%</span>
                       </div>
                       {stats.passed && (
                         <Badge variant="outline" className="w-full justify-center mt-2 bg-green-50 text-green-700 border-green-300 text-[10px] sm:text-xs py-0.5 sm:py-1">
@@ -200,7 +200,7 @@ export function QuizCompletionModal({
                   <Button
                     onClick={onStartQuiz}
                     size="lg"
-                    className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold bg-gradient-to-r from-medical-600 to-medical-700 hover:from-medical-700 hover:to-medical-800 shadow-md hover:shadow-lg transition-all duration-300"
+                    className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300"
                   >
                     <PlayCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     Testar Conhecimento!

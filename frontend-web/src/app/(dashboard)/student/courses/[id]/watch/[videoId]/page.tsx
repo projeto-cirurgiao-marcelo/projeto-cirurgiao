@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { videosService } from '@/lib/api/videos.service';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
@@ -15,6 +16,12 @@ import { VideoLikeButton } from '@/components/video-player/video-like-button';
 import { VideoMaterialsCarousel, VideoMaterialsCompactList } from '@/components/video-player/video-materials-carousel';
 import { VideoNotes, VideoNotesCompact } from '@/components/video-player/video-notes';
 import { VideoTranscript, VideoTranscriptCompact } from '@/components/video-player/video-transcript';
+import { VideoSummaries } from '@/components/video-player/video-summaries';
+import { VideoChatWidget } from '@/components/chatbot/video-chat-widget';
+import { QuizCard } from '@/components/quiz/quiz-card';
+import { transcriptsService } from '@/lib/api/transcripts.service';
+import { captionsService } from '@/lib/api/captions.service';
+import { quizzesService, QuizStats } from '@/lib/api/quizzes.service';
 
 // Declaração de tipo para o SDK do Cloudflare Stream
 declare global {
@@ -43,6 +50,7 @@ export default function VideoPlayerPage() {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const { isAdminViewingAsStudent } = useViewModeStore();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [currentVideo, setCurrentVideo] = useState<VideoType | null>(null);
@@ -50,6 +58,12 @@ export default function VideoPlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Estado de transcrição (para resumos IA)
+  const [hasTranscript, setHasTranscript] = useState(false);
+
+  // Estado de quiz (stats agregadas das tentativas anteriores)
+  const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
+
   // Estado de progresso
   const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
   const [currentWatchTime, setCurrentWatchTime] = useState(0);
@@ -69,6 +83,7 @@ export default function VideoPlayerPage() {
   const [isPlayerReady, setIsPlayerReady] = useState(false); // Flag para indicar que o player está pronto
   const [sdkLoaded, setSdkLoaded] = useState(false); // Flag para SDK do Cloudflare carregado
   const [iframeMounted, setIframeMounted] = useState(false); // Flag para indicar que o iframe foi montado
+  const playerDurationRef = useRef(0); // Duração total do vídeo reportada pelo player
 
   const saveProgressOnExit = useCallback(async () => {
     const timeToSave = currentWatchTimeRef.current;
@@ -80,6 +95,7 @@ export default function VideoPlayerPage() {
           videoId,
           watchTime: Math.floor(timeToSave),
           completed: isCompleted,
+          videoDuration: playerDurationRef.current > 0 ? Math.floor(playerDurationRef.current) : undefined,
         });
         lastSavedTimeRef.current = timeToSave;
         console.log('[Progress] Progresso final salvo com sucesso');
@@ -98,7 +114,7 @@ export default function VideoPlayerPage() {
       return;
     }
 
-    if (user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN' && !isAdminViewingAsStudent) {
       router.push('/admin/courses');
       return;
     }
@@ -118,20 +134,39 @@ export default function VideoPlayerPage() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       const timeToSave = currentWatchTimeRef.current;
-      console.log('[Progress] beforeunload - timeToSave:', timeToSave);
-      if (timeToSave > 0) {
+      const lastSaved = lastSavedTimeRef.current;
+      console.log('[Progress] beforeunload - timeToSave:', timeToSave, 'lastSaved:', lastSaved);
+      if (timeToSave > lastSaved) {
         // Usar sendBeacon para garantir que a requisição seja enviada mesmo ao fechar
+        const token = useAuthStore.getState().firebaseToken;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
         const data = JSON.stringify({
           videoId,
           watchTime: Math.floor(timeToSave),
           completed: isCompleted,
+          videoDuration: playerDurationRef.current > 0 ? Math.floor(playerDurationRef.current) : undefined,
         });
-        
-        // Tentar usar sendBeacon (mais confiável ao fechar aba)
+
+        // Tentar usar fetch keepalive com URL completa do backend e auth header
         if (navigator.sendBeacon) {
           const blob = new Blob([data], { type: 'application/json' });
-          navigator.sendBeacon('/api/v1/progress', blob);
-          console.log('[Progress] Progresso enviado via sendBeacon');
+          // sendBeacon não suporta headers customizados, então usamos fetch com keepalive como fallback
+          try {
+            fetch(`${apiUrl}/progress`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+              },
+              body: data,
+              keepalive: true, // Garante que a requisição sobreviva ao unload
+            });
+            console.log('[Progress] Progresso enviado via fetch keepalive');
+          } catch {
+            // Fallback para sendBeacon sem auth (menos confiável)
+            navigator.sendBeacon(`${apiUrl}/progress`, blob);
+            console.log('[Progress] Fallback: Progresso enviado via sendBeacon');
+          }
         }
       }
     };
@@ -162,12 +197,37 @@ export default function VideoPlayerPage() {
       const videoPromise = videosService.findOne(videoId);
       const progressPromise = progressService.getCourseProgress(courseId).catch(() => null);
       const streamPromise = videosService.getStreamUrl(videoId);
+      const transcriptPromise = transcriptsService.getByVideoId(videoId).catch(() => null);
 
-      const [courseData, videoData, progressData] = await Promise.all([
+      const [courseData, videoData, progressData, transcriptData] = await Promise.all([
         coursePromise,
         videoPromise,
         progressPromise,
+        transcriptPromise,
       ]);
+
+      // Verificar se tem transcrição (para habilitar resumos IA)
+      // Prioridade 1: transcrição manual no banco
+      let hasTextSource = !!transcriptData && transcriptData.segments && transcriptData.segments.length > 0;
+
+      // Prioridade 2: legendas (captions) geradas pelo Cloudflare
+      if (!hasTextSource && videoData.cloudflareId) {
+        try {
+          const captions = await captionsService.listCaptions(videoId);
+          hasTextSource = captions.some(c => c.status === 'ready');
+        } catch {
+          // Captions não disponíveis, manter false
+        }
+      }
+      setHasTranscript(hasTextSource);
+
+      // Buscar stats agregadas de quizzes do vídeo (todas as tentativas)
+      try {
+        const stats = await quizzesService.getVideoQuizStats(videoId);
+        setQuizStats(stats.totalAttempts > 0 ? stats : null);
+      } catch {
+        setQuizStats(null);
+      }
 
       const isEmbedVideo = videoData.videoSource && videoData.videoSource !== 'cloudflare';
 
@@ -239,6 +299,7 @@ export default function VideoPlayerPage() {
             videoId,
             watchTime: Math.floor(currentTime),
             completed: isCompleted,
+            videoDuration: playerDurationRef.current > 0 ? Math.floor(playerDurationRef.current) : undefined,
           });
           lastSavedTimeRef.current = currentTime;
           console.log('[AutoSave] Progresso salvo com sucesso!');
@@ -392,9 +453,13 @@ export default function VideoPlayerPage() {
         const handleTimeUpdate = () => {
           if (playerRef.current) {
             const currentTime = playerRef.current.currentTime || 0;
-            // Log a cada segundo para debug
-            console.log('[Player] timeupdate:', Math.floor(currentTime), 'currentWatchTimeRef:', Math.floor(currentWatchTimeRef.current));
             setPlayerCurrentTime(currentTime);
+
+            // Capturar duração se ainda não temos
+            if (playerDurationRef.current === 0 && playerRef.current.duration > 0) {
+              playerDurationRef.current = playerRef.current.duration;
+              console.log('[Player] Duração capturada via timeupdate:', playerRef.current.duration);
+            }
 
             // Atualiza o tempo máximo assistido
             if (currentTime > currentWatchTimeRef.current) {
@@ -407,6 +472,12 @@ export default function VideoPlayerPage() {
         const handleLoadedData = () => {
           console.log('[Player] loadeddata/canplay disparado, savedWatchTimeRef:', savedWatchTimeRef.current);
           setIsPlayerReady(true);
+
+          // Capturar duração do vídeo reportada pelo player
+          if (playerRef.current && playerRef.current.duration > 0) {
+            playerDurationRef.current = playerRef.current.duration;
+            console.log('[Player] Duração do vídeo capturada:', playerRef.current.duration);
+          }
 
           // Restaura posição salva com retry - usa a ref para pegar o valor mais atual
           const timeToRestore = savedWatchTimeRef.current;
@@ -678,7 +749,7 @@ export default function VideoPlayerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
+    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0 -m-4 md:-m-6 lg:-m-8">
       {/* Header */}
       <div className="border-b-2 border-gray-200 bg-white shadow-sm">
         <div className="container mx-auto px-4 py-3">
@@ -745,7 +816,7 @@ export default function VideoPlayerPage() {
               {streamData?.type === 'cloudflare' && streamData.cloudflareId ? (
                 <iframe
                   ref={iframeRef}
-                  src={`https://iframe.cloudflarestream.com/${streamData.cloudflareId.split('?')[0]}?preload=auto&previewThumbnails=false`}
+                  src={`https://iframe.cloudflarestream.com/${streamData.cloudflareId.split('?')[0]}?preload=auto&previewThumbnails=true${savedWatchTime > 0 ? `&startTime=${savedWatchTime}` : ''}`}
                   className="w-full h-full"
                   style={{ border: 'none' }}
                   allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
@@ -858,14 +929,27 @@ export default function VideoPlayerPage() {
               <VideoNotes videoId={videoId} currentTime={playerCurrentTime} />
             </div>
 
-            {/* Materiais, Anotações e Transcrição - Mobile (lista compacta) */}
+            {/* Resumos com IA - Desktop */}
+            <div className="hidden sm:block mt-4">
+              <VideoSummaries videoId={videoId} hasTranscript={hasTranscript} />
+            </div>
+
+            {/* Materiais, Anotações, Transcrição e Resumos - Mobile (lista compacta) */}
             <div className="mt-4 sm:hidden space-y-3">
               <VideoMaterialsCompactList videoId={videoId} />
               <VideoNotesCompact videoId={videoId} currentTime={playerCurrentTime} />
-              <VideoTranscriptCompact 
-                videoId={videoId} 
-                currentTime={playerCurrentTime} 
+              <VideoTranscriptCompact
+                videoId={videoId}
+                currentTime={playerCurrentTime}
                 onSeek={handleSeek}
+              />
+              <VideoSummaries videoId={videoId} hasTranscript={hasTranscript} />
+
+              {/* Quiz - Mobile */}
+              <QuizCard
+                stats={quizStats || undefined}
+                videoId={videoId}
+                courseId={courseId}
               />
             </div>
           </div>
@@ -945,9 +1029,26 @@ export default function VideoPlayerPage() {
 
             {/* Materiais Relacionados - Carrossel (Desktop) */}
             <VideoMaterialsCarousel videoId={videoId} />
+
+            {/* Quiz da Aula (Desktop) */}
+            <QuizCard
+              stats={quizStats || undefined}
+              videoId={videoId}
+              courseId={courseId}
+            />
           </div>
         </div>
       </div>
+
+      {/* Chat contextualizado da aula (botão roxo à direita) */}
+      {currentVideo && (
+        <VideoChatWidget
+          videoId={videoId}
+          courseId={courseId}
+          videoTitle={currentVideo.title}
+          onSeekToTimestamp={handleSeek}
+        />
+      )}
 
       {/* Barra de Navegação Mobile - Fixa na parte inferior */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-lg z-50 safe-area-inset-bottom">

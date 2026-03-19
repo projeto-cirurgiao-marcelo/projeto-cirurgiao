@@ -25,14 +25,16 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
+import { aiTextService } from '@/lib/api/ai-text.service';
 
 const courseSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().optional(),
   price: z.number().min(0, 'O preço deve ser maior ou igual a 0'),
-  thumbnailUrl: z.string().url('URL inválida').optional().or(z.literal('')),
+  thumbnailUrl: z.string().optional().or(z.literal('')),
 });
 
 type CourseFormData = z.infer<typeof courseSchema>;
@@ -184,16 +186,42 @@ export default function NewCoursePage() {
                 name="thumbnailUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>URL da Thumbnail</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Thumbnail do Curso</FormLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                        disabled={!form.getValues('title')?.trim()}
+                        onClick={async () => {
+                          const title = form.getValues('title');
+                          if (!title?.trim()) return;
+                          try {
+                            toast({ title: 'IA', description: 'Gerando thumbnail...' });
+                            const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical' });
+                            field.onChange(url);
+                            toast({ title: 'Pronto', description: 'Thumbnail gerada com IA' });
+                          } catch (err) {
+                            console.error(err);
+                            toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Gerar com IA
+                      </Button>
+                    </div>
                     <FormControl>
-                      <Input
-                        type="url"
-                        placeholder="https://exemplo.com/imagem.jpg"
-                        {...field}
+                      <ThumbnailUpload
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        aspectRatio="horizontal"
+                        label="Capa do Curso"
                       />
                     </FormControl>
                     <FormDescription>
-                      URL da imagem de capa do curso (opcional)
+                      Faça upload de uma imagem ou gere com IA (opcional)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

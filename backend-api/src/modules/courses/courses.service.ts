@@ -1,14 +1,20 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { Course } from '@prisma/client';
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
 @Injectable()
 export class CoursesService {
   private readonly logger = new Logger(CoursesService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cloudflareR2: CloudflareR2Service,
+  ) {}
 
   /**
    * Criar um novo curso
@@ -353,5 +359,81 @@ export class CoursesService {
     });
 
     return !!course;
+  }
+
+  /**
+   * Upload de thumbnail para o curso
+   * @param courseId - ID do curso
+   * @param file - Arquivo de imagem (Buffer)
+   * @param originalName - Nome original do arquivo
+   * @param contentType - Tipo MIME do arquivo
+   * @param orientation - 'horizontal' ou 'vertical'
+   */
+  async uploadThumbnail(
+    courseId: string,
+    file: Buffer,
+    originalName: string,
+    contentType: string,
+    orientation: 'horizontal' | 'vertical' = 'horizontal',
+  ): Promise<Course> {
+    // Verificar se o curso existe
+    const course = await this.findOne(courseId);
+
+    // Validar tipo de imagem
+    if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
+      throw new BadRequestException(
+        `Tipo de arquivo não permitido. Use: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+      );
+    }
+
+    try {
+      // Gerar chave única para o arquivo no R2
+      const ext = originalName.split('.').pop() || 'jpg';
+      const timestamp = Date.now();
+      const key = `thumbnails/courses/${courseId}/${timestamp}-${orientation}.${ext}`;
+
+      // Upload para R2
+      this.logger.log(`Uploading course thumbnail: ${key}`);
+      const uploadResult = await this.cloudflareR2.uploadFile(file, key, contentType);
+
+      // Atualizar o campo correto no banco
+      const updateData: Record<string, string> = {};
+      if (orientation === 'horizontal') {
+        updateData.thumbnailHorizontal = uploadResult.url;
+      } else {
+        updateData.thumbnailVertical = uploadResult.url;
+      }
+
+      // Também atualizar o campo genérico 'thumbnail' se for horizontal
+      if (orientation === 'horizontal') {
+        updateData.thumbnail = uploadResult.url;
+      }
+
+      const updatedCourse = await this.prisma.course.update({
+        where: { id: courseId },
+        data: updateData,
+        include: {
+          instructor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          modules: {
+            orderBy: {
+              order: 'asc',
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Course thumbnail uploaded successfully: ${courseId} (${orientation})`);
+
+      return updatedCourse;
+    } catch (error) {
+      this.logger.error(`Error uploading thumbnail for course ${courseId}`, error);
+      throw new BadRequestException('Erro ao fazer upload da thumbnail');
+    }
   }
 }

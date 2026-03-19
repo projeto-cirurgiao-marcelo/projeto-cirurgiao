@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service';
+import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
 import { CreateVideoDto, VideoUploadStatus } from './dto/create-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
@@ -9,6 +10,7 @@ import { unlink } from 'fs';
 import { promisify } from 'util';
 
 const unlinkAsync = promisify(unlink);
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
 // Interface para status de upload
 export interface UploadStatusResponse {
@@ -28,6 +30,7 @@ export class VideosService {
   constructor(
     private prisma: PrismaService,
     private cloudflareStream: CloudflareStreamService,
+    private cloudflareR2: CloudflareR2Service,
   ) {}
 
   /**
@@ -108,6 +111,7 @@ export class VideosService {
   /**
    * Criar vídeo a partir de embed externo (YouTube, Vimeo, etc)
    * Não faz upload para Cloudflare - apenas salva a URL de embed
+   * Se for URL do Cloudflare, extrai o cloudflareId automaticamente
    */
   async createFromEmbed(
     moduleId: string, 
@@ -116,7 +120,7 @@ export class VideosService {
       title: string; 
       description?: string; 
       order: number; 
-      videoSource?: 'youtube' | 'vimeo' | 'external';
+      videoSource?: 'youtube' | 'vimeo' | 'external' | 'cloudflare';
     }
   ): Promise<Video> {
     try {
@@ -131,11 +135,31 @@ export class VideosService {
 
       // Detectar automaticamente a fonte do vídeo se não especificada
       let videoSource = metadata.videoSource || 'external';
+      let cloudflareId: string | null = null;
+      let cloudflareUrl: string | null = null;
+
       if (!metadata.videoSource) {
         if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
           videoSource = 'youtube';
         } else if (embedUrl.includes('vimeo.com')) {
           videoSource = 'vimeo';
+        } else if (embedUrl.includes('cloudflarestream.com')) {
+          videoSource = 'cloudflare';
+        }
+      }
+
+      // Se for Cloudflare, extrair o cloudflareId da URL
+      if (embedUrl.includes('cloudflarestream.com')) {
+        // Formatos possíveis:
+        // https://customer-xxx.cloudflarestream.com/VIDEO_ID/...
+        // https://iframe.cloudflarestream.com/VIDEO_ID
+        // https://watch.cloudflarestream.com/VIDEO_ID
+        const match = embedUrl.match(/cloudflarestream\.com\/([a-f0-9]{32})/i);
+        if (match) {
+          cloudflareId = match[1];
+          cloudflareUrl = embedUrl;
+          videoSource = 'cloudflare';
+          this.logger.log(`Extracted Cloudflare ID from embed URL: ${cloudflareId}`);
         }
       }
 
@@ -147,6 +171,8 @@ export class VideosService {
           order: metadata.order,
           externalUrl: embedUrl,
           videoSource: videoSource,
+          cloudflareId: cloudflareId, // Salvar cloudflareId se extraído
+          cloudflareUrl: cloudflareUrl, // Salvar cloudflareUrl se for Cloudflare
           uploadStatus: 'READY',
           uploadProgress: 100,
           isPublished: false,
@@ -165,7 +191,7 @@ export class VideosService {
         },
       });
 
-      this.logger.log(`Embed video created: ${video.id} - Source: ${videoSource}`);
+      this.logger.log(`Embed video created: ${video.id} - Source: ${videoSource}${cloudflareId ? ` - CloudflareId: ${cloudflareId}` : ''}`);
 
       return video;
     } catch (error) {
@@ -811,15 +837,24 @@ export class VideosService {
     }
 
     try {
-      // Atualizar a ordem de cada vídeo
-      await Promise.all(
-        reorderDto.videos.map((item) =>
-          this.prisma.video.update({
+      // Usar transação para garantir atomicidade
+      await this.prisma.$transaction(async (prisma) => {
+        // Primeiro, definir todas as ordens como negativas temporariamente para evitar conflitos
+        for (const item of reorderDto.videos) {
+          await prisma.video.update({
+            where: { id: item.id },
+            data: { order: -item.order },
+          });
+        }
+
+        // Depois, definir as ordens corretas
+        for (const item of reorderDto.videos) {
+          await prisma.video.update({
             where: { id: item.id },
             data: { order: item.order },
-          }),
-        ),
-      );
+          });
+        }
+      });
 
       this.logger.log(`Videos reordered for module ${moduleId}`);
 
@@ -876,6 +911,26 @@ export class VideosService {
   }
 
   /**
+   * Atualizar duração do vídeo (reportada pelo player do frontend)
+   * Só atualiza se o vídeo atualmente tiver duration = 0
+   */
+  async updateDurationFromPlayer(id: string, duration: number): Promise<void> {
+    if (!duration || duration <= 0) return;
+
+    const video = await this.prisma.video.findUnique({ where: { id } });
+    if (!video) return;
+
+    // Só atualiza se a duração atual for 0 (nunca foi definida)
+    if (video.duration === 0 || video.duration === null) {
+      await this.prisma.video.update({
+        where: { id },
+        data: { duration: Math.round(duration) },
+      });
+      this.logger.log(`Video ${id} duration updated from player: ${Math.round(duration)}s`);
+    }
+  }
+
+  /**
    * Obter próximo número de ordem disponível para um módulo
    */
   async getNextOrder(moduleId: string): Promise<number> {
@@ -885,5 +940,65 @@ export class VideosService {
     });
 
     return lastVideo ? lastVideo.order + 1 : 0;
+  }
+
+  /**
+   * Upload de thumbnail personalizada para o vídeo
+   * Sobrescreve a thumbnail auto-gerada pelo Cloudflare Stream
+   * @param videoId - ID do vídeo
+   * @param file - Arquivo de imagem (Buffer)
+   * @param originalName - Nome original do arquivo
+   * @param contentType - Tipo MIME do arquivo
+   */
+  async uploadThumbnail(
+    videoId: string,
+    file: Buffer,
+    originalName: string,
+    contentType: string,
+  ): Promise<Video> {
+    // Verificar se o vídeo existe
+    await this.findOne(videoId);
+
+    // Validar tipo de imagem
+    if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
+      throw new BadRequestException(
+        `Tipo de arquivo não permitido. Use: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+      );
+    }
+
+    try {
+      // Gerar chave única para o arquivo no R2
+      const ext = originalName.split('.').pop() || 'jpg';
+      const timestamp = Date.now();
+      const key = `thumbnails/videos/${videoId}/${timestamp}.${ext}`;
+
+      // Upload para R2
+      this.logger.log(`Uploading video thumbnail: ${key}`);
+      const uploadResult = await this.cloudflareR2.uploadFile(file, key, contentType);
+
+      // Atualizar thumbnailUrl no banco
+      const updatedVideo = await this.prisma.video.update({
+        where: { id: videoId },
+        data: {
+          thumbnailUrl: uploadResult.url,
+        },
+        include: {
+          module: {
+            select: {
+              id: true,
+              title: true,
+              courseId: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Video thumbnail uploaded successfully: ${videoId}`);
+
+      return updatedVideo;
+    } catch (error) {
+      this.logger.error(`Error uploading thumbnail for video ${videoId}`, error);
+      throw new BadRequestException('Erro ao fazer upload da thumbnail');
+    }
   }
 }

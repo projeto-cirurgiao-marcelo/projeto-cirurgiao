@@ -5,6 +5,7 @@ import type {
   CreateTopicDto,
   UpdateTopicDto,
   CreateReplyDto,
+  CreateReportDto,
   VoteTopicDto,
   VoteReplyDto,
   TopicsResponse,
@@ -98,6 +99,26 @@ export const forumService = {
    */
   async voteOnReply(data: VoteReplyDto): Promise<VoteResponse> {
     const response = await apiClient.post<VoteResponse>('/forum/votes/replies', data);
+    return response.data;
+  },
+
+  // ==================== SOLUÇÕES ====================
+
+  /**
+   * Marcar resposta como solução do tópico
+   */
+  async markReplyAsSolution(topicId: string, replyId: string): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>(`/forum/topics/${topicId}/solution/${replyId}`);
+    return response.data;
+  },
+
+  // ==================== DENÚNCIAS ====================
+
+  /**
+   * Reportar/denunciar um tópico
+   */
+  async reportTopic(data: CreateReportDto): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/forum/reports', data);
     return response.data;
   },
 };

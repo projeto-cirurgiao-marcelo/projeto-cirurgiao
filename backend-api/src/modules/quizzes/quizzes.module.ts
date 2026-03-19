@@ -1,0 +1,26 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from '../../shared/prisma/prisma.module';
+import { FirebaseModule } from '../firebase/firebase.module';
+import { AiSummariesModule } from '../ai-summaries/ai-summaries.module';
+import { CaptionsModule } from '../captions/captions.module';
+import { QuizzesController } from './quizzes.controller';
+import { QuizzesService } from './quizzes.service';
+import { QuizGeneratorService } from './quiz-generator.service';
+import { QuizAttemptsService } from './quiz-attempts.service';
+import { GamificationModule } from '../gamification/gamification.module';
+
+@Module({
+  imports: [
+    PrismaModule,
+    ConfigModule,
+    FirebaseModule,
+    AiSummariesModule,
+    CaptionsModule,
+    GamificationModule,
+  ],
+  controllers: [QuizzesController],
+  providers: [QuizzesService, QuizGeneratorService, QuizAttemptsService],
+  exports: [QuizzesService, QuizAttemptsService],
+})
+export class QuizzesModule {}

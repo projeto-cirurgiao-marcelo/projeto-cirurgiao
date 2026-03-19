@@ -10,4 +10,12 @@ export class UpdateTopicDto extends PartialType(CreateTopicDto) {
   @IsBoolean()
   @IsOptional()
   isLocked?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isClosed?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isSolved?: boolean;
 }

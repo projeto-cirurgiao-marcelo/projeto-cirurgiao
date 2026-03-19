@@ -1,11 +1,9 @@
 {
-  "dependencies": {
-    "@prisma/client": "^7.2.0",
-    "@radix-ui/react-select": "^2.2.6",
-    "date-fns": "^4.1.0",
-    "firebase": "^12.7.0",
-    "firebase-admin": "^13.6.0",
-    "pg": "^8.16.3",
-    "tus-js-client": "^4.3.1"
+  "private": true,
+  "description": "Monorepo root - dependencies should be in individual projects (backend-api, frontend-web, mobile-app)",
+  "scripts": {
+    "backend": "cd backend-api && npm run start:dev",
+    "frontend": "cd frontend-web && npm run dev",
+    "mobile": "cd mobile-app && npm start"
   }
 }

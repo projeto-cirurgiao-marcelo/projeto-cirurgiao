@@ -5,14 +5,19 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { CreateReplyDto } from './dto/create-reply.dto';
+import { CreateReportDto } from './dto/create-report.dto';
 import { VoteTopicDto, VoteReplyDto } from './dto/vote.dto';
 
 @Injectable()
 export class ForumService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gamificationService: GamificationService,
+  ) {}
 
   // ==================== TÓPICOS ====================
 
@@ -40,7 +45,7 @@ export class ForumService {
       }
     }
 
-    return this.prisma.forumTopic.create({
+    const topic = await this.prisma.forumTopic.create({
       data: {
         ...createTopicDto,
         authorId: userId,
@@ -68,6 +73,13 @@ export class ForumService {
         },
       },
     });
+
+    // Gamificação
+    try {
+      await this.gamificationService.processAction(userId, 'forum_topic', 15, 'Criou tópico no fórum', topic.id);
+    } catch (err) { /* gamification should not break forum */ }
+
+    return topic;
   }
 
   /**
@@ -282,7 +294,7 @@ export class ForumService {
       );
     }
 
-    return this.prisma.forumReply.create({
+    const reply = await this.prisma.forumReply.create({
       data: {
         ...createReplyDto,
         authorId: userId,
@@ -297,6 +309,13 @@ export class ForumService {
         },
       },
     });
+
+    // Gamificação
+    try {
+      await this.gamificationService.processAction(userId, 'forum_reply', 10, 'Respondeu no fórum', reply.id);
+    } catch (err) { /* gamification should not break forum */ }
+
+    return reply;
   }
 
   /**
@@ -382,39 +401,59 @@ export class ForumService {
       throw new NotFoundException('Tópico não encontrado');
     }
 
-    // Verificar se já votou
     const existingVote = await this.prisma.forumTopicVote.findFirst({
-      where: {
-        userId,
-        topicId: voteTopicDto.topicId,
-      },
+      where: { userId, topicId: voteTopicDto.topicId },
     });
 
     if (existingVote) {
-      // Se o voto é o mesmo, remover (toggle)
       if (existingVote.value === voteTopicDto.value) {
-        await this.prisma.forumTopicVote.delete({
-          where: { id: existingVote.id },
+        // Toggle: remover voto
+        await this.prisma.forumTopicVote.delete({ where: { id: existingVote.id } });
+        // Reverter contador
+        await this.prisma.forumTopic.update({
+          where: { id: voteTopicDto.topicId },
+          data: existingVote.value === 1
+            ? { upvotes: { decrement: 1 } }
+            : { downvotes: { decrement: 1 } },
         });
         return { message: 'Voto removido' };
       }
 
-      // Se o voto é diferente, atualizar
+      // Mudar voto (ex: upvote → downvote)
       await this.prisma.forumTopicVote.update({
         where: { id: existingVote.id },
         data: { value: voteTopicDto.value },
       });
+      // Ajustar ambos contadores
+      await this.prisma.forumTopic.update({
+        where: { id: voteTopicDto.topicId },
+        data: existingVote.value === 1
+          ? { upvotes: { decrement: 1 }, downvotes: { increment: 1 } }
+          : { upvotes: { increment: 1 }, downvotes: { decrement: 1 } },
+      });
       return { message: 'Voto atualizado' };
     }
 
-    // Criar novo voto
+    // Novo voto
     await this.prisma.forumTopicVote.create({
-      data: {
-        userId,
-        topicId: voteTopicDto.topicId,
-        value: voteTopicDto.value,
-      },
+      data: { userId, topicId: voteTopicDto.topicId, value: voteTopicDto.value },
     });
+    // Incrementar contador
+    await this.prisma.forumTopic.update({
+      where: { id: voteTopicDto.topicId },
+      data: voteTopicDto.value === 1
+        ? { upvotes: { increment: 1 } }
+        : { downvotes: { increment: 1 } },
+    });
+
+    // Gamificação: premiar o autor ao receber upvote
+    if (voteTopicDto.value === 1 && topic.authorId !== userId) {
+      try {
+        await this.gamificationService.processAction(
+          topic.authorId, 'forum_upvote', 5, 'Recebeu upvote em tópico', voteTopicDto.topicId,
+        );
+      } catch (err) { /* silencioso */ }
+    }
 
     return { message: 'Voto registrado' };
   }
@@ -431,40 +470,226 @@ export class ForumService {
       throw new NotFoundException('Resposta não encontrada');
     }
 
-    // Verificar se já votou
     const existingVote = await this.prisma.forumReplyVote.findFirst({
-      where: {
-        userId,
-        replyId: voteReplyDto.replyId,
-      },
+      where: { userId, replyId: voteReplyDto.replyId },
     });
 
     if (existingVote) {
-      // Se o voto é o mesmo, remover (toggle)
       if (existingVote.value === voteReplyDto.value) {
-        await this.prisma.forumReplyVote.delete({
-          where: { id: existingVote.id },
+        // Toggle: remover voto
+        await this.prisma.forumReplyVote.delete({ where: { id: existingVote.id } });
+        await this.prisma.forumReply.update({
+          where: { id: voteReplyDto.replyId },
+          data: existingVote.value === 1
+            ? { upvotes: { decrement: 1 } }
+            : { downvotes: { decrement: 1 } },
         });
         return { message: 'Voto removido' };
       }
 
-      // Se o voto é diferente, atualizar
+      // Mudar voto
       await this.prisma.forumReplyVote.update({
         where: { id: existingVote.id },
         data: { value: voteReplyDto.value },
       });
+      await this.prisma.forumReply.update({
+        where: { id: voteReplyDto.replyId },
+        data: existingVote.value === 1
+          ? { upvotes: { decrement: 1 }, downvotes: { increment: 1 } }
+          : { upvotes: { increment: 1 }, downvotes: { decrement: 1 } },
+      });
       return { message: 'Voto atualizado' };
     }
 
-    // Criar novo voto
+    // Novo voto
     await this.prisma.forumReplyVote.create({
-      data: {
-        userId,
-        replyId: voteReplyDto.replyId,
-        value: voteReplyDto.value,
+      data: { userId, replyId: voteReplyDto.replyId, value: voteReplyDto.value },
+    });
+    await this.prisma.forumReply.update({
+      where: { id: voteReplyDto.replyId },
+      data: voteReplyDto.value === 1
+        ? { upvotes: { increment: 1 } }
+        : { downvotes: { increment: 1 } },
+    });
+
+    // Gamificação: premiar o autor ao receber upvote
+    if (voteReplyDto.value === 1 && reply.authorId !== userId) {
+      try {
+        await this.gamificationService.processAction(
+          reply.authorId, 'forum_upvote', 5, 'Recebeu upvote em resposta', voteReplyDto.replyId,
+        );
+      } catch (err) { /* silencioso */ }
+    }
+
+    return { message: 'Voto registrado' };
+  }
+
+  // ==================== SOLUÇÕES ====================
+
+  /**
+   * Marcar uma resposta como solução do tópico
+   */
+  async markReplyAsSolution(userId: string, topicId: string, replyId: string) {
+    const topic = await this.prisma.forumTopic.findUnique({
+      where: { id: topicId },
+    });
+
+    if (!topic) {
+      throw new NotFoundException('Tópico não encontrado');
+    }
+
+    // Apenas o autor do tópico ou admin pode marcar solução
+    if (topic.authorId !== userId) {
+      throw new ForbiddenException('Apenas o autor do tópico pode marcar uma solução');
+    }
+
+    const reply = await this.prisma.forumReply.findUnique({
+      where: { id: replyId },
+    });
+
+    if (!reply || reply.topicId !== topicId) {
+      throw new NotFoundException('Resposta não encontrada neste tópico');
+    }
+
+    // Desmarcar qualquer solução anterior
+    await this.prisma.forumReply.updateMany({
+      where: { topicId, isSolution: true },
+      data: { isSolution: false },
+    });
+
+    // Marcar a nova solução
+    await this.prisma.forumReply.update({
+      where: { id: replyId },
+      data: { isSolution: true },
+    });
+
+    // Marcar tópico como resolvido
+    await this.prisma.forumTopic.update({
+      where: { id: topicId },
+      data: { isSolved: true },
+    });
+
+    // Gamificação: premiar o autor da resposta-solução (se não for o próprio autor do tópico)
+    if (reply.authorId !== topic.authorId) {
+      try {
+        await this.gamificationService.processAction(
+          reply.authorId,
+          'forum_solution',
+          50,
+          'Resposta marcada como solução',
+          replyId,
+        );
+      } catch (err) {
+        // Silencioso
+      }
+    }
+
+    return { message: 'Resposta marcada como solução' };
+  }
+
+  // ==================== DENÚNCIAS ====================
+
+  /**
+   * Criar denúncia de um tópico
+   */
+  async reportTopic(userId: string, createReportDto: CreateReportDto) {
+    const topic = await this.prisma.forumTopic.findUnique({
+      where: { id: createReportDto.topicId },
+    });
+
+    if (!topic) {
+      throw new NotFoundException('Tópico não encontrado');
+    }
+
+    // Verificar se o usuário já denunciou este tópico
+    const existingReport = await this.prisma.forumReport.findUnique({
+      where: {
+        topicId_reporterId: {
+          topicId: createReportDto.topicId,
+          reporterId: userId,
+        },
       },
     });
 
-    return { message: 'Voto registrado' };
+    if (existingReport) {
+      throw new BadRequestException('Você já denunciou este tópico');
+    }
+
+    return this.prisma.forumReport.create({
+      data: {
+        ...createReportDto,
+        reporterId: userId,
+      },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        reporter: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Listar denúncias (apenas ADMIN)
+   */
+  async findAllReports(params?: { status?: string; page?: number; limit?: number }) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (params?.status) where.status = params.status;
+
+    const [reports, total] = await Promise.all([
+      this.prisma.forumReport.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          topic: {
+            select: {
+              id: true,
+              title: true,
+              authorId: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          reporter: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      this.prisma.forumReport.count({ where }),
+    ]);
+
+    return {
+      data: reports,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

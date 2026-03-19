@@ -111,7 +111,7 @@ export function QuizIntro({ quiz, stats, onStart, onSkip }: QuizIntroProps) {
         variants={itemVariants}
       >
         <motion.div
-          className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-medical-500 to-medical-700 text-white shadow-lg"
+          className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg"
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
@@ -134,7 +134,7 @@ export function QuizIntro({ quiz, stats, onStart, onSkip }: QuizIntroProps) {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
               <div className="space-y-1 flex-1 min-w-0">
                 <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-medical-600 flex-shrink-0" />
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
                   <span className="truncate">{quiz.title}</span>
                 </CardTitle>
                 {quiz.description && (
@@ -206,7 +206,7 @@ export function QuizIntro({ quiz, stats, onStart, onSkip }: QuizIntroProps) {
                 <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
                     <span className="text-slate-600">Melhor:</span>
-                    <span className="font-bold text-medical-600">{stats.bestScore}%</span>
+                    <span className="font-bold text-blue-600">{stats.bestScore}%</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
                     <span className="text-slate-600">Tentativas:</span>
@@ -249,7 +249,7 @@ export function QuizIntro({ quiz, stats, onStart, onSkip }: QuizIntroProps) {
                 <Button
                   onClick={onStart}
                   size="lg"
-                  className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold bg-gradient-to-r from-medical-600 to-medical-700 hover:from-medical-700 hover:to-medical-800 shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <PlayCircle className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
                   Começar Quiz!

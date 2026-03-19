@@ -65,28 +65,31 @@ export class CloudflareStreamService {
   private readonly logger = new Logger(CloudflareStreamService.name);
   private readonly apiClient: AxiosInstance;
   private readonly accountId: string;
+  private readonly apiToken: string;
   private readonly customerCode: string;
   private readonly streamUrl: string;
 
   constructor(private configService: ConfigService) {
     this.accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID');
-    const apiToken = this.configService.get<string>('CLOUDFLARE_API_TOKEN');
+    // CLOUDFLARE_STREM_CAPTIONS é o token com permissão de Stream (usado historicamente)
+    // CLOUDFLARE_API_TOKEN é fallback
+    this.apiToken =
+      this.configService.get<string>('CLOUDFLARE_STREM_CAPTIONS') ||
+      this.configService.get<string>('CLOUDFLARE_API_TOKEN');
     this.customerCode = this.configService.get<string>('CLOUDFLARE_STREAM_CUSTOMER_CODE');
     this.streamUrl = this.configService.get<string>('CLOUDFLARE_STREAM_URL');
 
-    if (!this.accountId || !apiToken) {
+    if (!this.accountId || !this.apiToken) {
       throw new Error('Cloudflare credentials not configured');
     }
 
-    // Log das credenciais (COMPLETO para debug - remover depois)
     this.logger.log(`Cloudflare Account ID: ${this.accountId}`);
-    this.logger.log(`Cloudflare API Token COMPLETO: ${apiToken}`);
-    this.logger.log(`Token length: ${apiToken?.length}`);
+    this.logger.log(`Cloudflare API Token length: ${this.apiToken?.length}`);
 
     this.apiClient = axios.create({
       baseURL: `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/stream`,
       headers: {
-        Authorization: `Bearer ${apiToken}`,
+        Authorization: `Bearer ${this.apiToken}`,
       },
     });
 
@@ -307,12 +310,11 @@ export class CloudflareStreamService {
       this.logger.log(`Starting TUS upload for: ${filename} (${fileSize} bytes)`);
 
       const file = fs.createReadStream(filePath);
-      const apiToken = this.configService.get<string>('CLOUDFLARE_API_TOKEN');
 
       const upload = new tus.Upload(file, {
         endpoint: `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/stream`,
         headers: {
-          Authorization: `Bearer ${apiToken}`,
+          Authorization: `Bearer ${this.apiToken}`,
         },
         chunkSize: 50 * 1024 * 1024, // 50MB chunks
         retryDelays: [0, 1000, 3000, 5000],
@@ -436,9 +438,7 @@ export class CloudflareStreamService {
   ): Promise<{ tusUploadUrl: string; uid: string }> {
     try {
       this.logger.log(`Requesting TUS upload URL for file: ${filename} (${fileSize} bytes)`);
-      
-      const apiToken = this.configService.get<string>('CLOUDFLARE_API_TOKEN');
-      
+
       // Criar upload TUS inicial com POST para obter a URL de upload
       // O Cloudflare retorna um Location header com a URL onde continuar o upload
       const response = await axios.post(
@@ -446,7 +446,7 @@ export class CloudflareStreamService {
         null, // Body vazio para criação TUS
         {
           headers: {
-            Authorization: `Bearer ${apiToken}`,
+            Authorization: `Bearer ${this.apiToken}`,
             'Tus-Resumable': '1.0.0',
             'Upload-Length': fileSize.toString(),
             'Upload-Metadata': this.encodeTusMetadata({
@@ -543,4 +543,181 @@ export class CloudflareStreamService {
       .map(([key, value]) => `${key} ${Buffer.from(value).toString('base64')}`)
       .join(',');
   }
+
+  // ============================================
+  // CAPTIONS / LEGENDAS
+  // ============================================
+
+  /**
+   * Gerar legendas automaticamente via IA
+   * Idiomas suportados: pt, en, es, fr, de, it, ja, ko, pl, ru, nl, cs
+   */
+  async generateCaptions(
+    videoId: string,
+    language: string = 'pt',
+  ): Promise<CaptionResult> {
+    try {
+      this.logger.log(`Generating captions for video ${videoId} in language: ${language}`);
+
+      const response = await this.apiClient.post<CaptionResponse>(
+        `/${videoId}/captions/${language}/generate`,
+      );
+
+      if (!response.data.success) {
+        throw new BadRequestException(
+          `Failed to generate captions: ${JSON.stringify(response.data.errors)}`,
+        );
+      }
+
+      this.logger.log(`Caption generation started for video ${videoId}: ${response.data.result.status}`);
+
+      return response.data.result;
+    } catch (error: any) {
+      this.logger.error(`Error generating captions for ${videoId}`, error?.response?.data || error.message);
+      throw new BadRequestException(
+        `Failed to generate captions: ${error?.response?.data?.errors?.[0]?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Listar todas as legendas de um vídeo
+   */
+  async listCaptions(videoId: string): Promise<CaptionResult[]> {
+    try {
+      this.logger.log(`Listing captions for video ${videoId}`);
+
+      const response = await this.apiClient.get<CaptionsListResponse>(
+        `/${videoId}/captions`,
+      );
+
+      if (!response.data.success) {
+        throw new BadRequestException(
+          `Failed to list captions: ${JSON.stringify(response.data.errors)}`,
+        );
+      }
+
+      return response.data.result;
+    } catch (error: any) {
+      this.logger.error(`Error listing captions for ${videoId}`, error?.response?.data || error.message);
+      throw new BadRequestException(
+        `Failed to list captions: ${error?.response?.data?.errors?.[0]?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Obter arquivo VTT de uma legenda
+   */
+  async getCaptionVtt(videoId: string, language: string): Promise<string> {
+    try {
+      this.logger.log(`Getting VTT caption for video ${videoId}, language: ${language}`);
+
+      const response = await this.apiClient.get<string>(
+        `/${videoId}/captions/${language}/vtt`,
+        {
+          responseType: 'text',
+        },
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Error getting VTT for ${videoId}`, error?.response?.data || error.message);
+      throw new BadRequestException(
+        `Failed to get caption VTT: ${error?.response?.data?.errors?.[0]?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Upload de arquivo VTT de legenda
+   */
+  async uploadCaption(
+    videoId: string,
+    language: string,
+    vttContent: Buffer | string,
+  ): Promise<CaptionResult> {
+    try {
+      this.logger.log(`Uploading caption for video ${videoId}, language: ${language}`);
+
+      const formData = new FormData();
+      formData.append('file', Buffer.isBuffer(vttContent) ? vttContent : Buffer.from(vttContent), {
+        filename: `caption_${language}.vtt`,
+        contentType: 'text/vtt',
+      });
+
+      const response = await this.apiClient.put<CaptionResponse>(
+        `/${videoId}/captions/${language}`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+          },
+        },
+      );
+
+      if (!response.data.success) {
+        throw new BadRequestException(
+          `Failed to upload caption: ${JSON.stringify(response.data.errors)}`,
+        );
+      }
+
+      this.logger.log(`Caption uploaded for video ${videoId}`);
+
+      return response.data.result;
+    } catch (error: any) {
+      this.logger.error(`Error uploading caption for ${videoId}`, error?.response?.data || error.message);
+      throw new BadRequestException(
+        `Failed to upload caption: ${error?.response?.data?.errors?.[0]?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Deletar uma legenda
+   */
+  async deleteCaption(videoId: string, language: string): Promise<void> {
+    try {
+      this.logger.log(`Deleting caption for video ${videoId}, language: ${language}`);
+
+      const response = await this.apiClient.delete<CaptionResponse>(
+        `/${videoId}/captions/${language}`,
+      );
+
+      if (!response.data.success) {
+        throw new BadRequestException(
+          `Failed to delete caption: ${JSON.stringify(response.data.errors)}`,
+        );
+      }
+
+      this.logger.log(`Caption deleted for video ${videoId}, language: ${language}`);
+    } catch (error: any) {
+      this.logger.error(`Error deleting caption for ${videoId}`, error?.response?.data || error.message);
+      throw new BadRequestException(
+        `Failed to delete caption: ${error?.response?.data?.errors?.[0]?.message || error.message}`,
+      );
+    }
+  }
+}
+
+// Interfaces para Captions
+export interface CaptionResult {
+  language: string;
+  label: string;
+  generated: boolean;
+  status: 'inprogress' | 'ready' | 'error';
+}
+
+export interface CaptionResponse {
+  result: CaptionResult;
+  success: boolean;
+  errors: any[];
+  messages: any[];
+}
+
+export interface CaptionsListResponse {
+  result: CaptionResult[];
+  success: boolean;
+  errors: any[];
+  messages: any[];
 }

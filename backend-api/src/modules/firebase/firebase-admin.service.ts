@@ -191,4 +191,37 @@ export class FirebaseAdminService implements OnModuleInit {
       return null;
     }
   }
+
+  /**
+   * Envia e-mail de redefinição de senha via Firebase Identity Toolkit REST API.
+   * Usa os templates configurados no Firebase Console para o e-mail.
+   * Requer FIREBASE_API_KEY (Web API Key) nas variáveis de ambiente.
+   */
+  async sendPasswordResetEmail(email: string): Promise<void> {
+    const apiKey = process.env.FIREBASE_API_KEY;
+    if (!apiKey) {
+      this.logger.error('FIREBASE_API_KEY not configured in environment variables');
+      throw new Error('Firebase API Key não configurada');
+    }
+
+    const url = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestType: 'PASSWORD_RESET',
+        email,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const errorMessage = errorData.error?.message || 'Falha ao enviar e-mail de recuperação';
+      this.logger.error(`Firebase password reset email error: ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+
+    this.logger.log(`Password reset email sent successfully to ${email}`);
+  }
 }

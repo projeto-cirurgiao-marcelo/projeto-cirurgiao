@@ -50,6 +50,10 @@ export interface ForumReply {
   content: string;
   authorId: string;
   topicId: string;
+  isSolution: boolean;
+  isEdited: boolean;
+  upvotes: number;
+  downvotes: number;
   createdAt: string;
   updatedAt: string;
   author: {
@@ -126,4 +130,12 @@ export interface TopicsResponse {
 
 export interface VoteResponse {
   message: string;
+}
+
+export type ReportReason = 'SPAM' | 'INAPPROPRIATE' | 'OFFENSIVE' | 'OFF_TOPIC' | 'OTHER';
+
+export interface CreateReportDto {
+  topicId: string;
+  reason: ReportReason;
+  description?: string;
 }

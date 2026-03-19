@@ -11,6 +11,11 @@ export class SaveProgressDto {
   @IsBoolean()
   @IsOptional()
   completed?: boolean;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  videoDuration?: number; // duração total do vídeo reportada pelo player
 }
 
 export class UpdateProgressDto {

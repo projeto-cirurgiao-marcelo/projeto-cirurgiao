@@ -79,10 +79,40 @@ export class UploadService {
       const url = `${this.publicUrl}/${fileName}`;
       
       this.logger.log(`File uploaded successfully: ${url}`);
-      
+
       return url;
     } catch (error) {
       this.logger.error('Error uploading file to R2', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload de um Buffer direto para R2 (usado para imagens geradas por IA)
+   */
+  async uploadBufferToR2(
+    buffer: Buffer,
+    contentType: string,
+    extension: string,
+    folder: string = 'thumbnails',
+  ): Promise<string> {
+    try {
+      const fileName = `${folder}/${randomUUID()}.${extension}`;
+
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: fileName,
+        Body: buffer,
+        ContentType: contentType,
+      });
+
+      await this.s3Client.send(command);
+
+      const url = `${this.publicUrl}/${fileName}`;
+      this.logger.log(`Buffer uploaded successfully: ${url}`);
+      return url;
+    } catch (error) {
+      this.logger.error('Error uploading buffer to R2', error);
       throw error;
     }
   }

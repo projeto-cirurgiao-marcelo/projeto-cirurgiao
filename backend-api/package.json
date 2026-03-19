@@ -27,6 +27,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.968.0",
     "@aws-sdk/s3-request-presigner": "^3.935.0",
+    "@google-cloud/vertexai": "^1.10.0",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.3.0",
@@ -41,6 +42,7 @@
     "class-validator": "^0.14.0",
     "firebase-admin": "^13.2.0",
     "form-data": "^4.0.5",
+    "google-auth-library": "^10.6.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",

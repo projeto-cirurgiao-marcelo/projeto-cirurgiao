@@ -22,7 +22,9 @@ import {
   FileVideo,
   X,
   Link2,
-  Pencil
+  Pencil,
+  Sparkles,
+  Wand2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -47,6 +49,9 @@ import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types'
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 import { VideoMaterialsManager } from '@/components/admin/video-materials-manager';
 import { VideoTranscriptManager } from '@/components/admin/video-transcript-manager';
+import { VideoCaptionsManager } from '@/components/admin/video-captions-manager';
+import { VideoQuizManager } from '@/components/admin/video-quiz-manager';
+import { aiTextService } from '@/lib/api/ai-text.service';
 
 const moduleFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
@@ -1268,23 +1273,128 @@ export default function EditModulePage() {
             {/* Informações Básicas */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Informações Básicas</h3>
+
+              {/* Título com IA */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Título *</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Título *</label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                    disabled={!editingVideo?.title?.trim()}
+                    onClick={async () => {
+                      if (!editingVideo?.title?.trim()) return;
+                      try {
+                        toast({ title: 'IA', description: 'Melhorando título...' });
+                        const improved = await aiTextService.improveText(editingVideo.title, 'title', module?.title);
+                        setEditingVideo(prev => prev ? {...prev, title: improved} : null);
+                        toast({ title: 'Pronto', description: 'Título melhorado pela IA' });
+                      } catch (err) {
+                        console.error(err);
+                        toast({ title: 'Erro', description: 'Não foi possível melhorar o título', variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Melhorar com IA
+                  </Button>
+                </div>
                 <Input
                   value={editingVideo?.title || ''}
                   onChange={(e) => setEditingVideo(prev => prev ? {...prev, title: e.target.value} : null)}
                 />
               </div>
+
+              {/* Descrição com IA */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Descrição (opcional)</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Descrição (opcional)</label>
+                  <div className="flex gap-1">
+                    {/* Gerar descrição do zero */}
+                    {!editingVideo?.description?.trim() && editingVideo?.title?.trim() && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1"
+                        onClick={async () => {
+                          if (!editingVideo?.title?.trim()) return;
+                          try {
+                            toast({ title: 'IA', description: 'Gerando descrição...' });
+                            const description = await aiTextService.generateDescription(editingVideo.title, module?.title);
+                            setEditingVideo(prev => prev ? {...prev, description} : null);
+                            toast({ title: 'Pronto', description: 'Descrição gerada pela IA' });
+                          } catch (err) {
+                            console.error(err);
+                            toast({ title: 'Erro', description: 'Não foi possível gerar a descrição', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Wand2 className="h-3 w-3" />
+                        Gerar com IA
+                      </Button>
+                    )}
+                    {/* Melhorar descrição existente */}
+                    {editingVideo?.description?.trim() && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                        onClick={async () => {
+                          if (!editingVideo?.description?.trim()) return;
+                          try {
+                            toast({ title: 'IA', description: 'Melhorando descrição...' });
+                            const improved = await aiTextService.improveText(editingVideo.description!, 'description', module?.title);
+                            setEditingVideo(prev => prev ? {...prev, description: improved} : null);
+                            toast({ title: 'Pronto', description: 'Descrição melhorada pela IA' });
+                          } catch (err) {
+                            console.error(err);
+                            toast({ title: 'Erro', description: 'Não foi possível melhorar a descrição', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Melhorar com IA
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <Textarea
                   value={editingVideo?.description || ''}
                   onChange={(e) => setEditingVideo(prev => prev ? {...prev, description: e.target.value} : null)}
                   rows={3}
                 />
               </div>
+
+              {/* Thumbnail */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Thumbnail (opcional)</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Thumbnail (opcional)</label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                    disabled={!editingVideo?.title?.trim()}
+                    onClick={async () => {
+                      if (!editingVideo?.title?.trim()) return;
+                      try {
+                        toast({ title: 'IA', description: 'Gerando thumbnail... Isso pode levar alguns segundos.' });
+                        const url = await aiTextService.generateThumbnail(
+                          editingVideo.title,
+                          { overlayText: editingVideo.title, style: 'surgical' }
+                        );
+                        setEditingVideo(prev => prev ? {...prev, thumbnailUrl: url} : null);
+                        toast({ title: 'Pronto', description: 'Thumbnail gerada e enviada ao R2' });
+                      } catch (err) {
+                        console.error(err);
+                        toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail', variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Gerar com IA
+                  </Button>
+                </div>
                 <ThumbnailUpload
                   value={editingVideo?.thumbnailUrl || ''}
                   onChange={(url) => setEditingVideo(prev => prev ? {...prev, thumbnailUrl: url} : null)}
@@ -1294,6 +1404,84 @@ export default function EditModulePage() {
               </div>
             </div>
 
+            {/* Fonte do Vídeo (Cloudflare / URL) */}
+            {editingVideo && (
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Fonte do Vídeo</h3>
+
+                {/* Status atual */}
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Fonte atual:</span>
+                  {editingVideo.cloudflareId ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-700">
+                      Cloudflare Stream
+                    </span>
+                  ) : editingVideo.videoSource === 'youtube' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 text-red-700">
+                      YouTube
+                    </span>
+                  ) : editingVideo.videoSource === 'vimeo' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-cyan-100 text-cyan-700">
+                      Vimeo
+                    </span>
+                  ) : editingVideo.externalUrl ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
+                      URL Externa
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-yellow-100 text-yellow-700">
+                      Sem fonte
+                    </span>
+                  )}
+                </div>
+
+                {/* Cloudflare ID */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Cloudflare Stream ID</label>
+                  <Input
+                    value={editingVideo.cloudflareId || ''}
+                    onChange={(e) => setEditingVideo(prev => prev ? {
+                      ...prev,
+                      cloudflareId: e.target.value || null,
+                      videoSource: e.target.value ? 'cloudflare' as any : prev.videoSource,
+                      uploadStatus: e.target.value ? 'READY' as any : prev.uploadStatus,
+                    } : null)}
+                    placeholder="Ex: a1b2c3d4e5f6..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cole o ID do vídeo no Cloudflare Stream. Encontre-o no dashboard do Cloudflare.
+                  </p>
+                </div>
+
+                {/* URL do Cloudflare */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">URL do Cloudflare Stream (alternativa)</label>
+                  <Input
+                    value={editingVideo.externalUrl || ''}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      // Tenta extrair o cloudflareId da URL automaticamente
+                      const cfMatch = url.match(/cloudflarestream\.com\/([a-f0-9]{32})/);
+                      setEditingVideo(prev => prev ? {
+                        ...prev,
+                        externalUrl: url || undefined,
+                        cloudflareId: cfMatch ? cfMatch[1] : prev.cloudflareId,
+                        videoSource: url.includes('cloudflarestream.com') ? 'cloudflare' as any
+                          : url.includes('youtube.com') || url.includes('youtu.be') ? 'youtube' as any
+                          : url.includes('vimeo.com') ? 'vimeo' as any
+                          : url ? 'external' as any : prev.videoSource,
+                        uploadStatus: (cfMatch || url.includes('cloudflarestream.com')) ? 'READY' as any : prev.uploadStatus,
+                      } : null);
+                    }}
+                    placeholder="https://customer-xxx.cloudflarestream.com/abc123..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cole a URL completa do vídeo. O ID será extraído automaticamente se for do Cloudflare.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Materiais Didáticos */}
             {editingVideo && (
               <div className="border-t pt-4">
@@ -1301,10 +1489,28 @@ export default function EditModulePage() {
               </div>
             )}
 
+            {/* Legendas / Captions (Cloudflare Stream) */}
+            {editingVideo && (
+              <div className="border-t pt-4">
+                <VideoCaptionsManager
+                  videoId={editingVideo.id}
+                  videoStatus={editingVideo.uploadStatus || 'READY'}
+                  cloudflareId={editingVideo.cloudflareId}
+                />
+              </div>
+            )}
+
             {/* Transcrição do Vídeo */}
             {editingVideo && (
               <div className="border-t pt-4">
                 <VideoTranscriptManager videoId={editingVideo.id} />
+              </div>
+            )}
+
+            {/* Quiz do Vídeo */}
+            {editingVideo && (
+              <div className="border-t pt-4">
+                <VideoQuizManager videoId={editingVideo.id} />
               </div>
             )}
           </div>
@@ -1319,7 +1525,11 @@ export default function EditModulePage() {
                   title: editingVideo.title,
                   description: editingVideo.description || undefined,
                   thumbnailUrl: editingVideo.thumbnailUrl || undefined,
-                } as any);
+                  cloudflareId: editingVideo.cloudflareId || undefined,
+                  externalUrl: editingVideo.externalUrl || undefined,
+                  videoSource: editingVideo.videoSource || undefined,
+                  uploadStatus: editingVideo.uploadStatus || undefined,
+                });
                 setVideos(prev => prev.map(v => v.id === editingVideo.id ? editingVideo : v));
                 toast({ title: 'Sucesso', description: 'Vídeo atualizado!' });
                 setEditingVideo(null);

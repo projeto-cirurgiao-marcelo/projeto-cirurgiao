@@ -118,6 +118,11 @@ export const quizzesService = {
     return response.data;
   },
 
+  async getVideoQuizStats(videoId: string): Promise<QuizStats> {
+    const response = await apiClient.get(`videos/${videoId}/quiz-stats`);
+    return response.data;
+  },
+
   async getUserStats(): Promise<UserQuizStats> {
     const response = await apiClient.get('users/me/quiz-stats');
     return response.data;

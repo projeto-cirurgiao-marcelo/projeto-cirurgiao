@@ -8,6 +8,7 @@ import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { StudentSidebar } from '@/components/layout/student-sidebar';
 import { StudentHeader } from '@/components/layout/student-header';
 import { GamificationProvider } from '@/components/gamification/GamificationProvider';
+import { ChatWidget } from '@/components/chatbot/chat-widget';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -76,6 +77,9 @@ export default function StudentLayout({
         >
           {children}
         </main>
+
+        {/* Chatbot IA flutuante */}
+        <ChatWidget />
       </div>
     </GamificationProvider>
   );

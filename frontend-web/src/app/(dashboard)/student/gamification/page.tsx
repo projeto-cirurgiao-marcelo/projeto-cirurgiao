@@ -35,6 +35,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useGamificationStore } from '@/lib/stores/gamification-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { LEVELS, RARITY_LABELS } from '@/lib/gamification';
 import type { Badge, LeaderboardEntry } from '@/lib/gamification';
 
@@ -64,6 +65,7 @@ type Tab = 'overview' | 'achievements' | 'leaderboard';
 
 export default function GamificationPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const currentUser = useAuthStore((s) => s.user);
 
   const {
     profile, isLoadingProfile, fetchProfile,
@@ -504,9 +506,10 @@ export default function GamificationPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-            ) : leaderboardEntries.length >= 3 ? (
+            ) : leaderboardEntries.length > 0 ? (
             <>
-            {/* Top 3 Podium */}
+            {/* Top 3 Podium (só mostra se houver 3+) */}
+            {leaderboardEntries.length >= 3 && (
             <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
               <div className="flex flex-col items-center pt-8">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-lg sm:text-xl font-bold text-gray-700 border-4 border-gray-300 shadow-md">
@@ -536,6 +539,7 @@ export default function GamificationPage() {
                 <p className="text-xs text-gray-500">{leaderboardEntries[2].xpEarned.toLocaleString()} XP</p>
               </div>
             </div>
+            )}
 
             {/* Full Leaderboard */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -545,7 +549,7 @@ export default function GamificationPage() {
               </div>
               <div className="divide-y divide-gray-100">
                 {leaderboardEntries.map((entry) => {
-                  const isCurrentUser = entry.userId === 'current-user';
+                  const isCurrentUser = entry.userId === currentUser?.id;
                   return (
                   <div
                     key={entry.rank}

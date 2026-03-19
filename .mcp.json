@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "mercadopago": {
+      "type": "url",
+      "url": "https://mcp.mercadopago.com/mcp"
+    },
     "n8n-mcp": {
       "command": "cmd",
       "args": ["/c npx n8n-mcp"],

@@ -5,6 +5,7 @@ export interface SaveProgressDto {
   videoId: string;
   watchTime: number;
   completed?: boolean;
+  videoDuration?: number;
 }
 
 export interface VideoProgress {
