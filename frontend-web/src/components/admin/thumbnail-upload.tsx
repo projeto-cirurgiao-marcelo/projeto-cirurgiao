@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 interface ThumbnailUploadProps {
   value?: string;
@@ -59,10 +60,14 @@ export function ThumbnailUpload({
       const formData = new FormData();
       formData.append('file', file);
 
-      // Upload para o backend
+      // Upload para o backend (via proxy Next.js API route)
+      const token = useAuthStore.getState().firebaseToken;
       const response = await fetch('/api/upload/thumbnail', {
         method: 'POST',
         body: formData,
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
       });
 
       if (!response.ok) {

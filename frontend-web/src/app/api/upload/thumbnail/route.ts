@@ -28,15 +28,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Preparar para enviar ao Cloudflare R2
+    // Extrair token de auth do header do request original
+    const authHeader = request.headers.get('authorization');
+
+    // Preparar para enviar ao backend
     const uploadFormData = new FormData();
     uploadFormData.append('file', file);
 
-    // Fazer upload para o backend (que vai enviar para o Cloudflare R2)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const response = await fetch(`${backendUrl}/api/upload/thumbnail`, {
+    // Fazer upload para o backend NestJS (rota: /api/v1/upload/thumbnail)
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+    const response = await fetch(`${backendUrl}/upload/thumbnail`, {
       method: 'POST',
       body: uploadFormData,
+      headers: {
+        ...(authHeader ? { 'Authorization': authHeader } : {}),
+      },
     });
 
     if (!response.ok) {
