@@ -37,7 +37,7 @@ export class AuthService {
         email: registerDto.email,
         password: hashedPassword,
         name: registerDto.name,
-        role: registerDto.role || Role.STUDENT,
+        role: Role.STUDENT,
       },
     });
 
@@ -268,12 +268,14 @@ export class AuthService {
     }
 
     // Cria o usuário no PostgreSQL
+    // Rota protegida por ADMIN guard — sempre cria como STUDENT
+    // Para promover a ADMIN/INSTRUCTOR, usar endpoint de gestão de usuários
     const user = await this.prisma.user.create({
       data: {
         email: registerDto.email,
         password: '', // Firebase gerencia a senha
         name: registerDto.name,
-        role: registerDto.role || Role.STUDENT,
+        role: Role.STUDENT,
       },
     });
 

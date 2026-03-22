@@ -679,6 +679,7 @@ export class ProgressService {
       let totalVideos = 0;
       let watchedVideos = 0;
       let completedVideos = 0;
+      const videoProgressItems: any[] = [];
 
       for (const module of course.modules) {
         for (const video of module.videos) {
@@ -686,6 +687,20 @@ export class ProgressService {
           const progress = progressMap.get(video.id);
           if (progress?.watched) watchedVideos++;
           if (progress?.completed) completedVideos++;
+
+          // Incluir progresso por vídeo para "Continue de onde parou"
+          if (progress?.watched) {
+            videoProgressItems.push({
+              videoId: video.id,
+              videoTitle: video.title,
+              moduleId: module.id,
+              moduleTitle: module.title,
+              watched: progress.watched,
+              completed: progress.completed,
+              watchTime: progress.watchTime,
+              videoDuration: video.duration || 0,
+            });
+          }
         }
       }
 
@@ -717,6 +732,7 @@ export class ProgressService {
           watchedVideos,
           completedVideos,
           percentage: progressPercentage,
+          videos: videoProgressItems,
         },
       };
     });

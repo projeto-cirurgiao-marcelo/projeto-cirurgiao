@@ -63,11 +63,12 @@ export interface VideoDetails {
 @Injectable()
 export class CloudflareStreamService {
   private readonly logger = new Logger(CloudflareStreamService.name);
-  private readonly apiClient: AxiosInstance;
+  private apiClient: AxiosInstance;
   private readonly accountId: string;
   private readonly apiToken: string;
   private readonly customerCode: string;
   private readonly streamUrl: string;
+  private readonly isConfigured: boolean;
 
   constructor(private configService: ConfigService) {
     this.accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID');
@@ -80,9 +81,12 @@ export class CloudflareStreamService {
     this.streamUrl = this.configService.get<string>('CLOUDFLARE_STREAM_URL');
 
     if (!this.accountId || !this.apiToken) {
-      throw new Error('Cloudflare credentials not configured');
+      this.isConfigured = false;
+      this.logger.warn('Cloudflare Stream credentials not configured — Stream features will be disabled');
+      return;
     }
 
+    this.isConfigured = true;
     this.logger.log(`Cloudflare Account ID: ${this.accountId}`);
     this.logger.log(`Cloudflare API Token length: ${this.apiToken?.length}`);
 
@@ -96,18 +100,29 @@ export class CloudflareStreamService {
     this.logger.log('Cloudflare Stream Service initialized');
   }
 
+  private ensureConfigured(): void {
+    if (!this.isConfigured) {
+      throw new BadRequestException('Cloudflare Stream is not configured');
+    }
+  }
+
   /**
    * Upload de vídeo via URL
    */
   async uploadVideoFromUrl(url: string, metadata?: { name?: string }): Promise<VideoDetails> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Uploading video from URL: ${url}`);
+
+      const allowedOrigins = this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS')
+        ? this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS').split(',').map(o => o.trim())
+        : [];
 
       const response = await this.apiClient.post<UploadVideoResponse>('', {
         url,
         meta: metadata,
         requireSignedURLs: false,
-        allowedOrigins: ['*'],
+        allowedOrigins,
       });
 
       if (!response.data.success) {
@@ -138,6 +153,7 @@ export class CloudflareStreamService {
     filename: string,
     metadata?: { name?: string },
   ): Promise<VideoDetails> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Uploading video file: ${filename}`);
 
@@ -148,8 +164,11 @@ export class CloudflareStreamService {
         formData.append('meta', JSON.stringify(metadata));
       }
 
+      const allowedOrigins = this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS')
+        ? this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS').split(',').map(o => o.trim())
+        : [];
       formData.append('requireSignedURLs', 'false');
-      formData.append('allowedOrigins', JSON.stringify(['*']));
+      formData.append('allowedOrigins', JSON.stringify(allowedOrigins));
 
       const response = await this.apiClient.post<UploadVideoResponse>('', formData, {
         headers: {
@@ -183,6 +202,7 @@ export class CloudflareStreamService {
    * Obter detalhes de um vídeo
    */
   async getVideoDetails(videoId: string): Promise<VideoDetails> {
+    this.ensureConfigured();
     try {
       const response = await this.apiClient.get<UploadVideoResponse>(`/${videoId}`);
 
@@ -210,6 +230,7 @@ export class CloudflareStreamService {
    * Deletar um vídeo
    */
   async deleteVideo(videoId: string): Promise<void> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Deleting video: ${videoId}`);
 
@@ -226,6 +247,7 @@ export class CloudflareStreamService {
    * Listar todos os vídeos
    */
   async listVideos(limit = 100, after?: string): Promise<CloudflareStreamVideo[]> {
+    this.ensureConfigured();
     try {
       const params: any = { limit };
       if (after) {
@@ -255,6 +277,7 @@ export class CloudflareStreamService {
     videoId: string,
     metadata: { name?: string },
   ): Promise<VideoDetails> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Updating video metadata: ${videoId}`);
 
@@ -292,6 +315,7 @@ export class CloudflareStreamService {
     fileSize: number,
     metadata?: { name?: string },
   ): Promise<VideoDetails> {
+    this.ensureConfigured();
     return this.uploadVideoViaTusWithProgress(filePath, filename, fileSize, metadata);
   }
 
@@ -306,6 +330,7 @@ export class CloudflareStreamService {
     metadata?: { name?: string },
     onProgress?: (progress: number) => Promise<void>,
   ): Promise<VideoDetails> {
+    this.ensureConfigured();
     return new Promise((resolve, reject) => {
       this.logger.log(`Starting TUS upload for: ${filename} (${fileSize} bytes)`);
 
@@ -385,6 +410,7 @@ export class CloudflareStreamService {
   async getDirectUploadUrl(
     maxDurationSeconds = 21600,
   ): Promise<{ uploadURL: string; uid: string }> {
+    this.ensureConfigured();
     try {
       this.logger.log('Requesting direct upload URL from Cloudflare Stream...');
       this.logger.log(`Account ID: ${this.accountId}`);
@@ -436,6 +462,7 @@ export class CloudflareStreamService {
     filename: string,
     metadata?: { name?: string },
   ): Promise<{ tusUploadUrl: string; uid: string }> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Requesting TUS upload URL for file: ${filename} (${fileSize} bytes)`);
 
@@ -514,6 +541,7 @@ export class CloudflareStreamService {
     videoId: string,
     settings: { requireSignedURLs?: boolean; allowedOrigins?: string[] },
   ): Promise<void> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Updating security settings for video ${videoId}: ${JSON.stringify(settings)}`);
 
@@ -556,6 +584,7 @@ export class CloudflareStreamService {
     videoId: string,
     language: string = 'pt',
   ): Promise<CaptionResult> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Generating captions for video ${videoId} in language: ${language}`);
 
@@ -584,6 +613,7 @@ export class CloudflareStreamService {
    * Listar todas as legendas de um vídeo
    */
   async listCaptions(videoId: string): Promise<CaptionResult[]> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Listing captions for video ${videoId}`);
 
@@ -610,6 +640,7 @@ export class CloudflareStreamService {
    * Obter arquivo VTT de uma legenda
    */
   async getCaptionVtt(videoId: string, language: string): Promise<string> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Getting VTT caption for video ${videoId}, language: ${language}`);
 
@@ -637,6 +668,7 @@ export class CloudflareStreamService {
     language: string,
     vttContent: Buffer | string,
   ): Promise<CaptionResult> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Uploading caption for video ${videoId}, language: ${language}`);
 
@@ -677,6 +709,7 @@ export class CloudflareStreamService {
    * Deletar uma legenda
    */
   async deleteCaption(videoId: string, language: string): Promise<void> {
+    this.ensureConfigured();
     try {
       this.logger.log(`Deleting caption for video ${videoId}, language: ${language}`);
 

@@ -7,7 +7,10 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
 import { GetUser } from './decorators/get-user.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('auth')
 @Controller()
@@ -15,12 +18,17 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * Rota secreta de registro - cria usuário no Firebase + PostgreSQL
-   * Acessível apenas por quem conhece a URL
+   * Rota de registro - cria usuário no Firebase + PostgreSQL
+   * Protegida: apenas ADMINs autenticados podem criar novos usuários
    */
   @Post('aulas/92339018203')
-  @ApiOperation({ summary: 'Registrar novo usuário (rota protegida)' })
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Registrar novo usuário (apenas ADMIN)' })
   @ApiResponse({ status: 201, description: 'Usuário registrado com sucesso' })
+  @ApiResponse({ status: 401, description: 'Não autenticado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão (requer ADMIN)' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
   async secureRegister(@Body() registerDto: RegisterDto) {
     return this.authService.secureRegister(registerDto);

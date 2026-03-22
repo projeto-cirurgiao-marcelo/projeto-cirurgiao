@@ -6,9 +6,10 @@ import { randomUUID } from 'crypto';
 @Injectable()
 export class UploadService {
   private readonly logger = new Logger(UploadService.name);
-  private readonly s3Client: S3Client;
+  private s3Client: S3Client;
   private readonly bucketName: string;
-  private readonly publicUrl: string;
+  private publicUrl: string;
+  private readonly isConfigured: boolean;
 
   constructor(private configService: ConfigService) {
     const accountId = this.configService.get('CLOUDFLARE_ACCOUNT_ID');
@@ -27,21 +28,13 @@ export class UploadService {
     this.logger.log(`Bucket: ${this.bucketName || 'NOT SET'}`);
     this.logger.log(`Public URL: ${publicUrl || 'NOT SET'}`);
 
-    // Validar credenciais
-    if (!accessKeyId || !secretAccessKey) {
-      this.logger.error('❌ ERRO: Credenciais do Cloudflare R2 não configuradas!');
-      this.logger.error('Configure CLOUDFLARE_R2_ACCESS_KEY_ID e CLOUDFLARE_R2_SECRET_ACCESS_KEY no arquivo .env');
-      throw new Error('Cloudflare R2 credentials not configured');
+    if (!accessKeyId || !secretAccessKey || !publicUrl) {
+      this.isConfigured = false;
+      this.logger.warn('Cloudflare R2 credentials not fully configured — upload features will be disabled');
+      return;
     }
 
-    // Validar URL pública
-    if (!publicUrl) {
-      this.logger.error('❌ ERRO: CLOUDFLARE_R2_PUBLIC_URL não configurada!');
-      this.logger.error('Configure CLOUDFLARE_R2_PUBLIC_URL no arquivo .env com a URL pública do seu bucket R2');
-      throw new Error('Cloudflare R2 public URL not configured');
-    }
-
-    // URL pública do R2 (vem do .env)
+    this.isConfigured = true;
     this.publicUrl = publicUrl;
 
     this.s3Client = new S3Client({
@@ -56,10 +49,17 @@ export class UploadService {
     this.logger.log('✅ Cloudflare R2 client initialized successfully');
   }
 
+  private ensureConfigured(): void {
+    if (!this.isConfigured) {
+      throw new Error('Cloudflare R2 is not configured');
+    }
+  }
+
   async uploadToR2(
     file: Express.Multer.File,
     folder: string = 'uploads',
   ): Promise<string> {
+    this.ensureConfigured();
     try {
       // Gerar nome único para o arquivo
       const fileExtension = file.originalname.split('.').pop();
@@ -96,6 +96,7 @@ export class UploadService {
     extension: string,
     folder: string = 'thumbnails',
   ): Promise<string> {
+    this.ensureConfigured();
     try {
       const fileName = `${folder}/${randomUUID()}.${extension}`;
 

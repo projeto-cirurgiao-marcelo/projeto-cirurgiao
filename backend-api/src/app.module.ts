@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './shared/prisma/prisma.module';
+import { TokenCleanupService } from './shared/tasks/token-cleanup.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
@@ -22,6 +25,7 @@ import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
+import { AiLibraryModule } from './modules/ai-library/ai-library.module';
 
 @Module({
   imports: [
@@ -29,6 +33,18 @@ import { GamificationModule } from './modules/gamification/gamification.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,   // 1 segundo
+        limit: 5,    // máx 5 requests/segundo por IP
+      },
+      {
+        name: 'medium',
+        ttl: 60000,  // 1 minuto
+        limit: 100,  // máx 100 requests/minuto por IP
+      },
+    ]),
     PrismaModule,
     FirebaseModule, // Firebase Admin SDK
     AuthModule,
@@ -51,6 +67,14 @@ import { GamificationModule } from './modules/gamification/gamification.module';
     AiChatModule,
     ProfileModule,
     GamificationModule,
+    AiLibraryModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    TokenCleanupService,
   ],
 })
 export class AppModule {}

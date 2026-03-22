@@ -5,6 +5,11 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 
+console.log('🔄 Starting application...');
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`PORT: ${process.env.PORT || 3000}`);
+console.log(`DATABASE_URL defined: ${!!process.env.DATABASE_URL}`);
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -15,10 +20,14 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  // CORS
-  const corsOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
-    : process.env.CORS_ORIGIN || '*';
+  // CORS — requer configuração explícita, sem fallback wildcard
+  const corsOriginsEnv = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN;
+  if (!corsOriginsEnv) {
+    console.warn('⚠️  CORS_ORIGINS não configurado! Usando localhost como fallback para desenvolvimento.');
+  }
+  const corsOrigins = corsOriginsEnv
+    ? corsOriginsEnv.split(',').map((origin) => origin.trim())
+    : ['http://localhost:3001', 'http://localhost:3000'];
 
   app.enableCors({
     origin: corsOrigins,
@@ -54,4 +63,7 @@ async function bootstrap() {
   console.log(`📚 Documentação Swagger: http://localhost:${port}/api/docs`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('❌ Failed to start application:', err);
+  process.exit(1);
+});

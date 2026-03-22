@@ -80,6 +80,7 @@ export const libraryService = {
     const { data } = await apiClient.post(
       `/library/chat/conversations/${conversationId}/messages`,
       { message },
+      { timeout: 120000 }, // 2 minutos — IA precisa buscar chunks + gerar resposta
     );
     return data;
   },

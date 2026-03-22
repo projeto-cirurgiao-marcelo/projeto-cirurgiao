@@ -163,6 +163,19 @@ export class VideosService {
         }
       }
 
+      // Verificar se já existe um vídeo com este cloudflareId
+      if (cloudflareId) {
+        const existing = await this.prisma.video.findFirst({
+          where: { cloudflareId },
+          include: { module: { select: { title: true } } },
+        });
+        if (existing) {
+          throw new BadRequestException(
+            `Este vídeo do Cloudflare já está cadastrado como "${existing.title}" no módulo "${existing.module?.title}". Use a opção "Mover" para transferi-lo para outro módulo.`,
+          );
+        }
+      }
+
       // Criar registro no banco com status READY (já é um link válido)
       const video = await this.prisma.video.create({
         data: {
@@ -737,6 +750,27 @@ export class VideosService {
       throw new NotFoundException('Vídeo não encontrado');
     }
 
+    // Se o vídeo está READY mas duration=0, buscar do Cloudflare e atualizar
+    if (video.cloudflareId && video.uploadStatus === 'READY' && (!video.duration || video.duration === 0)) {
+      try {
+        const details = await this.cloudflareStream.getVideoDetails(video.cloudflareId);
+        if (details.duration > 0) {
+          await this.prisma.video.update({
+            where: { id },
+            data: {
+              duration: Math.round(details.duration),
+              thumbnailUrl: video.thumbnailUrl || details.thumbnailUrl,
+            },
+          });
+          video.duration = Math.round(details.duration);
+          if (!video.thumbnailUrl) video.thumbnailUrl = details.thumbnailUrl;
+          this.logger.log(`Video ${id} duration auto-synced: ${video.duration}s`);
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to auto-sync duration for video ${id}:`, err?.message);
+      }
+    }
+
     return video;
   }
 
@@ -908,6 +942,45 @@ export class VideosService {
       this.logger.error(`Error syncing video ${id} with Cloudflare`, error);
       throw new BadRequestException('Erro ao sincronizar vídeo');
     }
+  }
+
+  /**
+   * Move um vídeo para outro módulo
+   */
+  async moveToModule(videoId: string, targetModuleId: string): Promise<Video> {
+    const video = await this.findOne(videoId);
+
+    // Verificar se o módulo destino existe
+    const targetModule = await this.prisma.module.findUnique({
+      where: { id: targetModuleId },
+    });
+    if (!targetModule) {
+      throw new NotFoundException('Módulo destino não encontrado');
+    }
+
+    if (video.moduleId === targetModuleId) {
+      return video; // Já está no módulo correto
+    }
+
+    // Determinar próxima ordem no módulo destino
+    const lastVideo = await this.prisma.video.findFirst({
+      where: { moduleId: targetModuleId },
+      orderBy: { order: 'desc' },
+    });
+    const nextOrder = lastVideo ? lastVideo.order + 1 : 0;
+
+    // Mover o vídeo
+    const updated = await this.prisma.video.update({
+      where: { id: videoId },
+      data: {
+        moduleId: targetModuleId,
+        order: nextOrder,
+      },
+    });
+
+    this.logger.log(`Video ${videoId} moved from module ${video.moduleId} to ${targetModuleId}`);
+
+    return updated;
   }
 
   /**

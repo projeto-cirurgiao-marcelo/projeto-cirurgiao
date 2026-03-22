@@ -299,6 +299,25 @@ export class VideosController {
   }
 
   /**
+   * Move um vídeo para outro módulo
+   * POST /videos/:id/move
+   * Body: { targetModuleId: string }
+   */
+  @Post('videos/:id/move')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  async moveToModule(
+    @Param('id') id: string,
+    @Body() body: { targetModuleId: string },
+    @Request() req,
+  ) {
+    const video = await this.videosService.findOne(id);
+    await this.checkInstructorPermission(video.moduleId, req.user.sub, req.user.role);
+    await this.checkInstructorPermission(body.targetModuleId, req.user.sub, req.user.role);
+    return this.videosService.moveToModule(id, body.targetModuleId);
+  }
+
+  /**
    * Upload de thumbnail personalizada para o vídeo
    * POST /videos/:id/thumbnail
    * Body: multipart/form-data com campo 'file' (imagem jpeg/png/webp)

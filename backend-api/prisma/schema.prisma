@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -50,6 +51,10 @@ model User {
   chatConversations ChatConversation[] // Conversas do chatbot
   profile           UserProfile?
 
+  // Biblioteca IA
+  libraryConversations LibraryConversation[]
+  tokenUsageDaily      TokenUsageDaily[]
+
   // Gamificacao
   xpLogs                 XpLog[]
   userBadges             UserBadge[]
@@ -64,10 +69,12 @@ model UserProfile {
   id                  String   @id @default(uuid())
   userId              String   @unique
   user                User     @relation(fields: [userId], references: [id])
+  photoUrl            String?
   profession          String?
   specializations     String[]
   state               String?
   city                String?
+  bio                 String?  @db.Text
   onboardingCompleted Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -618,6 +625,111 @@ model TranscriptEmbedding {
   @@index([videoId])
   @@index([isIndexed])
   @@map("transcript_embeddings")
+}
+
+// ============================================
+// BIBLIOTECA IA (RAG - Livros de Veterinária)
+// ============================================
+
+// Status de processamento do documento
+enum DocumentProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  ERROR
+}
+
+// Documento da base de conhecimento (livro)
+model KnowledgeDocument {
+  id          String                   @id @default(uuid())
+  title       String
+  fileName    String
+  gcsPath     String                   // Caminho no Google Cloud Storage
+  language    String                   @default("pt-BR") // "pt-BR" | "en"
+  totalPages  Int                      @default(0)
+  totalChunks Int                      @default(0)
+  status      DocumentProcessingStatus @default(PENDING)
+  errorMessage String?
+  processedAt DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  chunks KnowledgeChunk[]
+
+  @@index([status])
+  @@map("knowledge_documents")
+}
+
+// Chunk de texto com embedding vetorial
+model KnowledgeChunk {
+  id         String @id @default(uuid())
+  documentId String
+  chunkIndex Int
+  content    String @db.Text
+  chapter    String?              // Capítulo/seção do livro
+  pageStart  Int?                 // Página inicial
+  pageEnd    Int?                 // Página final
+  language   String @default("pt-BR")
+  embedding  Json?               // Vetor de embedding (float[768])
+  isIndexed  Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@index([isIndexed])
+  @@map("knowledge_chunks")
+}
+
+// Conversa da Biblioteca IA (separada do chatbot de aulas)
+model LibraryConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages LibraryMessage[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("library_conversations")
+}
+
+// Mensagem da Biblioteca IA
+model LibraryMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String   // "user" | "assistant"
+  content        String   @db.Text
+  sources        Json?    // [{documentTitle, chapter, pageStart, pageEnd, snippet}]
+  tokenCount     Int?     // Tokens consumidos
+  feedback       String?  // "helpful" | "not_helpful"
+  createdAt      DateTime @default(now())
+
+  conversation LibraryConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("library_messages")
+}
+
+// Controle de cota diária de tokens por aluno
+model TokenUsageDaily {
+  id         String   @id @default(uuid())
+  userId     String
+  date       String   // "YYYY-MM-DD"
+  tokensUsed Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("token_usage_daily")
 }
 
 // ============================================

@@ -161,3 +161,6 @@ gcp-service-account-key/
 *.pem
 *.key
 credentials/
+
+# Claude Code temp files
+tmpclaude-*

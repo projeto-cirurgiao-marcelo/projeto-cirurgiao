@@ -21,27 +21,19 @@ export class FirebaseAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
 
-    this.logger.log(`🔐 [FirebaseAuthGuard] Verificando autenticação...`);
-    this.logger.log(`📋 Headers: ${JSON.stringify(request.headers)}`);
-
     if (!authHeader) {
-      this.logger.warn('❌ Token de autenticação não fornecido');
       throw new UnauthorizedException('Token de autenticação não fornecido');
     }
 
     const [type, token] = authHeader.split(' ');
-    this.logger.log(`🔑 Token tipo: ${type}, Token preview: ${token?.substring(0, 20)}...`);
 
     if (type !== 'Bearer' || !token) {
-      this.logger.warn('❌ Formato de token inválido');
       throw new UnauthorizedException('Formato de token inválido');
     }
 
     try {
-      this.logger.log(`🔍 Verificando token Firebase...`);
       // Verifica o token Firebase
       const decodedToken = await this.firebaseAdmin.verifyIdToken(token);
-      this.logger.log(`✅ Token Firebase válido: ${JSON.stringify(decodedToken)}`);
 
       if (!decodedToken) {
         throw new UnauthorizedException('Token Firebase inválido');
