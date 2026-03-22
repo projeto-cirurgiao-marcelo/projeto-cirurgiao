@@ -480,7 +480,7 @@ function MessageBubble({
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
             <div
-              className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-h2:text-[0.9rem] prose-h3:text-[0.85rem] prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5"
+              className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-h4:text-[0.875rem] prose-h5:text-[0.8125rem] prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5"
               dangerouslySetInnerHTML={{
                 __html: formatMarkdown(message.content),
               }}
@@ -561,13 +561,15 @@ function SourcesList({ sources }: { sources: LibrarySource[] }) {
 
 /**
  * Converte Markdown básico em HTML
+ * Headings são rebaixados (## → h4, ### → h5) para ficarem proporcionais ao chat
  */
 function formatMarkdown(text: string): string {
   return text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^### (.*$)/gm, '<h5>$1</h5>')
+    .replace(/^## (.*$)/gm, '<h4>$1</h4>')
+    .replace(/^# (.*$)/gm, '<h4>$1</h4>')
     .replace(/^- (.*$)/gm, '<li>$1</li>')
     .replace(/(<li>[\s\S]*<\/li>)/, '<ul>$1</ul>')
     .replace(/\n\n/g, '</p><p>')
