@@ -647,8 +647,7 @@ function VideoUploadDialog({
               {/* Info box */}
               <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>ℹ️ Sobre Embed:</strong> O vídeo será exibido diretamente da plataforma original (YouTube, Vimeo, etc).
-                  Não será hospedado no Cloudflare.
+                  <strong>ℹ️ Sobre Embed:</strong> O vídeo pode ser exibido através do player original do Youtube, Vimeo ou Cloudflare.
                 </p>
               </div>
 

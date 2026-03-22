@@ -237,9 +237,9 @@ export function VideoCaptionsManager({
         <div className="flex items-center gap-2">
           <Subtitles className="h-5 w-5 text-blue-600" />
           <h3 className="font-semibold text-gray-900">Legendas / Captions</h3>
-          {captions.length > 0 && (
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-              {captions.filter((c) => c.status === 'ready').length} disponível(is)
+          {captions.filter((c) => c.status === 'ready').length > 0 && (
+            <span className="text-[11px] font-medium bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full leading-none">
+              {captions.filter((c) => c.status === 'ready').length}
             </span>
           )}
         </div>

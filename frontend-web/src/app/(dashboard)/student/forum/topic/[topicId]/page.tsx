@@ -456,10 +456,14 @@ export default function TopicDetailPage() {
                 {/* Author & Meta */}
                 <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span className="text-xs font-bold text-blue-700">
-                        {topic.author.name.charAt(0).toUpperCase()}
-                      </span>
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                      {topic.author.profile?.photoUrl ? (
+                        <img src={topic.author.profile.photoUrl} alt={topic.author.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-blue-700">
+                          {topic.author.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{topic.author.name}</p>

@@ -9,6 +9,7 @@ interface VideoTranscriptProps {
   videoId: string;
   currentTime: number;
   onSeek?: (time: number) => void;
+  initialTranscript?: Transcript | null;
 }
 
 // Formata segundos para MM:SS
@@ -18,16 +19,17 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function VideoTranscript({ videoId, currentTime, onSeek }: VideoTranscriptProps) {
-  const [transcript, setTranscript] = useState<Transcript | null>(null);
-  const [loading, setLoading] = useState(true);
+export function VideoTranscript({ videoId, currentTime, onSeek, initialTranscript }: VideoTranscriptProps) {
+  const [transcript, setTranscript] = useState<Transcript | null>(initialTranscript || null);
+  const [loading, setLoading] = useState(!initialTranscript);
   const [expanded, setExpanded] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeSegmentRef = useRef<HTMLButtonElement>(null);
 
-  // Carrega a transcrição
+  // Carrega a transcrição apenas se não foi passada como prop
   useEffect(() => {
+    if (initialTranscript !== undefined) return; // Já recebeu via prop
     const loadTranscript = async () => {
       setLoading(true);
       try {
@@ -41,7 +43,7 @@ export function VideoTranscript({ videoId, currentTime, onSeek }: VideoTranscrip
     };
 
     loadTranscript();
-  }, [videoId]);
+  }, [videoId, initialTranscript]);
 
   // Encontra o segmento atual baseado no tempo do vídeo
   const activeSegmentIndex = useMemo(() => {
@@ -196,13 +198,14 @@ export function VideoTranscript({ videoId, currentTime, onSeek }: VideoTranscrip
 }
 
 // Versão compacta para mobile
-export function VideoTranscriptCompact({ videoId, currentTime, onSeek }: VideoTranscriptProps) {
-  const [transcript, setTranscript] = useState<Transcript | null>(null);
-  const [loading, setLoading] = useState(true);
+export function VideoTranscriptCompact({ videoId, currentTime, onSeek, initialTranscript }: VideoTranscriptProps) {
+  const [transcript, setTranscript] = useState<Transcript | null>(initialTranscript || null);
+  const [loading, setLoading] = useState(!initialTranscript);
   const [showModal, setShowModal] = useState(false);
 
-  // Carrega a transcrição
+  // Carrega a transcrição apenas se não foi passada como prop
   useEffect(() => {
+    if (initialTranscript !== undefined) return;
     const loadTranscript = async () => {
       setLoading(true);
       try {
@@ -216,7 +219,7 @@ export function VideoTranscriptCompact({ videoId, currentTime, onSeek }: VideoTr
     };
 
     loadTranscript();
-  }, [videoId]);
+  }, [videoId, initialTranscript]);
 
   // Encontra o segmento atual
   const activeSegment = useMemo(() => {

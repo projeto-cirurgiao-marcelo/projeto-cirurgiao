@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { logger } from '@/lib/logger';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -19,7 +20,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const lastAuthCheckRef = useRef<number>(0);
 
   useEffect(() => {
-    console.log('🔄 [AuthProvider] Estado:', { hasHydrated, hasInitialized, isAuthenticated, hasUser: !!user });
+    logger.log('🔄 [AuthProvider] Estado:', { hasHydrated, hasInitialized, isAuthenticated, hasUser: !!user });
     
     // Aguarda a hidratação do Zustand antes de validar
     if (hasHydrated && !hasInitialized) {
@@ -28,24 +29,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const timeSinceLastCheck = now - lastAuthCheckRef.current;
       
       if (isAuthenticated && user && timeSinceLastCheck < 5000) {
-        console.log('✅ [AuthProvider] Login recente detectado, pulando validação');
+        logger.log('✅ [AuthProvider] Login recente detectado, pulando validação');
         setHasInitialized(true);
         return;
       }
       
-      console.log('✅ [AuthProvider] Hidratação completa, iniciando loadUser()');
+      logger.log('✅ [AuthProvider] Hidratação completa, iniciando loadUser()');
       lastAuthCheckRef.current = now;
       loadUser();
       setHasInitialized(true);
     }
   }, [hasHydrated, hasInitialized, isAuthenticated, user, loadUser]);
 
-  // Atualiza timestamp quando usuário faz login
+  // Atualiza timestamp e cookie de sessão quando estado de auth muda
   useEffect(() => {
     if (isAuthenticated && user) {
       lastAuthCheckRef.current = Date.now();
+      // Setar cookie para o middleware SSR poder verificar
+      document.cookie = `auth-session=${JSON.stringify({ role: user.role })}; path=/; max-age=86400; SameSite=Lax`;
+    } else if (hasHydrated && !isAuthenticated) {
+      // Limpar cookie quando deslogado
+      document.cookie = 'auth-session=; path=/; max-age=0';
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, hasHydrated]);
 
   return <>{children}</>;
 }

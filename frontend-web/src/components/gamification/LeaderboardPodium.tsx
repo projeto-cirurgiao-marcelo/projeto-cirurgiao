@@ -64,7 +64,11 @@ export function LeaderboardPodium({ entries, className }: LeaderboardPodiumProps
                   boxShadow: `0 4px 12px ${entry.levelColor}40`,
                 }}
               >
-                {entry.displayName.charAt(0).toUpperCase()}
+                {entry.avatarUrl ? (
+                  <img src={entry.avatarUrl} alt={entry.displayName} className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  entry.displayName.charAt(0).toUpperCase()
+                )}
               </div>
 
               <p className={cn(

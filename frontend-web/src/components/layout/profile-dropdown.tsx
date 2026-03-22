@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAvatarStore } from '@/lib/stores/avatar-store';
 import { Badge } from '@/components/ui/badge';
 
 interface ProfileDropdownProps {
@@ -33,6 +34,7 @@ export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const photoUrl = useAvatarStore((s) => s.photoUrl);
   const [open, setOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -67,7 +69,7 @@ export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
       <div className="space-y-2">
         <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={undefined} alt={user?.name || ''} />
+            <AvatarImage src={photoUrl || undefined} alt={user?.name || ''} />
             <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white text-sm font-semibold">
               {getUserInitials()}
             </AvatarFallback>
@@ -138,7 +140,7 @@ export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
           className="flex items-center gap-2 px-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src={undefined} alt={user?.name || ''} />
+            <AvatarImage src={photoUrl || undefined} alt={user?.name || ''} />
             <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white text-xs font-semibold">
               {getUserInitials()}
             </AvatarFallback>
@@ -154,7 +156,7 @@ export function ProfileDropdown({ mobile = false }: ProfileDropdownProps) {
         <div className="px-4 py-3 border-b bg-gradient-to-br from-blue-50 to-white">
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
-              <AvatarImage src={undefined} alt={user?.name || ''} />
+              <AvatarImage src={photoUrl || undefined} alt={user?.name || ''} />
               <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white font-semibold">
                 {getUserInitials()}
               </AvatarFallback>

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
+import { useAvatarStore } from '@/lib/stores/avatar-store';
+import { profileService } from '@/lib/api/profile.service';
 import { StudentSidebar } from '@/components/layout/student-sidebar';
 import { StudentHeader } from '@/components/layout/student-header';
 import { GamificationProvider } from '@/components/gamification/GamificationProvider';
@@ -28,6 +30,16 @@ export default function StudentLayout({
   const isLoading = useAuthStore((s) => s.isLoading);
   const { isCollapsed } = useSidebarStore();
   const { isAdminViewingAsStudent } = useViewModeStore();
+  const setPhotoUrl = useAvatarStore((s) => s.setPhotoUrl);
+
+  // Carregar foto do perfil uma vez ao montar
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      profileService.getProfile()
+        .then(profile => setPhotoUrl(profile.photoUrl))
+        .catch(() => {});
+    }
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     if (hasHydrated && !isLoading && !isAuthenticated) {

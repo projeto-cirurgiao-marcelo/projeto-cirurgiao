@@ -57,10 +57,14 @@ export function ReplyCard({
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${avatarColor}`}>
-              <span className="text-sm font-bold">
-                {reply.author.name.charAt(0).toUpperCase()}
-              </span>
+            <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${reply.author.profile?.photoUrl ? '' : avatarColor}`}>
+              {reply.author.profile?.photoUrl ? (
+                <img src={reply.author.profile.photoUrl} alt={reply.author.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold">
+                  {reply.author.name.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <div>
               <span className="font-semibold text-sm text-gray-900">{reply.author.name}</span>

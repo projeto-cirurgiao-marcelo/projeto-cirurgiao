@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { firebaseAuthService, type FirebaseAuthUser } from '../firebase/auth.service';
+import { logger } from '../logger';
 import axios from 'axios';
 
 // Tipo do usuário no backend (com role)
@@ -57,7 +58,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          console.log('🔥 [Firebase] Iniciando login...');
+          logger.log('🔥 [Firebase] Iniciando login...');
           
           // 1. Login no Firebase
           const firebaseResult = await firebaseAuthService.login(email, password);
@@ -66,8 +67,8 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error(firebaseResult.error || 'Falha no login Firebase');
           }
 
-          console.log('✅ [Firebase] Login bem sucedido');
-          console.log('🔄 [Backend] Sincronizando usuário...');
+          logger.log('✅ [Firebase] Login bem sucedido');
+          logger.log('🔄 [Backend] Sincronizando usuário...');
 
           // 2. Sincroniza com backend e busca role
           const backendResponse = await axios.post(`${API_URL}/auth/firebase-login`, {
@@ -76,7 +77,7 @@ export const useAuthStore = create<AuthStore>()(
 
           const backendUser = backendResponse.data.user;
 
-          console.log('✅ [Backend] Usuário sincronizado:', backendUser);
+          logger.log('✅ [Backend] Usuário sincronizado:', backendUser);
 
           // 3. Salva no estado
           set({
@@ -88,7 +89,7 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
         } catch (error: any) {
-          console.error('❌ [Login] Erro:', error);
+          logger.error('❌ [Login] Erro:', error);
           const errorMessage = error.response?.data?.message || error.message || 'Erro ao fazer login';
           set({
             isLoading: false,
@@ -109,7 +110,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          console.log('🔥 [Firebase] Iniciando registro...');
+          logger.log('🔥 [Firebase] Iniciando registro...');
           
           // 1. Cria conta no Firebase
           const firebaseResult = await firebaseAuthService.register(email, password, name);
@@ -118,8 +119,8 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error(firebaseResult.error || 'Falha no registro Firebase');
           }
 
-          console.log('✅ [Firebase] Registro bem sucedido');
-          console.log('🔄 [Backend] Sincronizando usuário...');
+          logger.log('✅ [Firebase] Registro bem sucedido');
+          logger.log('🔄 [Backend] Sincronizando usuário...');
 
           // 2. Sincroniza com backend
           const backendResponse = await axios.post(`${API_URL}/auth/firebase-login`, {
@@ -128,7 +129,7 @@ export const useAuthStore = create<AuthStore>()(
 
           const backendUser = backendResponse.data.user;
 
-          console.log('✅ [Backend] Usuário criado:', backendUser);
+          logger.log('✅ [Backend] Usuário criado:', backendUser);
 
           // 3. Salva no estado (Zustand persist handles localStorage)
           set({
@@ -140,7 +141,7 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
         } catch (error: any) {
-          console.error('❌ [Register] Erro:', error);
+          logger.error('❌ [Register] Erro:', error);
           const errorMessage = error.response?.data?.message || error.message || 'Erro ao registrar';
           set({
             isLoading: false,
@@ -161,7 +162,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           await firebaseAuthService.logout();
         } catch (error) {
-          console.error('❌ [Logout] Erro:', error);
+          logger.error('❌ [Logout] Erro:', error);
         } finally {
           // Zustand persist will clear localStorage automatically
           set({
@@ -187,12 +188,12 @@ export const useAuthStore = create<AuthStore>()(
         const token = currentState.firebaseToken || localStorage.getItem('firebaseToken');
         
         if (!token) {
-          console.log('⚠️ [loadUser] Sem token Firebase');
+          logger.log('⚠️ [loadUser] Sem token Firebase');
           set({ user: null, isAuthenticated: false });
           return;
         }
 
-        console.log('🔄 [loadUser] Validando token Firebase...');
+        logger.log('🔄 [loadUser] Validando token Firebase...');
         set({ isLoading: true });
 
         try {
@@ -204,7 +205,7 @@ export const useAuthStore = create<AuthStore>()(
           const backendUser = response.data.user;
           const firebaseUser = firebaseAuthService.getCurrentUser();
 
-          console.log('✅ [loadUser] Token válido, usuário carregado');
+          logger.log('✅ [loadUser] Token válido, usuário carregado');
 
           set({
             user: backendUser,
@@ -215,7 +216,7 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
         } catch (error: any) {
-          console.error('❌ [loadUser] Token inválido ou expirado:', error);
+          logger.error('❌ [loadUser] Token inválido ou expirado:', error);
           
           set({
             user: null,
@@ -245,7 +246,7 @@ export const useAuthStore = create<AuthStore>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.hasHydrated = true;
-          console.log('🔄 [Auth] Zustand hidratado:', {
+          logger.log('🔄 [Auth] Zustand hidratado:', {
             hasUser: !!state.user,
             hasToken: !!state.firebaseToken,
             isAuthenticated: state.isAuthenticated,

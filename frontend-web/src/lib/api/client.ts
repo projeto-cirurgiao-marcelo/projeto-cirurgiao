@@ -5,50 +5,53 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/a
 
 /**
  * Cliente HTTP configurado para comunicação com a API
+ * Timeout padrão de 30s — usar uploadClient para operações longas
  */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 300000, // 5 minutos para permitir uploads de vídeos grandes
+  timeout: 30000, // 30 segundos para requests normais
 });
 
 /**
- * Interceptor de requisição para adicionar token de autenticação
+ * Cliente HTTP para uploads e operações longas (vídeos, transcrições)
  */
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Token from Zustand persist store (single source of truth)
-    const token = useAuthStore.getState().firebaseToken;
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  }
-);
+export const uploadClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 300000, // 5 minutos para uploads grandes
+});
 
 /**
- * Interceptor de resposta para tratamento de erros
- * Firebase gerencia refresh automaticamente
+ * Adiciona interceptors de auth a um client Axios
  */
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    // Se o erro for 401, significa que o token expirou ou é inválido
-    if (error.response?.status === 401) {
-      // Clear auth state — Zustand persist handles localStorage cleanup
-      useAuthStore.getState().logout();
-    }
+function applyAuthInterceptors(client: AxiosInstance) {
+  client.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+      const token = useAuthStore.getState().firebaseToken;
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error: AxiosError) => Promise.reject(error),
+  );
 
-    return Promise.reject(error);
-  }
-);
+  client.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+      if (error.response?.status === 401) {
+        useAuthStore.getState().logout();
+      }
+      return Promise.reject(error);
+    },
+  );
+}
+
+// Aplicar interceptors em ambos os clients
+applyAuthInterceptors(apiClient);
+applyAuthInterceptors(uploadClient);
 
 /**
  * Tipo para erros da API

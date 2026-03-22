@@ -58,8 +58,9 @@ export default function VideoPlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Estado de transcrição (para resumos IA)
+  // Estado de transcrição (para resumos IA e componentes filhos)
   const [hasTranscript, setHasTranscript] = useState(false);
+  const [transcriptLoaded, setTranscriptLoaded] = useState<any>(undefined); // undefined = não carregado, null = sem transcrição
 
   // Estado de quiz (stats agregadas das tentativas anteriores)
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
@@ -220,6 +221,7 @@ export default function VideoPlayerPage() {
         }
       }
       setHasTranscript(hasTextSource);
+      setTranscriptLoaded(transcriptData); // Salvar para passar como prop aos componentes filhos
 
       // Buscar stats agregadas de quizzes do vídeo (todas as tentativas)
       try {
@@ -917,10 +919,11 @@ export default function VideoPlayerPage() {
 
             {/* Transcrição - Desktop */}
             <div className="hidden sm:block mt-6">
-              <VideoTranscript 
-                videoId={videoId} 
-                currentTime={playerCurrentTime} 
+              <VideoTranscript
+                videoId={videoId}
+                currentTime={playerCurrentTime}
                 onSeek={handleSeek}
+                initialTranscript={transcriptLoaded}
               />
             </div>
 
@@ -942,6 +945,7 @@ export default function VideoPlayerPage() {
                 videoId={videoId}
                 currentTime={playerCurrentTime}
                 onSeek={handleSeek}
+                initialTranscript={transcriptLoaded}
               />
               <VideoSummaries videoId={videoId} hasTranscript={hasTranscript} />
 

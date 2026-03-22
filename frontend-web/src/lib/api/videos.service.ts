@@ -278,6 +278,14 @@ export const videosService = {
   },
 
   /**
+   * Mover vídeo para outro módulo
+   */
+  async moveToModule(videoId: string, targetModuleId: string): Promise<Video> {
+    const response = await apiClient.post<Video>(`/videos/${videoId}/move`, { targetModuleId });
+    return response.data;
+  },
+
+  /**
    * Deletar vídeo
    */
   async delete(id: string): Promise<void> {

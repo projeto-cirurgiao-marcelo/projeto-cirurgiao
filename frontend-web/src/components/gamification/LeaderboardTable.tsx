@@ -80,12 +80,16 @@ export function LeaderboardTable({
 
             {/* Avatar */}
             <div
-              className="flex items-center justify-center h-9 w-9 rounded-full text-white text-sm font-bold shrink-0"
+              className="flex items-center justify-center h-9 w-9 rounded-full text-white text-sm font-bold shrink-0 overflow-hidden"
               style={{
-                background: `linear-gradient(135deg, ${entry.levelColor}cc, ${entry.levelColor})`,
+                background: entry.avatarUrl ? undefined : `linear-gradient(135deg, ${entry.levelColor}cc, ${entry.levelColor})`,
               }}
             >
-              {entry.displayName.charAt(0).toUpperCase()}
+              {entry.avatarUrl ? (
+                <img src={entry.avatarUrl} alt={entry.displayName} className="w-full h-full object-cover" />
+              ) : (
+                entry.displayName.charAt(0).toUpperCase()
+              )}
             </div>
 
             {/* Info */}

@@ -17,6 +17,7 @@ import {
   Clock,
   MessageSquare,
   Trophy,
+  Sparkles,
   ChevronLeft,
   ChevronRight,
   X,
@@ -50,6 +51,11 @@ const navItems: NavItem[] = [
     title: 'Concluídos',
     href: '/student/completed',
     icon: Award,
+  },
+  {
+    title: 'Biblioteca IA',
+    href: '/student/library',
+    icon: Sparkles,
   },
   {
     title: 'Fórum',

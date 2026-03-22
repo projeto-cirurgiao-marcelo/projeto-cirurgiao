@@ -32,6 +32,7 @@ export interface ForumTopic {
     id: string;
     name: string;
     email: string;
+    profile?: { photoUrl: string | null } | null;
   };
   category?: ForumCategory;
   video?: {
@@ -60,6 +61,7 @@ export interface ForumReply {
     id: string;
     name: string;
     email: string;
+    profile?: { photoUrl: string | null } | null;
   };
   _count?: {
     votes: number;

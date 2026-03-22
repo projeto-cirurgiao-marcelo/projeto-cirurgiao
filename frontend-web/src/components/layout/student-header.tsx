@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAvatarStore } from '@/lib/stores/avatar-store';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { NotificationCenter } from '@/components/layout/notification-center';
@@ -21,6 +22,7 @@ import { useRouter } from 'next/navigation';
 export function StudentHeader() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const photoUrl = useAvatarStore((s) => s.photoUrl);
   const { isCollapsed } = useSidebarStore();
   const { isAdminViewingAsStudent, exitStudentView } = useViewModeStore();
   const router = useRouter();
@@ -103,6 +105,7 @@ export function StudentHeader() {
                     style={{ transform: profileOpen ? 'scale(1.1)' : 'scale(1)' }}
                   >
                     <Avatar className="h-8 w-8">
+                      <AvatarImage src={photoUrl || undefined} alt={user?.name || ''} />
                       <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white text-xs">
                         {user?.name?.charAt(0).toUpperCase() || 'E'}
                       </AvatarFallback>
