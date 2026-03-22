@@ -480,7 +480,7 @@ function MessageBubble({
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
             <div
-              className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-base prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5"
+              className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-h2:text-[0.9rem] prose-h3:text-[0.85rem] prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5"
               dangerouslySetInnerHTML={{
                 __html: formatMarkdown(message.content),
               }}
