@@ -31,6 +31,7 @@ export default function EditVideoPage() {
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [hlsUrl, setHlsUrl] = useState('');
 
   useEffect(() => {
     loadVideo();
@@ -44,6 +45,7 @@ export default function EditVideoPage() {
       setVideo(data);
       setTitle(data.title);
       setDescription(data.description || '');
+      setHlsUrl(data.hlsUrl || '');
     } catch (error) {
       console.error('Erro ao carregar vídeo:', error);
       toast({
@@ -72,6 +74,8 @@ export default function EditVideoPage() {
       await videosService.update(videoId, {
         title: title.trim(),
         description: description.trim() || undefined,
+        hlsUrl: hlsUrl.trim() || undefined,
+        videoSource: hlsUrl.trim() ? 'r2_hls' : undefined,
       });
       toast({
         title: 'Sucesso',
@@ -198,6 +202,19 @@ export default function EditVideoPage() {
                 placeholder="Descrição do vídeo (opcional)"
                 className="min-h-[100px]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hlsUrl">URL HLS (R2 CDN)</Label>
+              <Input
+                id="hlsUrl"
+                value={hlsUrl}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHlsUrl(e.target.value)}
+                placeholder="https://cdn.projetocirurgiao.app/videos/nome-do-video/playlist.m3u8"
+              />
+              <p className="text-xs text-muted-foreground">
+                URL do playlist .m3u8 no R2 para streaming em 4K. Quando preenchido, o player usa esta URL ao inves do Cloudflare Stream.
+              </p>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
