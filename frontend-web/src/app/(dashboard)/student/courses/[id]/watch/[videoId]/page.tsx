@@ -22,6 +22,13 @@ import { QuizCard } from '@/components/quiz/quiz-card';
 import { transcriptsService } from '@/lib/api/transcripts.service';
 import { captionsService } from '@/lib/api/captions.service';
 import { quizzesService, QuizStats } from '@/lib/api/quizzes.service';
+import dynamic from 'next/dynamic';
+import type { HlsPlayerRef } from '@/components/video-player/hls-video-player';
+
+const HlsVideoPlayer = dynamic(
+  () => import('@/components/video-player/hls-video-player'),
+  { ssr: false }
+);
 
 // Declaração de tipo para o SDK do Cloudflare Stream
 declare global {
@@ -79,6 +86,7 @@ export default function VideoPlayerPage() {
   const currentWatchTimeRef = useRef(0); // Ref para evitar stale closure
   const iframeRef = useRef<HTMLIFrameElement>(null); // Ref para o iframe do player Cloudflare
   const playerRef = useRef<CloudflareStreamPlayer | null>(null); // Ref para a API do player
+  const hlsPlayerRef = useRef<HlsPlayerRef>(null);
   const hasRestoredPosition = useRef(false); // Flag para restaurar posição apenas uma vez
   const hasCompletedInitialRestore = useRef(false); // Flag para indicar que a restauração inicial foi concluída
   const [isPlayerReady, setIsPlayerReady] = useState(false); // Flag para indicar que o player está pronto
@@ -231,9 +239,10 @@ export default function VideoPlayerPage() {
         setQuizStats(null);
       }
 
-      const isEmbedVideo = videoData.videoSource && videoData.videoSource !== 'cloudflare';
+      const isEmbedVideo = videoData.videoSource && videoData.videoSource !== 'cloudflare' && videoData.videoSource !== 'r2_hls';
+      const isHlsVideo = videoData.videoSource === 'r2_hls' && videoData.hlsUrl;
 
-      if (!isEmbedVideo) {
+      if (!isEmbedVideo && !isHlsVideo) {
         if (!videoData.cloudflareId) {
           setError('Vídeo ainda não foi enviado ao Cloudflare Stream');
           setCourse(courseData);
@@ -693,11 +702,35 @@ export default function VideoPlayerPage() {
 
   // Handler para seek (pular para um tempo específico)
   const handleSeek = useCallback((time: number) => {
-    if (playerRef.current) {
+    if (streamData?.type === 'hls' && hlsPlayerRef.current) {
+      console.log('[HlsPlayer] Seeking to:', time);
+      hlsPlayerRef.current.seekTo(time);
+      setPlayerCurrentTime(time);
+    } else if (playerRef.current) {
       console.log('[Player] Seeking to:', time);
       playerRef.current.currentTime = time;
       setPlayerCurrentTime(time);
     }
+  }, [streamData?.type]);
+
+  // Callbacks para o player HLS (R2)
+  const handleHlsTimeUpdate = useCallback((currentTime: number, duration: number) => {
+    setPlayerCurrentTime(currentTime);
+
+    if (playerDurationRef.current === 0 && duration > 0) {
+      playerDurationRef.current = duration;
+    }
+
+    if (currentTime > currentWatchTimeRef.current) {
+      setCurrentWatchTime(currentTime);
+      currentWatchTimeRef.current = currentTime;
+    }
+  }, []);
+
+  const handleHlsReady = useCallback((duration: number) => {
+    console.log('[HlsPlayer] Ready, duration:', duration);
+    playerDurationRef.current = duration;
+    setIsPlayerReady(true);
   }, []);
 
   const handleBackToAllCourses = () => {
@@ -725,7 +758,8 @@ export default function VideoPlayerPage() {
 
   const hasValidStreamData = streamData && (
     (streamData.type === 'cloudflare' && streamData.cloudflareId) ||
-    (streamData.type === 'embed' && streamData.embedUrl)
+    (streamData.type === 'embed' && streamData.embedUrl) ||
+    (streamData.type === 'hls' && streamData.hlsUrl)
   );
 
   // Error state
@@ -815,7 +849,16 @@ export default function VideoPlayerPage() {
 
             {/* Player Container */}
             <div className="bg-black rounded-lg overflow-hidden border border-gray-800 mb-3 sm:mb-4" style={{ aspectRatio: '16/9' }}>
-              {streamData?.type === 'cloudflare' && streamData.cloudflareId ? (
+              {streamData?.type === 'hls' && streamData.hlsUrl ? (
+                <HlsVideoPlayer
+                  ref={hlsPlayerRef}
+                  src={streamData.hlsUrl}
+                  initialTime={savedWatchTime}
+                  onTimeUpdate={handleHlsTimeUpdate}
+                  onReady={handleHlsReady}
+                  onEnded={handleVideoEnded}
+                />
+              ) : streamData?.type === 'cloudflare' && streamData.cloudflareId ? (
                 <iframe
                   ref={iframeRef}
                   src={`https://iframe.cloudflarestream.com/${streamData.cloudflareId.split('?')[0]}?preload=auto&previewThumbnails=true${savedWatchTime > 0 ? `&startTime=${savedWatchTime}` : ''}`}
