@@ -15,13 +15,14 @@ export interface DirectUploadResponse {
   video: Video;
 }
 
-// Interface para dados de streaming (Cloudflare ou embed)
+// Interface para dados de streaming (Cloudflare, embed ou HLS R2)
 export interface StreamDataResponse {
-  type: 'cloudflare' | 'embed';
+  type: 'cloudflare' | 'embed' | 'hls';
   cloudflareId?: string;
   cloudflareUrl?: string;
   embedUrl?: string;
-  videoSource?: 'youtube' | 'vimeo' | 'external' | 'cloudflare';
+  hlsUrl?: string;
+  videoSource?: 'youtube' | 'vimeo' | 'external' | 'cloudflare' | 'r2_hls';
 }
 
 // Interface para status de upload
@@ -196,7 +197,17 @@ export const videosService = {
     if (!video.isPublished) {
       throw new Error('Este vídeo não está publicado');
     }
-    
+
+    // Prioridade 0: Se tem hlsUrl (HLS do R2 CDN - suporta 4K)
+    if (video.hlsUrl) {
+      console.log('[videosService.getStreamUrl] Retornando como HLS R2 (tem hlsUrl)');
+      return {
+        type: 'hls',
+        hlsUrl: video.hlsUrl,
+        videoSource: 'r2_hls',
+      };
+    }
+
     // Prioridade 1: Se tem cloudflareId, é um vídeo Cloudflare
     if (video.cloudflareId) {
       console.log('[videosService.getStreamUrl] Retornando como Cloudflare (tem cloudflareId)');
