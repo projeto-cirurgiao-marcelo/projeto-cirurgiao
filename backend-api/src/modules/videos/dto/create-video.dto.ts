@@ -16,6 +16,7 @@ export enum VideoSource {
   YOUTUBE = 'youtube',
   VIMEO = 'vimeo',
   EXTERNAL = 'external',
+  R2_HLS = 'r2_hls',
 }
 
 export class CreateVideoDto {
@@ -75,6 +76,10 @@ export class CreateVideoDto {
   @IsString()
   @IsOptional()
   externalUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  hlsUrl?: string;
 
   @IsEnum(VideoSource)
   @IsOptional()
