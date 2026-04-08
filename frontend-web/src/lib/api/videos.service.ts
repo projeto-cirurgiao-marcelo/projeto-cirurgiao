@@ -183,17 +183,81 @@ export const videosService = {
    * Obter URL de streaming do vídeo para o player
    * Suporta tanto vídeos Cloudflare quanto embeds externos
    */
-  async getStreamUrl(id: string): Promise<StreamDataResponse> {
-    const video = await this.findOne(id);
-    
-    console.log('[videosService.getStreamUrl] Video data:', {
+  /**
+   * Resolve stream data a partir de um objeto Video já carregado (sem request adicional)
+   */
+  getStreamDataFromVideo(video: Video): StreamDataResponse {
+    console.log('[videosService.getStreamDataFromVideo] Video data:', {
       id: video.id,
       videoSource: video.videoSource,
       cloudflareId: video.cloudflareId,
-      cloudflareUrl: video.cloudflareUrl,
-      externalUrl: video.externalUrl,
+      hlsUrl: (video as any).hlsUrl,
     });
-    
+
+    // Prioridade 0: Se tem hlsUrl explícito (HLS do R2 CDN - suporta 4K)
+    if ((video as any).hlsUrl) {
+      console.log('[videosService] Retornando como HLS R2 (tem hlsUrl)');
+      return {
+        type: 'hls',
+        hlsUrl: (video as any).hlsUrl,
+        videoSource: 'r2_hls',
+      };
+    }
+
+    // Prioridade 0.5: Se externalUrl aponta para .m3u8 (HLS no R2/CDN)
+    if (video.externalUrl && video.externalUrl.includes('.m3u8')) {
+      console.log('[videosService] Retornando como HLS (externalUrl contém .m3u8)');
+      return {
+        type: 'hls',
+        hlsUrl: video.externalUrl,
+        videoSource: 'r2_hls',
+      };
+    }
+
+    // Prioridade 1: Se tem cloudflareId, é um vídeo Cloudflare
+    if (video.cloudflareId) {
+      return {
+        type: 'cloudflare',
+        cloudflareId: video.cloudflareId,
+        cloudflareUrl: video.cloudflareUrl || undefined,
+        videoSource: 'cloudflare',
+      };
+    }
+
+    // Prioridade 2: Se externalUrl contém cloudflarestream.com
+    if (video.externalUrl && video.externalUrl.includes('cloudflarestream.com')) {
+      let cloudflareId: string | null = null;
+      const customerMatch = video.externalUrl.match(/cloudflarestream\.com\/([a-f0-9]{32})/);
+      if (customerMatch) cloudflareId = customerMatch[1];
+      if (!cloudflareId) {
+        const iframeMatch = video.externalUrl.match(/cloudflarestream\.com\/([a-f0-9]+)/);
+        cloudflareId = iframeMatch ? iframeMatch[1] : null;
+      }
+      if (cloudflareId) {
+        return { type: 'cloudflare', cloudflareId, cloudflareUrl: video.externalUrl, videoSource: 'cloudflare' };
+      }
+    }
+
+    // Prioridade 3: embed externo
+    if (video.videoSource && video.videoSource !== 'cloudflare' && video.videoSource !== 'r2_hls' && video.externalUrl) {
+      return { type: 'embed', embedUrl: video.externalUrl, videoSource: video.videoSource as 'youtube' | 'vimeo' | 'external' };
+    }
+
+    // Fallback: cloudflareUrl sem cloudflareId
+    if (video.cloudflareUrl) {
+      const match = video.cloudflareUrl.match(/cloudflarestream\.com\/([a-f0-9]+)/);
+      const cfId = match ? match[1] : null;
+      if (cfId) {
+        return { type: 'cloudflare', cloudflareId: cfId, cloudflareUrl: video.cloudflareUrl, videoSource: 'cloudflare' };
+      }
+    }
+
+    throw new Error('Vídeo ainda não está disponível para streaming');
+  },
+
+  async getStreamUrl(id: string): Promise<StreamDataResponse> {
+    const video = await this.findOne(id);
+
     if (!video.isPublished) {
       throw new Error('Este vídeo não está publicado');
     }
@@ -204,6 +268,16 @@ export const videosService = {
       return {
         type: 'hls',
         hlsUrl: video.hlsUrl,
+        videoSource: 'r2_hls',
+      };
+    }
+
+    // Prioridade 0.5: Se externalUrl aponta para .m3u8 (HLS no R2/CDN)
+    if (video.externalUrl && video.externalUrl.includes('.m3u8')) {
+      console.log('[videosService.getStreamUrl] Retornando como HLS (externalUrl contém .m3u8)');
+      return {
+        type: 'hls',
+        hlsUrl: video.externalUrl,
         videoSource: 'r2_hls',
       };
     }

@@ -205,7 +205,6 @@ export default function VideoPlayerPage() {
       const coursePromise = coursesService.getById(courseId);
       const videoPromise = videosService.findOne(videoId);
       const progressPromise = progressService.getCourseProgress(courseId).catch(() => null);
-      const streamPromise = videosService.getStreamUrl(videoId);
       const transcriptPromise = transcriptsService.getByVideoId(videoId).catch(() => null);
 
       const [courseData, videoData, progressData, transcriptData] = await Promise.all([
@@ -258,7 +257,8 @@ export default function VideoPlayerPage() {
         }
       }
 
-      const streamInfo = await streamPromise;
+      // Resolve stream data localmente sem request extra (evita 429)
+      const streamInfo = videosService.getStreamDataFromVideo(videoData);
 
       if (progressData) {
         setCourseProgress(progressData);

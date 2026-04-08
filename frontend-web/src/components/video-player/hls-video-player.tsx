@@ -1,16 +1,14 @@
-"use client";
+'use client';
 
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
-} from "react";
-import videojs from "video.js";
-import type Player from "video.js/dist/types/player";
-import "video.js/dist/video-js.css";
-import "videojs-contrib-quality-levels";
-import "videojs-hls-quality-selector";
+  useState,
+} from 'react';
+import Hls from 'hls.js';
 
 export interface HlsPlayerRef {
   getCurrentTime: () => number;
@@ -18,6 +16,14 @@ export interface HlsPlayerRef {
   seekTo: (time: number) => void;
   play: () => void;
   pause: () => void;
+}
+
+interface QualityLevel {
+  index: number;
+  height: number;
+  width: number;
+  bitrate: number;
+  label: string;
 }
 
 interface HlsVideoPlayerProps {
@@ -33,155 +39,269 @@ interface HlsVideoPlayerProps {
 
 const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
   function HlsVideoPlayer(
-    {
-      src,
-      initialTime,
-      onTimeUpdate,
-      onReady,
-      onEnded,
-      onPlay,
-      onPause,
-      className,
-    },
+    { src, initialTime = 0, onTimeUpdate, onReady, onEnded, onPlay, onPause, className },
     ref
   ) {
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    const playerRef = useRef<Player | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const hlsRef = useRef<Hls | null>(null);
+    const hasRestoredPosition = useRef(false);
 
-    // Use refs for callbacks to avoid stale closures
+    // Callback refs to avoid stale closures
     const onTimeUpdateRef = useRef(onTimeUpdate);
     const onReadyRef = useRef(onReady);
     const onEndedRef = useRef(onEnded);
     const onPlayRef = useRef(onPlay);
     const onPauseRef = useRef(onPause);
 
-    useEffect(() => {
-      onTimeUpdateRef.current = onTimeUpdate;
-    }, [onTimeUpdate]);
+    useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
+    useEffect(() => { onReadyRef.current = onReady; }, [onReady]);
+    useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
+    useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
+    useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
 
-    useEffect(() => {
-      onReadyRef.current = onReady;
-    }, [onReady]);
+    // Quality levels state
+    const [qualities, setQualities] = useState<QualityLevel[]>([]);
+    const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = auto
+    const [showQualityMenu, setShowQualityMenu] = useState(false);
+    const [playbackRate, setPlaybackRate] = useState(1);
+    const [showRateMenu, setShowRateMenu] = useState(false);
 
-    useEffect(() => {
-      onEndedRef.current = onEnded;
-    }, [onEnded]);
-
-    useEffect(() => {
-      onPlayRef.current = onPlay;
-    }, [onPlay]);
-
-    useEffect(() => {
-      onPauseRef.current = onPause;
-    }, [onPause]);
-
+    // Expose imperative API
     useImperativeHandle(ref, () => ({
-      getCurrentTime: () => playerRef.current?.currentTime() ?? 0,
-      getDuration: () => playerRef.current?.duration() ?? 0,
+      getCurrentTime: () => videoRef.current?.currentTime ?? 0,
+      getDuration: () => videoRef.current?.duration ?? 0,
       seekTo: (time: number) => {
-        playerRef.current?.currentTime(time);
+        if (videoRef.current) {
+          videoRef.current.currentTime = time;
+        }
       },
-      play: () => {
-        playerRef.current?.play();
-      },
-      pause: () => {
-        playerRef.current?.pause();
-      },
-    }));
+      play: () => { videoRef.current?.play(); },
+      pause: () => { videoRef.current?.pause(); },
+    }), []);
 
+    // Change quality level
+    const handleQualityChange = useCallback((levelIndex: number) => {
+      if (hlsRef.current) {
+        hlsRef.current.currentLevel = levelIndex; // -1 = auto
+        setCurrentQuality(levelIndex);
+      }
+      setShowQualityMenu(false);
+    }, []);
+
+    // Change playback rate
+    const handleRateChange = useCallback((rate: number) => {
+      if (videoRef.current) {
+        videoRef.current.playbackRate = rate;
+        setPlaybackRate(rate);
+      }
+      setShowRateMenu(false);
+    }, []);
+
+    // Initialize HLS.js
     useEffect(() => {
-      if (!videoRef.current || playerRef.current) return;
+      const video = videoRef.current;
+      if (!video) return;
 
-      const player = videojs(videoRef.current, {
-        controls: true,
-        autoplay: false,
-        preload: "auto",
-        responsive: true,
-        fill: true,
-        playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
-        controlBar: {
-          children: [
-            "playToggle",
-            "volumePanel",
-            "currentTimeDisplay",
-            "timeDivider",
-            "durationDisplay",
-            "progressControl",
-            "remainingTimeDisplay",
-            "playbackRateMenuButton",
-            "chaptersButton",
-            "subtitlesButton",
-            "captionsButton",
-            "pictureInPictureToggle",
-            "fullscreenToggle",
-          ],
-        },
-        html5: {
-          vhs: {
-            overrideNative: true,
-            enableLowInitialPlaylist: false,
-          },
-          nativeAudioTracks: false,
-          nativeVideoTracks: false,
-        },
-        sources: [
-          {
-            src,
-            type: "application/x-mpegURL",
-          },
-        ],
-      });
+      // Sempre usar HLS.js quando disponivel (Chrome, Firefox, Edge)
+      if (Hls.isSupported()) {
+        console.log('[HlsPlayer] Initializing HLS.js with src:', src);
 
-      // Activate quality selector plugin
-      (player as any).hlsQualitySelector({ displayCurrentQuality: true });
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          startLevel: -1,
+        });
 
-      player.on("loadedmetadata", () => {
-        const duration = player.duration() ?? 0;
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        hlsRef.current = hls;
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+          console.log('[HlsPlayer] Manifest parsed, levels:', data.levels.length);
+          const levels: QualityLevel[] = data.levels.map((level, index) => ({
+            index,
+            height: level.height,
+            width: level.width,
+            bitrate: level.bitrate,
+            label: level.height >= 2160 ? '4K' : `${level.height}p`,
+          }));
+          levels.sort((a, b) => a.height - b.height);
+          setQualities(levels);
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+          console.log('[HlsPlayer] Level switched to:', data.level);
+        });
+
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          console.error('[HlsPlayer] HLS error:', data.type, data.details);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                break;
+            }
+          }
+        });
+
+        return () => {
+          hls.destroy();
+          hlsRef.current = null;
+        };
+      }
+
+      // Fallback: Native HLS (Safari/iOS apenas)
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        console.log('[HlsPlayer] Using native HLS (Safari)');
+        video.src = src;
+        return;
+      }
+
+      console.error('[HlsPlayer] HLS not supported in this browser');
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [src]);
+
+    // Video element event listeners
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      const handleTimeUpdate = () => {
+        onTimeUpdateRef.current?.(video.currentTime, video.duration || 0);
+      };
+
+      const handleLoadedMetadata = () => {
+        const duration = video.duration || 0;
+        console.log('[HlsPlayer] loadedmetadata, duration:', duration);
         onReadyRef.current?.(duration);
 
-        if (initialTime && initialTime > 0) {
-          player.currentTime(initialTime);
+        if (initialTime > 0 && !hasRestoredPosition.current) {
+          hasRestoredPosition.current = true;
+          console.log('[HlsPlayer] Restoring position to:', initialTime);
+          video.currentTime = initialTime;
         }
-      });
+      };
 
-      player.on("timeupdate", () => {
-        const currentTime = player.currentTime() ?? 0;
-        const duration = player.duration() ?? 0;
-        onTimeUpdateRef.current?.(currentTime, duration);
-      });
-
-      player.on("ended", () => {
+      const handleEnded = () => {
+        console.log('[HlsPlayer] Video ended');
         onEndedRef.current?.();
-      });
+      };
 
-      player.on("play", () => {
-        onPlayRef.current?.();
-      });
+      const handlePlay = () => { onPlayRef.current?.(); };
+      const handlePause = () => { onPauseRef.current?.(); };
 
-      player.on("pause", () => {
-        onPauseRef.current?.();
-      });
-
-      playerRef.current = player;
+      video.addEventListener('timeupdate', handleTimeUpdate);
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      video.addEventListener('ended', handleEnded);
+      video.addEventListener('play', handlePlay);
+      video.addEventListener('pause', handlePause);
 
       return () => {
-        if (playerRef.current) {
-          playerRef.current.dispose();
-          playerRef.current = null;
-        }
+        video.removeEventListener('timeupdate', handleTimeUpdate);
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        video.removeEventListener('ended', handleEnded);
+        video.removeEventListener('play', handlePlay);
+        video.removeEventListener('pause', handlePause);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Close menus when clicking outside
+    useEffect(() => {
+      const handleClickOutside = () => {
+        setShowQualityMenu(false);
+        setShowRateMenu(false);
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
+
+    const currentQualityLabel = currentQuality === -1
+      ? 'Auto'
+      : qualities.find(q => q.index === currentQuality)?.label ?? 'Auto';
+
+    const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
     return (
-      <div className={className} data-vjs-player>
+      <div className={`relative w-full h-full bg-black ${className ?? ''}`}>
         <video
           ref={videoRef}
-          className="video-js vjs-big-play-centered"
+          className="w-full h-full"
+          controls
           playsInline
           crossOrigin="anonymous"
-          style={{ width: "100%", height: "100%" }}
         />
+
+        {/* Custom controls overlay - Quality & Speed */}
+        <div className="absolute bottom-14 right-2 flex items-center gap-1 z-10">
+          {/* Playback Rate Selector */}
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => { setShowRateMenu(!showRateMenu); setShowQualityMenu(false); }}
+              className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded transition-colors"
+              title="Velocidade"
+            >
+              {playbackRate}x
+            </button>
+            {showRateMenu && (
+              <div className="absolute bottom-full right-0 mb-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[80px]">
+                {rates.map((rate) => (
+                  <button
+                    key={rate}
+                    onClick={() => handleRateChange(rate)}
+                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 transition-colors ${
+                      playbackRate === rate ? 'bg-white/30 font-bold' : ''
+                    }`}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quality Selector */}
+          {qualities.length > 1 && (
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => { setShowQualityMenu(!showQualityMenu); setShowRateMenu(false); }}
+                className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded transition-colors"
+                title="Qualidade"
+              >
+                {currentQualityLabel}
+              </button>
+              {showQualityMenu && (
+                <div className="absolute bottom-full right-0 mb-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                  <button
+                    onClick={() => handleQualityChange(-1)}
+                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 transition-colors ${
+                      currentQuality === -1 ? 'bg-white/30 font-bold' : ''
+                    }`}
+                  >
+                    Auto
+                  </button>
+                  {qualities.map((q) => (
+                    <button
+                      key={q.index}
+                      onClick={() => handleQualityChange(q.index)}
+                      className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 transition-colors ${
+                        currentQuality === q.index ? 'bg-white/30 font-bold' : ''
+                      }`}
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }

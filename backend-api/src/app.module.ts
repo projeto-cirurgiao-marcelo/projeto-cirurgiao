@@ -37,7 +37,7 @@ import { AiLibraryModule } from './modules/ai-library/ai-library.module';
       {
         name: 'short',
         ttl: 1000,   // 1 segundo
-        limit: 5,    // máx 5 requests/segundo por IP
+        limit: 20,   // máx 20 requests/segundo por IP
       },
       {
         name: 'medium',
