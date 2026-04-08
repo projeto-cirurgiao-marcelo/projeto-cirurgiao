@@ -48,7 +48,7 @@ export interface Module {
 
 export type VideoUploadStatus = 'PENDING' | 'UPLOADING' | 'PROCESSING' | 'READY' | 'ERROR';
 
-export type VideoSource = 'cloudflare' | 'youtube' | 'vimeo' | 'external';
+export type VideoSource = 'cloudflare' | 'youtube' | 'vimeo' | 'external' | 'r2_hls';
 
 export interface Video {
   id: string;
@@ -65,6 +65,7 @@ export interface Video {
   uploadProgress: number;
   uploadError: string | null;
   externalUrl: string | null;
+  hlsUrl: string | null;
   videoSource: VideoSource;
   createdAt: string;
   updatedAt: string;
@@ -135,7 +136,8 @@ export interface UpdateVideoDto {
   cloudflareId?: string;
   cloudflareUrl?: string;
   externalUrl?: string;
-  videoSource?: 'cloudflare' | 'youtube' | 'vimeo' | 'external';
+  hlsUrl?: string;
+  videoSource?: 'cloudflare' | 'youtube' | 'vimeo' | 'external' | 'r2_hls';
   uploadStatus?: VideoUploadStatus;
 }
 
