@@ -16,17 +16,29 @@ export class AiThumbnailService {
 
   constructor() {
     // Carregar imagem de fundo uma unica vez
-    try {
-      const bgPath = path.join(__dirname, 'thumbnail-bg.base64.txt');
-      if (fs.existsSync(bgPath)) {
-        const base64 = fs.readFileSync(bgPath, 'utf-8').trim();
-        this.backgroundBuffer = Buffer.from(base64, 'base64');
-        this.logger.log(`Background image loaded (${Math.round(this.backgroundBuffer.length / 1024)}KB)`);
-      } else {
-        this.logger.warn('thumbnail-bg.base64.txt not found');
+    // Tentar multiplos caminhos (webpack __dirname = dist/, Docker copia para dist/modules/...)
+    const possiblePaths = [
+      path.join(__dirname, 'thumbnail-bg.base64.txt'),
+      path.join(__dirname, 'modules', 'ai-summaries', 'thumbnail-bg.base64.txt'),
+      path.join(process.cwd(), 'dist', 'modules', 'ai-summaries', 'thumbnail-bg.base64.txt'),
+      path.join(process.cwd(), 'src', 'modules', 'ai-summaries', 'thumbnail-bg.base64.txt'),
+    ];
+
+    for (const bgPath of possiblePaths) {
+      try {
+        if (fs.existsSync(bgPath)) {
+          const base64 = fs.readFileSync(bgPath, 'utf-8').trim();
+          this.backgroundBuffer = Buffer.from(base64, 'base64');
+          this.logger.log(`Background image loaded from ${bgPath} (${Math.round(this.backgroundBuffer.length / 1024)}KB)`);
+          break;
+        }
+      } catch (error) {
+        // Tentar proximo caminho
       }
-    } catch (error) {
-      this.logger.warn('Failed to load background image:', error.message);
+    }
+
+    if (!this.backgroundBuffer) {
+      this.logger.warn('thumbnail-bg.base64.txt not found in any path');
     }
   }
 
