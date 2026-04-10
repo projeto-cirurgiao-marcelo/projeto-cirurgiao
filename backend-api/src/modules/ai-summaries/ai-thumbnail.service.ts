@@ -1,37 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as sharp from 'sharp';
 
 interface GenerateThumbnailParams {
   title: string;
   overlayText?: string;
-  style?: 'medical' | 'surgical' | 'anatomy' | 'clinical';
+  style?: string; // mantido para compatibilidade, ignorado
 }
 
 @Injectable()
 export class AiThumbnailService {
   private readonly logger = new Logger(AiThumbnailService.name);
-  private readonly apiKey: string;
-  private backgroundBase64: string | null = null;
+  private backgroundBuffer: Buffer | null = null;
 
-  constructor(private configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('VERTEX_AI_API_KEY') || '';
-
-    if (!this.apiKey) {
-      this.logger.warn('VERTEX_AI_API_KEY not set — thumbnail generation will not work');
-    } else {
-      this.logger.log('AI Thumbnail Service initialized (Gemini 3 Pro Image)');
-    }
-
-    // Carregar imagem de fundo (base64) uma unica vez na inicializacao
+  constructor() {
+    // Carregar imagem de fundo uma unica vez
     try {
       const bgPath = path.join(__dirname, 'thumbnail-bg.base64.txt');
       if (fs.existsSync(bgPath)) {
-        this.backgroundBase64 = fs.readFileSync(bgPath, 'utf-8').trim();
-        this.logger.log(`Background image loaded (${Math.round(this.backgroundBase64.length / 1024)}KB base64)`);
+        const base64 = fs.readFileSync(bgPath, 'utf-8').trim();
+        this.backgroundBuffer = Buffer.from(base64, 'base64');
+        this.logger.log(`Background image loaded (${Math.round(this.backgroundBuffer.length / 1024)}KB)`);
       } else {
-        this.logger.warn('thumbnail-bg.base64.txt not found — thumbnails without background');
+        this.logger.warn('thumbnail-bg.base64.txt not found');
       }
     } catch (error) {
       this.logger.warn('Failed to load background image:', error.message);
@@ -39,112 +31,107 @@ export class AiThumbnailService {
   }
 
   /**
-   * Gera uma thumbnail usando Gemini 3 Pro Image via Gemini API
-   * Usa imagem de fundo fixa do Projeto Cirurgiao + titulo da aula
+   * Gera thumbnail com Sharp: background fixo + titulo sobreposto
    */
   async generateThumbnail(params: GenerateThumbnailParams): Promise<{ buffer: Buffer; mimeType: string }> {
     const { title, overlayText } = params;
-
     const displayText = overlayText || title;
 
-    const prompt = `You are designing a thumbnail for a veterinary surgery online course video.
+    this.logger.log(`Generating thumbnail for: "${displayText}"`);
 
-BACKGROUND: I'm providing the official background image of the "Projeto Cirurgiao" platform. You MUST use this exact image as the background — do not change, replace, or ignore it.
+    if (!this.backgroundBuffer) {
+      throw new Error('Background image not loaded');
+    }
 
-TASK: Add the following text as an overlay on this background image:
-"${displayText}"
+    // Dimensoes do thumbnail (16:9)
+    const width = 1280;
+    const height = 720;
 
-TEXT RULES:
-- The text must be the MAIN focus of the image
-- Use a large, bold, modern sans-serif font (like Montserrat or Inter)
-- Text color: white (#FFFFFF)
-- Place a subtle dark gradient or semi-transparent overlay behind the text for readability
-- Center the text horizontally, positioned in the center or lower third
-- If the text is long, break it into 2 lines maximum
-- Keep the text clean and professional
+    // Preparar texto: quebrar em linhas se muito longo
+    const lines = this.wrapText(displayText, 25);
+    const fontSize = lines.length > 2 ? 52 : lines.length > 1 ? 60 : 72;
+    const lineHeight = fontSize * 1.3;
+    const totalTextHeight = lines.length * lineHeight;
+    const textStartY = height - totalTextHeight - 80; // Posicionar no terco inferior
 
-IMPORTANT:
-- Always consider the lesson title as reference for the mood
-- Do NOT add any other text, logos, or watermarks
-- Do NOT change the background — only add the text overlay
-- The result must be 16:9 aspect ratio
-- Output a high-quality image`;
+    // Criar SVG com texto e gradiente
+    const textElements = lines.map((line, i) => {
+      const y = textStartY + (i * lineHeight) + fontSize;
+      return `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="700" fill="white" letter-spacing="1">${this.escapeXml(line)}</text>`;
+    }).join('\n');
 
-    this.logger.log(`Generating thumbnail for: "${title}"`);
+    // Gradiente escuro no terco inferior para contraste
+    const gradientTop = Math.max(textStartY - 60, height * 0.4);
+
+    const svgOverlay = `
+      <svg width="${width}" height="${height}">
+        <defs>
+          <linearGradient id="textGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="black" stop-opacity="0"/>
+            <stop offset="40%" stop-color="black" stop-opacity="0"/>
+            <stop offset="100%" stop-color="black" stop-opacity="0.75"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="${gradientTop}" width="${width}" height="${height - gradientTop}" fill="url(#textGrad)"/>
+        ${textElements}
+      </svg>
+    `;
 
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent`;
-
-      // Construir parts: texto + imagem de fundo (se disponivel)
-      const parts: any[] = [{ text: prompt }];
-
-      if (this.backgroundBase64) {
-        parts.push({
-          inlineData: {
-            mimeType: 'image/png',
-            data: this.backgroundBase64,
+      const result = await sharp(this.backgroundBuffer)
+        .resize(width, height, { fit: 'cover' })
+        .composite([
+          {
+            input: Buffer.from(svgOverlay),
+            top: 0,
+            left: 0,
           },
-        });
-      }
+        ])
+        .png({ quality: 90 })
+        .toBuffer();
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'x-goog-api-key': this.apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts,
-            },
-          ],
-          generationConfig: {
-            responseModalities: ['TEXT', 'IMAGE'],
-            imageConfig: {
-              aspectRatio: '16:9',
-              imageSize: '1K',
-            },
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`Gemini API error: ${response.status} - ${errorText.substring(0, 500)}`);
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      const candidates = data.candidates;
-      if (!candidates || candidates.length === 0) {
-        this.logger.error(`No candidates: ${JSON.stringify(data).substring(0, 500)}`);
-        throw new Error('Gemini nao gerou resposta');
-      }
-
-      const responseParts = candidates[0]?.content?.parts || [];
-      this.logger.log(`Response parts: ${responseParts.length}`);
-
-      for (const part of responseParts) {
-        if (part.inlineData || part.inline_data) {
-          const inlineData = part.inlineData || part.inline_data;
-          const mimeType = inlineData.mimeType || inlineData.mime_type || 'image/png';
-          this.logger.log(`Found image: mimeType=${mimeType}`);
-          const imageBuffer = Buffer.from(inlineData.data, 'base64');
-          this.logger.log(`Thumbnail generated (${imageBuffer.length} bytes)`);
-          return { buffer: imageBuffer, mimeType };
-        }
-        if (part.text) {
-          this.logger.log(`Text: ${part.text.substring(0, 100)}`);
-        }
-      }
-
-      this.logger.error(`No image in response. Parts: ${JSON.stringify(responseParts.map(p => Object.keys(p)))}`);
-      throw new Error('Gemini nao retornou imagem');
+      this.logger.log(`Thumbnail generated: ${result.length} bytes`);
+      return { buffer: result, mimeType: 'image/png' };
     } catch (error) {
       this.logger.error('Error generating thumbnail:', error);
       throw error;
     }
+  }
+
+  /**
+   * Quebra texto em linhas de no maximo maxChars caracteres
+   */
+  private wrapText(text: string, maxChars: number): string[] {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      if (currentLine.length + word.length + 1 > maxChars && currentLine.length > 0) {
+        lines.push(currentLine.trim());
+        currentLine = word;
+      } else {
+        currentLine += (currentLine ? ' ' : '') + word;
+      }
+    }
+
+    if (currentLine.trim()) {
+      lines.push(currentLine.trim());
+    }
+
+    // Maximo 3 linhas
+    return lines.slice(0, 3);
+  }
+
+  /**
+   * Escapa caracteres especiais para SVG/XML
+   */
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 }

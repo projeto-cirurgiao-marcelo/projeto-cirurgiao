@@ -45,7 +45,7 @@ export class AiSummariesService {
 
     // 2. Buscar conteudo de texto do VTT no R2
     const textContent = await this.vttTextService.getPlainText(videoId);
-    const contentSource = 'vtt';
+    const contentSource: 'transcript' | 'caption' = 'caption';
 
     if (!textContent) {
       throw new BadRequestException(
