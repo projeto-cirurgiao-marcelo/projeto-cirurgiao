@@ -967,6 +967,9 @@ profile.service.ts          - Perfil, alteracao de senha
 | Score de quiz 1600% | ✅ Corrigido | Removida dupla conversao de porcentagem |
 | Dropdown cortado na tabela de alunos | ✅ Corrigido | Mudado para `position: fixed` |
 | OOM na Biblioteca IA | ⚠️ Paliativo | Aumentado para 2Gi. Solucao real: pgvector |
+| SVG text rendering no Docker | ✅ Corrigido (v71, 10/04/2026) | SVG nao renderizava fontes no Linux. Fix: usar Pango text input do Sharp |
+| Cloud Run revisao nao recebia trafego | ✅ Corrigido (10/04/2026) | Deploy criava revisao mas trafego ficava na anterior. Fix: `--to-latest` |
+| Rate limit 429 no watch page | ✅ Corrigido (10/04/2026) | getStreamUrl fazia findOne duplicado. Fix: getStreamDataFromVideo local + rate 20 req/s |
 
 ---
 
@@ -1165,8 +1168,9 @@ DATABASE_URL="postgresql://app_cirurgiao:SENHA@35.199.87.196:5432/projeto_cirurg
 9. **Legendas:** Arquivos VTT no R2 CDN (`subtitles_pt.vtt`). Cloudflare Stream suporta 12 idiomas como fallback.
 10. **Video HLS 4K:** Videos servidos via HLS do R2 CDN (playlist.m3u8). Player detecta automaticamente URLs .m3u8 no campo `externalUrl`. Campo `hlsUrl` disponivel para definicao explicita. Cloudflare Stream mantido como fallback (1080p max).
 11. **Fonte de texto para IA:** VttTextService busca VTT do R2, parseia e cacheia (5min). Usado por ai-summaries, quizzes e ai-chat. VideoTranscript (DB) descontinuado como fonte primaria.
-12. **Thumbnails com IA:** Geradas via Sharp (nao Gemini). Background fixo do Projeto Cirurgiao + titulo da aula em texto branco centralizado. Instantaneo (~100ms). Arquivo base64 em `thumbnail-bg.base64.txt`.
-13. **Webpack desabilitado:** `nest-cli.json` usa `webpack: false` para compatibilidade com Sharp (modulo nativo C++).
+12. **Thumbnails com Sharp:** Background fixo do Projeto Cirurgiao + titulo via Pango text rendering. Sharp como external no webpack (`webpack.config.js`). Fontes `fonts-dejavu-core` e `fonts-liberation` instaladas no Docker. Arquivo base64 em `thumbnail-bg.base64.txt` copiado para `dist/` no Dockerfile.
+13. **Webpack config:** `webpack: true` com `webpack.config.js` que marca `sharp`, `bcrypt`, `node-pre-gyp`, `aws-sdk`, `mock-aws-s3`, `nock` como externals (modulos nativos C++ nao podem ser bundlados).
+14. **Cloud Run deploy:** Usar `--to-latest` no traffic routing para auto-rotear novas revisoes. Revisao atual: v71. Sempre forcar trafego apos deploy se a nova revisao nao receber 100%.
 
 ---
 
