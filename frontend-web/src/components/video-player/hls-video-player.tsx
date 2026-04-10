@@ -133,20 +133,26 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           console.log('[HlsPlayer] Level switched to:', data.level);
         });
 
+        let recoverAttempts = 0;
+        const MAX_RECOVER = 3;
+
         hls.on(Hls.Events.ERROR, (_event, data) => {
-          console.error('[HlsPlayer] HLS error:', data.type, data.details);
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError();
-                break;
-              default:
-                hls.destroy();
-                break;
-            }
+          if (!data.fatal) return; // Ignorar erros nao-fatais silenciosamente
+
+          console.warn('[HlsPlayer] Fatal error:', data.type, data.details);
+
+          recoverAttempts++;
+          if (recoverAttempts > MAX_RECOVER) {
+            console.error('[HlsPlayer] Max recovery attempts reached, stopping.');
+            hls.destroy();
+            return;
+          }
+
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            // Network/parsing errors: nao tentar retry automatico (causa loop infinito)
+            hls.destroy();
           }
         });
 
@@ -212,14 +218,17 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Close menus when clicking outside
+    // Close menus when clicking outside (use mousedown to avoid React synthetic event conflict)
+    const controlsRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
-      const handleClickOutside = () => {
-        setShowQualityMenu(false);
-        setShowRateMenu(false);
+      const handleClickOutside = (e: MouseEvent) => {
+        if (controlsRef.current && !controlsRef.current.contains(e.target as Node)) {
+          setShowQualityMenu(false);
+          setShowRateMenu(false);
+        }
       };
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const currentQualityLabel = currentQuality === -1
@@ -227,6 +236,22 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       : qualities.find(q => q.index === currentQuality)?.label ?? 'Auto';
 
     const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+    // Derivar URL do VTT a partir do m3u8 (mesmo diretorio no R2)
+    const subtitleUrl = src.replace(/playlist\.m3u8$/, 'subtitles_pt.vtt');
+
+    // Verificar se o VTT existe (HEAD request uma vez)
+    const [hasSubtitles, setHasSubtitles] = useState(false);
+    useEffect(() => {
+      fetch(subtitleUrl, { method: 'HEAD' })
+        .then(res => {
+          if (res.ok) {
+            setHasSubtitles(true);
+            console.log('[HlsPlayer] Subtitles found:', subtitleUrl);
+          }
+        })
+        .catch(() => { /* VTT nao existe, ok */ });
+    }, [subtitleUrl]);
 
     return (
       <div className={`relative w-full h-full bg-black ${className ?? ''}`}>
@@ -236,15 +261,33 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           controls
           playsInline
           crossOrigin="anonymous"
-        />
+        >
+          {hasSubtitles && (
+            <track
+              kind="subtitles"
+              src={subtitleUrl}
+              srcLang="pt"
+              label="Portugues"
+              default
+            />
+          )}
+        </video>
 
         {/* Custom controls overlay - Quality & Speed */}
-        <div className="absolute bottom-14 right-2 flex items-center gap-1 z-10">
+        <div
+          ref={controlsRef}
+          className="absolute bottom-14 right-2 flex items-center gap-1"
+          style={{ zIndex: 2147483647 }}
+        >
           {/* Playback Rate Selector */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div className="relative">
             <button
-              onClick={() => { setShowRateMenu(!showRateMenu); setShowQualityMenu(false); }}
-              className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded transition-colors"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                setShowRateMenu(prev => !prev);
+                setShowQualityMenu(false);
+              }}
+              className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded cursor-pointer select-none"
               title="Velocidade"
             >
               {playbackRate}x
@@ -254,8 +297,8 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
                 {rates.map((rate) => (
                   <button
                     key={rate}
-                    onClick={() => handleRateChange(rate)}
-                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 transition-colors ${
+                    onMouseDown={(e) => { e.stopPropagation(); handleRateChange(rate); }}
+                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
                       playbackRate === rate ? 'bg-white/30 font-bold' : ''
                     }`}
                   >
@@ -268,10 +311,14 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
           {/* Quality Selector */}
           {qualities.length > 1 && (
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <div className="relative">
               <button
-                onClick={() => { setShowQualityMenu(!showQualityMenu); setShowRateMenu(false); }}
-                className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded transition-colors"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setShowQualityMenu(prev => !prev);
+                  setShowRateMenu(false);
+                }}
+                className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded cursor-pointer select-none"
                 title="Qualidade"
               >
                 {currentQualityLabel}
@@ -279,8 +326,8 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
               {showQualityMenu && (
                 <div className="absolute bottom-full right-0 mb-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
                   <button
-                    onClick={() => handleQualityChange(-1)}
-                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 transition-colors ${
+                    onMouseDown={(e) => { e.stopPropagation(); handleQualityChange(-1); }}
+                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
                       currentQuality === -1 ? 'bg-white/30 font-bold' : ''
                     }`}
                   >
@@ -289,8 +336,8 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
                   {qualities.map((q) => (
                     <button
                       key={q.index}
-                      onClick={() => handleQualityChange(q.index)}
-                      className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 transition-colors ${
+                      onMouseDown={(e) => { e.stopPropagation(); handleQualityChange(q.index); }}
+                      className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
                         currentQuality === q.index ? 'bg-white/30 font-bold' : ''
                       }`}
                     >
