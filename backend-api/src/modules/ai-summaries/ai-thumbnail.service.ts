@@ -48,31 +48,29 @@ export class AiThumbnailService {
     const height = 720;
 
     // Preparar texto: quebrar em linhas se muito longo
-    const lines = this.wrapText(displayText, 25);
-    const fontSize = lines.length > 2 ? 52 : lines.length > 1 ? 60 : 72;
+    const lines = this.wrapText(displayText, 20);
+    const fontSize = lines.length > 2 ? 72 : lines.length > 1 ? 84 : 96;
     const lineHeight = fontSize * 1.3;
     const totalTextHeight = lines.length * lineHeight;
-    const textStartY = height - totalTextHeight - 80; // Posicionar no terco inferior
+    // Centralizar verticalmente
+    const textStartY = (height - totalTextHeight) / 2;
 
     // Criar SVG com texto e gradiente
     const textElements = lines.map((line, i) => {
       const y = textStartY + (i * lineHeight) + fontSize;
-      return `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="700" fill="white" letter-spacing="1">${this.escapeXml(line)}</text>`;
+      return `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="800" fill="white" letter-spacing="2">${this.escapeXml(line)}</text>`;
     }).join('\n');
-
-    // Gradiente escuro no terco inferior para contraste
-    const gradientTop = Math.max(textStartY - 60, height * 0.4);
 
     const svgOverlay = `
       <svg width="${width}" height="${height}">
         <defs>
           <linearGradient id="textGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="black" stop-opacity="0"/>
-            <stop offset="40%" stop-color="black" stop-opacity="0"/>
-            <stop offset="100%" stop-color="black" stop-opacity="0.75"/>
+            <stop offset="0%" stop-color="black" stop-opacity="0.3"/>
+            <stop offset="50%" stop-color="black" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="black" stop-opacity="0.3"/>
           </linearGradient>
         </defs>
-        <rect x="0" y="${gradientTop}" width="${width}" height="${height - gradientTop}" fill="url(#textGrad)"/>
+        <rect x="0" y="0" width="${width}" height="${height}" fill="url(#textGrad)"/>
         ${textElements}
       </svg>
     `;
