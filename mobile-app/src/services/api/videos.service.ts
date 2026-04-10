@@ -73,7 +73,15 @@ export const videosService = {
       }
     }
 
-    // Prioridade 4: externalUrl genérica (YouTube, Vimeo, etc.)
+    // Prioridade 4: externalUrl com .m3u8 (HLS no R2/CDN)
+    if (video.externalUrl && video.externalUrl.includes('.m3u8')) {
+      return {
+        type: 'cloudflare',
+        hlsUrl: video.externalUrl,
+      };
+    }
+
+    // Prioridade 5: externalUrl genérica (YouTube, Vimeo, etc.)
     if (video.externalUrl) {
       return {
         type: 'embed',
