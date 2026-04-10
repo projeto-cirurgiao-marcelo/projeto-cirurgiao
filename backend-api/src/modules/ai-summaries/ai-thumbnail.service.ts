@@ -70,7 +70,7 @@ export class AiThumbnailService {
     // Criar SVG com texto e gradiente
     const textElements = lines.map((line, i) => {
       const y = textStartY + (i * lineHeight) + fontSize;
-      return `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="800" fill="white" letter-spacing="2">${this.escapeXml(line)}</text>`;
+      return `<text x="50%" y="${y}" text-anchor="middle" font-family="Liberation Sans, DejaVu Sans, Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="800" fill="white" letter-spacing="2">${this.escapeXml(line)}</text>`;
     }).join('\n');
 
     const svgOverlay = `
