@@ -199,9 +199,9 @@ export function VideoCaptionsManager({
     }
   };
 
-  // Verificar VTT no R2 para videos HLS (sem cloudflareId)
+  // Derivar URL do VTT para videos HLS (sem cloudflareId)
   useEffect(() => {
-    if (cloudflareId) return; // Cloudflare tem seu proprio sistema
+    if (cloudflareId) return;
 
     const m3u8Url = hlsUrl || externalUrl;
     if (!m3u8Url || !m3u8Url.includes('.m3u8')) {
@@ -210,9 +210,9 @@ export function VideoCaptionsManager({
     }
 
     const vttUrl = m3u8Url.replace('playlist.m3u8', 'subtitles_pt.vtt');
-    fetch(vttUrl, { method: 'HEAD' })
-      .then(res => setVttStatus({ available: res.ok, url: vttUrl }))
-      .catch(() => setVttStatus({ available: false, url: vttUrl }));
+    // Nao usar HEAD request (CORS bloqueia em R2 publico)
+    // Assumir disponivel se o video tem m3u8 - admin pode verificar via link
+    setVttStatus({ available: true, url: vttUrl });
   }, [cloudflareId, hlsUrl, externalUrl]);
 
   // Video R2/HLS sem cloudflareId - mostrar status do VTT

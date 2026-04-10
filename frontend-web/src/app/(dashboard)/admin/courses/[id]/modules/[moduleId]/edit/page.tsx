@@ -48,7 +48,6 @@ import { modulesService, videosService } from '@/lib/api';
 import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types';
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 import { VideoMaterialsManager } from '@/components/admin/video-materials-manager';
-import { VideoTranscriptManager } from '@/components/admin/video-transcript-manager';
 import { VideoCaptionsManager } from '@/components/admin/video-captions-manager';
 import { VideoQuizManager } from '@/components/admin/video-quiz-manager';
 import { aiTextService } from '@/lib/api/ai-text.service';
@@ -1495,14 +1494,9 @@ export default function EditModulePage() {
                   videoId={editingVideo.id}
                   videoStatus={editingVideo.uploadStatus || 'READY'}
                   cloudflareId={editingVideo.cloudflareId}
+                  hlsUrl={(editingVideo as any).hlsUrl}
+                  externalUrl={editingVideo.externalUrl}
                 />
-              </div>
-            )}
-
-            {/* Transcrição do Vídeo */}
-            {editingVideo && (
-              <div className="border-t pt-4">
-                <VideoTranscriptManager videoId={editingVideo.id} />
               </div>
             )}
 
