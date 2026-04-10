@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
-import { CaptionsService } from '../captions/captions.service';
+import { VttTextService } from '../../shared/vtt/vtt-text.service';
 import { VertexEmbeddingsService, SearchResult } from './services/vertex-embeddings.service';
 import { VertexChatService, ChatContext, ChatResponse } from './services/vertex-chat.service';
 import { TranscriptChunkingService } from './services/transcript-chunking.service';
@@ -35,7 +35,7 @@ export class AiChatService {
     private readonly chatService: VertexChatService,
     private readonly chunkingService: TranscriptChunkingService,
     private readonly gamificationService: GamificationService,
-    private readonly captionsService: CaptionsService,
+    private readonly vttTextService: VttTextService,
   ) {}
 
   /**
@@ -426,16 +426,12 @@ export class AiChatService {
   }
 
   /**
-   * Busca transcrição diretamente do vídeo quando não há chunks indexados
+   * Busca legendas VTT do R2 e cria chunks para contexto do chat
    */
   private async getTranscriptDirectly(videoId: string): Promise<any[]> {
-    // Buscar vídeo
     const video = await this.prisma.video.findUnique({
       where: { id: videoId },
-      select: {
-        id: true,
-        title: true,
-      },
+      select: { id: true, title: true },
     });
 
     if (!video) {
@@ -443,68 +439,12 @@ export class AiChatService {
       return [];
     }
 
-    // Buscar transcrição do modelo VideoTranscript
-    const transcript = await this.prisma.videoTranscript.findFirst({
-      where: { videoId },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Buscar segmentos do VTT no R2
+    const segments = await this.vttTextService.getSegments(videoId);
 
-    if (!transcript) {
-      this.logger.warn(`Video ${videoId} has no transcript in DB, trying Cloudflare captions...`);
+    if (segments.length > 0) {
+      this.logger.log(`Using VTT segments for video ${videoId} (${segments.length} segments)`);
 
-      // Fallback: buscar legendas (captions) geradas pelo Cloudflare
-      try {
-        const captions = await this.captionsService.listCaptions(videoId);
-        const preferredLanguages = ['pt', 'en', 'es', 'fr', 'de', 'it'];
-        let captionToUse = null;
-        for (const lang of preferredLanguages) {
-          captionToUse = captions.find(c => c.language === lang && c.status === 'ready');
-          if (captionToUse) break;
-        }
-
-        if (captionToUse) {
-          const vttContent = await this.captionsService.getCaptionVtt(videoId, captionToUse.language);
-          // Converter VTT para texto puro
-          let captionText = vttContent
-            .replace(/^WEBVTT\s*\n/i, '')
-            .replace(/\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}/g, '')
-            .replace(/^\d+\s*$/gm, '')
-            .replace(/<[^>]+>/g, '')
-            .replace(/\n{3,}/g, '\n\n')
-            .trim();
-
-          if (captionText) {
-            this.logger.log(`Using Cloudflare caption (${captionToUse.language}) for video ${videoId}`);
-            const chunks: any[] = [];
-            const words = captionText.split(/\s+/);
-            const chunkSize = 100;
-            for (let i = 0; i < words.length; i += chunkSize) {
-              chunks.push({
-                text: words.slice(i, i + chunkSize).join(' '),
-                startTime: 0,
-                endTime: 0,
-                videoId: video.id,
-                videoTitle: video.title,
-              });
-            }
-            this.logger.log(`Created ${chunks.length} chunks from Cloudflare caption`);
-            return chunks;
-          }
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to fetch Cloudflare captions for video ${videoId}:`, err?.message);
-      }
-
-      return [];
-    }
-
-    const transcriptText = transcript.fullText;
-    const transcriptJson = transcript.segments as any;
-
-    // Se tiver segments JSON com timestamps, usar para criar chunks
-    if (transcriptJson && Array.isArray(transcriptJson) && transcriptJson.length > 0) {
-      this.logger.log(`Using transcript segments for video ${videoId}`);
-      
       // Agrupar segmentos em chunks de ~500 caracteres
       const chunks: any[] = [];
       let currentChunk = {
@@ -515,52 +455,45 @@ export class AiChatService {
         videoTitle: video.title,
       };
 
-      for (const segment of transcriptJson) {
-        const segmentText = segment.text || segment.content || '';
-        const segmentStart = segment.start || segment.startTime || 0;
-        const segmentEnd = segment.end || segment.endTime || segmentStart;
-
+      for (const segment of segments) {
         if (currentChunk.text.length === 0) {
-          currentChunk.startTime = segmentStart;
+          currentChunk.startTime = segment.startTime;
         }
 
-        currentChunk.text += segmentText + ' ';
-        currentChunk.endTime = segmentEnd;
+        currentChunk.text += segment.text + ' ';
+        currentChunk.endTime = segment.endTime;
 
-        // Se o chunk atingir ~500 caracteres, salvar e começar novo
         if (currentChunk.text.length >= 500) {
           chunks.push({ ...currentChunk, text: currentChunk.text.trim() });
           currentChunk = {
             text: '',
-            startTime: segmentEnd,
-            endTime: segmentEnd,
+            startTime: segment.endTime,
+            endTime: segment.endTime,
             videoId: video.id,
             videoTitle: video.title,
           };
         }
       }
 
-      // Adicionar último chunk se houver conteúdo
       if (currentChunk.text.trim().length > 0) {
         chunks.push({ ...currentChunk, text: currentChunk.text.trim() });
       }
 
-      this.logger.log(`Created ${chunks.length} chunks from transcript segments`);
+      this.logger.log(`Created ${chunks.length} chunks from VTT segments`);
       return chunks;
     }
 
-    // Se só tiver texto plano, dividir em chunks simples
-    if (transcriptText) {
-      this.logger.log(`Using plain transcript text for video ${videoId}`);
-      
+    // Fallback: texto puro do VTT (sem timestamps)
+    const plainText = await this.vttTextService.getPlainText(videoId);
+    if (plainText) {
+      this.logger.log(`Using plain VTT text for video ${videoId}`);
       const chunks: any[] = [];
-      const words = transcriptText.split(/\s+/);
-      const chunkSize = 100; // ~100 palavras por chunk
+      const words = plainText.split(/\s+/);
+      const chunkSize = 100;
 
       for (let i = 0; i < words.length; i += chunkSize) {
-        const chunkWords = words.slice(i, i + chunkSize);
         chunks.push({
-          text: chunkWords.join(' '),
+          text: words.slice(i, i + chunkSize).join(' '),
           startTime: 0,
           endTime: 0,
           videoId: video.id,
@@ -568,10 +501,11 @@ export class AiChatService {
         });
       }
 
-      this.logger.log(`Created ${chunks.length} chunks from plain text`);
+      this.logger.log(`Created ${chunks.length} chunks from plain VTT text`);
       return chunks;
     }
 
+    this.logger.warn(`No VTT subtitles found for video ${videoId}`);
     return [];
   }
 }

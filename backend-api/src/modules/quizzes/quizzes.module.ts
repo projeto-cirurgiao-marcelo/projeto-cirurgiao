@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../../shared/prisma/prisma.module';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { AiSummariesModule } from '../ai-summaries/ai-summaries.module';
-import { CaptionsModule } from '../captions/captions.module';
+import { VttModule } from '../../shared/vtt/vtt.module';
 import { QuizzesController } from './quizzes.controller';
 import { QuizzesService } from './quizzes.service';
 import { QuizGeneratorService } from './quiz-generator.service';
@@ -16,7 +16,7 @@ import { GamificationModule } from '../gamification/gamification.module';
     ConfigModule,
     FirebaseModule,
     AiSummariesModule,
-    CaptionsModule,
+    VttModule,
     GamificationModule,
   ],
   controllers: [QuizzesController],

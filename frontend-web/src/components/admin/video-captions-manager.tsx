@@ -30,16 +30,21 @@ import {
 
 interface VideoCaptionsManagerProps {
   videoId: string;
-  videoStatus: string; // Status do vídeo (READY, PROCESSING, etc)
-  cloudflareId?: string | null; // Se tem cloudflareId, é um vídeo do Cloudflare
+  videoStatus: string;
+  cloudflareId?: string | null;
+  hlsUrl?: string | null;
+  externalUrl?: string | null;
 }
 
 export function VideoCaptionsManager({
   videoId,
   videoStatus,
   cloudflareId,
+  hlsUrl,
+  externalUrl,
 }: VideoCaptionsManagerProps) {
   const [captions, setCaptions] = useState<Caption[]>([]);
+  const [vttStatus, setVttStatus] = useState<{ available: boolean; url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedCaptionLanguage>('pt');
@@ -194,17 +199,72 @@ export function VideoCaptionsManager({
     }
   };
 
-  // Se não é um vídeo do Cloudflare
+  // Verificar VTT no R2 para videos HLS (sem cloudflareId)
+  useEffect(() => {
+    if (cloudflareId) return; // Cloudflare tem seu proprio sistema
+
+    const m3u8Url = hlsUrl || externalUrl;
+    if (!m3u8Url || !m3u8Url.includes('.m3u8')) {
+      setVttStatus({ available: false, url: null });
+      return;
+    }
+
+    const vttUrl = m3u8Url.replace('playlist.m3u8', 'subtitles_pt.vtt');
+    fetch(vttUrl, { method: 'HEAD' })
+      .then(res => setVttStatus({ available: res.ok, url: vttUrl }))
+      .catch(() => setVttStatus({ available: false, url: vttUrl }));
+  }, [cloudflareId, hlsUrl, externalUrl]);
+
+  // Video R2/HLS sem cloudflareId - mostrar status do VTT
   if (!cloudflareId) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Subtitles className="h-5 w-5 text-gray-400" />
-          <h3 className="font-semibold text-gray-700">Legendas / Captions</h3>
+      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Subtitles className="h-5 w-5 text-blue-600" />
+          <h3 className="font-semibold text-gray-900">Legendas / Captions</h3>
         </div>
-        <p className="text-sm text-gray-500">
-          Legendas automáticas só estão disponíveis para vídeos hospedados no Cloudflare Stream.
-        </p>
+
+        {vttStatus === null ? (
+          <div className="flex items-center gap-2 text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Verificando legendas no R2...</span>
+          </div>
+        ) : vttStatus.available ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <div>
+                  <p className="font-medium text-gray-900">Portugues (VTT)</p>
+                  <span className="text-green-600 text-xs">Disponivel no R2</span>
+                </div>
+              </div>
+              <a
+                href={vttStatus.url!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+              >
+                <Download className="h-4 w-4" />
+              </a>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <strong>Info:</strong> As legendas sao carregadas automaticamente do R2 CDN pelo player do aluno.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertCircle className="h-4 w-4 text-yellow-500" />
+              <span className="text-sm font-medium text-yellow-800">Nenhuma legenda VTT encontrada</span>
+            </div>
+            <p className="text-xs text-yellow-700">
+              Coloque o arquivo <code className="bg-yellow-100 px-1 rounded">subtitles_pt.vtt</code> na mesma pasta do video no R2 para ativar legendas.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

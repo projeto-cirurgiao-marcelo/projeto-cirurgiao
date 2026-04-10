@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { VertexAiService } from './vertex-ai.service';
-import { CaptionsService } from '../captions/captions.service';
+import { VttTextService } from '../../shared/vtt/vtt-text.service';
 import { GenerateSummaryDto } from './dto/generate-summary.dto';
 import { UpdateSummaryDto } from './dto/update-summary.dto';
 
@@ -20,7 +20,7 @@ export class AiSummariesService {
   constructor(
     private prisma: PrismaService,
     private vertexAiService: VertexAiService,
-    private captionsService: CaptionsService,
+    private vttTextService: VttTextService,
     private gamificationService: GamificationService,
   ) {}
 
@@ -37,64 +37,19 @@ export class AiSummariesService {
     // 1. Verificar se o vídeo existe
     const video = await this.prisma.video.findUnique({
       where: { id: videoId },
-      include: {
-        transcript: true,
-      },
     });
 
     if (!video) {
       throw new NotFoundException('Vídeo não encontrado');
     }
 
-    // 2. Buscar conteúdo de texto (transcrição ou legendas)
-    let textContent: string | null = null;
-    let contentSource: 'transcript' | 'caption' = 'transcript';
+    // 2. Buscar conteudo de texto do VTT no R2
+    const textContent = await this.vttTextService.getPlainText(videoId);
+    const contentSource = 'vtt';
 
-    // Prioridade 1: Transcrição manual (se existir)
-    if (video.transcript?.fullText) {
-      textContent = video.transcript.fullText;
-      contentSource = 'transcript';
-      this.logger.log(`Using transcript for summary generation`);
-    } 
-    // Prioridade 2: Legendas da Cloudflare (se existir)
-    else if (video.cloudflareId) {
-      try {
-        // Tentar buscar legenda em português primeiro
-        const captions = await this.captionsService.listCaptions(videoId);
-        
-        // Procurar legenda em português ou inglês (nessa ordem)
-        const preferredLanguages = ['pt', 'en', 'es', 'fr', 'de', 'it'];
-        let captionToUse = null;
-        
-        for (const lang of preferredLanguages) {
-          captionToUse = captions.find(c => c.language === lang && c.status === 'ready');
-          if (captionToUse) {
-            this.logger.log(`Found caption in language: ${lang}`);
-            break;
-          }
-        }
-
-        if (captionToUse) {
-          // Buscar o conteúdo VTT da legenda
-          const vttContent = await this.captionsService.getCaptionVtt(
-            videoId,
-            captionToUse.language,
-          );
-          
-          // Converter VTT para texto puro (remover timestamps e formatação)
-          textContent = this.parseVttToText(vttContent);
-          contentSource = 'caption';
-          this.logger.log(`Using caption (${captionToUse.language}) for summary generation`);
-        }
-      } catch (error) {
-        this.logger.warn(`Failed to fetch captions for video ${videoId}:`, error.message);
-      }
-    }
-
-    // Se não encontrou nenhuma fonte de texto
     if (!textContent) {
       throw new BadRequestException(
-        'Este vídeo ainda não possui transcrição ou legendas. Gere a legenda primeiro ou adicione uma transcrição manual.',
+        'Este video nao possui legendas VTT. Verifique se o arquivo subtitles_pt.vtt existe na pasta do video no R2.',
       );
     }
 
@@ -194,34 +149,6 @@ export class AiSummariesService {
       remainingGenerations: MAX_SUMMARIES_PER_VIDEO - nextGenerationCount,
       contentSource, // Retornar a fonte usada
     };
-  }
-
-  /**
-   * Converte conteúdo VTT (legendas) para texto puro
-   * Remove timestamps, números de sequência e formatação
-   */
-  private parseVttToText(vttContent: string): string {
-    // Remover cabeçalho WEBVTT
-    let text = vttContent.replace(/^WEBVTT\s*\n/i, '');
-    
-    // Remover linhas de timestamp (formato: 00:00:00.000 --> 00:00:00.000)
-    text = text.replace(/\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}/g, '');
-    
-    // Remover números de sequência (linhas que contêm apenas números)
-    text = text.replace(/^\d+\s*$/gm, '');
-    
-    // Remover tags de formatação VTT (<v>, <c>, etc)
-    text = text.replace(/<[^>]+>/g, '');
-    
-    // Remover linhas vazias múltiplas
-    text = text.replace(/\n{3,}/g, '\n\n');
-    
-    // Remover espaços em branco no início e fim
-    text = text.trim();
-    
-    this.logger.log(`Parsed VTT to text: ${text.length} characters`);
-    
-    return text;
   }
 
   /**

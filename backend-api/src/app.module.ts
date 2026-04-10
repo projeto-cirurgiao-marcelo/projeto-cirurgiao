@@ -16,7 +16,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { LikesModule } from './modules/likes/likes.module';
 import { MaterialsModule } from './modules/materials/materials.module';
 import { NotesModule } from './modules/notes/notes.module';
-import { TranscriptsModule } from './modules/transcripts/transcripts.module';
+// TranscriptsModule removido - VTT do R2 e a fonte de texto via VttTextService
 import { ForumCategoriesModule } from './modules/forum-categories/forum-categories.module';
 import { ForumModule } from './modules/forum/forum.module';
 import { CaptionsModule } from './modules/captions/captions.module';
@@ -58,7 +58,6 @@ import { AiLibraryModule } from './modules/ai-library/ai-library.module';
     LikesModule,
     MaterialsModule,
     NotesModule,
-    TranscriptsModule,
     ForumCategoriesModule,
     ForumModule,
     CaptionsModule,

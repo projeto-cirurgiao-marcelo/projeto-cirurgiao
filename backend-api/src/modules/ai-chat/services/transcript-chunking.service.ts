@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
+import { VttTextService } from '../../../shared/vtt/vtt-text.service';
 
 export interface TranscriptChunk {
   videoId: string;
@@ -18,33 +19,28 @@ export interface TranscriptSegment {
 @Injectable()
 export class TranscriptChunkingService {
   private readonly logger = new Logger(TranscriptChunkingService.name);
-  
+
   // Configurações de chunking
   private readonly MAX_CHUNK_TOKENS = 500; // ~500 tokens por chunk
   private readonly CHUNK_OVERLAP_TOKENS = 50; // Overlap entre chunks
   private readonly AVG_CHARS_PER_TOKEN = 4; // Aproximação para português
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly vttTextService: VttTextService,
+  ) {}
 
   /**
-   * Processa uma transcrição e cria chunks para embeddings
+   * Processa legendas VTT do R2 e cria chunks para embeddings
    */
   async processTranscript(videoId: string): Promise<TranscriptChunk[]> {
-    this.logger.log(`Processando transcrição do vídeo ${videoId}`);
+    this.logger.log(`Processando VTT do video ${videoId}`);
 
-    // Busca a transcrição
-    const transcript = await this.prisma.videoTranscript.findUnique({
-      where: { videoId },
-    });
+    // Busca segmentos do VTT no R2
+    const segments = await this.vttTextService.getSegments(videoId);
 
-    if (!transcript) {
-      this.logger.warn(`Transcrição não encontrada para vídeo ${videoId}`);
-      return [];
-    }
-
-    const segments = transcript.segments as unknown as TranscriptSegment[];
     if (!segments || segments.length === 0) {
-      this.logger.warn(`Transcrição sem segmentos para vídeo ${videoId}`);
+      this.logger.warn(`Nenhum segmento VTT encontrado para video ${videoId}`);
       return [];
     }
 
@@ -192,12 +188,18 @@ export class TranscriptChunkingService {
   }
 
   /**
-   * Processa todas as transcrições que ainda não têm chunks
+   * Processa todos os videos com HLS/VTT que ainda nao tem chunks
    */
   async processAllTranscripts(): Promise<{ processed: number; total: number }> {
-    // Busca vídeos com transcrição mas sem chunks
-    const transcripts = await this.prisma.videoTranscript.findMany({
-      select: { videoId: true },
+    // Buscar videos que tem URL m3u8 (R2 HLS) - esses tem VTT
+    const videos = await this.prisma.video.findMany({
+      where: {
+        OR: [
+          { hlsUrl: { not: null } },
+          { externalUrl: { contains: '.m3u8' } },
+        ],
+      },
+      select: { id: true },
     });
 
     const existingChunks = await this.prisma.transcriptEmbedding.groupBy({
@@ -205,13 +207,13 @@ export class TranscriptChunkingService {
     });
 
     const existingVideoIds = new Set(existingChunks.map((c) => c.videoId));
-    const videosToProcess = transcripts.filter(
-      (t) => !existingVideoIds.has(t.videoId),
+    const videosToProcess = videos.filter(
+      (v) => !existingVideoIds.has(v.id),
     );
 
     let processed = 0;
-    for (const transcript of videosToProcess) {
-      const chunks = await this.processTranscript(transcript.videoId);
+    for (const video of videosToProcess) {
+      const chunks = await this.processTranscript(video.id);
       if (chunks.length > 0) {
         processed++;
       }

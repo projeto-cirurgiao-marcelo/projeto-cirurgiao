@@ -15,12 +15,9 @@ import { VideoBreadcrumbs, VideoBreadcrumbsMobile } from '@/components/video-pla
 import { VideoLikeButton } from '@/components/video-player/video-like-button';
 import { VideoMaterialsCarousel, VideoMaterialsCompactList } from '@/components/video-player/video-materials-carousel';
 import { VideoNotes, VideoNotesCompact } from '@/components/video-player/video-notes';
-import { VideoTranscript, VideoTranscriptCompact } from '@/components/video-player/video-transcript';
 import { VideoSummaries } from '@/components/video-player/video-summaries';
 import { VideoChatWidget } from '@/components/chatbot/video-chat-widget';
 import { QuizCard } from '@/components/quiz/quiz-card';
-import { transcriptsService } from '@/lib/api/transcripts.service';
-import { captionsService } from '@/lib/api/captions.service';
 import { quizzesService, QuizStats } from '@/lib/api/quizzes.service';
 import dynamic from 'next/dynamic';
 import type { HlsPlayerRef } from '@/components/video-player/hls-video-player';
@@ -65,10 +62,6 @@ export default function VideoPlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Estado de transcrição (para resumos IA e componentes filhos)
-  const [hasTranscript, setHasTranscript] = useState(false);
-  const [transcriptLoaded, setTranscriptLoaded] = useState<any>(undefined); // undefined = não carregado, null = sem transcrição
-
   // Estado de quiz (stats agregadas das tentativas anteriores)
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
 
@@ -205,30 +198,12 @@ export default function VideoPlayerPage() {
       const coursePromise = coursesService.getById(courseId);
       const videoPromise = videosService.findOne(videoId);
       const progressPromise = progressService.getCourseProgress(courseId).catch(() => null);
-      const transcriptPromise = transcriptsService.getByVideoId(videoId).catch(() => null);
 
-      const [courseData, videoData, progressData, transcriptData] = await Promise.all([
+      const [courseData, videoData, progressData] = await Promise.all([
         coursePromise,
         videoPromise,
         progressPromise,
-        transcriptPromise,
       ]);
-
-      // Verificar se tem transcrição (para habilitar resumos IA)
-      // Prioridade 1: transcrição manual no banco
-      let hasTextSource = !!transcriptData && transcriptData.segments && transcriptData.segments.length > 0;
-
-      // Prioridade 2: legendas (captions) geradas pelo Cloudflare
-      if (!hasTextSource && videoData.cloudflareId) {
-        try {
-          const captions = await captionsService.listCaptions(videoId);
-          hasTextSource = captions.some(c => c.status === 'ready');
-        } catch {
-          // Captions não disponíveis, manter false
-        }
-      }
-      setHasTranscript(hasTextSource);
-      setTranscriptLoaded(transcriptData); // Salvar para passar como prop aos componentes filhos
 
       // Buscar stats agregadas de quizzes do vídeo (todas as tentativas)
       try {
@@ -960,37 +935,21 @@ export default function VideoPlayerPage() {
               </Button>
             </div>
 
-            {/* Transcrição - Desktop */}
-            <div className="hidden sm:block mt-6">
-              <VideoTranscript
-                videoId={videoId}
-                currentTime={playerCurrentTime}
-                onSeek={handleSeek}
-                initialTranscript={transcriptLoaded}
-              />
-            </div>
-
             {/* Anotações - Desktop */}
-            <div className="hidden sm:block mt-4">
+            <div className="hidden sm:block mt-6">
               <VideoNotes videoId={videoId} currentTime={playerCurrentTime} />
             </div>
 
             {/* Resumos com IA - Desktop */}
             <div className="hidden sm:block mt-4">
-              <VideoSummaries videoId={videoId} hasTranscript={hasTranscript} />
+              <VideoSummaries videoId={videoId} hasTranscript={true} />
             </div>
 
-            {/* Materiais, Anotações, Transcrição e Resumos - Mobile (lista compacta) */}
+            {/* Materiais, Anotações e Resumos - Mobile (lista compacta) */}
             <div className="mt-4 sm:hidden space-y-3">
               <VideoMaterialsCompactList videoId={videoId} />
               <VideoNotesCompact videoId={videoId} currentTime={playerCurrentTime} />
-              <VideoTranscriptCompact
-                videoId={videoId}
-                currentTime={playerCurrentTime}
-                onSeek={handleSeek}
-                initialTranscript={transcriptLoaded}
-              />
-              <VideoSummaries videoId={videoId} hasTranscript={hasTranscript} />
+              <VideoSummaries videoId={videoId} hasTranscript={true} />
 
               {/* Quiz - Mobile */}
               <QuizCard

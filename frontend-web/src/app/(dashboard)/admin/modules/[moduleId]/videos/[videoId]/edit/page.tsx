@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { videosService } from '@/lib/api';
 import { VideoMaterialsManager } from '@/components/admin/video-materials-manager';
-import { VideoTranscriptManager } from '@/components/admin/video-transcript-manager';
 import { VideoCaptionsManager } from '@/components/admin/video-captions-manager';
 import { VideoQuizManager } from '@/components/admin/video-quiz-manager';
 import type { Video } from '@/lib/types/course.types';
@@ -238,15 +237,15 @@ export default function EditVideoPage() {
         {/* Materiais da Aula */}
         <VideoMaterialsManager videoId={videoId} />
 
-        {/* Legendas / Captions (Cloudflare Stream) */}
+        {/* Legendas / Captions */}
         <VideoCaptionsManager
           videoId={videoId}
           videoStatus={video.uploadStatus || 'READY'}
           cloudflareId={video.cloudflareId}
+          hlsUrl={(video as any).hlsUrl}
+          externalUrl={video.externalUrl}
         />
 
-        {/* Transcrição do Vídeo */}
-        <VideoTranscriptManager videoId={videoId} />
 
         {/* Quiz do Vídeo */}
         <VideoQuizManager videoId={videoId} />

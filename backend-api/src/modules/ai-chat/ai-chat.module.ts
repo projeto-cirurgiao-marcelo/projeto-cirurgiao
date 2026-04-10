@@ -8,10 +8,10 @@ import { AiChatController } from './ai-chat.controller';
 import { PrismaModule } from '../../shared/prisma/prisma.module';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { GamificationModule } from '../gamification/gamification.module';
-import { CaptionsModule } from '../captions/captions.module';
+import { VttModule } from '../../shared/vtt/vtt.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, FirebaseModule, GamificationModule, CaptionsModule],
+  imports: [PrismaModule, ConfigModule, FirebaseModule, GamificationModule, VttModule],
   controllers: [AiChatController],
   providers: [
     TranscriptChunkingService,

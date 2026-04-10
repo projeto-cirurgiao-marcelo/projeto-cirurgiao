@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { QuizGeneratorService } from './quiz-generator.service';
-import { CaptionsService } from '../captions/captions.service';
+import { VttTextService } from '../../shared/vtt/vtt-text.service';
 import { GenerateQuizDto } from './dto/generate-quiz.dto';
 import { QuizDifficulty } from '@prisma/client';
 
@@ -17,7 +17,7 @@ export class QuizzesService {
   constructor(
     private prisma: PrismaService,
     private quizGenerator: QuizGeneratorService,
-    private captionsService: CaptionsService,
+    private vttTextService: VttTextService,
   ) {}
 
   /**
@@ -26,63 +26,21 @@ export class QuizzesService {
   async generateQuiz(videoId: string, dto: GenerateQuizDto) {
     this.logger.log(`Generating quiz for video ${videoId}`);
 
-    // 1. Verificar se o vídeo existe
+    // 1. Verificar se o video existe
     const video = await this.prisma.video.findUnique({
       where: { id: videoId },
-      include: {
-        transcript: true,
-      },
     });
 
     if (!video) {
-      throw new NotFoundException('Vídeo não encontrado');
+      throw new NotFoundException('Video nao encontrado');
     }
 
-    // 2. Buscar conteúdo de texto (transcrição ou legendas)
-    let textContent: string | null = null;
+    // 2. Buscar conteudo de texto do VTT no R2
+    const textContent = await this.vttTextService.getPlainText(videoId);
 
-    // Prioridade 1: Transcrição manual
-    if (video.transcript?.fullText) {
-      textContent = video.transcript.fullText;
-      this.logger.log(`Using transcript for quiz generation`);
-    }
-    // Prioridade 2: Legendas da Cloudflare
-    else if (video.cloudflareId) {
-      try {
-        const captions = await this.captionsService.listCaptions(videoId);
-        const preferredLanguages = ['pt', 'en', 'es', 'fr', 'de', 'it'];
-        let captionToUse = null;
-
-        for (const lang of preferredLanguages) {
-          captionToUse = captions.find(
-            (c) => c.language === lang && c.status === 'ready',
-          );
-          if (captionToUse) {
-            this.logger.log(`Found caption in language: ${lang}`);
-            break;
-          }
-        }
-
-        if (captionToUse) {
-          const vttContent = await this.captionsService.getCaptionVtt(
-            videoId,
-            captionToUse.language,
-          );
-          textContent = this.parseVttToText(vttContent);
-          this.logger.log(`Using caption for quiz generation`);
-        }
-      } catch (error) {
-        this.logger.warn(
-          `Failed to fetch captions for video ${videoId}:`,
-          error.message,
-        );
-      }
-    }
-
-    // Se não encontrou nenhuma fonte de texto
     if (!textContent) {
       throw new BadRequestException(
-        'Este vídeo ainda não possui transcrição ou legendas. Gere a legenda primeiro ou adicione uma transcrição manual.',
+        'Este video nao possui legendas VTT. Verifique se o arquivo subtitles_pt.vtt existe na pasta do video no R2.',
       );
     }
 
@@ -232,19 +190,4 @@ export class QuizzesService {
     return { message: 'Quiz deletado com sucesso' };
   }
 
-  /**
-   * Converte conteúdo VTT (legendas) para texto puro
-   */
-  private parseVttToText(vttContent: string): string {
-    let text = vttContent.replace(/^WEBVTT\s*\n/i, '');
-    text = text.replace(/\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}/g, '');
-    text = text.replace(/^\d+\s*$/gm, '');
-    text = text.replace(/<[^>]+>/g, '');
-    text = text.replace(/\n{3,}/g, '\n\n');
-    text = text.trim();
-
-    this.logger.log(`Parsed VTT to text: ${text.length} characters`);
-
-    return text;
-  }
 }
