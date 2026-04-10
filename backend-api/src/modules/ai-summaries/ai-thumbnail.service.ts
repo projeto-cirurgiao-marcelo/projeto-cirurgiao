@@ -59,43 +59,36 @@ export class AiThumbnailService {
     const width = 1280;
     const height = 720;
 
-    // Preparar texto: quebrar em linhas se muito longo
-    const lines = this.wrapText(displayText, 20);
-    const fontSize = lines.length > 2 ? 72 : lines.length > 1 ? 84 : 96;
-    const lineHeight = fontSize * 1.3;
-    const totalTextHeight = lines.length * lineHeight;
-    // Centralizar verticalmente
-    const textStartY = (height - totalTextHeight) / 2;
-
-    // Criar SVG com texto e gradiente
-    const textElements = lines.map((line, i) => {
-      const y = textStartY + (i * lineHeight) + fontSize;
-      return `<text x="50%" y="${y}" text-anchor="middle" font-family="Liberation Sans, DejaVu Sans, Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="800" fill="white" letter-spacing="2">${this.escapeXml(line)}</text>`;
-    }).join('\n');
-
-    const svgOverlay = `
-      <svg width="${width}" height="${height}">
-        <defs>
-          <linearGradient id="textGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="black" stop-opacity="0.3"/>
-            <stop offset="50%" stop-color="black" stop-opacity="0.5"/>
-            <stop offset="100%" stop-color="black" stop-opacity="0.3"/>
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="${width}" height="${height}" fill="url(#textGrad)"/>
-        ${textElements}
-      </svg>
-    `;
-
     try {
+      // 1. Criar overlay escuro usando sharp puro (sem SVG)
+      const darkOverlay = await sharp({
+        create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0.4 } },
+      }).png().toBuffer();
+
+      // 2. Criar texto usando Pango (built-in do libvips - funciona em Linux)
+      const fontSize = displayText.length > 30 ? 60 : displayText.length > 20 ? 72 : 96;
+      const pangoMarkup = `<span foreground="white" font_desc="Sans Bold ${fontSize}">${this.escapeXml(displayText)}</span>`;
+
+      const textImage = await sharp({
+        text: {
+          text: pangoMarkup,
+          rgba: true,
+          width: width - 100, // margem lateral
+          align: 'centre',
+        },
+      }).png().toBuffer();
+
+      // Obter dimensoes do texto para centralizar verticalmente
+      const textMeta = await sharp(textImage).metadata();
+      const textTop = Math.round((height - (textMeta.height || 100)) / 2);
+      const textLeft = Math.round((width - (textMeta.width || 100)) / 2);
+
+      // 3. Compor: background + overlay escuro + texto centralizado
       const result = await sharp(this.backgroundBuffer)
         .resize(width, height, { fit: 'cover' })
         .composite([
-          {
-            input: Buffer.from(svgOverlay),
-            top: 0,
-            left: 0,
-          },
+          { input: darkOverlay, top: 0, left: 0 },
+          { input: textImage, top: textTop, left: textLeft },
         ])
         .png({ quality: 90 })
         .toBuffer();
