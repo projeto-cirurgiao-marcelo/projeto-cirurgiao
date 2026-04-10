@@ -65,6 +65,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     const [showQualityMenu, setShowQualityMenu] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1);
     const [showRateMenu, setShowRateMenu] = useState(false);
+    const [subtitlesOn, setSubtitlesOn] = useState(true); // CC ligado por default
 
     // Expose imperative API
     useImperativeHandle(ref, () => ({
@@ -95,6 +96,18 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         setPlaybackRate(rate);
       }
       setShowRateMenu(false);
+    }, []);
+
+    // Toggle subtitles
+    const handleToggleSubtitles = useCallback(() => {
+      const video = videoRef.current;
+      if (!video) return;
+      const track = video.textTracks[0];
+      if (track) {
+        const newState = track.mode === 'showing' ? 'hidden' : 'showing';
+        track.mode = newState;
+        setSubtitlesOn(newState === 'showing');
+      }
     }, []);
 
     // Initialize HLS.js
@@ -279,6 +292,24 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           className="absolute bottom-14 right-2 flex items-center gap-1"
           style={{ zIndex: 2147483647 }}
         >
+          {/* CC Toggle */}
+          {hasSubtitles && (
+            <button
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleToggleSubtitles();
+              }}
+              className={`px-2 py-1 text-xs font-semibold rounded cursor-pointer select-none ${
+                subtitlesOn
+                  ? 'text-black bg-white hover:bg-white/90'
+                  : 'text-white bg-black/70 hover:bg-black/90'
+              }`}
+              title={subtitlesOn ? 'Desativar legendas' : 'Ativar legendas'}
+            >
+              CC
+            </button>
+          )}
+
           {/* Playback Rate Selector */}
           <div className="relative">
             <button
