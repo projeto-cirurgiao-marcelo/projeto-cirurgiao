@@ -5,6 +5,12 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "webpack": true,
-    "tsConfigPath": "tsconfig.json"
+    "tsConfigPath": "tsconfig.json",
+    "assets": [
+      {
+        "include": "modules/ai-summaries/thumbnail-bg.base64.txt",
+        "outDir": "dist"
+      }
+    ]
   }
 }
