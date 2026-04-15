@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { VertexAI, GenerativeModel } from '@google-cloud/vertexai';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { KnowledgeSearchService } from './knowledge-search.service';
 
@@ -14,11 +16,20 @@ export class KnowledgeIngestionService {
   private readonly logger = new Logger(KnowledgeIngestionService.name);
   private readonly CHUNK_SIZE = 512; // tokens (~2048 caracteres)
   private readonly CHUNK_OVERLAP = 0.15; // 15% de overlap
+  private readonly translationModel: GenerativeModel;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly searchService: KnowledgeSearchService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const projectId = this.configService.get<string>('GOOGLE_CLOUD_PROJECT_ID') || 'projeto-cirurgiao-e8df7';
+    const location = this.configService.get<string>('GOOGLE_CLOUD_LOCATION') || 'southamerica-east1';
+    const modelName = this.configService.get<string>('VERTEX_LIBRARY_MODEL') || 'gemini-2.5-flash';
+
+    const vertexAI = new VertexAI({ project: projectId, location });
+    this.translationModel = vertexAI.getGenerativeModel({ model: modelName });
+  }
 
   /**
    * Processa um documento: extrai texto, divide em chunks e gera embeddings
@@ -56,10 +67,25 @@ export class KnowledgeIngestionService {
       let indexedChunks = 0;
       let errors = 0;
 
+      const needsTranslation = document.language !== 'pt-BR';
+      if (needsTranslation) {
+        this.logger.log(`Document language is "${document.language}" — chunks will be translated to pt-BR`);
+      }
+
       for (let i = 0; i < chunks.length; i++) {
         try {
-          // Gerar embedding
-          const embedding = await this.searchService.generateEmbedding(chunks[i].content);
+          let contentPt = chunks[i].content;
+          let chapterPt = chunks[i].chapter || null;
+
+          // Traduzir se o documento não é pt-BR
+          if (needsTranslation) {
+            const translated = await this.translateChunk(chunks[i].content, chunks[i].chapter);
+            contentPt = translated.contentPt;
+            chapterPt = translated.chapterPt || chapterPt;
+          }
+
+          // Gerar embedding a partir do conteúdo em português
+          const embedding = await this.searchService.generateEmbedding(contentPt);
 
           // Salvar chunk com embedding
           await this.prisma.knowledgeChunk.upsert({
@@ -73,20 +99,26 @@ export class KnowledgeIngestionService {
               documentId,
               chunkIndex: i,
               content: chunks[i].content,
+              contentPt,
               chapter: chunks[i].chapter || null,
+              chapterPt,
               pageStart: chunks[i].pageStart || null,
               pageEnd: chunks[i].pageEnd || null,
               language: document.language,
               embedding: embedding,
               isIndexed: true,
+              isTranslated: true,
             },
             update: {
               content: chunks[i].content,
+              contentPt,
               chapter: chunks[i].chapter || null,
+              chapterPt,
               pageStart: chunks[i].pageStart || null,
               pageEnd: chunks[i].pageEnd || null,
               embedding: embedding,
               isIndexed: true,
+              isTranslated: true,
             },
           });
 
@@ -97,7 +129,7 @@ export class KnowledgeIngestionService {
             this.logger.log(`Processed ${i + 1}/${chunks.length} chunks`);
           }
 
-          // Delay para evitar rate limiting na API de embeddings
+          // Delay para evitar rate limiting na API de embeddings/tradução
           if ((i + 1) % 10 === 0) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
@@ -309,5 +341,60 @@ export class KnowledgeIngestionService {
     }
 
     return finalChunks.filter(c => c.length > 50); // Ignorar chunks muito pequenos
+  }
+
+  /**
+   * Traduz um chunk de texto para português brasileiro usando Gemini
+   * Otimizado para texto técnico de medicina veterinária
+   */
+  async translateChunk(
+    content: string,
+    chapter?: string,
+  ): Promise<{ contentPt: string; chapterPt?: string }> {
+    const prompt = `Traduza o texto a seguir de inglês para português brasileiro.
+Regras:
+- Mantenha termos técnicos de medicina veterinária precisos
+- Preserve a formatação original (parágrafos, listas, quebras de linha)
+- NÃO adicione explicações, comentários ou notas — apenas traduza
+- Retorne SOMENTE o texto traduzido
+
+Texto:
+${content}`;
+
+    try {
+      const result = await this.translationModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 4096,
+          temperature: 0.1, // Mais determinístico para tradução fiel
+        },
+      });
+
+      const contentPt = result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || content;
+
+      let chapterPt: string | undefined;
+      if (chapter) {
+        const chapterResult = await this.translationModel.generateContent({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: `Traduza este título de capítulo de inglês para português brasileiro. Retorne APENAS o título traduzido, sem explicações:\n\n${chapter}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 100, temperature: 0.1 },
+        });
+        chapterPt = chapterResult.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      }
+
+      return { contentPt, chapterPt };
+    } catch (error) {
+      this.logger.error(`Error translating chunk: ${error}`);
+      // Fallback: retorna o original se tradução falhar
+      return { contentPt: content, chapterPt: chapter };
+    }
   }
 }

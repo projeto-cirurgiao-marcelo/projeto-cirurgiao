@@ -99,7 +99,7 @@ model Course {
   id                  String   @id @default(uuid())
   title               String
   slug                String   @unique
-  description         String   @db.Text
+  description         String?  @db.Text
   thumbnail           String?  // Deprecated - use thumbnailHorizontal
   thumbnailVertical   String?  // Thumbnail para exibição vertical (9:16)
   thumbnailHorizontal String?  // Thumbnail para exibição horizontal (16:9)

@@ -8,7 +8,9 @@ export interface KnowledgeSearchResult {
   documentId: string;
   documentTitle: string;
   content: string;
+  contentPt: string | null;
   chapter: string | null;
+  chapterPt: string | null;
   pageStart: number | null;
   pageEnd: number | null;
   language: string;
@@ -182,7 +184,9 @@ export class KnowledgeSearchService {
         documentId: chunk.documentId,
         documentTitle: chunk.document.title,
         content: chunk.content,
+        contentPt: chunk.contentPt,
         chapter: chunk.chapter,
+        chapterPt: chunk.chapterPt,
         pageStart: chunk.pageStart,
         pageEnd: chunk.pageEnd,
         language: chunk.language,

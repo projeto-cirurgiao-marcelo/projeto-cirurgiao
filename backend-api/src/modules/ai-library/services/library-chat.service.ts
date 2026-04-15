@@ -71,10 +71,10 @@ export class LibraryChatService {
       // Extrair fontes dos chunks usados
       const sources = relevantChunks.slice(0, 5).map(chunk => ({
         documentTitle: chunk.documentTitle,
-        chapter: chunk.chapter,
+        chapter: chunk.chapterPt || chunk.chapter,
         pageStart: chunk.pageStart,
         pageEnd: chunk.pageEnd,
-        snippet: chunk.content.substring(0, 200) + '...',
+        snippet: (chunk.contentPt || chunk.content).substring(0, 200) + '...',
       }));
 
       this.logger.log(`Library response generated. Tokens: ${tokenCount || 'N/A'}`);
@@ -167,10 +167,15 @@ Você é um assistente especializado em Medicina Veterinária, com acesso a uma 
         const pageInfo = chunk.pageStart
           ? ` (p. ${chunk.pageStart}${chunk.pageEnd && chunk.pageEnd !== chunk.pageStart ? `-${chunk.pageEnd}` : ''})`
           : '';
-        const chapterInfo = chunk.chapter ? ` - ${chunk.chapter}` : '';
+        // Usar capítulo traduzido se disponível, senão o original
+        const chapterDisplay = chunk.chapterPt || chunk.chapter;
+        const chapterInfo = chapterDisplay ? ` - ${chapterDisplay}` : '';
+        const translatedTag = chunk.language !== 'pt-BR' ? ' (traduzido do inglês)' : '';
 
-        contextText += `### Trecho ${index + 1}: ${chunk.documentTitle}${chapterInfo}${pageInfo}\n`;
-        contextText += `${chunk.content}\n\n`;
+        contextText += `### Trecho ${index + 1}: ${chunk.documentTitle}${chapterInfo}${pageInfo}${translatedTag}\n`;
+        // Usar contentPt (traduzido) se disponível, senão o original
+        const displayContent = chunk.contentPt || chunk.content;
+        contextText += `${displayContent}\n\n`;
       });
     } else {
       contextText = '## Contexto\nNenhum trecho relevante encontrado nos livros.\n\n';
