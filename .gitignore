@@ -212,9 +212,15 @@ backend-api/scripts/*.ts
 !**/fixtures/**/*.csv
 !**/test-data/**/*.csv
 
-# Claude Code plugin cache (local only)
+# Claude Code plugin cache and personal settings (local only)
 .claude/skills/
 .claude/skills-lock.json
+.claude/settings.local.json
 **/.claude/skills/
 **/.claude/skills-lock.json
+**/.claude/settings.local.json
 skills-lock.json
+
+# Superpowers plans and specs (local workflow docs, not shipped)
+docs/superpowers/plans/
+docs/superpowers/specs/
