@@ -3,17 +3,6 @@
     "mercadopago": {
       "type": "url",
       "url": "https://mcp.mercadopago.com/mcp"
-    },
-    "n8n-mcp": {
-      "command": "cmd",
-      "args": ["/c npx n8n-mcp"],
-      "env": {
-        "MCP_MODE": "stdio",
-        "LOG_LEVEL": "error",
-        "DISABLE_CONSOLE_OUTPUT": "true",
-        "N8N_API_URL": "https://automation.agencia.bot",
-        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMWNmOGU4NC03NTI5LTRkZmYtOWQ3Yi0wMTBlMGRiOTE4MjciLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzYyNTU3Mzk1fQ.9ZMR7ivHkCtJjsLnZayjPqFfbtNhvdC4IS-NGEVeTU8"
-      }
     }
-  }
+    }
 }

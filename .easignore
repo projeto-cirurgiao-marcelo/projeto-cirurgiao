@@ -1,0 +1,40 @@
+# Git history (2.3 GB)
+.git/
+
+# All node_modules everywhere
+**/node_modules/
+
+# Backend (11 GB)
+backend-api/
+
+# Frontend (1.1 GB)
+frontend-web/
+
+# Other project folders
+android-app/
+iOS/
+infrastructure/
+knowledge/
+.history/
+docs/
+workflows/
+.autoforge/
+scripts/
+
+# Build artifacts
+**/.expo/
+**/dist/
+**/web-build/
+**/.next/
+**/out/
+**/coverage/
+
+# IDE and OS
+.idea/
+.vscode/
+**/.DS_Store
+**/*.log
+
+# Documentation
+*.md
+!mobile-app/**
