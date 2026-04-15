@@ -194,3 +194,27 @@ nul
 *.zip
 !infrastructure/**/*.zip
 !**/templates/**/*.zip
+
+# --- URGENT secret/size additions 2026-04-15 ---
+
+# Cloud Run env file contains production secrets (DATABASE_URL, JWT, API tokens)
+backend-api/cloud-run-env.yaml
+**/cloud-run-env*.yaml
+**/cloud-run-env*.yml
+
+# Dev/admin scripts at backend-api root (not inside scripts/)
+backend-api/check-*.js
+backend-api/scripts/*.ts
+!backend-api/scripts/set-hls-urls.ts
+
+# Large data exports (GitHub file limit 100MB)
+*.csv
+!**/fixtures/**/*.csv
+!**/test-data/**/*.csv
+
+# Claude Code plugin cache (local only)
+.claude/skills/
+.claude/skills-lock.json
+**/.claude/skills/
+**/.claude/skills-lock.json
+skills-lock.json
