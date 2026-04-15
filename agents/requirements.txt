@@ -1,4 +1,0 @@
-# Dependências para upload dos agentes para Qdrant
-sentence-transformers==2.2.2
-requests==2.31.0
-torch==2.1.0
