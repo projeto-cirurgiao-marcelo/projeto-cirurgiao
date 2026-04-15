@@ -1,0 +1,79 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+/* Platform-specific font families */
+@media android {
+  :root {
+    --font-mono: monospace;
+    --font-rounded: normal;
+    --font-serif: serif;
+    --font-sans: normal;
+  }
+}
+
+@media ios {
+  :root {
+    --font-mono: ui-monospace;
+    --font-serif: ui-serif;
+    --font-sans: system-ui;
+    --font-rounded: ui-rounded;
+  }
+}
+
+/* Design System - Projeto Cirurgiao */
+@layer theme {
+  @theme {
+    /* Brand / Primary (Navy) */
+    --color-primary: #1B2A4A;
+    --color-primary-dark: #0F1B33;
+    --color-primary-light: #2D4373;
+
+    /* Accent (Azul vibrante) */
+    --color-accent: #4A6CF7;
+    --color-accent-dark: #3451D1;
+    --color-accent-light: #6B8AFF;
+    --color-accent-soft: #EEF1FE;
+
+    /* Semantic */
+    --color-success: #22C55E;
+    --color-success-light: #ECFDF5;
+    --color-danger: #EF4444;
+    --color-danger-light: #FEF2F2;
+    --color-warning: #F59E0B;
+    --color-warning-light: #FFFBEB;
+    --color-info: #3B82F6;
+    --color-info-light: #EFF6FF;
+
+    /* Backgrounds */
+    --color-background: #F5F7FA;
+    --color-background-dark: #0F172A;
+    --color-card: #FFFFFF;
+    --color-card-dark: #1E293B;
+
+    /* Text */
+    --color-text: #1E293B;
+    --color-text-secondary: #64748B;
+    --color-text-muted: #94A3B8;
+    --color-text-dark: #F8FAFC;
+    --color-text-on-primary: #FFFFFF;
+    --color-text-on-accent: #FFFFFF;
+
+    /* Borders */
+    --color-border: #E2E8F0;
+    --color-border-light: #F1F5F9;
+    --color-border-dark: #334155;
+    --color-border-focus: #4A6CF7;
+
+    /* Input */
+    --color-input-bg: #FFFFFF;
+    --color-input-border: #E2E8F0;
+    --color-input-text: #1E293B;
+    --color-input-placeholder: #94A3B8;
+
+    /* Social */
+    --color-google: #FFFFFF;
+    --color-facebook: #1877F2;
+    --color-apple: #000000;
+  }
+}

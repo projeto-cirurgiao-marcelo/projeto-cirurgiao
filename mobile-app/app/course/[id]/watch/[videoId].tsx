@@ -9,7 +9,10 @@ import { VideoMaterials } from '../../../../src/components/video/VideoMaterials'
 import { VideoNotes } from '../../../../src/components/video/VideoNotes';
 import { VideoQuiz } from '../../../../src/components/video/VideoQuiz';
 import { VideoActionBar } from '../../../../src/components/video/VideoActionBar';
-import { VideoAIChatBubble } from '../../../../src/components/chat/VideoAIChatBubble';
+import { ExpandableFAB } from '../../../../src/components/chat/ExpandableFAB';
+import { ChatModal } from '../../../../src/components/chat/ChatModal';
+import useChatStore from '../../../../src/stores/chat-store';
+import type { ChatType } from '../../../../src/types/chat.types';
 import { CustomTabView } from '../../../../src/components/ui/CustomTabView';
 import { videosService } from '../../../../src/services/api/videos.service';
 import { progressService } from '../../../../src/services/api/progress.service';
@@ -17,6 +20,7 @@ import { coursesService } from '../../../../src/services/api/courses.service';
 import { Video, Module } from '../../../../src/types/course.types';
 import { Colors as colors } from '../../../../src/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 const TAB_ROUTES = [
   { key: 'lessons', title: 'Aulas', icon: 'list-outline' as const },
@@ -43,6 +47,13 @@ export default function WatchVideoScreen() {
   const [duration, setDuration] = useState(0);
   const [isTabsExpanded, setIsTabsExpanded] = useState(false);
 
+  const modalChatType = useChatStore((s) => s.modalChatType);
+  const closeChat = useChatStore((s) => s.closeChat);
+
+  const handleAIOption = useCallback((type: ChatType) => {
+    useChatStore.getState().openChat(type);
+  }, []);
+
   // Calcular navegação entre vídeos
   const { previousVideo, nextVideo } = useMemo(() => {
     if (!videoId || allCourseVideos.length === 0) {
@@ -55,6 +66,14 @@ export default function WatchVideoScreen() {
       nextVideo: currentIndex < allCourseVideos.length - 1 ? allCourseVideos[currentIndex + 1] : null,
     };
   }, [videoId, allCourseVideos]);
+
+  // Liberar rotação nesta tela, travar portrait ao sair
+  useEffect(() => {
+    ScreenOrientation.unlockAsync();
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    };
+  }, []);
 
   useEffect(() => {
     loadVideoData();
@@ -355,8 +374,18 @@ export default function WatchVideoScreen() {
         renderScene={renderScene}
       />
 
-      {/* Chat IA contextual */}
-      <VideoAIChatBubble
+      {/* FAB IA expandível */}
+      <ExpandableFAB
+        showVideoOption={true}
+        bottomOffset={14}
+        onSelectOption={handleAIOption}
+      />
+
+      {/* Modal de chat IA */}
+      <ChatModal
+        visible={modalChatType !== null}
+        chatType={modalChatType || 'general'}
+        onClose={closeChat}
         videoId={videoId || ''}
         courseId={courseId || ''}
         videoTitle={video.title}

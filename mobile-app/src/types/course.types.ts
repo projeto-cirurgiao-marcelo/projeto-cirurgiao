@@ -48,7 +48,7 @@ export interface Module {
 
 export type VideoUploadStatus = 'PENDING' | 'UPLOADING' | 'PROCESSING' | 'READY' | 'ERROR';
 
-export type VideoSource = 'cloudflare' | 'youtube' | 'vimeo' | 'external';
+export type VideoSource = 'cloudflare' | 'youtube' | 'vimeo' | 'external' | 'r2_hls';
 
 export interface Video {
   id: string;

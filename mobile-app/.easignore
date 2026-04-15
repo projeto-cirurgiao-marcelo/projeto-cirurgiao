@@ -1,0 +1,10 @@
+node_modules
+.expo
+dist
+android
+ios
+web-build
+coverage
+.idea
+.vscode
+*.log
