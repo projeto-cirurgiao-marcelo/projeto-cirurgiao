@@ -22,6 +22,19 @@ git log --all --full-history --source -- "knowledge/CREDENCIAIS_PRODUCAO.md"
 
 If either command returns commits, those commits contain the secret and must be purged (filter-repo) or avoided by publishing a fresh orphan commit as the first public commit.
 
+## Additional secrets found during Task 5 (committed to history)
+
+Task 5 committed the deletion of legacy native app folders. The diff revealed two Firebase config files that WERE tracked in history before the deletion commit:
+
+- `android-app/app/google-services.json` — Android Firebase config
+- `ios-app/CirurgiaoApp/Resources/GoogleService-Info.plist` — iOS Firebase config
+
+**These files are gone from HEAD** (deleted in commit `6c94c5c`) but remain in the history of earlier commits. Firebase config files contain API keys that Google [explicitly documents as safe to expose in client apps](https://firebase.google.com/docs/projects/api-keys) — they only identify the project and are protected by Security Rules and App Check. However, for a clean public publication you may still want to:
+
+1. Audit Firebase Security Rules to confirm the project is locked down
+2. Enable App Check on all Firebase products
+3. Consider rewriting history to remove them anyway if they contain anything sensitive beyond the default Google config
+
 ## Required follow-up actions before publishing the repo publicly
 
 1. **Rotate the GCP service account key** in Google Cloud Console. Create a new key, update all environments that use it, then disable/delete the old key. This is defensive — do it even if the key was never committed.
