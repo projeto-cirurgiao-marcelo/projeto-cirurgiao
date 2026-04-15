@@ -167,3 +167,30 @@ credentials/
 
 # Claude Code temp files
 tmpclaude-*
+
+# --- Cleanup additions 2026-04-15 (chore/repo-cleanup) ---
+
+# Local knowledge / progress docs (moved out of root)
+Knowledge/
+
+# VSCode local history extension
+.history/
+
+# Claude agent skills cache / local agents folder
+.agents/
+
+# Dev-only admin scripts (stays on disk, not in repo)
+scripts/
+backend-api/scripts/*.js
+backend-api/start-proxy.bat
+mobile-app/fix_and_run.bat
+mobile-app/run_android_fixed.bat
+
+# Windows accidental artifacts
+nul
+-p/
+
+# Backup archives (negate legit ones if needed)
+*.zip
+!infrastructure/**/*.zip
+!**/templates/**/*.zip
