@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-
 import { logger } from '@/lib/logger';
+import { maskEmail } from '@/lib/utils/mask-pii';
+
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
@@ -39,7 +40,9 @@ export default function LoginPage() {
       // Pegar o usuário do store após o login
       const currentUser = useAuthStore.getState().user;
       
-      logger.log('✅ [Login] Usuário logado:', currentUser);
+      logger.log('✅ [Login] Usuário logado:', currentUser
+        ? { ...currentUser, email: maskEmail(currentUser.email) }
+        : null);
       
       // Redirecionar baseado no tipo de usuário
       if (currentUser?.role === 'ADMIN' || currentUser?.role === 'INSTRUCTOR') {
