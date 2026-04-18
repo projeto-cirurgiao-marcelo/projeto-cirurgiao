@@ -9,6 +9,9 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Prisma needs a shadow DB with pgvector to diff migrations that touch
+  // vector(768) columns. Optional in environments without pgvector.
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 enum Role {
@@ -611,16 +614,17 @@ model ChatMessage {
 
 // Cache de embeddings das transcrições (para busca semântica)
 model TranscriptEmbedding {
-  id          String   @id @default(uuid())
+  id          String                       @id @default(uuid())
   videoId     String
-  chunkIndex  Int      // Índice do chunk dentro do vídeo
-  chunkText   String   @db.Text // Texto do chunk
-  startTime   Float    // Timestamp inicial em segundos
-  endTime     Float    // Timestamp final em segundos
-  embeddingId String?  // ID do embedding no Vertex AI Vector Search
-  isIndexed   Boolean  @default(false) // Se já foi indexado no Vector Search
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  chunkIndex  Int                          // Índice do chunk dentro do vídeo
+  chunkText   String                       @db.Text // Texto do chunk
+  startTime   Float                        // Timestamp inicial em segundos
+  endTime     Float                        // Timestamp final em segundos
+  embedding   Unsupported("vector(768)")?  // pgvector — text-embedding-004 (768 dims)
+  embeddingId String?                      // Legacy marker — dropped in follow-up task-11 migration.
+  isIndexed   Boolean                      @default(false)
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
 
   @@unique([videoId, chunkIndex])
   @@index([videoId])
@@ -673,7 +677,7 @@ model KnowledgeChunk {
   pageStart  Int?                  // Página inicial
   pageEnd    Int?                  // Página final
   language   String @default("pt-BR")
-  embedding  Json?                 // Vetor de embedding baseado no contentPt (float[768])
+  embedding  Unsupported("vector(768)")? // pgvector — text-embedding-004 (768 dims), based on contentPt
   isIndexed  Boolean @default(false)
   isTranslated Boolean @default(false) // Flag: tradução/cópia para contentPt foi feita
   createdAt  DateTime @default(now())

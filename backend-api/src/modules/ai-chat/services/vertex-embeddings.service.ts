@@ -231,16 +231,16 @@ export class VertexEmbeddingsService {
   }
 
   /**
-   * Semantic search over transcript chunks.
+   * Semantic search over transcript chunks via pgvector.
    *
-   * NOTE: this currently does a Prisma `findMany` + in-memory cosine, which
-   * is expensive because each chunk's embedding is **regenerated on every
-   * search call** (transcript_embeddings.embedding is not persisted yet —
-   * see CIRURGIAO_AUDIT §15 and the pgvector migration task). We embed the
-   * query once, then compute similarity against the live-embedded chunks in
-   * a single batched call for efficiency. Once pgvector lands and chunks
-   * have a persisted `vector(768)` column, this method should switch to an
-   * ORDER BY ... <-> query_vector LIMIT N query against the DB.
+   * Strategy: embed the query once, then ORDER BY the persisted
+   * `embedding <=> $query` (cosine distance). pgvector's HNSW index
+   * serves this in sub-linear time. We filter out chunks whose
+   * `embedding IS NULL` (not yet backfilled) so stale rows do not
+   * pollute results.
+   *
+   * cosine_distance = 1 - cosine_similarity, so a `minSimilarity` input
+   * maps to `maxDistance = 1 - minSimilarity` on the DB side.
    */
   async searchSimilarChunks(
     query: string,
@@ -256,73 +256,75 @@ export class VertexEmbeddingsService {
     this.logger.log(`Searching for: "${query.substring(0, 50)}..."`);
 
     const queryEmbedding = await this.generateEmbedding(query);
+    const queryVector = this.toVectorLiteral(queryEmbedding);
+    const maxDistance = 1 - minSimilarity;
 
-    const whereClause: any = {};
+    let videoIdFilter: string[] | null = null;
     if (videoId) {
-      whereClause.videoId = videoId;
-    }
-
-    let videoIds: string[] = [];
-    if (courseId) {
+      videoIdFilter = [videoId];
+    } else if (courseId) {
       const videos = await this.prisma.video.findMany({
-        where: {
-          module: {
-            courseId,
-          },
-        },
+        where: { module: { courseId } },
         select: { id: true },
       });
-      videoIds = videos.map((v) => v.id);
-      if (videoIds.length > 0) {
-        whereClause.videoId = { in: videoIds };
+      videoIdFilter = videos.map((v) => v.id);
+      if (videoIdFilter.length === 0) {
+        return [];
       }
     }
 
-    const chunks = await this.prisma.transcriptEmbedding.findMany({
-      where: whereClause,
-      take: 100,
-    });
+    // Use $queryRawUnsafe so we can splice the `= ANY($N::text[])` filter in
+    // only when needed — Prisma's parameterization makes the values safe;
+    // the SQL shape itself is a static string with no user input.
+    const sql = `
+      SELECT id, "videoId", "chunkIndex", "chunkText",
+             "startTime", "endTime",
+             (embedding <=> $1::vector) AS distance
+      FROM transcript_embeddings
+      WHERE embedding IS NOT NULL
+        ${videoIdFilter ? 'AND "videoId" = ANY($3::text[])' : ''}
+        AND (embedding <=> $1::vector) <= $2
+      ORDER BY embedding <=> $1::vector
+      LIMIT ${Math.max(1, Math.min(50, limit))}
+    `;
 
-    if (chunks.length === 0) {
-      this.logger.warn('No chunks found for search');
-      return [];
-    }
+    const params: unknown[] = [queryVector, maxDistance];
+    if (videoIdFilter) params.push(videoIdFilter);
 
-    // Batch-embed all chunks so we pay 1 round-trip per 5 chunks instead of
-    // 100 serial requests.
-    const chunkEmbeddings = await this.generateEmbeddings(
-      chunks.map((c) => c.chunkText),
-    );
+    const rows = (await this.prisma.$queryRawUnsafe(sql, ...params)) as Array<{
+      id: string;
+      videoId: string;
+      chunkIndex: number;
+      chunkText: string;
+      startTime: number;
+      endTime: number;
+      distance: number;
+    }>;
 
-    const results: SearchResult[] = [];
-    for (let i = 0; i < chunks.length; i++) {
-      const similarity = this.cosineSimilarity(
-        queryEmbedding,
-        chunkEmbeddings[i],
-      );
-      if (similarity >= minSimilarity) {
-        const chunk = chunks[i];
-        results.push({
-          videoId: chunk.videoId,
-          chunkIndex: chunk.chunkIndex,
-          chunkText: chunk.chunkText,
-          startTime: chunk.startTime,
-          endTime: chunk.endTime,
-          similarity,
-        });
-      }
-    }
+    return rows.map((row) => ({
+      videoId: row.videoId,
+      chunkIndex: row.chunkIndex,
+      chunkText: row.chunkText,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      similarity: 1 - row.distance,
+    }));
+  }
 
-    results.sort((a, b) => b.similarity - a.similarity);
-    return results.slice(0, limit);
+  /**
+   * Convert a number[] into the pgvector literal form `[v1,v2,...]` that
+   * parses into `vector`. Using the text form keeps us independent of any
+   * driver-side binary codec for the vector type.
+   */
+  private toVectorLiteral(vec: number[]): string {
+    return `[${vec.join(',')}]`;
   }
 
   /**
    * Indexes every transcript chunk that has not yet been indexed. Generates
-   * real embeddings and stamps `isIndexed=true`. The embedding itself is
-   * not persisted yet — that needs the pgvector column added by a later
-   * migration; for now this just proves the Vertex wiring works and sets
-   * a deterministic placeholder on `embeddingId` for observability.
+   * real Vertex embeddings and writes them to the pgvector `embedding`
+   * column via raw SQL (the column is Unsupported in Prisma's DSL so we
+   * cannot use the typed `update` API for it).
    */
   async indexAllChunks(): Promise<{ indexed: number; errors: number }> {
     const unindexedChunks = await this.prisma.transcriptEmbedding.findMany({
@@ -347,18 +349,19 @@ export class VertexEmbeddingsService {
         for (let j = 0; j < batch.length; j++) {
           const chunk = batch[j];
           const vector = embeddings[j];
-          // Sanity: Vertex should always return a vector, but guard anyway.
           if (!Array.isArray(vector) || vector.length === 0) {
             errors += 1;
             continue;
           }
-          await this.prisma.transcriptEmbedding.update({
-            where: { id: chunk.id },
-            data: {
-              isIndexed: true,
-              embeddingId: `vertex:${this.embeddingModel}:${chunk.id}`,
-            },
-          });
+          await this.prisma.$executeRawUnsafe(
+            `UPDATE transcript_embeddings
+                SET embedding = $1::vector,
+                    "isIndexed" = true,
+                    "updatedAt" = NOW()
+              WHERE id = $2`,
+            this.toVectorLiteral(vector),
+            chunk.id,
+          );
           indexed += 1;
         }
       } catch (err) {
