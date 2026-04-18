@@ -66,6 +66,97 @@ user.
 
 ---
 
+## Client behavior: 429 handling
+
+**Effective:** same branch / release TBD. Web implementação em
+`frontend-web/src/lib/api/client.ts` (commit `d2b3e00` em
+`track/front-web`). Mobile deve seguir o mesmo contrato textual.
+
+Este bloco é o contrato canônico que A e B consomem. A proposta
+original vive em `frontend-web/docs/proposals/429-ux-spec.md` e é o
+registro histórico; mudanças daqui em diante acontecem **nesta
+seção**, não lá.
+
+### Parser do `Retry-After`
+
+Suporta as duas formas que o RFC 7231 §7.1.3 permite:
+
+- **delta-seconds** — inteiro em segundos: `"30"` → `30`.
+- **HTTP-date** — formato IMF-fixdate: `"Wed, 21 Oct 2026 07:28:00 GMT"`
+  → `Math.ceil((parseDate(...) - Date.now()) / 1000)`, sempre ≥ 0.
+- Ausente ou não parseável → `null`.
+
+### Toast (web via `sonner`, mobile via `react-native-toast-message` ou bottom-sheet)
+
+- **Tipo:** erro (vermelho).
+- **Título (fixo, PT-BR):** `Muitas requisições à IA`.
+- **Descrição (dinâmica):**
+  - Com `Retry-After` parseável: `Aguarde {N} segundos e tente novamente.`
+    (aceitável pluralização no cliente se o idioma exigir — PT-BR pode
+    manter "segundos" singular-plural inalterado).
+  - Sem header / não parseável: `Aguarde alguns segundos e tente novamente.`
+- **Duração do toast:** `max(4000ms, retryAfter * 1000)`. O toast fica
+  visível pelo menos até o fim do cooldown conhecido.
+- **Sem botão de retry.** Sem countdown ao vivo. (v1 simples; se UX
+  quiser countdown, é um componente custom separado.)
+
+### Comportamento do cliente
+
+1. Interceptor (axios no web, equivalente no mobile) captura `status ===
+   429` **antes** de propagar o erro.
+2. `parseRetryAfter(headers['retry-after'])` extrai os segundos (ou
+   `null`).
+3. Dispara o toast.
+4. A **Promise continua rejeitando** — services e componentes recebem
+   o erro e podem tratar localmente (desligar spinner, reabilitar input,
+   etc.). O toast é aditivo, não substitui o erro.
+5. **Zero retry automático.** Re-submissão é responsabilidade manual do
+   usuário (clicar "Enviar" de novo). Se ele re-submeter dentro da
+   janela, nova 429 dispara outro toast — cada request é independente.
+
+### Exemplos
+
+**Com header `Retry-After: 45`:**
+
+```
+Request:  POST /api/v1/videos/abc/summaries/generate
+Response: 429
+          X-RateLimit-Limit: 30
+          X-RateLimit-Remaining: 0
+          X-RateLimit-Reset: 45
+          Retry-After: 45
+
+Toast:   "Muitas requisições à IA"
+         "Aguarde 45 segundos e tente novamente."
+         Duração: 45000ms
+```
+
+**Sem header (raro, mas coberto):**
+
+```
+Request:  POST /api/v1/chat/conversations/x/messages
+Response: 429
+
+Toast:   "Muitas requisições à IA"
+         "Aguarde alguns segundos e tente novamente."
+         Duração: 4000ms (fallback mínimo)
+```
+
+### Paridade mobile
+
+Obrigatório manter **texto PT-BR idêntico** (título + ambas as variantes
+de descrição). Formato do componente (toast nativo, bottom sheet,
+snackbar) fica a critério do RN — UX consistente **textualmente** é o
+que importa. Duração segue o mesmo cálculo.
+
+### Não telemetria no v1
+
+429s não vão pra analytics/Amplitude/Datadog nesta sprint — só toast +
+rejection. Se precisar rastrear abuso depois, o backend já loga
+(ThrottlerException) e é por lá que deve sair.
+
+---
+
 ## Video payload com playback URLs
 
 **Effective:** same branch / release TBD.
@@ -464,3 +555,44 @@ worktrees). When the file changes, the backend will bump the section at
 the top of this doc and you re-copy. Keep the copy paths consistent
 (`frontend-web/src/types/api-shared.ts`, `mobile-app/src/types/api-shared.ts`)
 so grep-for-divergence later is cheap.
+
+---
+
+## Runtime caveats (sprint-era)
+
+Rápida checklist de coisas que se comportam diferente hoje por decisões
+conscientes — espalhadas em outras docs, consolidadas aqui pra que A/B
+achem num grep.
+
+### Table ownership (Cloud SQL) — operacional, não-API
+
+`knowledge_chunks` (e possivelmente outras tabelas criadas via `db
+push`) ficou com ownership em `app_cirurgiao` em prod. Isso bloqueia
+qualquer `prisma migrate deploy` que envolva DDL sobre a tabela. Fix
+documentado em `docs/DEPLOY.md §6`:
+`GRANT "app_cirurgiao" TO postgres; ALTER TABLE <name> OWNER TO postgres;`.
+**Não afeta o runtime da API**, só manutenção — menção aqui pra que A/B
+saibam por que migrations em algumas tabelas podem falhar de forma
+inesperada e onde encontrar a receita.
+
+### Playback contract é final
+
+A seção "Video payload com playback URLs" acima **é final** pra esta
+sprint. O `kind: 'none'` cobre todos os estados transitórios que
+existiam antes (`uploadStatus !== 'READY'`, `externalUrl === null`,
+etc.), então clientes podem ignorar `uploadStatus` pra decidir se
+chama o player — basta olhar `playback.kind`.
+
+### Job cancellation: not supported
+
+`BullMQ` suporta `job.remove()`, mas os processors atuais (summary,
+quiz, pdf-ingest, captions) não cooperam com cancellation — uma vez
+iniciada a chamada Vertex, o Vertex roda até completar e gera o side
+effect (summary salva, quiz salva, etc.). Por isso **não expomos
+endpoint de cancel** nesta sprint. Se um cliente quer "abandonar" um
+job: só pare de fazer polling. Side effects já commitados ficam.
+
+Revisita: se o time pedir cancel de verdade, precisamos tornar os
+processors interrompíveis (AbortSignal no fetch Vertex + flag de
+cancel em cada ponto de escrita no DB) — trabalho de uma sprint
+dedicada, não encaixe cabível aqui.
