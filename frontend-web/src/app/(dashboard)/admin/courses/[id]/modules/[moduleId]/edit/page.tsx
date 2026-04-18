@@ -52,6 +52,8 @@ import { VideoCaptionsManager } from '@/components/admin/video-captions-manager'
 import { VideoQuizManager } from '@/components/admin/video-quiz-manager';
 import { aiTextService } from '@/lib/api/ai-text.service';
 
+import { logger } from '@/lib/logger';
+
 const moduleFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().optional(),
@@ -279,7 +281,7 @@ function VideoUploadDialog({
       onUploadComplete(video);
       handleClose(false);
     } catch (error: any) {
-      console.error('Erro no upload:', error);
+      logger.error('Erro no upload:', error);
       toast({
         title: 'Erro no upload',
         description: error.message || 'Não foi possível fazer o upload do vídeo.',
@@ -327,7 +329,7 @@ function VideoUploadDialog({
       onUploadComplete(video);
       handleClose(false);
     } catch (error: any) {
-      console.error('Erro ao criar vídeo da URL:', error);
+      logger.error('Erro ao criar vídeo da URL:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível criar o vídeo a partir da URL.',
@@ -699,7 +701,7 @@ function VideoUploadDialog({
                       onUploadComplete(video);
                       handleClose(false);
                     } catch (error: any) {
-                      console.error('Erro ao criar vídeo embed:', error);
+                      logger.error('Erro ao criar vídeo embed:', error);
                       toast({
                         title: 'Erro',
                         description: error.message || 'Não foi possível criar o vídeo embed.',
@@ -777,7 +779,7 @@ export default function EditModulePage() {
         }
       } catch (error: any) {
         if (error.name === 'AbortError' || error.name === 'CanceledError') return;
-        console.error('Erro ao carregar módulo:', error);
+        logger.error('Erro ao carregar módulo:', error);
         if (!abortController.signal.aborted) {
           toast({
             title: 'Erro',
@@ -809,7 +811,7 @@ export default function EditModulePage() {
       setVideos(data.sort((a, b) => a.order - b.order));
     } catch (error: any) {
       if (error.name === 'CanceledError') return;
-      console.error('Erro ao carregar vídeos:', error);
+      logger.error('Erro ao carregar vídeos:', error);
     } finally {
       setIsLoadingVideos(false);
     }
@@ -839,7 +841,7 @@ export default function EditModulePage() {
             ));
           }
         } catch (error) {
-          console.error('Erro ao verificar status:', error);
+          logger.error('Erro ao verificar status:', error);
         }
       }
     };
@@ -875,7 +877,7 @@ export default function EditModulePage() {
         description: 'Módulo atualizado com sucesso!',
       });
     } catch (error) {
-      console.error('Erro ao atualizar módulo:', error);
+      logger.error('Erro ao atualizar módulo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o módulo.',
@@ -937,7 +939,7 @@ export default function EditModulePage() {
         description: 'Ordem dos vídeos atualizada!',
       });
     } catch (error) {
-      console.error('Erro ao reordenar:', error);
+      logger.error('Erro ao reordenar:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível reordenar os vídeos.',
@@ -960,7 +962,7 @@ export default function EditModulePage() {
         description: updatedVideo.isPublished ? 'Vídeo publicado!' : 'Vídeo despublicado!',
       });
     } catch (error) {
-      console.error('Erro ao alterar publicação:', error);
+      logger.error('Erro ao alterar publicação:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível alterar o status de publicação.',
@@ -982,7 +984,7 @@ export default function EditModulePage() {
         description: 'Vídeo deletado com sucesso!',
       });
     } catch (error) {
-      console.error('Erro ao deletar:', error);
+      logger.error('Erro ao deletar:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível deletar o vídeo.',
@@ -1112,7 +1114,7 @@ export default function EditModulePage() {
                             description: 'Thumbnail horizontal atualizada!',
                           });
                         } catch (error) {
-                          console.error('Erro:', error);
+                          logger.error('Erro:', error);
                           toast({
                             title: 'Erro',
                             description: 'Não foi possível atualizar a thumbnail.',
@@ -1144,7 +1146,7 @@ export default function EditModulePage() {
                             description: 'Thumbnail vertical atualizada!',
                           });
                         } catch (error) {
-                          console.error('Erro:', error);
+                          logger.error('Erro:', error);
                           toast({
                             title: 'Erro',
                             description: 'Não foi possível atualizar a thumbnail.',
@@ -1289,7 +1291,7 @@ export default function EditModulePage() {
                         setEditingVideo(prev => prev ? {...prev, title: improved} : null);
                         toast({ title: 'Pronto', description: 'Título melhorado pela IA' });
                       } catch (err) {
-                        console.error(err);
+                        logger.error(err);
                         toast({ title: 'Erro', description: 'Não foi possível melhorar o título', variant: 'destructive' });
                       }
                     }}
@@ -1323,7 +1325,7 @@ export default function EditModulePage() {
                             setEditingVideo(prev => prev ? {...prev, description} : null);
                             toast({ title: 'Pronto', description: 'Descrição gerada pela IA' });
                           } catch (err) {
-                            console.error(err);
+                            logger.error(err);
                             toast({ title: 'Erro', description: 'Não foi possível gerar a descrição', variant: 'destructive' });
                           }
                         }}
@@ -1346,7 +1348,7 @@ export default function EditModulePage() {
                             setEditingVideo(prev => prev ? {...prev, description: improved} : null);
                             toast({ title: 'Pronto', description: 'Descrição melhorada pela IA' });
                           } catch (err) {
-                            console.error(err);
+                            logger.error(err);
                             toast({ title: 'Erro', description: 'Não foi possível melhorar a descrição', variant: 'destructive' });
                           }
                         }}
@@ -1384,7 +1386,7 @@ export default function EditModulePage() {
                         setEditingVideo(prev => prev ? {...prev, thumbnailUrl: url} : null);
                         toast({ title: 'Pronto', description: 'Thumbnail gerada e enviada ao R2' });
                       } catch (err) {
-                        console.error(err);
+                        logger.error(err);
                         toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail', variant: 'destructive' });
                       }
                     }}
@@ -1527,7 +1529,7 @@ export default function EditModulePage() {
                 toast({ title: 'Sucesso', description: 'Vídeo atualizado!' });
                 setEditingVideo(null);
               } catch (error) {
-                console.error('Erro:', error);
+                logger.error('Erro:', error);
                 toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' });
               }
             }}>

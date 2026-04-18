@@ -39,6 +39,8 @@ import { coursesService, modulesService, videosService, getErrorMessage } from '
 import { toast } from 'sonner';
 import type { Course, Module, Video, VideoUploadStatus } from '@/lib/types/course.types';
 
+import { logger } from '@/lib/logger';
+
 // Helpers
 const formatDuration = (seconds: number | null): string => {
   if (!seconds) return '--:--';
@@ -107,7 +109,7 @@ export default function AdminVideosPage() {
         const coursesData = Array.isArray(response) ? response : (response.data || []);
         setCourses(coursesData as Course[]);
       } catch (err) {
-        console.error('Erro ao carregar cursos:', err);
+        logger.error('Erro ao carregar cursos:', err);
         toast.error('Erro ao carregar cursos');
       } finally {
         setLoadingCourses(false);
@@ -130,7 +132,7 @@ export default function AdminVideosPage() {
         const data = await modulesService.findAll(selectedCourseId);
         setModules(data);
       } catch (err) {
-        console.error('Erro ao carregar modulos:', err);
+        logger.error('Erro ao carregar modulos:', err);
         toast.error('Erro ao carregar modulos');
       } finally {
         setLoadingModules(false);
@@ -152,7 +154,7 @@ export default function AdminVideosPage() {
       setVideos(data);
     } catch (err) {
       setError(getErrorMessage(err));
-      console.error('Erro ao carregar videos:', err);
+      logger.error('Erro ao carregar videos:', err);
     } finally {
       setLoadingVideos(false);
     }

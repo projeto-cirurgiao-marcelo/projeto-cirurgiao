@@ -30,6 +30,8 @@ import { useToast } from '@/hooks/use-toast';
 import { modulesService, videosService } from '@/lib/api';
 import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types';
 
+import { logger } from '@/lib/logger';
+
 // Componente para mostrar status de upload
 function UploadStatusBadge({ status, progress }: { status: VideoUploadStatus; progress: number }) {
   switch (status) {
@@ -105,7 +107,7 @@ export default function ModuleVideosPage() {
         setModule(data);
         await loadVideos();
       } catch (error) {
-        console.error('Erro ao carregar módulo:', error);
+        logger.error('Erro ao carregar módulo:', error);
         toast({
           title: 'Erro',
           description: 'Não foi possível carregar o módulo.',
@@ -128,7 +130,7 @@ export default function ModuleVideosPage() {
       const data = await videosService.list(moduleId);
       setVideos(data);
     } catch (error) {
-      console.error('Erro ao carregar vídeos:', error);
+      logger.error('Erro ao carregar vídeos:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os vídeos.',
@@ -171,7 +173,7 @@ export default function ModuleVideosPage() {
             });
           }
         } catch (error) {
-          console.error('Erro ao verificar status:', error);
+          logger.error('Erro ao verificar status:', error);
         }
       }
       
@@ -208,7 +210,7 @@ export default function ModuleVideosPage() {
         description: 'Ordem dos vídeos atualizada!',
       });
     } catch (error) {
-      console.error('Erro ao reordenar vídeos:', error);
+      logger.error('Erro ao reordenar vídeos:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível reordenar os vídeos.',
@@ -229,7 +231,7 @@ export default function ModuleVideosPage() {
       });
       await loadVideos();
     } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+      logger.error('Erro ao atualizar status:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o status do vídeo.',
@@ -252,7 +254,7 @@ export default function ModuleVideosPage() {
       });
       await loadVideos();
     } catch (error) {
-      console.error('Erro ao deletar vídeo:', error);
+      logger.error('Erro ao deletar vídeo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível deletar o vídeo.',
@@ -271,7 +273,7 @@ export default function ModuleVideosPage() {
       });
       await loadVideos();
     } catch (error) {
-      console.error('Erro ao sincronizar vídeo:', error);
+      logger.error('Erro ao sincronizar vídeo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível sincronizar o vídeo.',
@@ -361,7 +363,7 @@ export default function ModuleVideosPage() {
         },
         // Callback de status
         (status, message) => {
-          console.log(`[Upload] Status: ${status} - ${message}`);
+          logger.log(`[Upload] Status: ${status} - ${message}`);
           if (status === 'preparing') {
             setUploadPhase('uploading');
           } else if (status === 'uploading') {
@@ -396,7 +398,7 @@ export default function ModuleVideosPage() {
       await loadVideos();
 
     } catch (error: any) {
-      console.error('Erro ao fazer upload:', error);
+      logger.error('Erro ao fazer upload:', error);
       toast({
         title: 'Erro no upload',
         description: error.message || 'Não foi possível fazer o upload do vídeo.',
@@ -474,7 +476,7 @@ export default function ModuleVideosPage() {
       await loadVideos();
 
     } catch (error: any) {
-      console.error('Erro ao criar vídeo da URL:', error);
+      logger.error('Erro ao criar vídeo da URL:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível criar o vídeo a partir da URL.',

@@ -39,6 +39,8 @@ import { usersService } from '@/lib/api/users.service';
 import { getErrorMessage } from '@/lib/api/client';
 import type { StudentDetailResponse } from '@/lib/types/user.types';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Pagina de detalhes de um aluno individual
  * Exibe informacoes pessoais, matriculas com progresso e resultados de quizzes
@@ -62,7 +64,7 @@ export default function StudentDetailPage() {
       setStudent(data);
     } catch (err) {
       setError(getErrorMessage(err));
-      console.error('Erro ao carregar detalhes do aluno:', err);
+      logger.error('Erro ao carregar detalhes do aluno:', err);
     } finally {
       setLoading(false);
     }
