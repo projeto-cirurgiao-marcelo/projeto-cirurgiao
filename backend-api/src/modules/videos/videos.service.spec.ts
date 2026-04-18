@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { Video } from '@prisma/client';
 
@@ -8,6 +10,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
 import { VideoSource, VideoUploadStatus } from './dto/create-video.dto';
+import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 
 /**
  * Builds a fully-populated Video row. The real Prisma type has more
@@ -197,4 +200,138 @@ describe('VideosService', () => {
     });
   });
 
+  // ============================================
+  // createFromR2Hls — the new endpoint's happy path
+  // ============================================
+  describe('createFromR2Hls', () => {
+    beforeEach(() => {
+      prisma.module.findUnique.mockResolvedValue({
+        id: 'module-id',
+        courseId: 'course-id',
+      } as any);
+      prisma.video.findFirst.mockResolvedValue(null);
+    });
+
+    it('persists videoSource=r2_hls + uploadStatus=READY with hlsUrl', async () => {
+      const created = makeVideo({
+        videoSource: 'r2_hls',
+        hlsUrl: 'https://cdn.example/videos/xyz/playlist.m3u8',
+        duration: 600,
+        uploadStatus: 'READY',
+      });
+      prisma.video.create.mockResolvedValue(created);
+
+      const result = await service.createFromR2Hls('module-id', {
+        hlsUrl: 'https://cdn.example/videos/xyz/playlist.m3u8',
+        duration: 600,
+        title: 'R2 HLS video',
+      });
+
+      const data = prisma.video.create.mock.calls[0][0].data as any;
+      expect(data.videoSource).toBe(VideoSource.R2_HLS);
+      expect(data.hlsUrl).toBe('https://cdn.example/videos/xyz/playlist.m3u8');
+      expect(data.uploadStatus).toBe('READY');
+      expect(data.uploadProgress).toBe(100);
+      expect(data.duration).toBe(600);
+      expect(result).toEqual(created);
+    });
+
+    it('auto-assigns order when caller omits it', async () => {
+      prisma.video.findFirst
+        .mockResolvedValueOnce(makeVideo({ order: 7 })) // getNextOrder lookup
+        .mockResolvedValueOnce(null); // conflict lookup
+      prisma.video.create.mockResolvedValue(makeVideo({ order: 8 }));
+
+      await service.createFromR2Hls('module-id', {
+        hlsUrl: 'https://cdn.example/playlist.m3u8',
+        duration: 120,
+        title: 't',
+      });
+
+      const data = prisma.video.create.mock.calls[0][0].data as any;
+      expect(data.order).toBe(8);
+    });
+
+    it('rejects when order conflicts with an existing video', async () => {
+      prisma.video.findFirst.mockResolvedValue(makeVideo({ order: 0 }));
+
+      await expect(
+        service.createFromR2Hls('module-id', {
+          hlsUrl: 'https://cdn.example/playlist.m3u8',
+          duration: 120,
+          title: 't',
+          order: 0,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects when the module does not exist', async () => {
+      prisma.module.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.createFromR2Hls('missing', {
+          hlsUrl: 'https://cdn.example/playlist.m3u8',
+          duration: 120,
+          title: 't',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ============================================
+  // DTO validation — malformed hlsUrl
+  // ============================================
+  describe('CreateVideoFromR2HlsDto validation', () => {
+    const base = {
+      duration: 120,
+      title: 'valid title',
+    };
+
+    it('accepts a well-formed .m3u8 URL', async () => {
+      const dto = plainToInstance(CreateVideoFromR2HlsDto, {
+        ...base,
+        hlsUrl: 'https://cdn.example.com/videos/abc/playlist.m3u8',
+      });
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('rejects URL not ending in .m3u8', async () => {
+      const dto = plainToInstance(CreateVideoFromR2HlsDto, {
+        ...base,
+        hlsUrl: 'https://cdn.example.com/videos/abc/video.mp4',
+      });
+      const errors = await validate(dto);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].constraints).toHaveProperty('matches');
+    });
+
+    it('rejects a non-URL string', async () => {
+      const dto = plainToInstance(CreateVideoFromR2HlsDto, {
+        ...base,
+        hlsUrl: 'not-a-url',
+      });
+      const errors = await validate(dto);
+      expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('rejects zero or negative duration', async () => {
+      const dto = plainToInstance(CreateVideoFromR2HlsDto, {
+        ...base,
+        hlsUrl: 'https://cdn.example.com/videos/abc/playlist.m3u8',
+        duration: 0,
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'duration')).toBe(true);
+    });
+
+    it('rejects missing title', async () => {
+      const dto = plainToInstance(CreateVideoFromR2HlsDto, {
+        hlsUrl: 'https://cdn.example.com/videos/abc/playlist.m3u8',
+        duration: 120,
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'title')).toBe(true);
+    });
+  });
 });

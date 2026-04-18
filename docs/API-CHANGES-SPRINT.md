@@ -113,3 +113,50 @@ interface VideoPlaybackUrls {
   resource" — for `r2_hls` the player should still surface track
   switching from the manifest's SUBTITLES group. Not a bug.
 
+---
+
+## POST /modules/:moduleId/videos/from-r2-hls
+
+**Effective:** same branch / release TBD.
+
+New endpoint to register videos that come out of the external
+FFmpeg+Whisper pipeline. The backend does **not** process anything —
+it just records the finished master playlist.
+
+- **Auth:** `FirebaseAuthGuard` + `RolesGuard` — allowed roles:
+  `INSTRUCTOR`, `ADMIN` (instructor must own the course that contains
+  the module).
+- **Status:** `201 Created`.
+- **Returns:** `Video & { playback }` (same shape as `GET /videos/:id`).
+
+**Request body (`CreateVideoFromR2HlsDto`):**
+
+```jsonc
+{
+  "hlsUrl": "https://cdn.example.com/videos/<path>/<basename>/playlist.m3u8",
+  "duration": 900,            // seconds, required, > 0
+  "captionsEmbedded": true,    // default true — legendas no SUBTITLES group
+  "title": "Colectomia em felinos",
+  "description": "...",        // optional
+  "order": 3,                  // optional; auto-assigned to next free slot when omitted
+  "thumbnailUrl": "https://cdn.example.com/videos/.../thumb.jpg"  // optional
+}
+```
+
+**Validation errors (`400 Bad Request`):**
+
+- `hlsUrl` must be a valid URL ending in `.m3u8` (with or without query string).
+- `duration` must be a positive integer.
+- `title` is required and non-empty.
+- Any extra unknown field trips `ValidationPipe({ forbidNonWhitelisted: true })`.
+
+**Persistence side effects:**
+
+- `videoSource = 'r2_hls'`
+- `uploadStatus = 'READY'`, `uploadProgress = 100`
+- `isPublished = false` (toggle separately with `PATCH /videos/:id/toggle-publish`)
+- `cloudflareId`, `cloudflareUrl`, `externalUrl` stay null.
+
+**When `order` is omitted**, the service calls `getNextOrder(moduleId)`
+and uses that. If the caller passes an `order` that already exists in
+the module, responds `400 { "statusCode": 400, "message": "Já existe um vídeo com esta ordem neste módulo" }`.

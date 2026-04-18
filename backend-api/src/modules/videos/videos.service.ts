@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
-import { CreateVideoDto, VideoUploadStatus } from './dto/create-video.dto';
+import { CreateVideoDto, VideoUploadStatus, VideoSource } from './dto/create-video.dto';
+import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
 import { Video } from '@prisma/client';
@@ -291,6 +292,67 @@ export class VideosService {
       this.logger.error('Error creating embed video', error);
       throw error;
     }
+  }
+
+  /**
+   * Criar vídeo a partir de master playlist HLS já hospedado em R2.
+   *
+   * Nothing to transcode or upload on the backend: the external FFmpeg+
+   * Whisper pipeline has already produced the full HLS ladder (including
+   * the SUBTITLES group) and published it at `hlsUrl`. We just create the
+   * Video row with `videoSource='r2_hls'` and `uploadStatus='READY'`.
+   */
+  async createFromR2Hls(
+    moduleId: string,
+    dto: CreateVideoFromR2HlsDto,
+  ): Promise<Video> {
+    const module = await this.prisma.module.findUnique({
+      where: { id: moduleId },
+    });
+    if (!module) {
+      throw new NotFoundException('Módulo não encontrado');
+    }
+
+    // Resolve order: caller can pin it, otherwise next-available.
+    const order =
+      dto.order !== undefined && dto.order !== null
+        ? dto.order
+        : await this.getNextOrder(moduleId);
+
+    const conflicting = await this.prisma.video.findFirst({
+      where: { moduleId, order },
+    });
+    if (conflicting) {
+      throw new BadRequestException(
+        'Já existe um vídeo com esta ordem neste módulo',
+      );
+    }
+
+    const captionsEmbedded = dto.captionsEmbedded !== false;
+
+    const video = await this.prisma.video.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        thumbnailUrl: dto.thumbnailUrl,
+        duration: dto.duration,
+        order,
+        isPublished: false,
+        uploadStatus: 'READY',
+        uploadProgress: 100,
+        hlsUrl: dto.hlsUrl,
+        videoSource: VideoSource.R2_HLS,
+        module: { connect: { id: moduleId } },
+      },
+      include: {
+        module: { select: { id: true, title: true, courseId: true } },
+      },
+    });
+
+    this.logger.log(
+      `R2/HLS video created: ${video.id} (module ${moduleId}, captionsEmbedded=${captionsEmbedded})`,
+    );
+    return video;
   }
 
   /**
