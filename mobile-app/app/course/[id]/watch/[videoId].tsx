@@ -19,6 +19,7 @@ import { progressService } from '../../../../src/services/api/progress.service';
 import { coursesService } from '../../../../src/services/api/courses.service';
 import { Video, Module } from '../../../../src/types/course.types';
 import { Colors as colors } from '../../../../src/constants/colors';
+import { logger } from '../../../../src/lib/logger';
 import { Ionicons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
@@ -92,7 +93,7 @@ export default function WatchVideoScreen() {
         progressService.getVideoProgress(videoId).catch(() => null),
       ]);
 
-      console.log(`[WatchVideo] Posição salva carregada: ${savedPosition}s`);
+      logger.log(`[WatchVideo] Posição salva carregada: ${savedPosition}s`);
 
       // Restaurar estado de conclusão
       if (videoProgress?.completed) {
@@ -105,7 +106,7 @@ export default function WatchVideoScreen() {
       const streamData = videosService.getStreamData(videoData);
       const resolvedUrl = streamData.hlsUrl || '';
       setStreamUrl(resolvedUrl);
-      console.log(`[WatchVideo] Stream URL resolvida: ${resolvedUrl} (tipo: ${streamData.type})`);
+      logger.log(`[WatchVideo] Stream URL resolvida: ${resolvedUrl} (tipo: ${streamData.type})`);
 
       // Garantir que a posição é um número válido
       const validPosition = typeof savedPosition === 'number' && savedPosition > 0 ? savedPosition : 0;
@@ -133,10 +134,10 @@ export default function WatchVideoScreen() {
         setAllCourseVideos(videos);
         setModuleVideos(currentModuleVideos);
       } catch (err) {
-        console.error('Erro ao carregar curso:', err);
+        logger.error('[WatchVideo] Erro ao carregar curso:', err);
       }
     } catch (err) {
-      console.error('Erro ao carregar vídeo:', err);
+      logger.error('[WatchVideo] Erro ao carregar vídeo:', err);
       setError('Não foi possível carregar o vídeo. Tente novamente.');
     } finally {
       setLoading(false);
@@ -144,7 +145,7 @@ export default function WatchVideoScreen() {
   };
 
   const handleVideoEnded = useCallback(() => {
-    console.log('Vídeo concluído');
+    logger.log('[WatchVideo] Vídeo concluído');
     setIsCompleted(true);
 
     // Navegar automaticamente para próxima aula após 3 segundos

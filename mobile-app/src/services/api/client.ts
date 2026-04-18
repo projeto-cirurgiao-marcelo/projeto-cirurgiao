@@ -6,6 +6,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth } from 'firebase/auth';
+import { logger } from '../../lib/logger';
 
 // URL base da API - ajustar conforme ambiente
 // Para Android Emulator, use 10.0.2.2 ao invés de localhost
@@ -38,7 +39,7 @@ apiClient.interceptors.request.use(
         }
       }
     } catch (error) {
-      console.error('Erro ao obter token:', error);
+      logger.error('[apiClient] Erro ao obter token:', error);
     }
     return config;
   },
@@ -80,7 +81,7 @@ apiClient.interceptors.response.use(
             return apiClient(originalRequest);
           }
         } catch (refreshError) {
-          console.log('Token refresh falhou, limpando sessão...');
+          logger.warn('[apiClient] Token refresh falhou, limpando sessão', refreshError);
         }
         isRefreshing = false;
       }

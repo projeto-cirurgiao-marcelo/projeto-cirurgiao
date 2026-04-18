@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { likesService, LikeStatus } from '../../services/api/likes.service';
+import { logger } from '../../lib/logger';
 import { Colors as colors } from '../../constants/colors';
 
 interface VideoLikeButtonProps {
@@ -37,7 +38,7 @@ export function VideoLikeButton({ videoId }: VideoLikeButtonProps) {
         likesCount: typeof data?.likesCount === 'number' ? data.likesCount : 0,
       });
     } catch (error) {
-      console.error('Erro ao carregar status de like:', error);
+      logger.error('Erro ao carregar status de like:', error);
       // Manter valor padrão em caso de erro
       setStatus({ liked: false, likesCount: 0 });
     }
@@ -72,7 +73,7 @@ export function VideoLikeButton({ videoId }: VideoLikeButtonProps) {
       const newStatus = await likesService.toggle(videoId);
       setStatus(newStatus);
     } catch (error) {
-      console.error('Erro ao alternar like:', error);
+      logger.error('Erro ao alternar like:', error);
       // Rollback on error
       setStatus(previousStatus);
     } finally {

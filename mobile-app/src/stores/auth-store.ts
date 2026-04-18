@@ -24,6 +24,7 @@ import {
 import { auth } from '../services/firebase';
 import { User, AuthState, LoginCredentials, RegisterCredentials } from '../types';
 import { apiClient } from '../services/api/client';
+import { logger } from '../lib/logger';
 
 interface AuthActions {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -116,7 +117,7 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
         } catch (error: any) {
-          console.error('Erro no login:', error);
+          logger.error('Erro no login:', error);
 
           let message = 'Erro ao fazer login';
           // Erro do Firebase (tem .code)
@@ -186,7 +187,7 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
         } catch (error: any) {
-          console.error('Erro no registro:', error);
+          logger.error('Erro no registro:', error);
 
           let message = 'Erro ao criar conta';
           if (error.code) {
@@ -214,7 +215,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           await signOut(auth);
         } catch (error) {
-          console.error('Erro ao fazer logout:', error);
+          logger.error('Erro ao fazer logout:', error);
         } finally {
           await AsyncStorage.removeItem('firebaseToken');
           set({

@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ForumCategory } from '../../src/types';
 import { forumCategoriesService } from '../../src/services/api/forum-categories.service';
+import { logger } from '../../src/lib/logger';
 import CategoryCard from '../../src/components/forum/CategoryCard';
 import { ForumCategorySkeleton } from '../../src/components/ui/Skeleton';
 import {
@@ -39,7 +40,7 @@ export default function ForumScreen() {
       const data = await forumCategoriesService.getAll();
       setCategories(data);
     } catch (err) {
-      console.error('Erro ao carregar categorias:', err);
+      logger.error('[ForumTab] Erro ao carregar categorias:', err);
       setError('Não foi possível carregar as categorias.');
     } finally {
       setIsLoading(false);

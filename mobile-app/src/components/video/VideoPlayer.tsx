@@ -9,6 +9,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from '../../types/course.types';
 import { progressService } from '../../services/api/progress.service';
+import { logger } from '../../lib/logger';
 
 interface VideoPlayerProps {
   video: Video;
@@ -270,7 +271,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
       });
       lastSavedTimeRef.current = currentTime;
     } catch (error) {
-      console.error('[VideoPlayer] Erro ao salvar progresso:', error);
+      logger.error('[VideoPlayer] Erro ao salvar progresso:', error);
     }
   }, [video.id]);
 
@@ -286,7 +287,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
           hasRestoredPosition.current = true;
           setDisplayTime(initialPosition);
         } catch (error) {
-          console.error('[VideoPlayer] Erro ao restaurar posição:', error);
+          logger.error('[VideoPlayer] Erro ao restaurar posição:', error);
         }
       }, 500);
 
@@ -302,7 +303,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
       await progressService.markAsCompleted(video.id);
       await saveProgress(false);
     } catch (error) {
-      console.error('[VideoPlayer] Erro ao marcar como concluído:', error);
+      logger.error('[VideoPlayer] Erro ao marcar como concluído:', error);
       await saveProgress(true);
     }
     if (onEnded) {

@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { profileService, UserProfile } from '../../src/services/api/profile.service';
 import useAuthStore from '../../src/stores/auth-store';
+import { logger } from '../../src/lib/logger';
 import {
   Colors,
   FontSize,
@@ -71,7 +72,7 @@ export default function EditProfileScreen() {
       setCity(profile.city || '');
       setSpecializations(profile.specializations || []);
     } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
+      logger.error('Erro ao carregar perfil:', error);
       Alert.alert('Erro', 'Não foi possível carregar o perfil.');
     } finally {
       setLoading(false);
@@ -112,7 +113,7 @@ export default function EditProfileScreen() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error('Erro ao salvar perfil:', error);
+      logger.error('Erro ao salvar perfil:', error);
       Alert.alert('Erro', 'Não foi possível salvar o perfil.');
     } finally {
       setSaving(false);

@@ -28,6 +28,7 @@ import { coursesService } from '../../../../src/services/api/courses.service';
 import { progressService } from '../../../../src/services/api/progress.service';
 import { Module, Video } from '../../../../src/types';
 import { VideoItemSkeleton } from '../../../../src/components/ui/Skeleton';
+import { logger } from '../../../../src/lib/logger';
 
 export default function ModuleVideosScreen() {
   const params = useLocalSearchParams();
@@ -67,10 +68,10 @@ export default function ModuleVideosScreen() {
           setWatchedVideos(watched);
         }
       } catch (error) {
-        console.log('Sem progresso ainda');
+        logger.log('[ModuleScreen] Sem progresso ainda');
       }
     } catch (error) {
-      console.error('Erro ao carregar módulo:', error);
+      logger.error('[ModuleScreen] Erro ao carregar módulo:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);

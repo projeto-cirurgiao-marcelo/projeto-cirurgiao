@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 import type {
   ChatConversation,
   ChatType,
@@ -37,7 +38,7 @@ export const chatbotService = {
 
       return data;
     } catch (error) {
-      console.error('[chatbotService] Erro ao listar conversas:', error);
+      logger.error('[chatbotService] Erro ao listar conversas:', error);
       return { conversations: [], total: 0, limit, offset };
     }
   },
@@ -79,7 +80,7 @@ export const chatbotService = {
       );
       return response.data;
     } catch (error) {
-      console.error('[chatbotService] Erro ao obter sugestoes:', error);
+      logger.error('[chatbotService] Erro ao obter sugestoes:', error);
       return [];
     }
   },

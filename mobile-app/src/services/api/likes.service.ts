@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 
 export interface LikeStatus {
   liked: boolean;
@@ -27,7 +28,7 @@ export const likesService = {
         likesCount: typeof data?.totalLikes === 'number' ? data.totalLikes : (typeof data?.likesCount === 'number' ? data.likesCount : 0),
       };
     } catch (error) {
-      console.error('Erro ao buscar status de like:', error);
+      logger.error('Erro ao buscar status de like:', error);
       return DEFAULT_STATUS;
     }
   },
@@ -46,7 +47,7 @@ export const likesService = {
         likesCount: typeof data?.totalLikes === 'number' ? data.totalLikes : (typeof data?.likesCount === 'number' ? data.likesCount : 0),
       };
     } catch (error) {
-      console.error('Erro ao alternar like:', error);
+      logger.error('Erro ao alternar like:', error);
       throw error;
     }
   },

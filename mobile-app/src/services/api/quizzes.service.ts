@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 import type {
   Quiz,
   GenerateQuizDto,
@@ -22,7 +23,7 @@ export const quizzesService = {
       const response = await apiClient.get<Quiz[]>(`/videos/${videoId}/quizzes`);
       return response.data;
     } catch (error) {
-      console.error('[quizzesService] Erro ao listar quizzes:', error);
+      logger.error('[quizzesService] Erro ao listar quizzes:', error);
       return [];
     }
   },
@@ -47,7 +48,7 @@ export const quizzesService = {
       );
       return response.data;
     } catch (error) {
-      console.error('[quizzesService] Erro ao listar tentativas:', error);
+      logger.error('[quizzesService] Erro ao listar tentativas:', error);
       return [];
     }
   },
@@ -59,7 +60,7 @@ export const quizzesService = {
       );
       return response.data;
     } catch (error) {
-      console.error('[quizzesService] Erro ao obter stats:', error);
+      logger.error('[quizzesService] Erro ao obter stats:', error);
       return null;
     }
   },

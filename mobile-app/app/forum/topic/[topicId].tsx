@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ForumTopic, ForumReply, ReportReason } from '../../../src/types';
 import { forumService } from '../../../src/services/api/forum.service';
 import { getErrorMessage } from '../../../src/services/api/client';
+import { logger } from '../../../src/lib/logger';
 import useAuthStore from '../../../src/stores/auth-store';
 import VoteButtons from '../../../src/components/forum/VoteButtons';
 import ReplyCard from '../../../src/components/forum/ReplyCard';
@@ -108,7 +109,7 @@ export default function TopicDetailScreen() {
       const data = await forumService.getTopicById(topicId);
       setTopic(data);
     } catch (err) {
-      console.error('Erro ao carregar tópico:', err);
+      logger.error('[ForumTopic] Erro ao carregar tópico:', err);
       setError('Não foi possível carregar o tópico.');
     } finally {
       setIsLoading(false);
