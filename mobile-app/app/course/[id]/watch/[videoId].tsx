@@ -21,7 +21,6 @@ import { Video, Module } from '../../../../src/types/course.types';
 import { Colors as colors } from '../../../../src/constants/colors';
 import { logger } from '../../../../src/lib/logger';
 import { Ionicons } from '@expo/vector-icons';
-import * as ScreenOrientation from 'expo-screen-orientation';
 
 const TAB_ROUTES = [
   { key: 'lessons', title: 'Aulas', icon: 'list-outline' as const },
@@ -68,14 +67,8 @@ export default function WatchVideoScreen() {
     };
   }, [videoId, allCourseVideos]);
 
-  // Liberar rotação nesta tela, travar portrait ao sair
-  useEffect(() => {
-    ScreenOrientation.unlockAsync();
-    return () => {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-    };
-  }, []);
-
+  // App e portrait-only (app.json). Rotacao pra landscape e responsabilidade
+  // exclusiva do VideoPlayer ao entrar em fullscreen (via lockAsync).
   useEffect(() => {
     loadVideoData();
   }, [videoId]);

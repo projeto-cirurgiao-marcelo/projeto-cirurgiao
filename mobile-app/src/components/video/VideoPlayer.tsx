@@ -1,11 +1,12 @@
 import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useState, useMemo } from 'react';
 import {
   StyleSheet, View, Text, AppState, AppStateStatus, TouchableOpacity,
-  Pressable, Platform, Dimensions,
+  Pressable, Platform,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { BlurView } from 'expo-blur';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from '../../types/course.types';
 import { progressService } from '../../services/api/progress.service';
@@ -399,27 +400,37 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     };
   }, [saveProgress]);
 
-  // Auto fullscreen ao girar para landscape
+  // Fullscreen gerenciado via lockAsync no botao (ver TouchableOpacity expand).
+  // App e portrait-only globalmente (app.json), entao nao escutamos rotacao de device.
+  // Cleanup: ao desmontar em fullscreen, devolve portrait pra nao prender o app em landscape.
   useEffect(() => {
-    const handleChange = ({ window }: { window: { width: number; height: number } }) => {
-      const isLandscape = window.width > window.height;
-      if (isLandscape && !isFullscreenRef.current) {
-        isFullscreenRef.current = true;
-        videoViewRef.current?.enterFullscreen();
-      } else if (!isLandscape && isFullscreenRef.current) {
-        isFullscreenRef.current = false;
-        videoViewRef.current?.exitFullscreen();
+    return () => {
+      if (isFullscreenRef.current) {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {
+          // ignore: best-effort cleanup
+        });
       }
     };
-
-    const subscription = Dimensions.addEventListener('change', handleChange);
-    return () => subscription.remove();
   }, []);
 
-  // Sincronizar estado ao entrar/sair do fullscreen
+  // Entrar em fullscreen: gira pra landscape ANTES de enterFullscreen, pra transicao ficar fluida.
+  const requestFullscreen = useCallback(async () => {
+    try {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    } catch (err) {
+      logger.warn('[VideoPlayer] Falha ao girar pra landscape:', err);
+    }
+    videoViewRef.current?.enterFullscreen();
+  }, []);
+
+  // Sincronizar estado ao entrar/sair do fullscreen. expo-video dispara
+  // onFullscreenExit tanto via botao nativo quanto gesto. Ao sair, volta pra portrait.
   const handleFullscreenExit = useCallback(() => {
     isFullscreenRef.current = false;
     setIsFullscreen(false);
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch((err) => {
+      logger.warn('[VideoPlayer] Falha ao voltar pra portrait:', err);
+    });
   }, []);
 
   const handleFullscreenEnter = useCallback(() => {
@@ -562,10 +573,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
             </TouchableOpacity>
           )}
 
-          {/* Fullscreen */}
+          {/* Fullscreen: gira pra landscape + entra fullscreen */}
           <TouchableOpacity
             style={[styles.glassChip, { marginLeft: 'auto' }]}
-            onPress={() => videoViewRef.current?.enterFullscreen()}
+            onPress={requestFullscreen}
             activeOpacity={0.6}
           >
             <Ionicons name="expand-outline" size={14} color="rgba(255,255,255,0.8)" />
