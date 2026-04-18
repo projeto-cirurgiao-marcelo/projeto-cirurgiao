@@ -456,7 +456,9 @@ export const videosService = {
         filename: file.name,
       });
 
-      logger.log('[TUS Direct] TUS URL obtained:', tusUploadUrl);
+      // NOTE: tusUploadUrl contains a signed Cloudflare upload token —
+      // never log it (even gated). If you need to debug TUS upload,
+      // add a temporary `logger.debug` inline and remove before merge.
       logger.log('[TUS Direct] Video ID:', videoId, 'Cloudflare UID:', uid);
 
       // Fase 2: Upload TUS diretamente para Cloudflare
