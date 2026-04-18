@@ -16,6 +16,8 @@ import { GenerateQuizDto } from './dto/generate-quiz.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
+import { QueueService } from '../../shared/queue/queue.service';
+import { QUEUE_NAMES } from '../../shared/queue/queue.constants';
 
 @Controller()
 @UseGuards(FirebaseAuthGuard)
@@ -23,6 +25,7 @@ export class QuizzesController {
   constructor(
     private quizzesService: QuizzesService,
     private quizAttemptsService: QuizAttemptsService,
+    private queueService: QueueService,
   ) {}
 
   // ============================================
@@ -30,16 +33,31 @@ export class QuizzesController {
   // ============================================
 
   /**
-   * Gera um novo quiz para um vídeo
+   * Gera um novo quiz para um vídeo (assíncrono)
    * POST /api/v1/videos/:videoId/quizzes/generate
+   * Retorna 202 com jobId. Use GET /jobs/:id para polling.
    */
   @Post('videos/:videoId/quizzes/generate')
   @UseGuards(UserThrottlerGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
   async generateQuiz(
     @Param('videoId') videoId: string,
     @Body() dto: GenerateQuizDto,
+    @Request() req: any,
   ) {
-    return this.quizzesService.generateQuiz(videoId, dto);
+    const userId = req.user?.sub ?? req.user?.id ?? 'anonymous';
+    return this.queueService.enqueue(QUEUE_NAMES.QUIZ, {
+      type: QUEUE_NAMES.QUIZ,
+      userId,
+      entityId: videoId,
+      videoId,
+      dto: dto as any,
+    }, {
+      fallback: async () => {
+        const quiz = await this.quizzesService.generateQuiz(videoId, dto);
+        return { resultRef: (quiz as any)?.id };
+      },
+    });
   }
 
   /**
