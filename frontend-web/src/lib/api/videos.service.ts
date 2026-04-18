@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { logger } from '@/lib/logger';
 import type {
   Video,
   CreateVideoDto,
@@ -187,7 +188,7 @@ export const videosService = {
    * Resolve stream data a partir de um objeto Video já carregado (sem request adicional)
    */
   getStreamDataFromVideo(video: Video): StreamDataResponse {
-    console.log('[videosService.getStreamDataFromVideo] Video data:', {
+    logger.log('[videosService.getStreamDataFromVideo] Video data:', {
       id: video.id,
       videoSource: video.videoSource,
       cloudflareId: video.cloudflareId,
@@ -196,7 +197,7 @@ export const videosService = {
 
     // Prioridade 0: Se tem hlsUrl explícito (HLS do R2 CDN - suporta 4K)
     if ((video as any).hlsUrl) {
-      console.log('[videosService] Retornando como HLS R2 (tem hlsUrl)');
+      logger.log('[videosService] Retornando como HLS R2 (tem hlsUrl)');
       return {
         type: 'hls',
         hlsUrl: (video as any).hlsUrl,
@@ -206,7 +207,7 @@ export const videosService = {
 
     // Prioridade 0.5: Se externalUrl aponta para .m3u8 (HLS no R2/CDN)
     if (video.externalUrl && video.externalUrl.includes('.m3u8')) {
-      console.log('[videosService] Retornando como HLS (externalUrl contém .m3u8)');
+      logger.log('[videosService] Retornando como HLS (externalUrl contém .m3u8)');
       return {
         type: 'hls',
         hlsUrl: video.externalUrl,
@@ -264,7 +265,7 @@ export const videosService = {
 
     // Prioridade 0: Se tem hlsUrl (HLS do R2 CDN - suporta 4K)
     if (video.hlsUrl) {
-      console.log('[videosService.getStreamUrl] Retornando como HLS R2 (tem hlsUrl)');
+      logger.log('[videosService.getStreamUrl] Retornando como HLS R2 (tem hlsUrl)');
       return {
         type: 'hls',
         hlsUrl: video.hlsUrl,
@@ -274,7 +275,7 @@ export const videosService = {
 
     // Prioridade 0.5: Se externalUrl aponta para .m3u8 (HLS no R2/CDN)
     if (video.externalUrl && video.externalUrl.includes('.m3u8')) {
-      console.log('[videosService.getStreamUrl] Retornando como HLS (externalUrl contém .m3u8)');
+      logger.log('[videosService.getStreamUrl] Retornando como HLS (externalUrl contém .m3u8)');
       return {
         type: 'hls',
         hlsUrl: video.externalUrl,
@@ -284,7 +285,7 @@ export const videosService = {
 
     // Prioridade 1: Se tem cloudflareId, é um vídeo Cloudflare
     if (video.cloudflareId) {
-      console.log('[videosService.getStreamUrl] Retornando como Cloudflare (tem cloudflareId)');
+      logger.log('[videosService.getStreamUrl] Retornando como Cloudflare (tem cloudflareId)');
       return {
         type: 'cloudflare',
         cloudflareId: video.cloudflareId,
@@ -314,7 +315,7 @@ export const videosService = {
       }
       
       if (cloudflareId) {
-        console.log('[videosService.getStreamUrl] Retornando como Cloudflare (externalUrl contém cloudflarestream.com), ID:', cloudflareId);
+        logger.log('[videosService.getStreamUrl] Retornando como Cloudflare (externalUrl contém cloudflarestream.com), ID:', cloudflareId);
         return {
           type: 'cloudflare',
           cloudflareId: cloudflareId,
@@ -326,7 +327,7 @@ export const videosService = {
     
     // Prioridade 3: Se tem externalUrl e videoSource diferente de cloudflare, é embed externo
     if (video.videoSource && video.videoSource !== 'cloudflare' && video.externalUrl) {
-      console.log('[videosService.getStreamUrl] Retornando como embed externo');
+      logger.log('[videosService.getStreamUrl] Retornando como embed externo');
       return {
         type: 'embed',
         embedUrl: video.externalUrl,
@@ -341,7 +342,7 @@ export const videosService = {
       const cloudflareId = match ? match[1] : null;
       
       if (cloudflareId) {
-        console.log('[videosService.getStreamUrl] Retornando como Cloudflare (extraído de cloudflareUrl)');
+        logger.log('[videosService.getStreamUrl] Retornando como Cloudflare (extraído de cloudflareUrl)');
         return {
           type: 'cloudflare',
           cloudflareId: cloudflareId,
@@ -445,8 +446,8 @@ export const videosService = {
   ): Promise<Video> {
     try {
       onStatusChange?.('preparing', 'Preparando upload TUS...');
-      console.log('[TUS Direct] Starting upload');
-      console.log('[TUS Direct] File size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      logger.log('[TUS Direct] Starting upload');
+      logger.log('[TUS Direct] File size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
 
       // Fase 1: Obter URL TUS do backend (cria registro no banco e obtém URL autenticada)
       const { tusUploadUrl, uid, videoId, video } = await this.getTusUploadUrl(moduleId, {
@@ -455,8 +456,8 @@ export const videosService = {
         filename: file.name,
       });
 
-      console.log('[TUS Direct] TUS URL obtained:', tusUploadUrl);
-      console.log('[TUS Direct] Video ID:', videoId, 'Cloudflare UID:', uid);
+      logger.log('[TUS Direct] TUS URL obtained:', tusUploadUrl);
+      logger.log('[TUS Direct] Video ID:', videoId, 'Cloudflare UID:', uid);
 
       // Fase 2: Upload TUS diretamente para Cloudflare
       onStatusChange?.('uploading', 'Enviando diretamente para Cloudflare...');
@@ -481,12 +482,12 @@ export const videosService = {
             const percentage = (bytesUploaded / bytesTotal) * 100;
             const sizeMB = bytesTotal / (1024 * 1024);
             const uploadedMB = bytesUploaded / (1024 * 1024);
-            console.log(`[TUS Direct] Progress: ${percentage.toFixed(2)}% (${uploadedMB.toFixed(2)}MB / ${sizeMB.toFixed(2)}MB)`);
+            logger.log(`[TUS Direct] Progress: ${percentage.toFixed(2)}% (${uploadedMB.toFixed(2)}MB / ${sizeMB.toFixed(2)}MB)`);
             onProgress?.(percentage);
           },
           // Callback de sucesso
           onSuccess: () => {
-            console.log('[TUS Direct] Upload completed successfully!');
+            logger.log('[TUS Direct] Upload completed successfully!');
             onStatusChange?.('processing', 'Upload concluído! Cloudflare processando...');
             onProgress?.(100);
             resolve({
@@ -497,18 +498,18 @@ export const videosService = {
           },
           // Callback de erro
           onError: (error) => {
-            console.error('[TUS Direct] Upload error:', error);
+            logger.error('[TUS Direct] Upload error:', error);
             onStatusChange?.('error', error.message || 'Erro no upload TUS');
             reject(new Error(`Erro no upload TUS: ${error.message}`));
           },
         });
 
         // Iniciar upload
-        console.log('[TUS Direct] Starting TUS upload...');
+        logger.log('[TUS Direct] Starting TUS upload...');
         upload.start();
       });
     } catch (error: any) {
-      console.error('[TUS Direct] Error:', error);
+      logger.error('[TUS Direct] Error:', error);
       onStatusChange?.('error', error.message);
       throw error;
     }
