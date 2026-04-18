@@ -88,7 +88,7 @@ export default function ModuleVideosPage() {
 
   // Estados do modal de upload
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
+  const [uploadMode, setUploadMode] = useState<'file' | 'url' | 'r2_hls'>('file');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -97,6 +97,12 @@ export default function ModuleVideosPage() {
   const [videoTitle, setVideoTitle] = useState('');
   const [videoDescription, setVideoDescription] = useState('');
   const [uploadPhase, setUploadPhase] = useState<'idle' | 'uploading' | 'processing' | 'done'>('idle');
+
+  // Estados do modo R2 HLS (video ja processado pelo pipeline externo)
+  const [r2HlsUrl, setR2HlsUrl] = useState('');
+  const [r2Duration, setR2Duration] = useState('');
+  const [r2CaptionsEmbedded, setR2CaptionsEmbedded] = useState(true);
+  const [r2ThumbnailUrl, setR2ThumbnailUrl] = useState('');
 
   // Carregar dados do módulo
   useEffect(() => {
@@ -418,6 +424,93 @@ export default function ModuleVideosPage() {
     setVideoDescription('');
     setUploadProgress(0);
     setUploadPhase('idle');
+    setR2HlsUrl('');
+    setR2Duration('');
+    setR2CaptionsEmbedded(true);
+    setR2ThumbnailUrl('');
+  };
+
+  // Handler: criar video registrando um master playlist HLS ja existente
+  // em R2. Backend nao processa — so grava o row com uploadStatus=READY.
+  const handleSubmitFromR2Hls = async () => {
+    const trimmedUrl = r2HlsUrl.trim();
+    const trimmedTitle = videoTitle.trim();
+    const durationNum = Number(r2Duration);
+
+    if (!trimmedUrl || !trimmedTitle) {
+      toast({
+        title: 'Erro',
+        description: 'Preencha a URL do playlist e o título.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validacao client-side: URL https:// terminando em .m3u8 (com ou sem query).
+    try {
+      const parsed = new URL(trimmedUrl);
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        throw new Error('protocol');
+      }
+      if (!parsed.pathname.endsWith('.m3u8')) {
+        throw new Error('extension');
+      }
+    } catch {
+      toast({
+        title: 'URL inválida',
+        description: 'A URL deve terminar em .m3u8 e começar com http(s)://.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!Number.isFinite(durationNum) || durationNum <= 0) {
+      toast({
+        title: 'Duração inválida',
+        description: 'Informe a duração em segundos (valor inteiro > 0).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadPhase('uploading');
+
+      await videosService.createFromR2Hls(moduleId, {
+        hlsUrl: trimmedUrl,
+        duration: Math.round(durationNum),
+        captionsEmbedded: r2CaptionsEmbedded,
+        title: trimmedTitle,
+        description: videoDescription.trim() || undefined,
+        thumbnailUrl: r2ThumbnailUrl.trim() || undefined,
+      });
+
+      setUploadPhase('done');
+      toast({
+        title: 'Vídeo registrado!',
+        description: 'Master playlist HLS vinculado com sucesso. Publique quando quiser.',
+      });
+
+      setTimeout(() => {
+        setIsUploadModalOpen(false);
+        setUploadPhase('idle');
+        setIsUploading(false);
+      }, 1200);
+
+      await loadVideos();
+    } catch (error: unknown) {
+      logger.error('[R2 HLS] falha ao registrar video:', error);
+      const msg =
+        error instanceof Error ? error.message : 'Não foi possível registrar o vídeo.';
+      toast({
+        title: 'Erro',
+        description: msg,
+        variant: 'destructive',
+      });
+      setUploadPhase('idle');
+      setIsUploading(false);
+    }
   };
 
   // Handler para criar vídeo a partir de URL
@@ -709,7 +802,7 @@ export default function ModuleVideosPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Toggle entre Upload e URL */}
+            {/* Toggle entre Upload, URL e R2 HLS */}
             <div className="flex gap-2 p-1 bg-muted rounded-lg">
               <Button
                 variant={uploadMode === 'file' ? 'default' : 'ghost'}
@@ -734,6 +827,20 @@ export default function ModuleVideosPage() {
               >
                 <Link2 className="mr-2 h-4 w-4" />
                 URL Externa
+              </Button>
+              <Button
+                variant={uploadMode === 'r2_hls' ? 'default' : 'ghost'}
+                className="flex-1"
+                onClick={() => {
+                  setUploadMode('r2_hls');
+                  setSelectedFile(null);
+                  setVideoUrl('');
+                }}
+                disabled={isUploading}
+                title="Registrar master playlist .m3u8 ja processado pelo pipeline externo"
+              >
+                <FileVideo className="mr-2 h-4 w-4" />
+                R2 HLS
               </Button>
             </div>
 
@@ -942,6 +1049,131 @@ export default function ModuleVideosPage() {
                       <>
                         <Link2 className="mr-2 h-4 w-4" />
                         Adicionar da URL
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Modo: Importar de R2 HLS (pipeline externo ja processou) */}
+            {uploadMode === 'r2_hls' && (
+              <>
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-900">
+                  Use esta opção para registrar um <strong>master playlist
+                  .m3u8</strong> que já saiu do pipeline externo (FFmpeg +
+                  Whisper em R2). O backend não processa nada — só grava
+                  o vídeo como pronto.
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    URL do master playlist (.m3u8) *
+                  </label>
+                  <Input
+                    value={r2HlsUrl}
+                    onChange={(e) => setR2HlsUrl(e.target.value)}
+                    placeholder="https://cdn.example.com/videos/.../playlist.m3u8"
+                    disabled={isUploading}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A URL deve terminar em <code>.m3u8</code>.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Duração (segundos) *
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={r2Duration}
+                      onChange={(e) => setR2Duration(e.target.value)}
+                      placeholder="900"
+                      disabled={isUploading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Thumbnail (URL opcional)
+                    </label>
+                    <Input
+                      value={r2ThumbnailUrl}
+                      onChange={(e) => setR2ThumbnailUrl(e.target.value)}
+                      placeholder="https://cdn.example.com/.../thumb.jpg"
+                      disabled={isUploading}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 pt-1">
+                  <input
+                    id="r2-captions-embedded"
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-gray-300"
+                    checked={r2CaptionsEmbedded}
+                    onChange={(e) => setR2CaptionsEmbedded(e.target.checked)}
+                    disabled={isUploading}
+                  />
+                  <label
+                    htmlFor="r2-captions-embedded"
+                    className="text-sm text-gray-700 select-none"
+                  >
+                    Legendas embutidas no master playlist (SUBTITLES group).
+                    Desmarque apenas se o pipeline não gerou legendas.
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Título do Vídeo *</label>
+                  <Input
+                    value={videoTitle}
+                    onChange={(e) => setVideoTitle(e.target.value)}
+                    placeholder="Ex: Colectomia em felinos"
+                    disabled={isUploading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Descrição (Opcional)</label>
+                  <Textarea
+                    value={videoDescription}
+                    onChange={(e) => setVideoDescription(e.target.value)}
+                    placeholder="Descreva o conteúdo do vídeo..."
+                    className="min-h-[80px]"
+                    disabled={isUploading}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsUploadModalOpen(false)}
+                    disabled={isUploading}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSubmitFromR2Hls}
+                    disabled={
+                      isUploading ||
+                      !videoTitle.trim() ||
+                      !r2HlsUrl.trim() ||
+                      !r2Duration.trim()
+                    }
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Registrando...
+                      </>
+                    ) : (
+                      <>
+                        <FileVideo className="mr-2 h-4 w-4" />
+                        Registrar R2 HLS
                       </>
                     )}
                   </Button>

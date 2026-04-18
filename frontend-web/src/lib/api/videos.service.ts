@@ -7,6 +7,7 @@ import type {
   ReorderVideosDto,
   UploadUrlResponse,
 } from '../types/course.types';
+import type { CreateVideoFromR2HlsRequest } from '@/types/api-shared';
 
 // Interface para resposta do upload direto
 export interface DirectUploadResponse {
@@ -84,6 +85,28 @@ export const videosService = {
       embedUrl,
       ...metadata,
     });
+    return response.data;
+  },
+
+  /**
+   * Registra video que ja saiu do pipeline externo (FFmpeg + Whisper
+   * em R2 HLS). Backend nao processa nada — so grava o master
+   * playlist. Video vai pra `uploadStatus: READY` direto.
+   *
+   * Contrato: docs API-CHANGES-SPRINT.md §"POST /modules/:moduleId/
+   * videos/from-r2-hls".
+   *
+   * @returns Video & { playback } — player consome `playback.kind`
+   *          pra decidir renderizacao.
+   */
+  async createFromR2Hls(
+    moduleId: string,
+    body: CreateVideoFromR2HlsRequest,
+  ): Promise<Video> {
+    const response = await apiClient.post<Video>(
+      `/modules/${moduleId}/videos/from-r2-hls`,
+      body,
+    );
     return response.data;
   },
 
