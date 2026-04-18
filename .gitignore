@@ -86,7 +86,10 @@ next-env.d.ts
 # ============================================
 # PRISMA
 # ============================================
-prisma/migrations/**/migration.sql
+# Migrations ARE tracked — they are the source of truth for DB schema.
+# (Historical note: they were previously ignored, which caused drift
+# between local filesystems and _prisma_migrations in prod. See
+# docs/DEPLOY.md "Database migration policy".)
 
 # ============================================
 # TERRAFORM
