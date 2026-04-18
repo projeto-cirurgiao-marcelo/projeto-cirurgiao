@@ -25,6 +25,7 @@ vi.mock('./client', () => ({
 import {
   JobFailedError,
   JobTimeoutError,
+  isEnqueuedJob,
   waitForJob,
 } from './waitForJob';
 
@@ -47,6 +48,31 @@ function jobStatus(overrides: Partial<JobStatusResponse> = {}): JobStatusRespons
     ...overrides,
   };
 }
+
+describe('isEnqueuedJob', () => {
+  it('reconhece shape novo (jobId + status=queued)', () => {
+    expect(isEnqueuedJob({ jobId: 'abc', status: 'queued' })).toBe(true);
+  });
+  it('reconhece shape sincrono inline (jobId + status=completed + resultRef)', () => {
+    expect(
+      isEnqueuedJob({
+        jobId: 'inline-xyz',
+        status: 'completed',
+        resultRef: 'summary-1',
+      }),
+    ).toBe(true);
+  });
+  it('rejeita shape legacy (objeto VideoSummary direto)', () => {
+    const legacySummary = { id: 'summary-1', videoId: 'v1', content: 'xxx' };
+    expect(isEnqueuedJob(legacySummary)).toBe(false);
+  });
+  it('rejeita null/undefined/primitivos', () => {
+    expect(isEnqueuedJob(null)).toBe(false);
+    expect(isEnqueuedJob(undefined)).toBe(false);
+    expect(isEnqueuedJob('string')).toBe(false);
+    expect(isEnqueuedJob(42)).toBe(false);
+  });
+});
 
 describe('waitForJob', () => {
   beforeEach(() => {

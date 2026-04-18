@@ -148,6 +148,26 @@ export async function waitForJob<T = string>(
 }
 
 /**
+ * Type guard: true quando o payload parece um `EnqueuedJobResponse`
+ * (shape novo com `jobId` + `status`). Permite detectar response
+ * async vs response legacy sem quebrar prod atual (QUEUE_ENABLED=false
+ * no backend ainda retorna o artifact direto).
+ *
+ * Usado pra migracao gradual: services enviam POST normalmente e
+ * roteiam pelo tipo da resposta.
+ */
+export function isEnqueuedJob(
+  payload: unknown,
+): payload is EnqueuedJobResponse {
+  if (!payload || typeof payload !== 'object') return false;
+  const obj = payload as Record<string, unknown>;
+  return (
+    typeof obj.jobId === 'string' &&
+    (obj.status === 'queued' || obj.status === 'completed')
+  );
+}
+
+/**
  * Sleep cancelavel via AbortSignal — rejeita com AbortError se o signal
  * disparar durante o intervalo. Util pra parar polling mid-wait sem
  * precisar esperar o proximo tick.
