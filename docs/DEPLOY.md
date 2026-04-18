@@ -45,9 +45,38 @@ anterior. Firebase Hosting: `firebase hosting:clone` entre canais.
 
 ## §6 GO-LIVE CHECKLIST
 
-Antes de liberar domínio de produção pra usuários reais:
+Antes de liberar domínio de produção pra usuários reais. Ver
+`docs/TECH-DEBT.md` seção **SECURITY-CRITICAL** pra lista de CVEs
+e rationale de cada upgrade.
 
-- [ ] `npm install next@<latest patch>` e `npm install react@<latest patch> react-dom@<latest patch>` (ver TECH-DEBT.md seção SECURITY pra versões específicas)
-- [ ] `npm run build` sem erros
-- [ ] Testar fluxos críticos (login, watch, quiz, chat IA) em staging
-- [ ] (adicionar mais conforme o sprint progride)
+### Pre-release dependency upgrade (CVE remediation)
+
+**Web** (executado neste worktree):
+
+- [ ] `cd frontend-web && npm install next@15.3.8 react@19.2.1 react-dom@19.2.1 axios@1.16.0`
+- [ ] `npm audit fix --omit=dev` — resolve transitivas
+  (protobufjs, follow-redirects, @xmldom/xmldom)
+- [ ] `npm run build` — validar sem erros
+- [ ] `npm test` — unit tests (waitForJob) passando
+- [ ] `npx playwright test` — 3 jornadas e2e passando
+- [ ] Testar fluxos críticos em staging manualmente (login, watch,
+  quiz, chat IA, onboarding)
+
+**Mobile** (executado no worktree `track/front-mobile`):
+
+- [ ] `cd mobile-app && npm install axios@1.16.0`
+- [ ] `npm audit fix --omit=dev`
+- [ ] Rebuild EAS preview + testar em device real (iPhone Gustav +
+  Android emulator)
+- [ ] Rebuild EAS production
+
+### Outros itens
+
+- [ ] Backend com Secret Manager wired (ver
+  `backend-api/docs/DEPLOY.md §4 "Wiring secrets into Cloud Run"`)
+- [ ] Backend `QUEUE_ENABLED`: decidir on/off no go-live. Frontend
+  já suporta ambos modos via `waitForJob` transparente.
+- [ ] Staging seed aplicado pelo menos 1x (garantia de que
+  migrations rodaram em prod) — `cd backend-api && npx ts-node
+  prisma/seed-staging.ts` contra staging DB.
+- [ ] CORS backend aberto pro domínio final de produção.
