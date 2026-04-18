@@ -52,12 +52,15 @@ na versao stable do NativeWind. **Alvo:** proximo sprint.
 
 ### `supportsTablet: false` em iOS
 
-`app.json` declarara `supportsTablet: false` (ver `fix(mobile): declare
-portrait-only orientation` quando executado). Sem layout responsivo pra iPad
-agora — app aparece em container compatibility mode.
+**Status:** APLICADO em commit `1446231` (2026-04-17) — `app.json` declara
+`supportsTablet: false`. Sem layout responsivo pra iPad agora — app aparece
+em container compatibility mode.
+
+**Debito remanescente:** layout responsivo pra iPad.
 
 **Plano:** sprint seguinte, implementar breakpoints responsivos + layout de
 2 colunas pra iPad em telas de catalogo, curso, watch (video + sidebar).
+Virar `supportsTablet: true` quando layout estiver pronto.
 **Alvo:** proximo sprint.
 
 ### Sem `ErrorBoundary` em nenhuma tela
@@ -95,15 +98,26 @@ dep, implementar `EmbedPlayer.tsx` com WebView sandboxed.
 
 ## BACKEND CONTRACTS PENDENTES
 
-### Migracao pra `playback.playbackUrl`
+### Migracao pra `playback.playbackUrl` + remocao de `CLOUDFLARE_CUSTOMER_CODE` hardcoded
 
-Contrato C publicou em `API-CHANGES-SPRINT.md` (secao "Video payload com
-playback URLs") e `videos.service.ts` ainda le `cloudflareUrl` / `hlsUrl` /
-`externalUrl` direto, com `CLOUDFLARE_CUSTOMER_CODE` hardcoded no client.
+**Status:** proposta `docs/proposals/playback-unified.md` APROVADA pelo lider
+com 1 ajuste de C (`captionsEmbedded: boolean` sempre presente em `kind: 'hls'`,
+`undefined` em `iframe`/`none`). C implementando no backend (commits pendentes).
 
-**Plano:** aguarda decisao do C sobre `playback-unified.md`. Depois migra
-`videosService.getStreamData` pra consumir `video.playback` direto.
-**Alvo:** este sprint.
+`videos.service.ts` ainda le `cloudflareUrl` / `hlsUrl` / `externalUrl` direto,
+com `CLOUDFLARE_CUSTOMER_CODE = 'mcykto8a2uaqo5xu'` hardcoded (linha 5).
+
+**Plano:** aguarda sinal do lider apos C publicar `feat(videos): add kind +
+captionsEmbedded` e `docs(api): document unified playback contract`. Entao:
+- Copia `backend-api/src/types/shared.ts` pra `mobile-app/src/types/api-shared.ts`.
+- `videosService.getStreamData` vira `return video.playback`.
+- Remove hardcode `CLOUDFLARE_CUSTOMER_CODE`.
+- Adapta `app/course/[id]/watch/[videoId].tsx` pra switchar por `playback.kind`
+  (`hls` -> `<VideoPlayer>`, `iframe` -> fallback "em breve" ate sprint
+  seguinte ter WebView + EmbedPlayer, `none` -> `<VideoUnavailable />`).
+- Mobile IGNORA `captionsUrl` (opcao b do C — web-only).
+
+**Alvo:** este sprint (P1, apos sinal do lider).
 
 ### Fila BullMQ (`202 + jobId`) em endpoints de IA
 
@@ -141,13 +155,36 @@ provavelmente em EAS Secrets ou workdir local do Gustav).
 **Risco:** EAS build falha silenciosamente se secrets nao estiverem
 configurados corretamente. `.easignore` atual nao menciona esses arquivos.
 
-**Plano:** validar no primeiro `eas build --profile preview` (P1.8). Se
-falhar, documentar em `GUIA_BACKEND_LOCAL.md` como provisionar.
-**Alvo:** este sprint (P1.8).
+**Plano:** documentado em `docs/DEPLOY.md` (P1.8 combinado com P4.11)
+explicitando quais EAS Secrets/env vars sao esperados. Validacao real
+acontece no primeiro `eas build --profile preview` que o Gustav rodar.
+**Alvo:** pre go-live.
 
-### `app.json` → `orientation` inconsistente com `_layout.tsx`
+### Reentrada de rede — banner + refetch (RESOLVIDO parcialmente)
 
-`app.json` tinha `orientation: "default"`, mas `_layout.tsx` lockava
-`PORTRAIT_UP` programaticamente. Sera resolvido em
-`fix(mobile): declare portrait-only orientation` (task orientation fix).
-**Alvo:** este sprint.
+**Status:** RESOLVIDO em commit `9816a57` (2026-04-17) para telas de lista
+(home, catalog, in-progress, forum, course detail, module list, watch).
+`src/hooks/useNetworkStatus.ts` expoe `{ isOnline, wasOffline, onlineSince }`
+com debounce de 500ms em offline->online. `OfflineBanner` consome o mesmo
+hook ao inves de falar com `NetInfo` diretamente.
+
+**Debito remanescente:**
+- Fila de retry de requests em andamento quando a rede cai mid-flight.
+  Hoje falhando requests sao perdidos silenciosamente — usuario precisa
+  abrir a tela de novo. Uma camada de axios interceptor com retry automatico
+  + queue persistida (AsyncStorage) resolveria. Fora do escopo do sprint.
+- Progresso de video salvo offline. `progressService.saveProgress` chama
+  POST direto; se offline, progresso e perdido. Solucao: enfileirar em
+  AsyncStorage e flush no `wasOffline` pulse.
+**Alvo:** proximo sprint.
+
+### ~~`app.json` → `orientation` inconsistente com `_layout.tsx`~~ RESOLVIDO
+
+**Status:** RESOLVIDO em commit `1446231` (2026-04-17).
+- `app.json` virou `"orientation": "portrait"`.
+- `_layout.tsx` perdeu o lock programatico redundante.
+- `watch/[videoId].tsx` perdeu o `unlockAsync` + relock.
+- `VideoPlayer.tsx` ganhou `requestFullscreen` (lockAsync LANDSCAPE) +
+  `handleFullscreenExit` (lockAsync PORTRAIT_UP) + cleanup no unmount.
+
+Mantido no doc como historico pra audit.
