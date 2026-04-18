@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { profileService } from '@/lib/api/profile.service';
 import { loginSchema, type LoginFormData } from '@/lib/schemas/auth-schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,19 @@ export default function LoginPage() {
         logger.log('🔄 [Login] Redirecionando ADMIN para /admin');
         router.push('/admin');
       } else {
+        // Aluno — gate de onboarding: se perfil incompleto, envia pro fluxo
+        // /onboarding/specializations. Falha no getProfile nao bloqueia o
+        // login; manda pro destino padrao e o onboarding pode ser feito depois.
+        try {
+          const profile = await profileService.getProfile();
+          if (!profile.onboardingCompleted) {
+            logger.log('🔄 [Login] Aluno sem onboarding, redirect /onboarding');
+            router.push('/onboarding/specializations');
+            return;
+          }
+        } catch (profileErr) {
+          logger.warn('[Login] Falha ao checar onboarding, seguindo sem gate:', profileErr);
+        }
         logger.log('🔄 [Login] Redirecionando STUDENT para /student/my-courses');
         router.push('/student/my-courses');
       }

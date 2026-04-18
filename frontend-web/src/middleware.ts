@@ -13,7 +13,7 @@ import type { NextRequest } from 'next/server';
  */
 
 // Rotas que requerem autenticação
-const protectedPaths = ['/admin', '/student'];
+const protectedPaths = ['/admin', '/student', '/onboarding'];
 
 // Rotas públicas (não precisam de auth)
 const publicPaths = ['/login', '/register', '/forgot-password', '/'];

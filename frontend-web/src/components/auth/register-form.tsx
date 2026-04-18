@@ -44,7 +44,8 @@ export function RegisterForm() {
       if (currentUser?.role === 'ADMIN' || currentUser?.role === 'INSTRUCTOR') {
         router.push('/admin');
       } else {
-        router.push('/student/my-courses');
+        // Aluno recem-registrado nunca tem onboarding completo — vai direto.
+        router.push('/onboarding/specializations');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Erro ao criar conta. Tente novamente.');
