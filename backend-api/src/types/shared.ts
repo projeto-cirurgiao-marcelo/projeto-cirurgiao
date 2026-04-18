@@ -26,13 +26,43 @@ export type VideoSource =
   | 'r2_hls';
 
 /**
+ * Rendering kind the player should use — decoupled from `videoSource`.
+ *
+ *   - `hls`    → load `playbackUrl` in an HLS player (hls.js, expo-video,
+ *                AVPlayer). Inspect `captionsEmbedded` to decide whether
+ *                a separate `captionsUrl` fetch is needed.
+ *   - `iframe` → render `playbackUrl` in an <iframe>. Provider owns the
+ *                UI (YouTube/Vimeo/generic embed).
+ *   - `none`   → nothing playable yet (`playbackUrl` is null). Show a
+ *                placeholder or 'Processando…' state.
+ */
+export type VideoPlaybackKind = 'hls' | 'iframe' | 'none';
+
+/**
  * Returned by every endpoint that ships a Video to the frontend.
  * See docs/API-CHANGES-SPRINT.md §"Video payload com playback URLs".
+ *
+ * Invariants:
+ *   - `kind: 'hls'`    → `playbackUrl` non-null, `captionsEmbedded` boolean.
+ *   - `kind: 'iframe'` → `playbackUrl` non-null, `captionsEmbedded` undefined.
+ *   - `kind: 'none'`   → `playbackUrl` null, `captionsEmbedded` undefined.
+ *
+ * `captionsUrl` (cloudflare flow) is **web-only today**. Mobile clients
+ * should ignore it even when present — see API-CHANGES-SPRINT.md for
+ * rationale.
  */
 export interface VideoPlaybackUrls {
-  /** Where the player loads the stream. null when not ready yet. */
+  kind: VideoPlaybackKind;
+  /** Where the player loads the stream. null when kind === 'none'. */
   playbackUrl: string | null;
-  /** Only present when captions live on a separate resource (cloudflare). */
+  /**
+   * True when captions are carried inside the HLS manifest (SUBTITLES
+   * group or CC track) and the player can switch tracks without a
+   * separate URL. Only meaningful when `kind === 'hls'`; undefined
+   * otherwise.
+   */
+  captionsEmbedded?: boolean;
+  /** Separate captions URL (VTT). Web-only for the cloudflare flow. */
   captionsUrl?: string;
   /** Thumbnail override. */
   poster?: string;

@@ -71,10 +71,10 @@ describe('VideosService', () => {
   });
 
   // ============================================
-  // buildPlaybackUrls — each of the 5 videoSource values
+  // buildPlaybackUrls — kind + captionsEmbedded contract
   // ============================================
   describe('buildPlaybackUrls', () => {
-    it('cloudflare: uses cloudflareUrl + exposes a captions endpoint', () => {
+    it('cloudflare ready: kind=hls, captionsEmbedded=false, exposes captionsUrl', () => {
       const video = makeVideo({
         videoSource: 'cloudflare',
         cloudflareId: 'cf-abc',
@@ -84,12 +84,17 @@ describe('VideosService', () => {
 
       const urls = service.buildPlaybackUrls(video);
 
+      expect(urls.kind).toBe('hls');
       expect(urls.playbackUrl).toBe(video.cloudflareUrl);
+      // Cloudflare delivers CC as a separate track in the manifest but we
+      // still set captionsEmbedded=false — clients that want good CC
+      // fidelity should hit captionsUrl.
+      expect(urls.captionsEmbedded).toBe(false);
       expect(urls.captionsUrl).toBe(`/api/v1/captions/${video.id}/pt-BR`);
       expect(urls.poster).toBe(video.thumbnailUrl);
     });
 
-    it('cloudflare: omits captionsUrl when cloudflareId is missing', () => {
+    it('cloudflare pending (no cloudflareUrl yet): kind=none, playbackUrl=null, no captions fields', () => {
       const video = makeVideo({
         videoSource: 'cloudflare',
         cloudflareId: null,
@@ -98,12 +103,14 @@ describe('VideosService', () => {
 
       const urls = service.buildPlaybackUrls(video);
 
+      expect(urls.kind).toBe('none');
       expect(urls.playbackUrl).toBeNull();
+      expect(urls.captionsEmbedded).toBeUndefined();
       expect(urls.captionsUrl).toBeUndefined();
     });
 
     it.each(['youtube', 'vimeo', 'external'])(
-      '%s: playbackUrl = externalUrl, captionsUrl = undefined',
+      '%s: kind=iframe, playbackUrl=externalUrl, captionsEmbedded=undefined',
       (source) => {
         const video = makeVideo({
           videoSource: source,
@@ -112,12 +119,26 @@ describe('VideosService', () => {
 
         const urls = service.buildPlaybackUrls(video);
 
+        expect(urls.kind).toBe('iframe');
         expect(urls.playbackUrl).toBe(video.externalUrl);
+        expect(urls.captionsEmbedded).toBeUndefined();
         expect(urls.captionsUrl).toBeUndefined();
       },
     );
 
-    it('r2_hls: playbackUrl = hlsUrl, captionsUrl stays undefined (SUBTITLES group is embedded)', () => {
+    it('iframe sources without externalUrl fall back to kind=none', () => {
+      const video = makeVideo({
+        videoSource: 'youtube',
+        externalUrl: null,
+      });
+
+      const urls = service.buildPlaybackUrls(video);
+
+      expect(urls.kind).toBe('none');
+      expect(urls.playbackUrl).toBeNull();
+    });
+
+    it('r2_hls: kind=hls, playbackUrl=hlsUrl, captionsEmbedded=true, no captionsUrl', () => {
       const video = makeVideo({
         videoSource: 'r2_hls',
         hlsUrl: 'https://cdn.example.com/videos/abc/playlist.m3u8',
@@ -126,9 +147,26 @@ describe('VideosService', () => {
 
       const urls = service.buildPlaybackUrls(video);
 
+      expect(urls.kind).toBe('hls');
       expect(urls.playbackUrl).toBe(video.hlsUrl);
+      // SUBTITLES group embedded in the master playlist — player switches
+      // tracks directly, no separate URL needed.
+      expect(urls.captionsEmbedded).toBe(true);
       expect(urls.captionsUrl).toBeUndefined();
       expect(urls.poster).toBe(video.thumbnailUrl);
+    });
+
+    it('r2_hls without hlsUrl: kind=none (pipeline not published yet)', () => {
+      const video = makeVideo({
+        videoSource: 'r2_hls',
+        hlsUrl: null,
+      });
+
+      const urls = service.buildPlaybackUrls(video);
+
+      expect(urls.kind).toBe('none');
+      expect(urls.playbackUrl).toBeNull();
+      expect(urls.captionsEmbedded).toBeUndefined();
     });
   });
 

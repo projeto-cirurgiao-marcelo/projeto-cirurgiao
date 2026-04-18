@@ -27,21 +27,49 @@ export interface UploadStatusResponse {
 }
 
 /**
- * Frontend-facing playback URLs derived from a Video row. Kept flat so
- * player code can pick what it needs without inspecting `videoSource`.
+ * How the frontend should render this video — decoupled from
+ * `videoSource` (which is "where it came from"). New providers can map
+ * to an existing `kind` without changing any client code.
  *
- * - `playbackUrl`: where the player should load the stream.
- *   - cloudflare: Cloudflare Stream HLS manifest URL
- *   - r2_hls: R2 master playlist (.m3u8)
- *   - youtube/vimeo/external: the raw embed URL (player renders an iframe)
- * - `captionsUrl`: optional. Present only when captions are served from a
- *   separate URL (Cloudflare Stream). For r2_hls the SUBTITLES group is
- *   embedded in the master playlist, so this stays undefined.
- * - `poster`: optional thumbnail override.
+ *   - `hls`: load `playbackUrl` in an HLS player (cloudflare ready +
+ *     r2_hls). Cliente olha `captionsEmbedded` pra decidir se precisa
+ *     buscar um `captionsUrl` separado.
+ *   - `iframe`: render `playbackUrl` em um <iframe> (youtube/vimeo/
+ *     external). Provedor cuida das captions internamente.
+ *   - `none`: nada a tocar ainda — `playbackUrl` será null. Vídeo ainda
+ *     processando ou sem URL registrada. UI deve mostrar placeholder.
+ */
+export type VideoPlaybackKind = 'hls' | 'iframe' | 'none';
+
+/**
+ * Frontend-facing playback descriptor derived from a Video row. Kept
+ * flat so player code picks what it needs from a single object.
+ *
+ * Rules:
+ *   - `kind: 'hls'`    → `playbackUrl` non-null, `captionsEmbedded` boolean.
+ *   - `kind: 'iframe'` → `playbackUrl` non-null, `captionsEmbedded` undefined.
+ *   - `kind: 'none'`   → `playbackUrl` null, `captionsEmbedded` undefined.
+ *
+ * `captionsUrl` only appears in the cloudflare-ready case and is
+ * **web-only today** — mobile clients should ignore it even when
+ * present (Cloudflare cross-origin VTT fetch would need pre-signed
+ * URLs, which is out of scope until the R2 migration completes; once
+ * a video ships on r2_hls, captions live in the HLS manifest's
+ * SUBTITLES group and no separate URL is needed).
  */
 export interface VideoPlaybackUrls {
+  kind: VideoPlaybackKind;
   playbackUrl: string | null;
+  /**
+   * True when the HLS manifest already carries captions (SUBTITLES
+   * group or CC track) and the player doesn't need a separate URL.
+   * Only meaningful when `kind === 'hls'`; undefined for `iframe` /
+   * `none`.
+   */
+  captionsEmbedded?: boolean;
+  /** Separate captions URL (VTT). Web-only for the cloudflare flow. */
   captionsUrl?: string;
+  /** Optional thumbnail override. */
   poster?: string;
 }
 
@@ -60,8 +88,12 @@ export class VideosService {
   ) {}
 
   /**
-   * Derive the playback URLs the frontend should use. Centralised here so
-   * controllers and services never have to branch on `videoSource` manually.
+   * Derive the playback descriptor the frontend should use.
+   *
+   * Maps each `videoSource` onto a rendering `kind` so player code can
+   * branch on intent ("hls player" / "iframe" / "placeholder") instead
+   * of provider identity. See VideoPlaybackUrls docstring for the
+   * invariants that hold for each kind.
    */
   buildPlaybackUrls(video: Video): VideoPlaybackUrls {
     const source = (video.videoSource ?? 'cloudflare') as string;
@@ -69,34 +101,53 @@ export class VideosService {
 
     switch (source) {
       case 'r2_hls': {
+        const playbackUrl = video.hlsUrl ?? null;
+        if (!playbackUrl) {
+          // R2 video registered but hlsUrl missing — treat as pending.
+          return { kind: 'none', playbackUrl: null, poster };
+        }
         return {
-          playbackUrl: video.hlsUrl ?? null,
-          // Captions live in the master playlist's SUBTITLES group — the
-          // player consumes them directly; no separate URL is exposed.
-          captionsUrl: undefined,
+          kind: 'hls',
+          playbackUrl,
+          // External pipeline always publishes the master playlist with
+          // the SUBTITLES group attached, so no separate captionsUrl is
+          // needed.
+          captionsEmbedded: true,
           poster,
         };
       }
       case 'youtube':
       case 'vimeo':
       case 'external': {
+        const playbackUrl = video.externalUrl ?? null;
+        if (!playbackUrl) {
+          return { kind: 'none', playbackUrl: null, poster };
+        }
         return {
-          playbackUrl: video.externalUrl ?? null,
-          captionsUrl: undefined,
+          kind: 'iframe',
+          playbackUrl,
           poster,
         };
       }
       case 'cloudflare':
       default: {
-        // Captions here are served by CloudflareStreamService — a separate
-        // captions endpoint (/captions/:videoId/:language) returns the VTT,
-        // so we point the player at that endpoint rather than a raw
-        // Cloudflare URL (keeps the auth boundary at the backend).
+        const playbackUrl = video.cloudflareUrl ?? null;
+        if (!playbackUrl) {
+          // Cloudflare registrado mas ainda sem URL (upload/processing).
+          return { kind: 'none', playbackUrl: null, poster };
+        }
+        // Cloudflare entrega CC como track separada no manifesto HLS,
+        // não "embedded no mesmo container" — por isso captionsEmbedded
+        // é false mesmo quando o manifesto tem um CC track. Web usa
+        // `/api/v1/captions/:videoId/pt-BR` (auth via backend). Mobile
+        // ignora este campo — ver docstring.
         const captionsUrl = video.cloudflareId
           ? `/api/v1/captions/${video.id}/pt-BR`
           : undefined;
         return {
-          playbackUrl: video.cloudflareUrl ?? null,
+          kind: 'hls',
+          playbackUrl,
+          captionsEmbedded: false,
           captionsUrl,
           poster,
         };
