@@ -20,6 +20,8 @@ account JSON on disk.
 | `CLOUDFLARE_STREAM_CUSTOMER_CODE` | `CLOUDFLARE_STREAM_CUSTOMER_CODE` | Gustav | Stream customer code. Not secret per-se but opaque. |
 | `VERTEX_API_KEY` | `VERTEX_API_KEY` | Gustav (optional) | **Empty in production.** Vertex AI auth in prod uses ADC via the Cloud Run service account. Only populate this secret if an environment needs explicit API-key auth. |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | `FIREBASE_SERVICE_ACCOUNT_KEY` | Gustav | Full service-account JSON (single line). Used by `firebase-admin.service.ts` when no key file is mounted. |
+| `REDIS_URL` | `REDIS_URL` | Gustav (optional) | Preferred for GCP Memorystore — full `rediss://:<password>@<host>:6378/0` (TLS+AUTH). If set, overrides the discrete vars below. |
+| `REDIS_PASSWORD` | `REDIS_PASSWORD` | Gustav (optional) | Used when `REDIS_HOST`/`REDIS_PORT` are set directly instead of `REDIS_URL`. |
 
 Anything else the backend reads (`GOOGLE_CLOUD_PROJECT_ID`,
 `GOOGLE_CLOUD_LOCATION`, `VERTEX_EMBEDDING_MODEL`, CORS origins, port, etc.)
@@ -192,7 +194,49 @@ Cleaning is hygiene.
   and, if the volume was reset, re-run `npx prisma migrate deploy` and
   any seed scripts.
 
-## 7. Local development
+## 7. BullMQ queue + Cloud Memorystore
+
+The AI endpoints (summaries, quizzes, library ingest, captions) run
+through a BullMQ queue backed by Redis. Feature-flagged so the backend
+can ship before Memorystore is provisioned.
+
+**Required env vars:**
+
+- `QUEUE_ENABLED` — `"true"` or `"false"` (default `false`). Controls
+  whether jobs go through BullMQ or execute inline synchronously. The
+  HTTP contract is identical either way (always `202 Accepted`); only
+  the response `status` field differs (`"queued"` vs `"completed"`).
+- Redis connection (only read when `QUEUE_ENABLED=true`):
+  - `REDIS_URL` (preferred for Cloud Memorystore with AUTH/TLS):
+    `rediss://:<password>@<memorystore-ip>:6378/0`. The driver parses
+    the `rediss://` scheme and enables TLS automatically.
+  - OR the discrete trio: `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`,
+    plus `REDIS_TLS_ENABLED=true` if the instance requires TLS.
+  - `REDIS_DB` — db index (default `0`).
+- `BULLMQ_CONCURRENCY` — per-processor worker concurrency (default `2`).
+
+**Provisioning path (deferred):**
+
+1. Gustav provisions a GCP Memorystore Redis instance (suggest
+   `redis_7_0`, Basic tier, private IP only, AUTH + TLS enabled).
+2. Store the connection string in Secret Manager under `REDIS_URL`
+   (see §1 secrets inventory).
+3. Grant the Cloud Run runtime SA `roles/secretmanager.secretAccessor`
+   on the new secret.
+4. Connect Cloud Run to the Memorystore VPC (Serverless VPC Access
+   connector — Cloud Run → Networking → Serverless VPC Access).
+5. Flip `QUEUE_ENABLED=true` on the Cloud Run service. No redeploy
+   required if the image already ships with the queue code.
+
+**Rollback:** set `QUEUE_ENABLED=false` and redeploy — the app returns
+to inline execution immediately. Memorystore stays up for future use.
+
+**Local dev:** `docker-compose up -d redis` already in the repo
+provisions Redis with `requirepass redis_dev_password`. Set
+`QUEUE_ENABLED=true` and `REDIS_PASSWORD=redis_dev_password` in
+`backend-api/.env` to exercise the full queue locally.
+
+## 8. Local development
 
 Local dev keeps using `.env` (gitignored). No Secret Manager calls are
 made. If you want to exercise the loader locally against real secrets,
