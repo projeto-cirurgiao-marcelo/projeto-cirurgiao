@@ -6,7 +6,57 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth } from 'firebase/auth';
+import Toast from 'react-native-toast-message';
 import { logger } from '../../lib/logger';
+
+/**
+ * Extrai `Retry-After` do response 429. Retorna segundos (inteiro >= 0)
+ * ou `null` se o header estiver ausente/invalido.
+ *
+ * Aceita tanto delta-seconds ("30") quanto HTTP-date
+ * ("Wed, 21 Oct 2026 07:28:00 GMT") conforme RFC 7231.
+ *
+ * Copia logica do frontend-web (src/lib/api/client.ts) — mesmo contrato.
+ */
+function parseRetryAfter(headers: unknown): number | null {
+  if (!headers || typeof headers !== 'object') return null;
+  // Axios lowercase-ifica headers em alguns paths mas nao em outros — checa os dois.
+  const raw = (headers as Record<string, unknown>)['retry-after']
+    ?? (headers as Record<string, unknown>)['Retry-After'];
+  if (raw === undefined || raw === null) return null;
+  const asNumber = Number(raw);
+  if (Number.isFinite(asNumber) && asNumber >= 0) return Math.ceil(asNumber);
+  const asDate = Date.parse(String(raw));
+  if (Number.isFinite(asDate)) {
+    const diff = Math.ceil((asDate - Date.now()) / 1000);
+    return diff > 0 ? diff : 0;
+  }
+  return null;
+}
+
+/**
+ * Mostra toast amigavel de rate limit. Sem retry automatico — usuario
+ * decide re-submeter quando quiser.
+ *
+ * Contrato textual combinado com frontend-web (ver
+ * cirurgiao-web/docs/proposals/429-ux-spec.md):
+ * - text1 fixo: "Muitas requisicoes a IA".
+ * - text2 dinamico: se `Retry-After` vier, mostra segundos exatos com
+ *   plural correto; senao mensagem generica.
+ * - visibilityTime: max(4000ms, retryAfter * 1000ms).
+ */
+function showRateLimitToast(retryAfterSec: number | null) {
+  const description =
+    retryAfterSec !== null
+      ? `Aguarde ${retryAfterSec} segundo${retryAfterSec === 1 ? '' : 's'} e tente novamente.`
+      : 'Aguarde alguns segundos e tente novamente.';
+  Toast.show({
+    type: 'error',
+    text1: 'Muitas requisições à IA',
+    text2: description,
+    visibilityTime: Math.max(4000, (retryAfterSec ?? 0) * 1000),
+  });
+}
 
 // URL base da API - ajustar conforme ambiente
 // Para Android Emulator, use 10.0.2.2 ao invés de localhost
@@ -91,6 +141,16 @@ apiClient.interceptors.response.use(
       await AsyncStorage.removeItem('auth-storage');
       // A navegação para login será tratada pelo AuthProvider
     }
+
+    // Rate limit por usuario (30 rpm em endpoints de IA) ou por IP. Toast
+    // amigavel + respeita Retry-After header. Sem retry automatico — usuario
+    // re-submete a acao quando quiser. Promise continua rejeitando pros
+    // services/componentes desligarem spinners e tratarem localmente.
+    if (error.response?.status === 429) {
+      const retryAfter = parseRetryAfter(error.response.headers);
+      showRateLimitToast(retryAfter);
+    }
+
     return Promise.reject(error);
   }
 );
