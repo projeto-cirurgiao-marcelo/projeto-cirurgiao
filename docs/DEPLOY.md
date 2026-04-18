@@ -127,7 +127,58 @@ Anyone opening a PR must ensure no new plaintext secret is added. The
 `deploy-artifact-registry.ps1` script in `backend-api/` is the main place
 to audit.
 
-## 6. Local development
+### Post-rotation cleanup (HISTORY REWRITE)
+
+Once the new `app_cirurgiao` password is active in Cloud Run and verified:
+
+1. `git rm backend-api/.env.proxy.example` (or replace with a template
+   stripped of credentials).
+2. With explicit Gustav authorization, run `git filter-repo` to remove
+   the file from history:
+   ```bash
+   git filter-repo --path backend-api/.env.proxy.example --invert-paths
+   ```
+3. Coordinate a force-push with every dev holding a local clone — they
+   need to re-clone after the rewrite.
+4. Notify any downstream integration (CI/CD, mirrors).
+
+Rationale: even with the password rotated, the compromised value in
+history reveals naming/format patterns and can inform future attacks.
+Cleaning is hygiene.
+
+## 6. Database migration policy
+
+- `prisma db push` is FORBIDDEN against any environment outside local dev.
+  It causes drift between the real schema and `_prisma_migrations` (see
+  the `hlsUrl` incident on 2026-04-08 and the broader orphan-tables
+  reconciliation documented in the commit that introduced
+  `20260409_retroactive_orphan_tables`).
+- The only authorized path to apply schema in staging/prod is
+  `prisma migrate deploy`, run from the deploy pipeline (Cloud Build or a
+  manual `prisma migrate deploy` invocation by someone with DB-owner
+  privileges).
+- Migrations generated locally MUST be committed before the deploy.
+  Never generate a migration on top of a pending deploy.
+- If drift is detected: `prisma migrate resolve --applied <name>` to
+  reconcile without re-applying the SQL.
+- The default app user (`app_cirurgiao`) does NOT have DDL privileges on
+  every table in prod; running `prisma migrate deploy` as that user will
+  fail with `ERROR: must be owner of table ...`. Use the postgres
+  superuser (or the original table owner) for migrations. Current plan:
+  rotate migration duties via the Cloud SQL superuser credentials that
+  Gustav controls.
+- Local dev: pgvector extension must exist. `scripts/init-db.sql` runs
+  `CREATE EXTENSION IF NOT EXISTS vector` on first boot of the compose
+  container. Prisma's shadow DB also needs pgvector — `SHADOW_DATABASE_URL`
+  in the project-root `.env` points at `prisma_shadow` on the same
+  container; create it once with `CREATE DATABASE prisma_shadow; \c prisma_shadow; CREATE EXTENSION vector;`.
+- When the compose `postgres` service switches images (e.g. `postgres:15-alpine`
+  → `pgvector/pgvector:pg15`), developers need to
+  `docker-compose down && docker-compose pull && docker-compose up -d`
+  and, if the volume was reset, re-run `npx prisma migrate deploy` and
+  any seed scripts.
+
+## 7. Local development
 
 Local dev keeps using `.env` (gitignored). No Secret Manager calls are
 made. If you want to exercise the loader locally against real secrets,
