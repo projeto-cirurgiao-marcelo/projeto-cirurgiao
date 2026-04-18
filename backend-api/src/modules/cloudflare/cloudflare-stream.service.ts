@@ -71,14 +71,18 @@ export class CloudflareStreamService {
   private readonly isConfigured: boolean;
 
   constructor(private configService: ConfigService) {
-    this.accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID');
+    // Tolerate missing config here so the service can boot in "disabled"
+    // mode when Cloudflare creds are not provisioned (tests / dev).
+    // The `isConfigured` flag below gates every real call.
+    this.accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID') ?? '';
     // CLOUDFLARE_STREM_CAPTIONS é o token com permissão de Stream (usado historicamente)
     // CLOUDFLARE_API_TOKEN é fallback
     this.apiToken =
       this.configService.get<string>('CLOUDFLARE_STREM_CAPTIONS') ||
-      this.configService.get<string>('CLOUDFLARE_API_TOKEN');
-    this.customerCode = this.configService.get<string>('CLOUDFLARE_STREAM_CUSTOMER_CODE');
-    this.streamUrl = this.configService.get<string>('CLOUDFLARE_STREAM_URL');
+      this.configService.get<string>('CLOUDFLARE_API_TOKEN') ||
+      '';
+    this.customerCode = this.configService.get<string>('CLOUDFLARE_STREAM_CUSTOMER_CODE') ?? '';
+    this.streamUrl = this.configService.get<string>('CLOUDFLARE_STREAM_URL') ?? '';
 
     if (!this.accountId || !this.apiToken) {
       this.isConfigured = false;
@@ -114,8 +118,9 @@ export class CloudflareStreamService {
     try {
       this.logger.log(`Uploading video from URL: ${url}`);
 
-      const allowedOrigins = this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS')
-        ? this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS').split(',').map(o => o.trim())
+      const allowedOriginsRaw = this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS');
+      const allowedOrigins = allowedOriginsRaw
+        ? allowedOriginsRaw.split(',').map((o) => o.trim())
         : [];
 
       const response = await this.apiClient.post<UploadVideoResponse>('', {
@@ -164,8 +169,9 @@ export class CloudflareStreamService {
         formData.append('meta', JSON.stringify(metadata));
       }
 
-      const allowedOrigins = this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS')
-        ? this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS').split(',').map(o => o.trim())
+      const allowedOriginsRaw = this.configService.get<string>('CLOUDFLARE_ALLOWED_ORIGINS');
+      const allowedOrigins = allowedOriginsRaw
+        ? allowedOriginsRaw.split(',').map((o) => o.trim())
         : [];
       formData.append('requireSignedURLs', 'false');
       formData.append('allowedOrigins', JSON.stringify(allowedOrigins));

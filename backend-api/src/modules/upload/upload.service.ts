@@ -17,7 +17,7 @@ export class UploadService {
     const secretAccessKey = this.configService.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY');
     const endpoint = this.configService.get('CLOUDFLARE_R2_ENDPOINT');
     const publicUrl = this.configService.get('CLOUDFLARE_R2_PUBLIC_URL');
-    this.bucketName = this.configService.get('CLOUDFLARE_R2_BUCKET');
+    this.bucketName = this.configService.get('CLOUDFLARE_R2_BUCKET') ?? '';
 
     // Log para debug
     this.logger.log('Cloudflare R2 Configuration:');
