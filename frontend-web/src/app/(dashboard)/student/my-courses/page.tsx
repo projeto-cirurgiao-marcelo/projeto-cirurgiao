@@ -7,6 +7,7 @@ import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
+import { CourseCardSkeletonGrid } from '@/components/student/course-card-skeleton';
 import { Button } from '@/components/ui/button';
 import { BookOpen, LogOut, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EnrolledCourse } from '@/lib/types/student.types';
@@ -139,8 +140,8 @@ export default function MyCoursesPage() {
   return (
     <>
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+        <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
+          <CourseCardSkeletonGrid count={8} />
         </div>
       ) : enrolledCourses.length === 0 && availableCourses.length === 0 ? (
         <div className="container mx-auto px-6 py-20 text-center">
