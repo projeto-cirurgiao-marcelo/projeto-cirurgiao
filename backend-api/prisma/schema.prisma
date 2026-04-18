@@ -35,6 +35,7 @@ model User {
   name      String
   role      Role     @default(STUDENT)
   isActive  Boolean  @default(true)
+  deletedAt DateTime? // soft-delete marker — see shared/audit
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -65,6 +66,10 @@ model User {
   gamificationChallenges GamificationChallenge[]
   gamificationEvents     GamificationEvent[]
 
+  // Audit
+  auditLogs AuditLog[]
+
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -109,6 +114,7 @@ model Course {
   instructorId        String
   isPublished         Boolean  @default(false)
   price               Decimal  @default(0) @db.Decimal(10, 2)
+  deletedAt           DateTime? // soft-delete marker
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -120,6 +126,7 @@ model Course {
   @@index([instructorId])
   @@index([slug])
   @@index([isPublished])
+  @@index([deletedAt])
   @@map("courses")
 }
 
@@ -132,6 +139,7 @@ model Module {
   thumbnailHorizontal String?  // Thumbnail para exibição horizontal (16:9)
   order               Int
   courseId            String
+  deletedAt           DateTime? // soft-delete marker
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -140,6 +148,7 @@ model Module {
 
   @@unique([courseId, order])
   @@index([courseId])
+  @@index([deletedAt])
   @@map("modules")
 }
 
@@ -161,6 +170,7 @@ model Video {
   externalUrl     String?           // URL de embed (YouTube, Vimeo, etc)
   hlsUrl          String?           // URL do playlist HLS (.m3u8) no R2 CDN
   videoSource     String            @default("cloudflare") // "cloudflare" | "youtube" | "vimeo" | "external" | "r2_hls"
+  deletedAt       DateTime?         // soft-delete marker
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -177,6 +187,7 @@ model Video {
   @@unique([moduleId, order])
   @@index([moduleId])
   @@index([cloudflareId])
+  @@index([deletedAt])
   @@map("videos")
 }
 
@@ -846,4 +857,39 @@ model GamificationEvent {
   @@index([userId, createdAt])
   @@index([userId, readAt, createdAt])
   @@map("gamification_events")
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+/// Single-table audit trail for destructive and privilege-changing
+/// operations. Producer is `AuditService.record()` in src/shared/audit/.
+/// Kept intentionally simple — one row per event — so reads from the
+/// admin panel stay cheap.
+model AuditLog {
+  id         String   @id @default(uuid())
+  /// Who performed the action. Nullable because a few ops (cron jobs,
+  /// system repairs) have no logged-in user.
+  actorId    String?
+  /// What the action was — 'course.soft_delete', 'user.role_changed',
+  /// 'video.publish_toggled', etc. Free-form strings keep the schema
+  /// flexible; callers pass from the AuditAction enum in code.
+  action     String
+  /// Canonical name of the affected entity table ('courses', 'videos',
+  /// 'users', 'modules'). Useful for index filtering and admin views.
+  entityType String
+  /// The row id the action targeted.
+  entityId   String
+  /// Arbitrary context the producer wants to capture (previous values,
+  /// reason strings, request metadata). Never put credentials here.
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
 }

@@ -295,7 +295,7 @@ export class VideosController {
   async remove(@Param('id') id: string, @Request() req) {
     const video = await this.videosService.findOne(id);
     await this.checkInstructorPermission(video.moduleId, req.user.sub, req.user.role);
-    await this.videosService.remove(id);
+    await this.videosService.remove(id, req.user?.sub ?? null);
     return { message: 'Vídeo deletado com sucesso' };
   }
 

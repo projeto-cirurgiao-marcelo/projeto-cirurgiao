@@ -348,6 +348,62 @@ check the queue in prod. Not meant for frontends.
 
 ---
 
+## Soft delete em Course / Module / Video / User
+
+**Effective:** same branch / release TBD.
+
+`DELETE` endpoints nessas 4 entidades **não apagam fisicamente mais**.
+O backend marca `deletedAt = now()` e registra um evento no
+`audit_logs`. Do lado do cliente **o comportamento externo é idêntico**
+— a listagem deixa de retornar a linha, `GET /:id` devolve 404 —
+mas histórico (progressões, matrículas, posts de fórum) permanece
+acessível no DB.
+
+**Endpoints afetados (comportamento visível):**
+
+| Method | Path | Novo comportamento |
+| --- | --- | --- |
+| `DELETE` | `/api/v1/courses/:id` | Marca `deletedAt`; subsequentes `GET /courses/:id` e `GET /courses` deixam de retornar. |
+| `DELETE` | `/api/v1/modules/:id` | Idem. |
+| `DELETE` | `/api/v1/videos/:id` | Idem. **Cloudflare Stream NÃO é mais deletado em tempo real** — o vídeo fica lá até um job de recycle-bin consolidar (fora desta sprint). |
+| `DELETE` | `/api/v1/users/:id` | Marca `deletedAt` + `isActive=false`. Email fica preservado na linha soft-deleted para auditoria; tentar registrar um novo user com o mesmo email **falha** (constraint UNIQUE ativa). |
+
+Response code/body **sem mudança** — continua `200 { message: ... }`.
+
+**Efeito cascata:** nada mudou no SQL. `ON DELETE CASCADE` continua no
+schema para quando precisarmos hard-deletar no futuro, mas como estamos
+fazendo UPDATE em vez de DELETE, as linhas filhas **não** são afetadas.
+Isso é deliberado — progresso e matrículas precisam sobreviver à
+"deleção" do curso.
+
+**Visibilidade:** todas as `findMany` / `findUnique` nos services
+afetados agora passam `deletedAt: null` no where. Se A precisar de um
+endpoint `GET /admin/courses?includeDeleted=true`, avisa que adiciono.
+
+---
+
+## Audit log
+
+Nova tabela `audit_logs` registra operações destrutivas ou de
+mudança de privilégio. Alimentada pelo `AuditService` em
+`backend-api/src/shared/audit/`. Ações registradas atualmente:
+
+- `course.soft_delete`
+- `module.soft_delete`
+- `video.soft_delete`
+- `user.soft_delete`
+
+Ações reservadas no vocabulário mas ainda não emitidas (virão em
+próximas tarefas): `course.restore`, `module.restore`, `video.restore`,
+`user.restore`, `course.publish_toggled`, `video.publish_toggled`,
+`user.role_changed`.
+
+**Sem endpoint público.** A consulta do audit log é responsabilidade do
+admin panel; se precisar de `GET /admin/audit-logs` com filtros, avisa
+que exponho.
+
+---
+
 ## Shared types file — `backend-api/src/types/shared.ts`
 
 Teammates A and B consuming these DTOs literally should copy

@@ -6,6 +6,8 @@ import { CreateVideoDto, VideoUploadStatus, VideoSource } from './dto/create-vid
 import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
+import { AuditService } from '../../shared/audit/audit.service';
+import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { Video } from '@prisma/client';
 import { unlink } from 'fs';
 import { promisify } from 'util';
@@ -54,6 +56,7 @@ export class VideosService {
     private prisma: PrismaService,
     private cloudflareStream: CloudflareStreamService,
     private cloudflareR2: CloudflareR2Service,
+    private audit: AuditService,
   ) {}
 
   /**
@@ -857,6 +860,7 @@ export class VideosService {
     return this.prisma.video.findMany({
       where: {
         moduleId,
+        deletedAt: null,
       },
       orderBy: {
         order: 'asc',
@@ -897,7 +901,7 @@ export class VideosService {
       },
     });
 
-    if (!video) {
+    if (!video || video.deletedAt) {
       throw new NotFoundException('Vídeo não encontrado');
     }
 
@@ -973,46 +977,38 @@ export class VideosService {
   }
 
   /**
-   * Deletar vídeo (também remove do Cloudflare Stream)
-   * IMPORTANTE: Mesmo se a deleção do Cloudflare falhar, o vídeo é removido do banco
+   * Soft-delete do vídeo.
+   *
+   * Mudança de contrato: não removemos mais do Cloudflare Stream nem
+   * apagamos arquivos temporários aqui. O vídeo permanece intacto no
+   * storage até um recycle-bin job (fora desta sprint) consolidar o
+   * hard-delete. Isso preserva progresso, summaries e quizzes já
+   * anexados ao `videoId` — tudo fica acessível para rollback.
+   *
+   * O arquivo temp de upload ainda é limpo no success path do upload
+   * em background (processUploadInBackground), então o leak de disco
+   * só ocorre se o upload falhar e o admin deletar antes do cleanup —
+   * risco aceitável e é a mesma janela que existia antes.
    */
-  async remove(id: string): Promise<void> {
-    // Verificar se o vídeo existe
-    const video = await this.findOne(id);
-
-    // Tentar deletar do Cloudflare Stream (se tiver cloudflareId)
-    // Não bloqueia a deleção do banco se falhar
-    if (video.cloudflareId) {
-      try {
-        await this.cloudflareStream.deleteVideo(video.cloudflareId);
-        this.logger.log(`Video deleted from Cloudflare: ${video.cloudflareId}`);
-      } catch (cloudflareError) {
-        // Log do erro mas continua com a deleção do banco
-        this.logger.warn(`Failed to delete video from Cloudflare (${video.cloudflareId}), continuing with DB deletion: ${cloudflareError.message}`);
-      }
-    }
-
-    // Deletar arquivo temporário se existir
-    if (video.tempFilePath) {
-      try {
-        await unlinkAsync(video.tempFilePath);
-        this.logger.log(`Temp file deleted: ${video.tempFilePath}`);
-      } catch (deleteError) {
-        // Ignorar erro de deleção de arquivo temp
-        this.logger.warn(`Failed to delete temp file: ${video.tempFilePath}`);
-      }
-    }
+  async remove(id: string, actorId: string | null = null): Promise<void> {
+    await this.findOne(id);
 
     try {
-      // Deletar do banco
-      await this.prisma.video.delete({
+      await this.prisma.video.update({
         where: { id },
+        data: { deletedAt: new Date() },
       });
 
-      this.logger.log(`Video deleted from database: ${id}`);
+      this.logger.log(`Video soft-deleted: ${id}`);
+      await this.audit.record({
+        actorId,
+        action: AUDIT_ACTIONS.VIDEO_SOFT_DELETE,
+        entityType: 'videos',
+        entityId: id,
+      });
     } catch (dbError) {
-      this.logger.error(`Error deleting video ${id} from database`, dbError);
-      throw new BadRequestException('Erro ao deletar vídeo do banco de dados');
+      this.logger.error(`Error soft-deleting video ${id}`, dbError);
+      throw new BadRequestException('Erro ao deletar vídeo');
     }
   }
 

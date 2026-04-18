@@ -9,6 +9,7 @@ import { VideosService } from './videos.service';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
+import { AuditService } from '../../shared/audit/audit.service';
 import { VideoSource, VideoUploadStatus } from './dto/create-video.dto';
 import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 
@@ -36,6 +37,7 @@ function makeVideo(overrides: Partial<Video> = {}): Video {
     externalUrl: null,
     hlsUrl: null,
     videoSource: 'cloudflare',
+    deletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -47,11 +49,13 @@ describe('VideosService', () => {
   let prisma: DeepMockProxy<PrismaService>;
   let cloudflareStream: DeepMockProxy<CloudflareStreamService>;
   let cloudflareR2: DeepMockProxy<CloudflareR2Service>;
+  let audit: DeepMockProxy<AuditService>;
 
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
     cloudflareStream = mockDeep<CloudflareStreamService>();
     cloudflareR2 = mockDeep<CloudflareR2Service>();
+    audit = mockDeep<AuditService>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -59,6 +63,7 @@ describe('VideosService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: CloudflareStreamService, useValue: cloudflareStream },
         { provide: CloudflareR2Service, useValue: cloudflareR2 },
+        { provide: AuditService, useValue: audit },
       ],
     }).compile();
 
@@ -332,6 +337,58 @@ describe('VideosService', () => {
       });
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'title')).toBe(true);
+    });
+  });
+
+  // ============================================
+  // Soft-delete (Task 9)
+  // ============================================
+  describe('remove (soft-delete)', () => {
+    it('marks deletedAt + records audit, never calls prisma.video.delete', async () => {
+      prisma.video.findUnique.mockResolvedValue(makeVideo());
+      prisma.video.update.mockResolvedValue(makeVideo({ deletedAt: new Date() }));
+
+      await service.remove('video-id', 'actor-1');
+
+      const updateCall = prisma.video.update.mock.calls[0][0];
+      expect((updateCall.data as any).deletedAt).toBeInstanceOf(Date);
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: 'actor-1',
+          entityType: 'videos',
+          entityId: 'video-id',
+        }),
+      );
+      expect(prisma.video.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when video already soft-deleted', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ deletedAt: new Date() }),
+      );
+      await expect(service.remove('video-id')).rejects.toThrow(NotFoundException);
+      expect(prisma.video.update).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findAll / findOne exclude soft-deleted', () => {
+    it('findAll passes deletedAt: null to prisma', async () => {
+      prisma.module.findUnique.mockResolvedValue({ id: 'module-id' } as any);
+      prisma.video.findMany.mockResolvedValue([]);
+
+      await service.findAll('module-id');
+
+      const where = prisma.video.findMany.mock.calls[0][0]!.where as any;
+      expect(where.deletedAt).toBeNull();
+      expect(where.moduleId).toBe('module-id');
+    });
+
+    it('findOne hides soft-deleted rows as NotFound', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ deletedAt: new Date() }),
+      );
+      await expect(service.findOne('video-id')).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -161,7 +161,7 @@ export class ModulesController {
       }
     }
 
-    await this.modulesService.remove(id);
+    await this.modulesService.remove(id, req.user?.sub ?? req.user?.userId ?? null);
     return { message: 'Módulo deletado com sucesso' };
   }
 
