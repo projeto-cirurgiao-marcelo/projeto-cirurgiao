@@ -61,6 +61,35 @@ jest.mock('expo-video', () => {
 });
 
 // ---------------------------------------------------------------------------
+// @expo/vector-icons
+// ---------------------------------------------------------------------------
+// O pacote importa expo-font que importa expo-asset — cadeia pesada que nao
+// precisa rodar em Jest. Stub cada family como View com testID (permite
+// queries em tests que precisem, ex: getByTestId('icon-Ionicons-flame')).
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const makeIcon = (family: string) =>
+    React.forwardRef((props: { name?: string; testID?: string }, ref: unknown) =>
+      React.createElement(View, {
+        ...props,
+        ref,
+        testID: props.testID ?? `icon-${family}-${props.name ?? 'unknown'}`,
+      }),
+    );
+  return {
+    Ionicons: makeIcon('Ionicons'),
+    MaterialIcons: makeIcon('MaterialIcons'),
+    FontAwesome: makeIcon('FontAwesome'),
+    FontAwesome5: makeIcon('FontAwesome5'),
+    AntDesign: makeIcon('AntDesign'),
+    Feather: makeIcon('Feather'),
+    Entypo: makeIcon('Entypo'),
+    MaterialCommunityIcons: makeIcon('MaterialCommunityIcons'),
+  };
+});
+
+// ---------------------------------------------------------------------------
 // expo-blur
 // ---------------------------------------------------------------------------
 jest.mock('expo-blur', () => {
