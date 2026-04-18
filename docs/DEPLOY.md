@@ -236,7 +236,74 @@ provisions Redis with `requirepass redis_dev_password`. Set
 `QUEUE_ENABLED=true` and `REDIS_PASSWORD=redis_dev_password` in
 `backend-api/.env` to exercise the full queue locally.
 
-## 8. Local development
+## 8. Staging seed
+
+Deterministic fixtures for E2E tests (Playwright on web, Detox on
+mobile). Idempotent — running twice wipes the previous run first.
+
+> **⚠️ NUNCA RODAR CONTRA PRODUÇÃO.** O script tem double-guard:
+> recusa quando `NODE_ENV=production` a menos que `ALLOW_SEED=true`.
+> Ambos precisam estar setados pra ele tocar em prod — e mesmo assim,
+> NÃO RODE: ele apaga e recria usuários / cursos com ids fixos
+> conhecidos e isso vaza pro mundo real.
+
+### Como rodar
+
+```bash
+cd backend-api
+npx ts-node prisma/seed-staging.ts
+```
+
+DATABASE_URL apontado ao banco de staging (ou ao docker-compose
+local). O script loga o target antes de escrever qualquer coisa
+(com a senha mascarada) pra você conferir onde ele vai rodar.
+
+### Como resetar
+
+Rode o script de novo — ele deleta os registros antigos pelos ids
+fixos e recria. Nenhum outro dado é tocado.
+
+### Credenciais criadas
+
+Usadas pelo Playwright / Detox via `.env.test` (ou equivalente):
+
+| Role     | Email                    | Senha              |
+| -------- | ------------------------ | ------------------ |
+| STUDENT  | `test@cirurgiao.app`     | `Seed!Student2026` |
+| ADMIN    | `admin@cirurgiao.app`    | `Seed!Admin2026`   |
+
+A senha fica versionada aqui de propósito — é para um ambiente de
+teste fechado; se o banco de staging ficar exposto à internet, troque
+essa senha junto com a rotação periódica.
+
+### O que o seed cria
+
+| Entidade    | Valor fixo |
+| ----------- | ---------- |
+| User STUDENT| id `00000000-0000-4000-a000-000000000002`, email `test@cirurgiao.app` |
+| User ADMIN  | id `00000000-0000-4000-a000-000000000001`, email `admin@cirurgiao.app`, instrutor do curso |
+| Course      | id `00000000-0000-4000-a000-000000000010`, slug `curso-teste-e2e`, `isPublished=true` |
+| Module      | id `00000000-0000-4000-a000-000000000011`, título "Módulo de Teste", order 0 |
+| Video       | id `00000000-0000-4000-a000-000000000012`, `videoSource='r2_hls'`, duration 30s, hlsUrl placeholder |
+| Quiz        | id `00000000-0000-4000-a000-000000000013`, 3 perguntas MCQ, `passingScore=70` |
+| Enrollment  | id `00000000-0000-4000-a000-000000000014`, STUDENT matriculado no curso |
+
+Ids fixos estão no formato UUID v4 mas são reservados (não colidem
+com `@default(uuid())` em uso real). Playwright pode navegar direto
+para `/courses/00000000-0000-4000-a000-000000000010` sem precisar de
+lookup por slug.
+
+### Placeholder hlsUrl
+
+O vídeo seed usa
+`https://placeholder.cirurgiao.app/test.m3u8` como hlsUrl. Essa URL
+**não existe** — é suficiente para testes que só validam o payload do
+backend (player mockado pelo Playwright). **TODO:** substituir pelo
+master playlist real assim que Gustav provisionar um vídeo de teste
+em R2; atualizar `PLACEHOLDER_HLS_URL` em
+`backend-api/prisma/seed-staging.ts` e este bloco.
+
+## 9. Local development
 
 Local dev keeps using `.env` (gitignored). No Secret Manager calls are
 made. If you want to exercise the loader locally against real secrets,
