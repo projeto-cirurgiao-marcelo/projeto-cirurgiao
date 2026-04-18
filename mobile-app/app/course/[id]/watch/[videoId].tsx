@@ -37,7 +37,6 @@ export default function WatchVideoScreen() {
   const playerRef = useRef<VideoPlayerRef>(null);
 
   const [video, setVideo] = useState<Video | null>(null);
-  const [streamUrl, setStreamUrl] = useState<string>('');
   const [moduleVideos, setModuleVideos] = useState<Video[]>([]);
   const [allCourseVideos, setAllCourseVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,11 +110,13 @@ export default function WatchVideoScreen() {
 
       setVideo(videoData);
 
-      // Resolver URL de streaming do Cloudflare
-      const streamData = videosService.getStreamData(videoData);
-      const resolvedUrl = streamData.hlsUrl || '';
-      setStreamUrl(resolvedUrl);
-      logger.log(`[WatchVideo] Stream URL resolvida: ${resolvedUrl} (tipo: ${streamData.type})`);
+      // URL de streaming agora vem pronta do backend em `video.playback.playbackUrl`.
+      // Nao derivamos mais no client (CLOUDFLARE_CUSTOMER_CODE removido — backend
+      // constroi a URL final). Ver docs/proposals/playback-unified.md.
+      logger.log(
+        `[WatchVideo] Playback recebido: kind=${videoData.playback?.kind ?? 'undefined'} ` +
+        `url=${videoData.playback?.playbackUrl ?? 'null'}`
+      );
 
       // Garantir que a posição é um número válido
       const validPosition = typeof savedPosition === 'number' && savedPosition > 0 ? savedPosition : 0;
@@ -296,15 +297,52 @@ export default function WatchVideoScreen() {
             </View>
           </View>
 
-          {/* Player de vídeo */}
-          <VideoPlayer
-            ref={playerRef}
-            video={video}
-            streamUrl={streamUrl}
-            onEnded={handleVideoEnded}
-            onProgressUpdate={handleProgressUpdate}
-            initialPosition={initialPosition}
-          />
+          {/* Player de video: switcha por playback.kind (contrato unificado).
+              - 'hls' + URL -> VideoPlayer HLS nativo (r2_hls ou cloudflare).
+              - 'iframe' -> fallback "Em breve no app mobile"; aluno pode abrir
+                no web (YouTube/Vimeo/external). EmbedPlayer com WebView e
+                sprint seguinte (TECH-DEBT).
+              - 'none' ou playback ausente -> VideoUnavailable. */}
+          {(() => {
+            const playback = video.playback;
+            const kind = playback?.kind;
+            const playbackUrl = playback?.playbackUrl ?? null;
+
+            if (kind === 'hls' && playbackUrl) {
+              return (
+                <VideoPlayer
+                  ref={playerRef}
+                  video={video}
+                  streamUrl={playbackUrl}
+                  onEnded={handleVideoEnded}
+                  onProgressUpdate={handleProgressUpdate}
+                  initialPosition={initialPosition}
+                />
+              );
+            }
+            if (kind === 'iframe' && playbackUrl) {
+              return (
+                <View style={styles.unavailableContainer}>
+                  <Ionicons name="open-outline" size={32} color={colors.textMuted} />
+                  <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
+                  <Text style={styles.unavailableSubtitle}>
+                    Este vídeo usa um player externo ({video.videoSource}).{'\n'}
+                    Por enquanto, acesse pelo navegador em projetocirurgiao.app.
+                  </Text>
+                </View>
+              );
+            }
+            // kind === 'none' ou playback ausente (payload antiga sem contrato).
+            return (
+              <View style={styles.unavailableContainer}>
+                <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
+                <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
+                <Text style={styles.unavailableSubtitle}>
+                  Este vídeo ainda não está pronto para reprodução.
+                </Text>
+              </View>
+            );
+          })()}
 
           {/* Info compacta abaixo do player */}
           <View style={styles.videoInfo}>
@@ -457,6 +495,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+  },
+  // Fallback quando playback.kind e 'iframe' ou 'none'. Manter proporcao 16:9
+  // pra nao quebrar layout (o player HLS tambem e 16:9 via VideoPlayer).
+  unavailableContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#111',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 8,
+  },
+  unavailableTitle: {
+    color: '#ccc',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  unavailableSubtitle: {
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   videoMetaRow: {
     flexDirection: 'row',
