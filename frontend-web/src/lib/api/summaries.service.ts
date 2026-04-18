@@ -1,4 +1,10 @@
 import { apiClient } from './client';
+import {
+  isEnqueuedJob,
+  waitForJob,
+  type WaitForJobOptions,
+} from './waitForJob';
+import type { EnqueuedJobResponse } from '@/types/api-shared';
 
 export interface VideoSummary {
   id: string;
@@ -29,10 +35,45 @@ export interface GenerateSummaryResponse extends VideoSummary {
 }
 
 export const summariesService = {
-  async generateSummary(videoId: string, additionalInstructions?: string): Promise<GenerateSummaryResponse> {
-    const response = await apiClient.post<GenerateSummaryResponse>(
-      `/videos/${videoId}/summaries/generate`, { additionalInstructions }
-    );
+  /**
+   * Gera um resumo do video. Suporta dois shapes de resposta do backend:
+   *
+   * 1. Legacy (QUEUE_ENABLED=false, prod atual): retorna o
+   *    `GenerateSummaryResponse` direto com status 201. `waitForJob`
+   *    nao eh acionado.
+   * 2. Async (QUEUE_ENABLED=true, Memorystore provisionado): retorna
+   *    `EnqueuedJobResponse` com status 202. `waitForJob` faz polling
+   *    ate `completed` e retorna o `resultRef` (summary id). Depois
+   *    fazemos GET pelo objeto real.
+   *
+   * Callers nao precisam saber qual modo esta ativo. Passe `jobOpts`
+   * pra customizar polling (onProgress pra UI, AbortSignal, etc.).
+   */
+  async generateSummary(
+    videoId: string,
+    additionalInstructions?: string,
+    jobOpts?: WaitForJobOptions,
+  ): Promise<GenerateSummaryResponse> {
+    const response = await apiClient.post<
+      GenerateSummaryResponse | EnqueuedJobResponse
+    >(`/videos/${videoId}/summaries/generate`, { additionalInstructions });
+
+    if (isEnqueuedJob(response.data)) {
+      const summaryId = await waitForJob<string>(response.data, jobOpts);
+      // Fetch do objeto real. `remainingGenerations` nao vem do GET
+      // simples (que retorna `VideoSummary`), entao buscamos a cota
+      // separadamente pra manter o shape compativel com quem ja usa
+      // `GenerateSummaryResponse`.
+      const [summary, remainingRes] = await Promise.all([
+        this.getSummary(videoId, summaryId),
+        this.getRemainingGenerations(videoId).catch(() => null),
+      ]);
+      return {
+        ...summary,
+        remainingGenerations: remainingRes?.remaining ?? 0,
+      };
+    }
+
     return response.data;
   },
 
