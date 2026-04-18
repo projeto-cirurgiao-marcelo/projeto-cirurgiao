@@ -398,50 +398,6 @@ export class VideosService {
   }
 
   /**
-   * Upload de vídeo para Cloudflare Stream via arquivo (buffer)
-   */
-  async uploadFromFile(
-    moduleId: string,
-    file: Buffer,
-    filename: string,
-    metadata: { title: string; description?: string; order: number },
-  ): Promise<Video> {
-    try {
-      // Verificar se o módulo existe
-      const module = await this.prisma.module.findUnique({
-        where: { id: moduleId },
-      });
-
-      if (!module) {
-        throw new NotFoundException('Módulo não encontrado');
-      }
-
-      // Upload para Cloudflare Stream
-      const cloudflareVideo = await this.cloudflareStream.uploadVideoFromFile(file, filename, {
-        name: metadata.title,
-      });
-
-      // Criar registro no banco
-      const video = await this.create(moduleId, {
-        title: metadata.title,
-        description: metadata.description,
-        cloudflareId: cloudflareVideo.uid,
-        cloudflareUrl: cloudflareVideo.playbackUrl,
-        thumbnailUrl: cloudflareVideo.thumbnailUrl,
-        duration: cloudflareVideo.duration,
-        order: metadata.order,
-        isPublished: false,
-        uploadStatus: VideoUploadStatus.READY,
-      });
-
-      return video;
-    } catch (error) {
-      this.logger.error('Error uploading video from file', error);
-      throw error;
-    }
-  }
-
-  /**
    * Upload de vídeo ASSÍNCRONO para Cloudflare Stream
    * Cria o registro no banco imediatamente e faz o upload em background
    * Retorna imediatamente com status "UPLOADING"
@@ -641,80 +597,6 @@ export class VideosService {
       cloudflareUrl: video.cloudflareUrl,
       readyToStream: video.uploadStatus === 'READY',
     };
-  }
-
-  /**
-   * Upload de vídeo para Cloudflare Stream via arquivo no disco (TUS protocol)
-   * Usa TUS para suportar arquivos grandes com upload resumível
-   * @deprecated Use uploadFromDiskAsync para uploads assíncronos
-   */
-  async uploadFromDisk(
-    moduleId: string,
-    filePath: string,
-    filename: string,
-    metadata: { title: string; description?: string; order: number },
-  ): Promise<Video> {
-    try {
-      this.logger.log(`Starting upload from disk: ${filePath}`);
-
-      // Verificar se o módulo existe
-      const module = await this.prisma.module.findUnique({
-        where: { id: moduleId },
-      });
-
-      if (!module) {
-        throw new NotFoundException('Módulo não encontrado');
-      }
-
-      // Obter tamanho do arquivo
-      const stats = await import('fs').then(fs => fs.promises.stat(filePath));
-      const fileSize = stats.size;
-      this.logger.log(`File size: ${fileSize} bytes (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
-
-      // Upload para Cloudflare Stream usando TUS (suporta arquivos grandes)
-      const cloudflareVideo = await this.cloudflareStream.uploadVideoViaTus(
-        filePath,
-        filename,
-        fileSize,
-        { name: metadata.title }
-      );
-
-      this.logger.log(`Upload completed. Cloudflare UID: ${cloudflareVideo.uid}`);
-
-      // Criar registro no banco
-      const video = await this.create(moduleId, {
-        title: metadata.title,
-        description: metadata.description,
-        cloudflareId: cloudflareVideo.uid,
-        cloudflareUrl: cloudflareVideo.playbackUrl,
-        thumbnailUrl: cloudflareVideo.thumbnailUrl,
-        duration: cloudflareVideo.duration,
-        order: metadata.order,
-        isPublished: false,
-        uploadStatus: VideoUploadStatus.READY,
-      });
-
-      // Deletar arquivo temporário
-      try {
-        await unlinkAsync(filePath);
-        this.logger.log(`Temporary file deleted: ${filePath}`);
-      } catch (deleteError) {
-        this.logger.warn(`Failed to delete temporary file: ${filePath}`, deleteError);
-      }
-
-      return video;
-    } catch (error) {
-      this.logger.error('Error uploading video from disk', error);
-      
-      // Tentar deletar arquivo temporário em caso de erro
-      try {
-        await unlinkAsync(filePath);
-      } catch (deleteError) {
-        // Ignorar erro de deleção
-      }
-      
-      throw error;
-    }
   }
 
   /**
