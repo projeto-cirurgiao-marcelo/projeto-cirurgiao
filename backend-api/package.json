@@ -103,9 +103,71 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "modules/**/*.service.ts",
+      "shared/**/*.service.ts",
+      "shared/queue/queue.config.ts",
+      "shared/audit/audit.constants.ts",
+      "modules/videos/dto/create-video-from-r2-hls.dto.ts",
+      "!**/*.spec.ts",
+      "!**/node_modules/**"
     ],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "./src/modules/courses/courses.service.ts": {
+        "statements": 85,
+        "branches": 70,
+        "functions": 80,
+        "lines": 85
+      },
+      "./src/modules/captions/captions.service.ts": {
+        "statements": 70,
+        "branches": 70,
+        "functions": 80,
+        "lines": 70
+      },
+      "./src/modules/modules/modules.service.ts": {
+        "statements": 70,
+        "branches": 60,
+        "functions": 80,
+        "lines": 70
+      },
+      "./src/modules/videos/videos.service.ts": {
+        "statements": 50,
+        "branches": 55,
+        "functions": 55,
+        "lines": 50
+      },
+      "./src/modules/users/users.service.ts": {
+        "statements": 45,
+        "branches": 35,
+        "functions": 45,
+        "lines": 45
+      },
+      "./src/modules/ai-summaries/ai-summaries.service.ts": {
+        "statements": 60,
+        "branches": 40,
+        "functions": 60,
+        "lines": 60
+      },
+      "./src/modules/quizzes/quizzes.service.ts": {
+        "statements": 75,
+        "branches": 65,
+        "functions": 80,
+        "lines": 75
+      },
+      "./src/shared/queue/queue.service.ts": {
+        "statements": 85,
+        "branches": 50,
+        "functions": 85,
+        "lines": 85
+      },
+      "./src/shared/audit/audit.service.ts": {
+        "statements": 100,
+        "branches": 100,
+        "functions": 100,
+        "lines": 100
+      }
+    },
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"

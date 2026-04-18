@@ -422,11 +422,324 @@ describe('VideosService', () => {
       expect(where.moduleId).toBe('module-id');
     });
 
+    it('findAll rejects when parent module does not exist', async () => {
+      prisma.module.findUnique.mockResolvedValue(null);
+      await expect(service.findAll('missing')).rejects.toThrow(NotFoundException);
+    });
+
     it('findOne hides soft-deleted rows as NotFound', async () => {
       prisma.video.findUnique.mockResolvedValue(
         makeVideo({ deletedAt: new Date() }),
       );
       await expect(service.findOne('video-id')).rejects.toThrow(NotFoundException);
+    });
+
+    it('findOne auto-syncs duration from Cloudflare when DB has 0', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({
+          cloudflareId: 'cf-1',
+          uploadStatus: 'READY',
+          duration: 0,
+        }),
+      );
+      cloudflareStream.getVideoDetails.mockResolvedValue({
+        duration: 90,
+        thumbnailUrl: 'https://cf/thumb.jpg',
+      } as any);
+      prisma.video.update.mockResolvedValue({} as any);
+
+      const out = await service.findOne('video-id');
+
+      expect(cloudflareStream.getVideoDetails).toHaveBeenCalledWith('cf-1');
+      expect(prisma.video.update).toHaveBeenCalled();
+      expect(out.duration).toBe(90);
+    });
+
+    it('findOne tolerates Cloudflare failures during auto-sync', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({
+          cloudflareId: 'cf-1',
+          uploadStatus: 'READY',
+          duration: 0,
+        }),
+      );
+      cloudflareStream.getVideoDetails.mockRejectedValue(new Error('cf-down'));
+
+      // Should NOT throw — auto-sync is best-effort.
+      const out = await service.findOne('video-id');
+      expect(out.duration).toBe(0);
+    });
+
+    it('findOneWithPlayback delegates to findOne + withPlayback', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ videoSource: 'r2_hls', hlsUrl: 'https://r2/p.m3u8' }),
+      );
+
+      const out = await service.findOneWithPlayback('video-id');
+      expect(out.playback.kind).toBe('hls');
+      expect(out.playback.playbackUrl).toBe('https://r2/p.m3u8');
+    });
+
+    it('findAllWithPlayback attaches playback to every item', async () => {
+      prisma.module.findUnique.mockResolvedValue({ id: 'module-id' } as any);
+      prisma.video.findMany.mockResolvedValue([
+        makeVideo({ id: 'v1', videoSource: 'r2_hls', hlsUrl: 'https://r2/a.m3u8' }),
+        makeVideo({ id: 'v2', videoSource: 'youtube', externalUrl: 'https://y/1' }),
+      ]);
+
+      const out = await service.findAllWithPlayback('module-id');
+      expect(out).toHaveLength(2);
+      expect(out[0].playback.kind).toBe('hls');
+      expect(out[1].playback.kind).toBe('iframe');
+    });
+  });
+
+  // ============================================
+  // update
+  // ============================================
+  describe('update', () => {
+    it('updates fields without order change', async () => {
+      prisma.video.findUnique.mockResolvedValue(makeVideo({ order: 2 }));
+      prisma.video.update.mockResolvedValue(
+        makeVideo({ order: 2, title: 'Novo' }),
+      );
+
+      await service.update('video-id', { title: 'Novo' } as any);
+
+      expect(prisma.video.findFirst).not.toHaveBeenCalled();
+      expect(prisma.video.update).toHaveBeenCalled();
+    });
+
+    it('rejects when new order conflicts with another video in the module', async () => {
+      prisma.video.findUnique.mockResolvedValue(makeVideo({ order: 2 }));
+      prisma.video.findFirst.mockResolvedValue(
+        makeVideo({ id: 'other', order: 3 }),
+      );
+
+      await expect(
+        service.update('video-id', { order: 3 } as any),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.video.update).not.toHaveBeenCalled();
+    });
+
+    it('allows keeping the same order without a conflict check', async () => {
+      prisma.video.findUnique.mockResolvedValue(makeVideo({ order: 2 }));
+      prisma.video.update.mockResolvedValue(makeVideo({ order: 2 }));
+
+      await service.update('video-id', { order: 2 } as any);
+
+      expect(prisma.video.findFirst).not.toHaveBeenCalled();
+    });
+  });
+
+  // ============================================
+  // reorder / togglePublish
+  // ============================================
+  describe('reorder', () => {
+    it('rejects when module does not exist', async () => {
+      prisma.module.findUnique.mockResolvedValue(null);
+      await expect(
+        service.reorder('missing', { videos: [] } as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('runs every update inside a $transaction and returns findAll result', async () => {
+      prisma.module.findUnique.mockResolvedValue({ id: 'module-id' } as any);
+      prisma.video.findMany.mockResolvedValue([]);
+      prisma.$transaction.mockImplementation(async (cb: any) => cb(prisma));
+
+      await service.reorder('module-id', {
+        videos: [{ id: 'a', order: 0 }, { id: 'b', order: 1 }],
+      } as any);
+
+      // 2 updates x 2 passes (negative then final) = 4 calls.
+      expect(prisma.video.update).toHaveBeenCalledTimes(4);
+    });
+
+    it('wraps transaction failures in BadRequestException', async () => {
+      prisma.module.findUnique.mockResolvedValue({ id: 'module-id' } as any);
+      prisma.$transaction.mockRejectedValue(new Error('tx failed'));
+
+      await expect(
+        service.reorder('module-id', {
+          videos: [{ id: 'a', order: 0 }],
+        } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('togglePublish', () => {
+    it('flips isPublished', async () => {
+      prisma.video.findUnique.mockResolvedValue(makeVideo({ isPublished: false }));
+      prisma.video.update.mockResolvedValue(makeVideo({ isPublished: true }));
+
+      await service.togglePublish('video-id');
+
+      const data = prisma.video.update.mock.calls[0][0].data as any;
+      expect(data.isPublished).toBe(true);
+    });
+  });
+
+  // ============================================
+  // syncWithCloudflare
+  // ============================================
+  describe('syncWithCloudflare', () => {
+    it('rejects when video has no cloudflareId', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ cloudflareId: null }),
+      );
+      await expect(service.syncWithCloudflare('video-id')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('updates DB fields from Cloudflare details on success (READY)', async () => {
+      // duration > 0 so findOne() does NOT trigger its own auto-sync,
+      // keeping the assertion focused on syncWithCloudflare's update.
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ cloudflareId: 'cf-1', duration: 60 }),
+      );
+      cloudflareStream.getVideoDetails.mockResolvedValue({
+        duration: 120,
+        thumbnailUrl: 'https://cf/thumb.jpg',
+        playbackUrl: 'https://cf/video.m3u8',
+        readyToStream: true,
+      } as any);
+      prisma.video.update.mockResolvedValue(makeVideo({ uploadStatus: 'READY' }));
+
+      await service.syncWithCloudflare('video-id');
+
+      const data = prisma.video.update.mock.calls[0][0].data as any;
+      expect(data.duration).toBe(120);
+      expect(data.uploadStatus).toBe('READY');
+    });
+
+    it('writes uploadStatus=PROCESSING when cloudflare says not ready', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ cloudflareId: 'cf-1', duration: 60 }),
+      );
+      cloudflareStream.getVideoDetails.mockResolvedValue({
+        duration: 0,
+        thumbnailUrl: null,
+        playbackUrl: null,
+        readyToStream: false,
+      } as any);
+      prisma.video.update.mockResolvedValue(makeVideo());
+
+      await service.syncWithCloudflare('video-id');
+
+      const data = prisma.video.update.mock.calls[0][0].data as any;
+      expect(data.uploadStatus).toBe('PROCESSING');
+    });
+
+    it('wraps upstream errors as BadRequestException', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ cloudflareId: 'cf-1', duration: 60 }),
+      );
+      cloudflareStream.getVideoDetails.mockRejectedValue(new Error('5xx'));
+
+      await expect(service.syncWithCloudflare('video-id')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  // ============================================
+  // moveToModule
+  // ============================================
+  describe('moveToModule', () => {
+    it('returns the video untouched when target = current module', async () => {
+      const video = makeVideo({ moduleId: 'module-a' });
+      prisma.video.findUnique.mockResolvedValue(video);
+      prisma.module.findUnique.mockResolvedValue({ id: 'module-a' } as any);
+
+      const out = await service.moveToModule('video-id', 'module-a');
+
+      expect(prisma.video.update).not.toHaveBeenCalled();
+      expect(out).toEqual(video);
+    });
+
+    it('throws NotFound when target module missing', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ moduleId: 'module-a' }),
+      );
+      prisma.module.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.moveToModule('video-id', 'missing'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('appends to the end of the destination module (nextOrder)', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ moduleId: 'module-a' }),
+      );
+      prisma.module.findUnique.mockResolvedValue({ id: 'module-b' } as any);
+      prisma.video.findFirst.mockResolvedValue(makeVideo({ order: 5 }));
+      prisma.video.update.mockResolvedValue(
+        makeVideo({ moduleId: 'module-b', order: 6 }),
+      );
+
+      await service.moveToModule('video-id', 'module-b');
+
+      const data = prisma.video.update.mock.calls[0][0].data as any;
+      expect(data.moduleId).toBe('module-b');
+      expect(data.order).toBe(6);
+    });
+
+    it('starts at order 0 when destination module is empty', async () => {
+      prisma.video.findUnique.mockResolvedValue(
+        makeVideo({ moduleId: 'module-a' }),
+      );
+      prisma.module.findUnique.mockResolvedValue({ id: 'module-b' } as any);
+      prisma.video.findFirst.mockResolvedValue(null);
+      prisma.video.update.mockResolvedValue(makeVideo());
+
+      await service.moveToModule('video-id', 'module-b');
+
+      const data = prisma.video.update.mock.calls[0][0].data as any;
+      expect(data.order).toBe(0);
+    });
+  });
+
+  // ============================================
+  // updateDurationFromPlayer / getNextOrder
+  // ============================================
+  describe('updateDurationFromPlayer', () => {
+    it('ignores invalid duration (0 / negative)', async () => {
+      await service.updateDurationFromPlayer('v', 0);
+      await service.updateDurationFromPlayer('v', -5);
+      expect(prisma.video.update).not.toHaveBeenCalled();
+    });
+
+    it('only writes when DB duration is currently 0 or null', async () => {
+      prisma.video.findUnique.mockResolvedValue(makeVideo({ duration: 0 }));
+      prisma.video.update.mockResolvedValue({} as any);
+
+      await service.updateDurationFromPlayer('v', 123.7);
+
+      const data = prisma.video.update.mock.calls[0][0].data as any;
+      expect(data.duration).toBe(124);
+    });
+
+    it('skips update when duration already set', async () => {
+      prisma.video.findUnique.mockResolvedValue(makeVideo({ duration: 42 }));
+
+      await service.updateDurationFromPlayer('v', 99);
+
+      expect(prisma.video.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getNextOrder', () => {
+    it('returns 0 for an empty module', async () => {
+      prisma.video.findFirst.mockResolvedValue(null);
+      await expect(service.getNextOrder('module-id')).resolves.toBe(0);
+    });
+
+    it('returns lastVideo.order + 1', async () => {
+      prisma.video.findFirst.mockResolvedValue(makeVideo({ order: 9 }));
+      await expect(service.getNextOrder('module-id')).resolves.toBe(10);
     });
   });
 });
