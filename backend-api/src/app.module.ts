@@ -4,6 +4,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { USER_THROTTLE_TRACKER } from './shared/throttler/user-throttler.guard';
 import { UserThrottlerModule } from './shared/throttler/user-throttler.module';
+import { QueueModule } from './shared/queue/queue.module';
 import { PrismaModule } from './shared/prisma/prisma.module';
 import { TokenCleanupService } from './shared/tasks/token-cleanup.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -27,6 +28,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { AiLibraryModule } from './modules/ai-library/ai-library.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 
 @Module({
   imports: [
@@ -62,6 +64,7 @@ import { AiLibraryModule } from './modules/ai-library/ai-library.module';
       },
     }),
     UserThrottlerModule,
+    QueueModule.forRoot(),
     PrismaModule,
     FirebaseModule, // Firebase Admin SDK
     AuthModule,
@@ -84,6 +87,7 @@ import { AiLibraryModule } from './modules/ai-library/ai-library.module';
     ProfileModule,
     GamificationModule,
     AiLibraryModule,
+    JobsModule,
   ],
   providers: [
     {

@@ -55,6 +55,14 @@ export const DEFAULT_SECRET_MAPPINGS: SecretMapping[] = [
   // blob via this env var. FIREBASE_SERVICE_ACCOUNT_PATH stays on env for
   // local/dev fallback.
   { envVar: 'FIREBASE_SERVICE_ACCOUNT_KEY' },
+
+  // BullMQ / Redis — optional (QUEUE_ENABLED=false is a valid prod
+  // config until Cloud Memorystore is provisioned). When the queue is
+  // enabled, REDIS_URL (rediss:// with AUTH) is the preferred shape for
+  // GCP Memorystore; REDIS_PASSWORD is the fallback for the
+  // host/port/password trio.
+  { envVar: 'REDIS_URL' },
+  { envVar: 'REDIS_PASSWORD' },
 ];
 
 export interface LoadSecretsOptions {
