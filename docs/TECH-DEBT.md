@@ -82,42 +82,41 @@ nao chega pra equipe — perdemos visibilidade de erros em device real.
 **Plano:** integrar Sentry (ou Firebase Crashlytics, ja que Firebase ja esta
 no stack). Plugar no `logger.error` / `logger.warn`. **Alvo:** go-live.
 
-### VideoPlayer nao reproduz `videoSource: youtube | vimeo | external`
+### VideoPlayer nao reproduz `videoSource: youtube | vimeo | external` (PARCIALMENTE RESOLVIDO)
 
-`app/course/[id]/watch/[videoId].tsx` resolve `streamUrl` via
-`videosService.getStreamData(video).hlsUrl`. Quando `type === 'embed'`
-(YouTube, Vimeo, external), `hlsUrl` e `undefined` e o player mostra
-"Video indisponivel".
+**Status:** PARCIALMENTE RESOLVIDO em commit `c49b382` (2026-04-17).
+Antes `'iframe'` caia no generico "Video indisponivel"; agora cai num
+fallback dedicado "Em breve no app mobile" com hint pra abrir no web.
+Sinal claro pro aluno: o video existe, so nao toca nativamente ainda.
 
-**Plano:** ver `docs/proposals/playback-unified.md`. Quando contrato
-`playback.kind` estiver aprovado + `react-native-webview` adicionado como
-dep, implementar `EmbedPlayer.tsx` com WebView sandboxed.
-**Alvo:** proximo sprint (depende de decisao do C + orcamento de bundle size).
+**Debito remanescente:** `EmbedPlayer.tsx` com `react-native-webview`
+sandboxed. Quando implementado, troca o branch `kind === 'iframe'` pra
+renderizar o WebView ao inves do fallback.
+**Alvo:** proximo sprint (depende de orcamento de bundle size — WebView
+e ~400kb no bundle Android).
 
 ---
 
 ## BACKEND CONTRACTS PENDENTES
 
-### Migracao pra `playback.playbackUrl` + remocao de `CLOUDFLARE_CUSTOMER_CODE` hardcoded
+### ~~Migracao pra `playback.playbackUrl`~~ RESOLVIDO
 
-**Status:** proposta `docs/proposals/playback-unified.md` APROVADA pelo lider
-com 1 ajuste de C (`captionsEmbedded: boolean` sempre presente em `kind: 'hls'`,
-`undefined` em `iframe`/`none`). C implementando no backend (commits pendentes).
+**Status:** RESOLVIDO em commit `c49b382` (2026-04-17).
+- `backend-api/src/types/shared.ts` copiado pra
+  `mobile-app/src/types/api-shared.ts` (protocolo de copia literal).
+- `videosService.getStreamData` + interface `StreamData` removidos.
+- Constante `CLOUDFLARE_CUSTOMER_CODE = 'mcykto8a2uaqo5xu'` REMOVIDA.
+- `app/course/[id]/watch/[videoId].tsx` switcha por `video.playback.kind`:
+  `'hls'` -> VideoPlayer HLS nativo; `'iframe'` -> fallback "Em breve
+  no app mobile"; `'none'` ou playback ausente -> "Video indisponivel".
+- Mobile ignora `captionsUrl` (opcao b do C — web-only).
 
-`videos.service.ts` ainda le `cloudflareUrl` / `hlsUrl` / `externalUrl` direto,
-com `CLOUDFLARE_CUSTOMER_CODE = 'mcykto8a2uaqo5xu'` hardcoded (linha 5).
+**Debito remanescente:** `EmbedPlayer.tsx` com `react-native-webview` pra
+tocar YouTube/Vimeo/external direto no mobile ao inves do fallback. Trocar
+o if `kind === 'iframe'` pra renderizar `<EmbedPlayer url={playbackUrl} />`.
 
-**Plano:** aguarda sinal do lider apos C publicar `feat(videos): add kind +
-captionsEmbedded` e `docs(api): document unified playback contract`. Entao:
-- Copia `backend-api/src/types/shared.ts` pra `mobile-app/src/types/api-shared.ts`.
-- `videosService.getStreamData` vira `return video.playback`.
-- Remove hardcode `CLOUDFLARE_CUSTOMER_CODE`.
-- Adapta `app/course/[id]/watch/[videoId].tsx` pra switchar por `playback.kind`
-  (`hls` -> `<VideoPlayer>`, `iframe` -> fallback "em breve" ate sprint
-  seguinte ter WebView + EmbedPlayer, `none` -> `<VideoUnavailable />`).
-- Mobile IGNORA `captionsUrl` (opcao b do C — web-only).
-
-**Alvo:** este sprint (P1, apos sinal do lider).
+**Alvo:** proximo sprint (depende de autorizacao de bundle size + decisao
+sobre inclusao/exclusao de `react-native-webview`).
 
 ### Fila BullMQ (`202 + jobId`) em endpoints de IA
 
