@@ -167,6 +167,20 @@ Cleaning is hygiene.
   superuser (or the original table owner) for migrations. Current plan:
   rotate migration duties via the Cloud SQL superuser credentials that
   Gustav controls.
+- **Table ownership rule**: every table in `projeto_cirurgiao` must be
+  owned by `postgres`, never by `app_cirurgiao`. `db push` executed as
+  the app user creates tables owned by `app_cirurgiao`, which later
+  blocks `migrate deploy` — the superuser cannot `ALTER` ownership of
+  tables owned by another role without first granting that role to
+  itself. Surfaced during the pgvector deploy: `knowledge_chunks` was
+  stuck on `app_cirurgiao` because of an old `db push`. Fix recipe
+  when a table ends up with the wrong owner:
+  ```sql
+  GRANT "app_cirurgiao" TO postgres;
+  ALTER TABLE <table_name> OWNER TO postgres;
+  ```
+  After the fix, revoke the grant (`REVOKE "app_cirurgiao" FROM postgres`)
+  if the superuser should not carry the app role permanently.
 - Local dev: pgvector extension must exist. `scripts/init-db.sql` runs
   `CREATE EXTENSION IF NOT EXISTS vector` on first boot of the compose
   container. Prisma's shadow DB also needs pgvector — `SHADOW_DATABASE_URL`
