@@ -88,6 +88,9 @@ export default function VideoPlayerPage() {
   const [sdkError, setSdkError] = useState(false); // Flag de erro ao carregar SDK Cloudflare (fallback UI)
   const [sdkRetryCount, setSdkRetryCount] = useState(0); // Trigger pra re-tentar carregar o SDK
   const [iframeMounted, setIframeMounted] = useState(false); // Flag para indicar que o iframe foi montado
+  // Blob URL das legendas quando playback.captionsUrl vem do backend
+  // (apiClient injeta Authorization automaticamente via interceptor).
+  const [captionsBlobUrl, setCaptionsBlobUrl] = useState<string | null>(null);
   const playerDurationRef = useRef(0); // Duração total do vídeo reportada pelo player
 
   const saveProgressOnExit = useCallback(async () => {
@@ -386,6 +389,44 @@ export default function VideoPlayerPage() {
     // novamente", o effect re-executa e tenta carregar o script outra vez.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sdkRetryCount]);
+
+  // Carrega legendas VTT quando o backend envia playback.captionsUrl
+  // (flow cloudflare com captionsEmbedded===false). apiClient injeta
+  // Authorization automaticamente. Resultado vira blob URL pro <track>.
+  useEffect(() => {
+    const captionsUrl = currentVideo?.playback?.captionsUrl;
+    const kind = currentVideo?.playback?.kind;
+    const embedded = currentVideo?.playback?.captionsEmbedded;
+
+    if (kind !== 'hls' || embedded === true || !captionsUrl) {
+      setCaptionsBlobUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    let createdObjectUrl: string | null = null;
+
+    // Usamos apiClient pra herdar auth header + 429 interceptor.
+    import('@/lib/api/client').then(({ apiClient }) => {
+      apiClient
+        .get<Blob>(captionsUrl, { responseType: 'blob' })
+        .then((res) => {
+          if (cancelled) return;
+          const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+          createdObjectUrl = URL.createObjectURL(blob);
+          setCaptionsBlobUrl(createdObjectUrl);
+        })
+        .catch((err) => {
+          logger.warn('[Captions] falha ao carregar VTT cloudflare:', err);
+          setCaptionsBlobUrl(null);
+        });
+    });
+
+    return () => {
+      cancelled = true;
+      if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
+    };
+  }, [currentVideo?.playback?.captionsUrl, currentVideo?.playback?.kind, currentVideo?.playback?.captionsEmbedded]);
 
   // Verifica periodicamente se o iframe foi montado (fallback para onLoad)
   useEffect(() => {
@@ -852,7 +893,60 @@ export default function VideoPlayerPage() {
 
             {/* Player Container */}
             <div className="bg-black rounded-lg overflow-hidden border border-gray-800 mb-3 sm:mb-4" style={{ aspectRatio: '16/9' }}>
-              {streamData?.type === 'hls' && streamData.hlsUrl ? (
+              {/*
+                Novo contrato `playback` (VideoPayload.playback):
+                - kind === 'hls'    -> HlsVideoPlayer, com captions
+                  embedded no manifest (r2_hls) ou vindas via blob URL
+                  do endpoint autenticado (cloudflare + generate).
+                - kind === 'iframe' -> iframe sandboxed (YouTube/Vimeo/external).
+                  Cloudflare ainda usa o iframe legado abaixo pra preservar
+                  o SDK + restauracao de posicao; `playback.kind` do flow
+                  cloudflare continua sendo 'iframe' mas o videoSource
+                  distingue.
+                - kind === 'none'   -> placeholder "processando".
+                Quando `playback` nao esta presente (backend antigo), cai
+                no branching legado baseado em streamData.
+              */}
+              {currentVideo.playback && currentVideo.playback.kind === 'hls' && currentVideo.playback.playbackUrl ? (
+                <HlsVideoPlayer
+                  ref={hlsPlayerRef}
+                  src={currentVideo.playback.playbackUrl}
+                  initialTime={savedWatchTime}
+                  onTimeUpdate={handleHlsTimeUpdate}
+                  onReady={handleHlsReady}
+                  onEnded={handleVideoEnded}
+                  externalCaptionsUrl={
+                    currentVideo.playback.captionsEmbedded === false
+                      ? captionsBlobUrl ?? undefined
+                      : undefined
+                  }
+                />
+              ) : currentVideo.playback && currentVideo.playback.kind === 'iframe' && currentVideo.playback.playbackUrl && currentVideo.videoSource !== 'cloudflare' ? (
+                // YouTube/Vimeo/external — iframe sandboxed, provider owns UI.
+                <iframe
+                  src={currentVideo.playback.playbackUrl.includes('?')
+                    ? `${currentVideo.playback.playbackUrl}&autoplay=0`
+                    : `${currentVideo.playback.playbackUrl}?autoplay=0`}
+                  className="w-full h-full"
+                  style={{ border: 'none' }}
+                  sandbox="allow-same-origin allow-scripts allow-presentation"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  title={currentVideo.title}
+                />
+              ) : currentVideo.playback && currentVideo.playback.kind === 'none' ? (
+                <div className="w-full h-full flex items-center justify-center bg-gray-900 text-center px-6">
+                  <div className="max-w-sm">
+                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-white text-lg font-semibold mb-2">
+                      Vídeo em processamento
+                    </h3>
+                    <p className="text-gray-300 text-sm">
+                      Este vídeo ainda não está disponível. Tente novamente em alguns minutos.
+                    </p>
+                  </div>
+                </div>
+              ) : streamData?.type === 'hls' && streamData.hlsUrl ? (
                 <HlsVideoPlayer
                   ref={hlsPlayerRef}
                   src={streamData.hlsUrl}
