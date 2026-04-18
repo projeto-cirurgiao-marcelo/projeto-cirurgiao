@@ -14,17 +14,30 @@ fechado.
 
 ### CVEs abertas em dependencias
 
-**Status:** pendente de `npm audit --production` no worktree com `node_modules`.
-O teammate optou por NAO rodar `npm install` durante o sprint (respeita guidance
-do lider — EAS builds podem resolver lockfile diferente). `npm audit fix` e
-explicitamente **desautorizado** no sprint (risco de quebrar builds EAS).
+**Status:** `npm audit --omit=dev` rodado em 2026-04-17 apos instalar devdeps
+pra P3.10. **3 CVEs em producao:**
 
-**Plano:** rodar `npm audit --production` durante o ciclo de go-live, listar
-severidades altas aqui com id do CVE + caminho de dependencia, avaliar se
-precisa `npm audit fix` ou update manual de dep especifica. Risco aceito
-durante o sprint.
+1. **CRITICAL** — `protobufjs <7.5.5` ("Arbitrary code execution in protobufjs").
+   GHSA-xq3m-2v4x-88gg. Via `firebase`. Fix disponivel (automatico).
+2. **HIGH** — `axios 1.7.9` (5 CVEs: SSRF via absolute URL, DoS sem data size
+   check, DoS via __proto__ em mergeConfig, NO_PROXY bypass SSRF, Cloud Metadata
+   Exfiltration via Header Injection). Range afetado: `>=1.0.0 <1.15.0`.
+   Nosso lock: `1.7.9`. Fix: `1.15.0` (non-breaking).
+3. **MODERATE** — `follow-redirects <=1.15.11` (leak de custom auth headers em
+   cross-domain redirects). GHSA-r4q5-vmmm-2653. Fix disponivel (automatico).
 
-**Owner:** Teammate B (mobile). **Alvo:** go-live.
+`npm audit fix` permanece **desautorizado no sprint** — risco de quebrar
+builds EAS. No ciclo de go-live, rodar `npm audit fix` em branch dedicada,
+rebuildar preview EAS em device real (Android + iOS) antes de mergear.
+
+Para `protobufjs` e `follow-redirects`: updates sao transitivos, zero
+mudanca no codigo do app.
+
+Para `axios`: pode exigir retest do apiClient (timeout comportamento pode
+mudar entre 1.7 e 1.15). Suite de smoke atual (5 tests em client-429) ja
+exercita o interceptor — cobre regressao.
+
+**Owner:** Teammate B (mobile). **Alvo:** pre go-live, branch dedicada.
 
 ---
 
@@ -133,14 +146,50 @@ sinalizar `QUEUE_ENABLED=true` em staging primeiro). Sera implementado via
 
 ## TESTES
 
-### Zero cobertura automatizada
+### ~~Zero cobertura automatizada~~ PARCIALMENTE RESOLVIDO
 
-Nenhum `jest`, `jest-expo`, `@testing-library/react-native` instalados. Zero
-tests em `app/` ou `src/`.
+**Status:** PARCIALMENTE RESOLVIDO em commits `fb2babe` (setup) + `97bda40`
+(batch 1 — 5 suites, 20 tests) + commit subsequente (batch 2 — 4 suites,
+10 tests).
 
-**Plano:** task P3.10. Smoke tests minimos (5-8 testes) cobrindo login,
-catalogo, VideoPlayer HLS mock, ChatScreen mock, gamification render.
-**Alvo:** este sprint, stretch.
+**Suite atual: 9 suites, 30 tests, ~5-10s sem coverage.**
+- `__tests__/hooks/useNetworkStatus.test.ts` (5 tests) — debounce 500ms.
+- `__tests__/services/videos.service.test.ts` (4 tests) — contrato playback.
+- `__tests__/services/client-429.test.ts` (5 tests) — handler 429 + toast.
+- `__tests__/components/OfflineBanner.test.tsx` (2 tests).
+- `__tests__/lib/logger.test.ts` (4 tests) — dev-gate.
+- `__tests__/auth/login.test.tsx` (3 tests) — render + validacao vazia.
+- `__tests__/courses/catalog.test.tsx` (2 tests).
+- `__tests__/video/VideoPlayer.test.tsx` (2 tests).
+- `__tests__/gamification/GamificationScreen.test.tsx` (3 tests).
+
+**Coverage geral: 9.32% statements / 5.87% branches / 7.08% functions /
+9.58% lines.**
+
+Nos arquivos criticos cobertos:
+- `src/services/api/videos.service.ts`: **100%**.
+- `src/hooks/useNetworkStatus.ts`: **92.68%**.
+- `src/lib/logger.ts`: **77.77%**.
+- `app/courses/catalog.tsx`: **47.36%**.
+- `app/(auth)/login.tsx`: **31.57%**.
+- `src/services/api/client.ts`: **29.85%**.
+- `src/constants/colors.ts`: **100%**.
+
+**Debito remanescente:**
+- Teste de fluxo completo do Login (mockLogin nao eh invocado mesmo com
+  fireEvent.changeText + press). Zustand + handleLogin async + setState:
+  algo impede a chamada. Nao-critico (render + validacao vazia ja cobertos).
+- ChatScreen test (listado no brief mas nao implementado — chat-store
+  tem lifecycle complexo). Smoke de gamification cobre caso similar.
+- Services nao exercitados: chatbot, forum, profile, gamification,
+  summaries, quizzes, likes, materials, notes, progress, courses,
+  forum-categories. Priorizar summaries/quizzes quando #10 BullMQ polling
+  rodar — eles vao mudar shape de retorno.
+- Mock robusto de Zustand: proximo sprint, criar helper `createStoreMock`
+  que resolve o issue do Login test.
+
+**Alvo:** proximo sprint, expandir pra ~50-60% statements nas camadas
+mais tocadas.
 
 ---
 
