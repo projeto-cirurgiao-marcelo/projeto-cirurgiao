@@ -29,4 +29,28 @@ atual. Cada item deve ter: o que é, onde está, ação sugerida, impacto.
 
 ---
 
+## SECURITY — CVEs abertas (fix mandatório no go-live)
+
+- **Next.js 15.3.6 → upgrade pra 15.3.8** antes do go-live
+  - CVE-2025-66478 (CVSS 10.0, RCE não-autenticado, App Router)
+  - CVE-2025-55184 (CVSS 7.5, DoS)
+  - CVE-2025-55183 (CVSS 5.3, source code exposure Server Actions)
+  - Comando: `npm install next@15.3.8`
+
+- **React 19.2.0 → upgrade pra 19.2.1** antes do go-live
+  - CVE-2025-55182 (CVSS 10.0, RCE React Server Components)
+  - Comando: `npm install react@19.2.1 react-dom@19.2.1`
+
+- **Verificar CVE-2026-23864 em janeiro/2026** se usarmos
+  `react-server-dom-*`. Checar se patch aplicado ou upgrade pra
+  19.0.4 / 19.1.5 / 19.2.4.
+
+**Rationale do adiamento**: produção ainda sem usuários reais, zero
+dados de cliente expostos. Scanner automatizado encontra o endpoint,
+mas upside pro atacante é zero. Fix incluído no checklist obrigatório
+do go-live (`docs/DEPLOY.md §6`).
+
+---
+
 <!-- Novos débitos adicionados aqui conforme forem descobertos ao longo do sprint. -->
+
