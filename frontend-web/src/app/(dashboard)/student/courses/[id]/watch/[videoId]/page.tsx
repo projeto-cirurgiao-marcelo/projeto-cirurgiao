@@ -19,6 +19,7 @@ import { VideoSummaries } from '@/components/video-player/video-summaries';
 import { VideoChatWidget } from '@/components/chatbot/video-chat-widget';
 import { QuizCard } from '@/components/quiz/quiz-card';
 import { quizzesService, QuizStats } from '@/lib/api/quizzes.service';
+import { logger } from '@/lib/logger';
 import dynamic from 'next/dynamic';
 import type { HlsPlayerRef } from '@/components/video-player/hls-video-player';
 
@@ -89,10 +90,10 @@ export default function VideoPlayerPage() {
 
   const saveProgressOnExit = useCallback(async () => {
     const timeToSave = currentWatchTimeRef.current;
-    console.log('[Progress] saveProgressOnExit - timeToSave:', timeToSave, 'lastSaved:', lastSavedTimeRef.current);
+    logger.log('[Progress] saveProgressOnExit - timeToSave:', timeToSave, 'lastSaved:', lastSavedTimeRef.current);
     if (timeToSave > lastSavedTimeRef.current) {
       try {
-        console.log('[Progress] Salvando progresso final:', timeToSave);
+        logger.log('[Progress] Salvando progresso final:', timeToSave);
         await progressService.saveProgress({
           videoId,
           watchTime: Math.floor(timeToSave),
@@ -100,9 +101,9 @@ export default function VideoPlayerPage() {
           videoDuration: playerDurationRef.current > 0 ? Math.floor(playerDurationRef.current) : undefined,
         });
         lastSavedTimeRef.current = timeToSave;
-        console.log('[Progress] Progresso final salvo com sucesso');
+        logger.log('[Progress] Progresso final salvo com sucesso');
       } catch (err) {
-        console.error('[Progress] Erro ao salvar progresso final:', err);
+        logger.error('[Progress] Erro ao salvar progresso final:', err);
       }
     }
   }, [videoId, isCompleted]);
@@ -137,7 +138,7 @@ export default function VideoPlayerPage() {
     const handleBeforeUnload = () => {
       const timeToSave = currentWatchTimeRef.current;
       const lastSaved = lastSavedTimeRef.current;
-      console.log('[Progress] beforeunload - timeToSave:', timeToSave, 'lastSaved:', lastSaved);
+      logger.log('[Progress] beforeunload - timeToSave:', timeToSave, 'lastSaved:', lastSaved);
       if (timeToSave > lastSaved) {
         // Usar sendBeacon para garantir que a requisição seja enviada mesmo ao fechar
         const token = useAuthStore.getState().firebaseToken;
@@ -163,11 +164,11 @@ export default function VideoPlayerPage() {
               body: data,
               keepalive: true, // Garante que a requisição sobreviva ao unload
             });
-            console.log('[Progress] Progresso enviado via fetch keepalive');
+            logger.log('[Progress] Progresso enviado via fetch keepalive');
           } catch {
             // Fallback para sendBeacon sem auth (menos confiável)
             navigator.sendBeacon(`${apiUrl}/progress`, blob);
-            console.log('[Progress] Fallback: Progresso enviado via sendBeacon');
+            logger.log('[Progress] Fallback: Progresso enviado via sendBeacon');
           }
         }
       }
@@ -175,7 +176,7 @@ export default function VideoPlayerPage() {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        console.log('[Progress] Página ficou oculta, salvando progresso...');
+        logger.log('[Progress] Página ficou oculta, salvando progresso...');
         saveProgressOnExit();
       }
     };
@@ -238,19 +239,19 @@ export default function VideoPlayerPage() {
       if (progressData) {
         setCourseProgress(progressData);
         const videoProgress = progressData.videos.find(v => v.videoId === videoId);
-        console.log('[Progress] Progresso carregado:', videoProgress);
+        logger.log('[Progress] Progresso carregado:', videoProgress);
         if (videoProgress) {
-          console.log('[Progress] watchTime do servidor:', videoProgress.watchTime);
+          logger.log('[Progress] watchTime do servidor:', videoProgress.watchTime);
           setCurrentWatchTime(videoProgress.watchTime);
           setSavedWatchTime(videoProgress.watchTime); // Salva para restaurar posição
           lastSavedTimeRef.current = videoProgress.watchTime;
           setIsCompleted(videoProgress.completed);
           hasRestoredPosition.current = false; // Reset flag para restaurar posição
         } else {
-          console.log('[Progress] Nenhum progresso encontrado para este vídeo');
+          logger.log('[Progress] Nenhum progresso encontrado para este vídeo');
         }
       } else {
-        console.log('[Progress] Nenhum progresso do curso encontrado');
+        logger.log('[Progress] Nenhum progresso do curso encontrado');
       }
 
       setCourse(courseData);
@@ -258,7 +259,7 @@ export default function VideoPlayerPage() {
       setStreamData(streamInfo);
       startAutoSave();
     } catch (err: any) {
-      console.error('Erro ao carregar dados:', err);
+      logger.error('Erro ao carregar dados:', err);
       setError(err.message || 'Erro ao carregar vídeo');
     } finally {
       setLoading(false);
@@ -270,17 +271,17 @@ export default function VideoPlayerPage() {
       clearInterval(saveIntervalRef.current);
     }
 
-    console.log('[AutoSave] Iniciando auto-save a cada 10 segundos');
+    logger.log('[AutoSave] Iniciando auto-save a cada 10 segundos');
     
     saveIntervalRef.current = setInterval(async () => {
       const currentTime = currentWatchTimeRef.current;
       const lastSaved = lastSavedTimeRef.current;
-      console.log('[AutoSave] Verificando... currentTime:', Math.floor(currentTime), 'lastSaved:', Math.floor(lastSaved));
+      logger.log('[AutoSave] Verificando... currentTime:', Math.floor(currentTime), 'lastSaved:', Math.floor(lastSaved));
       
       // Salva se assistiu pelo menos 3 segundos a mais que o último save
       if (currentTime > lastSaved + 3) {
         try {
-          console.log('[AutoSave] Salvando progresso:', Math.floor(currentTime));
+          logger.log('[AutoSave] Salvando progresso:', Math.floor(currentTime));
           await progressService.saveProgress({
             videoId,
             watchTime: Math.floor(currentTime),
@@ -288,12 +289,12 @@ export default function VideoPlayerPage() {
             videoDuration: playerDurationRef.current > 0 ? Math.floor(playerDurationRef.current) : undefined,
           });
           lastSavedTimeRef.current = currentTime;
-          console.log('[AutoSave] Progresso salvo com sucesso!');
+          logger.log('[AutoSave] Progresso salvo com sucesso!');
         } catch (err) {
-          console.error('[AutoSave] Erro ao salvar progresso:', err);
+          logger.error('[AutoSave] Erro ao salvar progresso:', err);
         }
       } else {
-        console.log('[AutoSave] Não salvou - diferença insuficiente');
+        logger.log('[AutoSave] Não salvou - diferença insuficiente');
       }
     }, 10000);
   };
@@ -312,7 +313,7 @@ export default function VideoPlayerPage() {
       const updatedProgress = await progressService.getCourseProgress(courseId);
       setCourseProgress(updatedProgress);
     } catch (err) {
-      console.error('Erro ao marcar vídeo como completo:', err);
+      logger.error('Erro ao marcar vídeo como completo:', err);
     } finally {
       setSavingProgress(false);
     }
@@ -320,11 +321,11 @@ export default function VideoPlayerPage() {
 
   // Carrega o SDK do Cloudflare Stream
   useEffect(() => {
-    console.log('[Player] Iniciando carregamento do SDK...');
+    logger.log('[Player] Iniciando carregamento do SDK...');
 
     // Verifica se o SDK já está carregado
     if (window.Stream) {
-      console.log('[Player] SDK já estava carregado');
+      logger.log('[Player] SDK já estava carregado');
       setSdkLoaded(true);
       return;
     }
@@ -332,11 +333,11 @@ export default function VideoPlayerPage() {
     // Verifica se o script já existe
     const existingScript = document.querySelector('script[src*="cloudflarestream.com/embed/sdk"]');
     if (existingScript) {
-      console.log('[Player] Script já existe, aguardando carregamento...');
+      logger.log('[Player] Script já existe, aguardando carregamento...');
       // Espera o script existente carregar
       const checkSDK = setInterval(() => {
         if (window.Stream) {
-          console.log('[Player] SDK carregado (polling)');
+          logger.log('[Player] SDK carregado (polling)');
           setSdkLoaded(true);
           clearInterval(checkSDK);
         }
@@ -345,16 +346,16 @@ export default function VideoPlayerPage() {
     }
 
     // Carrega o SDK dinamicamente
-    console.log('[Player] Carregando SDK dinamicamente...');
+    logger.log('[Player] Carregando SDK dinamicamente...');
     const script = document.createElement('script');
     script.src = 'https://embed.cloudflarestream.com/embed/sdk.latest.js';
     script.async = true;
     script.onload = () => {
-      console.log('[Player] SDK carregado com sucesso');
+      logger.log('[Player] SDK carregado com sucesso');
       setSdkLoaded(true);
     };
     script.onerror = () => {
-      console.error('[Player] Erro ao carregar SDK do Cloudflare');
+      logger.error('[Player] Erro ao carregar SDK do Cloudflare');
     };
     document.head.appendChild(script);
   }, []);
@@ -363,12 +364,12 @@ export default function VideoPlayerPage() {
   useEffect(() => {
     if (iframeMounted) return; // Já está montado
 
-    console.log('[Player] Iniciando polling para iframe. streamData:', streamData?.type, 'cloudflareId:', streamData?.cloudflareId);
+    logger.log('[Player] Iniciando polling para iframe. streamData:', streamData?.type, 'cloudflareId:', streamData?.cloudflareId);
 
     const checkIframe = setInterval(() => {
       // Tenta via ref primeiro
       if (iframeRef.current) {
-        console.log('[Player] iframe detectado via ref');
+        logger.log('[Player] iframe detectado via ref');
         setIframeMounted(true);
         clearInterval(checkIframe);
         return;
@@ -377,7 +378,7 @@ export default function VideoPlayerPage() {
       // Fallback: busca o iframe no DOM diretamente
       const iframe = document.querySelector('iframe[src*="cloudflarestream.com"]') as HTMLIFrameElement;
       if (iframe) {
-        console.log('[Player] iframe detectado via querySelector');
+        logger.log('[Player] iframe detectado via querySelector');
         // Atualiza a ref manualmente
         (iframeRef as any).current = iframe;
         setIframeMounted(true);
@@ -389,11 +390,11 @@ export default function VideoPlayerPage() {
     const timeout = setTimeout(() => {
       clearInterval(checkIframe);
       if (!iframeMounted) {
-        console.warn('[Player] Timeout aguardando iframe. Verificando DOM...');
+        logger.warn('[Player] Timeout aguardando iframe. Verificando DOM...');
         const allIframes = document.querySelectorAll('iframe');
-        console.log('[Player] Total de iframes no DOM:', allIframes.length);
+        logger.log('[Player] Total de iframes no DOM:', allIframes.length);
         allIframes.forEach((iframe, i) => {
-          console.log(`[Player] iframe[${i}]:`, iframe.src);
+          logger.log(`[Player] iframe[${i}]:`, iframe.src);
         });
       }
     }, 10000);
@@ -414,26 +415,26 @@ export default function VideoPlayerPage() {
 
   // Inicializa o player quando o iframe e SDK estiverem prontos
   useEffect(() => {
-    console.log('[Player] useEffect init - sdkLoaded:', sdkLoaded, 'iframeMounted:', iframeMounted, 'iframeRef:', !!iframeRef.current, 'Stream:', !!window.Stream);
+    logger.log('[Player] useEffect init - sdkLoaded:', sdkLoaded, 'iframeMounted:', iframeMounted, 'iframeRef:', !!iframeRef.current, 'Stream:', !!window.Stream);
 
     if (!sdkLoaded || !iframeMounted || !iframeRef.current || !window.Stream) {
-      console.log('[Player] Condições não atendidas, aguardando...');
+      logger.log('[Player] Condições não atendidas, aguardando...');
       return;
     }
 
-    console.log('[Player] Todas as condições atendidas, inicializando em 500ms...');
+    logger.log('[Player] Todas as condições atendidas, inicializando em 500ms...');
 
     // Pequeno delay para garantir que o iframe está completamente carregado
     const initTimeout = setTimeout(() => {
       try {
         if (!window.Stream || !iframeRef.current) {
-          console.log('[Player] Stream ou iframe não disponível no timeout');
+          logger.log('[Player] Stream ou iframe não disponível no timeout');
           return;
         }
-        console.log('[Player] Inicializando player com iframe:', iframeRef.current.src);
+        logger.log('[Player] Inicializando player com iframe:', iframeRef.current.src);
         const player = window.Stream(iframeRef.current);
         playerRef.current = player;
-        console.log('[Player] Player inicializado:', player);
+        logger.log('[Player] Player inicializado:', player);
 
         // Event listeners para o player
         const handleTimeUpdate = () => {
@@ -444,7 +445,7 @@ export default function VideoPlayerPage() {
             // Capturar duração se ainda não temos
             if (playerDurationRef.current === 0 && playerRef.current.duration > 0) {
               playerDurationRef.current = playerRef.current.duration;
-              console.log('[Player] Duração capturada via timeupdate:', playerRef.current.duration);
+              logger.log('[Player] Duração capturada via timeupdate:', playerRef.current.duration);
             }
 
             // Atualiza o tempo máximo assistido
@@ -456,13 +457,13 @@ export default function VideoPlayerPage() {
         };
 
         const handleLoadedData = () => {
-          console.log('[Player] loadeddata/canplay disparado, savedWatchTimeRef:', savedWatchTimeRef.current);
+          logger.log('[Player] loadeddata/canplay disparado, savedWatchTimeRef:', savedWatchTimeRef.current);
           setIsPlayerReady(true);
 
           // Capturar duração do vídeo reportada pelo player
           if (playerRef.current && playerRef.current.duration > 0) {
             playerDurationRef.current = playerRef.current.duration;
-            console.log('[Player] Duração do vídeo capturada:', playerRef.current.duration);
+            logger.log('[Player] Duração do vídeo capturada:', playerRef.current.duration);
           }
 
           // Restaura posição salva com retry - usa a ref para pegar o valor mais atual
@@ -477,20 +478,20 @@ export default function VideoPlayerPage() {
                 return;
               }
               
-              console.log(`[Player] Tentativa ${attempt} de restaurar posição para: ${timeToRestore}`);
+              logger.log(`[Player] Tentativa ${attempt} de restaurar posição para: ${timeToRestore}`);
               playerRef.current.currentTime = timeToRestore;
               
               // Verifica se funcionou após um delay
               setTimeout(() => {
                 if (playerRef.current) {
                   const currentTime = playerRef.current.currentTime;
-                  console.log(`[Player] Após restauração, currentTime: ${currentTime}`);
+                  logger.log(`[Player] Após restauração, currentTime: ${currentTime}`);
                   
                   // Se não restaurou corretamente (diferença > 2 segundos), tenta novamente
                   if (Math.abs(currentTime - timeToRestore) > 2 && attempt < 5) {
                     restorePosition(attempt + 1);
                   } else {
-                    console.log('[Player] Posição restaurada com sucesso!');
+                    logger.log('[Player] Posição restaurada com sucesso!');
                     hasCompletedInitialRestore.current = true;
                   }
                 }
@@ -509,14 +510,14 @@ export default function VideoPlayerPage() {
         };
 
         const handleError = (error: any) => {
-          console.error('[Player] Erro no player:', error);
+          logger.error('[Player] Erro no player:', error);
           // Não mostrar erro se for apenas um problema de rede temporário
         };
 
         // Handler para quando o play é iniciado - restaura posição se necessário
         let hasRestoredOnPlay = false;
         const handlePlay = () => {
-          console.log('[Player] play event disparado, currentTime:', playerRef.current?.currentTime, 'savedWatchTimeRef:', savedWatchTimeRef.current);
+          logger.log('[Player] play event disparado, currentTime:', playerRef.current?.currentTime, 'savedWatchTimeRef:', savedWatchTimeRef.current);
           
           // Usa a ref para pegar o valor mais atual
           const timeToRestore = savedWatchTimeRef.current;
@@ -527,14 +528,14 @@ export default function VideoPlayerPage() {
             
             // Se o player resetou para o início (< 3 segundos), restaura a posição
             if (currentTime < 3) {
-              console.log('[Player] Detectado reset após play, restaurando para:', timeToRestore);
+              logger.log('[Player] Detectado reset após play, restaurando para:', timeToRestore);
               hasRestoredOnPlay = true;
               
               // Pequeno delay para garantir que o play foi processado
               setTimeout(() => {
                 if (playerRef.current) {
                   playerRef.current.currentTime = timeToRestore;
-                  console.log('[Player] Posição restaurada após play para:', timeToRestore);
+                  logger.log('[Player] Posição restaurada após play para:', timeToRestore);
                 }
               }, 100);
             } else {
@@ -544,18 +545,18 @@ export default function VideoPlayerPage() {
         };
 
         // Registra os event listeners
-        console.log('[Player] Registrando event listeners...');
+        logger.log('[Player] Registrando event listeners...');
         player.addEventListener('timeupdate', handleTimeUpdate);
         player.addEventListener('loadeddata', handleLoadedData);
         player.addEventListener('ended', handleEnded);
         player.addEventListener('canplay', handleLoadedData);
         player.addEventListener('play', handlePlay);
-        console.log('[Player] Event listeners registrados');
+        logger.log('[Player] Event listeners registrados');
 
         // Se o vídeo já estiver carregado, marca como pronto
-        console.log('[Player] duration atual:', player.duration);
+        logger.log('[Player] duration atual:', player.duration);
         if (player.duration > 0) {
-          console.log('[Player] Vídeo já carregado, chamando handleLoadedData');
+          logger.log('[Player] Vídeo já carregado, chamando handleLoadedData');
           handleLoadedData();
         }
 
@@ -584,7 +585,7 @@ export default function VideoPlayerPage() {
           }
         };
       } catch (err) {
-        console.error('[Player] Erro ao inicializar player:', err);
+        logger.error('[Player] Erro ao inicializar player:', err);
       }
     }, 500);
 
@@ -606,7 +607,7 @@ export default function VideoPlayerPage() {
       const updatedProgress = await progressService.getCourseProgress(courseId);
       setCourseProgress(updatedProgress);
     } catch (err) {
-      console.error('Erro ao atualizar status:', err);
+      logger.error('Erro ao atualizar status:', err);
     } finally {
       setSavingProgress(false);
     }
@@ -678,11 +679,11 @@ export default function VideoPlayerPage() {
   // Handler para seek (pular para um tempo específico)
   const handleSeek = useCallback((time: number) => {
     if (streamData?.type === 'hls' && hlsPlayerRef.current) {
-      console.log('[HlsPlayer] Seeking to:', time);
+      logger.log('[HlsPlayer] Seeking to:', time);
       hlsPlayerRef.current.seekTo(time);
       setPlayerCurrentTime(time);
     } else if (playerRef.current) {
-      console.log('[Player] Seeking to:', time);
+      logger.log('[Player] Seeking to:', time);
       playerRef.current.currentTime = time;
       setPlayerCurrentTime(time);
     }
@@ -703,7 +704,7 @@ export default function VideoPlayerPage() {
   }, []);
 
   const handleHlsReady = useCallback((duration: number) => {
-    console.log('[HlsPlayer] Ready, duration:', duration);
+    logger.log('[HlsPlayer] Ready, duration:', duration);
     playerDurationRef.current = duration;
     setIsPlayerReady(true);
   }, []);
@@ -843,7 +844,7 @@ export default function VideoPlayerPage() {
                   allowFullScreen
                   title={currentVideo.title}
                   onLoad={() => {
-                    console.log('[Player] iframe onLoad disparado');
+                    logger.log('[Player] iframe onLoad disparado');
                     setIframeMounted(true);
                   }}
                 />

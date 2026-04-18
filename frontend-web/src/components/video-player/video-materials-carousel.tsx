@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, FileText, Link as LinkIcon, FileEdit, Extern
 import { Button } from '@/components/ui/button';
 import { materialsService, VideoMaterial, MaterialType } from '@/lib/api/materials.service';
 
+import { logger } from '@/lib/logger';
 interface VideoMaterialsCarouselProps {
   videoId: string;
 }
@@ -39,7 +40,7 @@ export function VideoMaterialsCarousel({ videoId }: VideoMaterialsCarouselProps)
       const data = await materialsService.getByVideo(videoId);
       setMaterials(data);
     } catch (err) {
-      console.error('Erro ao carregar materiais:', err);
+      logger.error('Erro ao carregar materiais:', err);
     } finally {
       setLoading(false);
     }
@@ -210,7 +211,7 @@ export function VideoMaterialsCompactList({ videoId }: VideoMaterialsCarouselPro
       const data = await materialsService.getByVideo(videoId);
       setMaterials(data);
     } catch (err) {
-      console.error('Erro ao carregar materiais:', err);
+      logger.error('Erro ao carregar materiais:', err);
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { chatbotService, ChatMessage, ChatConversation } from '@/lib/api/chatbot.service';
 
+import { logger } from '@/lib/logger';
 interface VideoChatWidgetProps {
   videoId: string;
   courseId: string;
@@ -62,7 +63,7 @@ export function VideoChatWidget({ videoId, courseId, videoTitle, onSeekToTimesta
       const sug = await chatbotService.getSuggestions({ videoId, courseId });
       setSuggestions(sug);
     } catch (err) {
-      console.error('Erro ao carregar sugestões:', err);
+      logger.error('Erro ao carregar sugestões:', err);
       setSuggestions([
         'Resuma os pontos principais desta aula',
         'Quais são os conceitos mais importantes abordados?',
@@ -118,7 +119,7 @@ export function VideoChatWidget({ videoId, courseId, videoTitle, onSeekToTimesta
         setSuggestions(response.suggestions);
       }
     } catch (err: any) {
-      console.error('Erro ao enviar mensagem:', err);
+      logger.error('Erro ao enviar mensagem:', err);
       setError('Erro ao enviar mensagem. Tente novamente.');
       setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id));
     } finally {
@@ -133,7 +134,7 @@ export function VideoChatWidget({ videoId, courseId, videoTitle, onSeekToTimesta
         prev.map(m => (m.id === messageId ? { ...m, feedback } : m))
       );
     } catch (err) {
-      console.error('Erro ao enviar feedback:', err);
+      logger.error('Erro ao enviar feedback:', err);
     }
   };
 

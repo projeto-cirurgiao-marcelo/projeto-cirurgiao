@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { likesService, LikeStatus } from '@/lib/api/likes.service';
 import { cn } from '@/lib/utils';
 
+import { logger } from '@/lib/logger';
 interface VideoLikeButtonProps {
   videoId: string;
   className?: string;
@@ -36,7 +37,7 @@ export function VideoLikeButton({
       const status = await likesService.getLikeStatus(videoId);
       setLikeStatus(status);
     } catch (error) {
-      console.error('Erro ao carregar status de likes:', error);
+      logger.error('Erro ao carregar status de likes:', error);
     }
   };
 
@@ -59,7 +60,7 @@ export function VideoLikeButton({
       const newStatus = await likesService.toggleLike(videoId);
       setLikeStatus(newStatus);
     } catch (error) {
-      console.error('Erro ao curtir/descurtir:', error);
+      logger.error('Erro ao curtir/descurtir:', error);
       // Reverter em caso de erro
       setLikeStatus(previousStatus);
     } finally {
@@ -135,7 +136,7 @@ export function VideoLikeBadge({ videoId, className }: VideoLikeBadgeProps) {
       const status = await likesService.getLikeStatus(videoId);
       setLikeStatus(status);
     } catch (error) {
-      console.error('Erro ao carregar status de likes:', error);
+      logger.error('Erro ao carregar status de likes:', error);
     }
   };
 

@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import Hls from 'hls.js';
+import { logger } from '@/lib/logger';
 
 export interface HlsPlayerRef {
   getCurrentTime: () => number;
@@ -117,7 +118,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
       // Sempre usar HLS.js quando disponivel (Chrome, Firefox, Edge)
       if (Hls.isSupported()) {
-        console.log('[HlsPlayer] Initializing HLS.js with src:', src);
+        logger.log('[HlsPlayer] Initializing HLS.js with src:', src);
 
         const hls = new Hls({
           enableWorker: true,
@@ -130,7 +131,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         hlsRef.current = hls;
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-          console.log('[HlsPlayer] Manifest parsed, levels:', data.levels.length);
+          logger.log('[HlsPlayer] Manifest parsed, levels:', data.levels.length);
           const levels: QualityLevel[] = data.levels.map((level, index) => ({
             index,
             height: level.height,
@@ -143,7 +144,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         });
 
         hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
-          console.log('[HlsPlayer] Level switched to:', data.level);
+          logger.log('[HlsPlayer] Level switched to:', data.level);
         });
 
         let recoverAttempts = 0;
@@ -152,11 +153,11 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (!data.fatal) return; // Ignorar erros nao-fatais silenciosamente
 
-          console.warn('[HlsPlayer] Fatal error:', data.type, data.details);
+          logger.warn('[HlsPlayer] Fatal error:', data.type, data.details);
 
           recoverAttempts++;
           if (recoverAttempts > MAX_RECOVER) {
-            console.error('[HlsPlayer] Max recovery attempts reached, stopping.');
+            logger.error('[HlsPlayer] Max recovery attempts reached, stopping.');
             hls.destroy();
             return;
           }
@@ -177,12 +178,12 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
       // Fallback: Native HLS (Safari/iOS apenas)
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        console.log('[HlsPlayer] Using native HLS (Safari)');
+        logger.log('[HlsPlayer] Using native HLS (Safari)');
         video.src = src;
         return;
       }
 
-      console.error('[HlsPlayer] HLS not supported in this browser');
+      logger.error('[HlsPlayer] HLS not supported in this browser');
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [src]);
 
@@ -197,18 +198,18 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
       const handleLoadedMetadata = () => {
         const duration = video.duration || 0;
-        console.log('[HlsPlayer] loadedmetadata, duration:', duration);
+        logger.log('[HlsPlayer] loadedmetadata, duration:', duration);
         onReadyRef.current?.(duration);
 
         if (initialTime > 0 && !hasRestoredPosition.current) {
           hasRestoredPosition.current = true;
-          console.log('[HlsPlayer] Restoring position to:', initialTime);
+          logger.log('[HlsPlayer] Restoring position to:', initialTime);
           video.currentTime = initialTime;
         }
       };
 
       const handleEnded = () => {
-        console.log('[HlsPlayer] Video ended');
+        logger.log('[HlsPlayer] Video ended');
         onEndedRef.current?.();
       };
 
@@ -260,7 +261,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         .then(res => {
           if (res.ok) {
             setHasSubtitles(true);
-            console.log('[HlsPlayer] Subtitles found:', subtitleUrl);
+            logger.log('[HlsPlayer] Subtitles found:', subtitleUrl);
           }
         })
         .catch(() => { /* VTT nao existe, ok */ });
