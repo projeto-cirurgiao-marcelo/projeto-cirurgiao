@@ -182,8 +182,11 @@ Knowledge/
 # Claude agent skills cache / local agents folder
 .agents/
 
-# Dev-only admin scripts (stays on disk, not in repo)
-scripts/
+# Dev-only admin scripts (stays on disk, not in repo). Use file globs, not
+# a bare `scripts/` rule, because bare dir ignores cannot be overridden
+# (`!scripts/init-db.sql` would never re-include the file).
+scripts/*
+!scripts/init-db.sql
 backend-api/scripts/*.js
 backend-api/start-proxy.bat
 mobile-app/fix_and_run.bat

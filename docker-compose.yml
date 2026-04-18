@@ -1,15 +1,21 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 15 - Banco de dados principal
+  # PostgreSQL 15 with pgvector — must match prod (pgvector v0.8.1 already
+  # active in Cloud SQL). After pulling, run `docker-compose down && up` so
+  # existing containers pick up the new image. Existing volume data is
+  # preserved.
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: projeto-cirurgiao-postgres
     environment:
       POSTGRES_DB: projeto_cirurgiao
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=pt_BR.UTF-8"
+      # pgvector/pgvector:pg15 image does not carry the pt_BR.UTF-8 locale,
+      # so we fall back to C.UTF-8. No impact on collation in practice
+      # because Prisma does not rely on a locale-specific collation.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
     ports:
       - "5433:5432"
     volumes:
