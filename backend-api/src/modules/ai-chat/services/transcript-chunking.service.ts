@@ -166,10 +166,12 @@ export class TranscriptChunkingService {
   }
 
   /**
-   * Marca chunks como indexados
+   * Marca chunks como indexados.
+   * `embeddingId` was dropped when pgvector landed — the real vector now
+   * lives in the `embedding` column. Callers only need (videoId, chunkIndex).
    */
   async markChunksAsIndexed(
-    chunks: { videoId: string; chunkIndex: number; embeddingId: string }[],
+    chunks: { videoId: string; chunkIndex: number }[],
   ): Promise<void> {
     for (const chunk of chunks) {
       await this.prisma.transcriptEmbedding.update({
@@ -181,7 +183,6 @@ export class TranscriptChunkingService {
         },
         data: {
           isIndexed: true,
-          embeddingId: chunk.embeddingId,
         },
       });
     }

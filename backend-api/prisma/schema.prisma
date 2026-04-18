@@ -119,6 +119,7 @@ model Course {
 
   @@index([instructorId])
   @@index([slug])
+  @@index([isPublished])
   @@map("courses")
 }
 
@@ -338,7 +339,7 @@ model ForumTopic {
   lastActivityAt DateTime @default(now())
 
   author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  category ForumCategory @relation(fields: [categoryId], references: [id])
+  category ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   course   Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
   video    Video?        @relation(fields: [videoId], references: [id], onDelete: SetNull)
   replies  ForumReply[]
@@ -621,7 +622,6 @@ model TranscriptEmbedding {
   startTime   Float                        // Timestamp inicial em segundos
   endTime     Float                        // Timestamp final em segundos
   embedding   Unsupported("vector(768)")?  // pgvector — text-embedding-004 (768 dims)
-  embeddingId String?                      // Legacy marker — dropped in follow-up task-11 migration.
   isIndexed   Boolean                      @default(false)
   createdAt   DateTime                     @default(now())
   updatedAt   DateTime                     @updatedAt
