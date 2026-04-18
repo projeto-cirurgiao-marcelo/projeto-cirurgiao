@@ -228,7 +228,7 @@ export class VideosController {
 
   @Get('modules/:moduleId/videos')
   findAll(@Param('moduleId') moduleId: string) {
-    return this.videosService.findAll(moduleId);
+    return this.videosService.findAllWithPlayback(moduleId);
   }
 
   @Get('modules/:moduleId/videos/next-order')
@@ -254,7 +254,7 @@ export class VideosController {
 
   @Get('videos/:id')
   findOne(@Param('id') id: string) {
-    return this.videosService.findOne(id);
+    return this.videosService.findOneWithPlayback(id);
   }
 
   @Patch('videos/:id')

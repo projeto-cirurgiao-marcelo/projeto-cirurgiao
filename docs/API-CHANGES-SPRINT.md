@@ -63,3 +63,53 @@ user.
 3. The IP-based cap is the last line of defence against unauth abuse —
    if you see `429` from an endpoint that has no user context, it's
    likely that one.
+
+---
+
+## Video payload com playback URLs
+
+**Effective:** same branch / release TBD.
+
+Every endpoint that returns a `Video` row now attaches a `playback`
+object derived from `videoSource`, so the player does not need to
+branch on the source field. The base Video shape is unchanged; the
+new field is additive.
+
+**Affected endpoints:**
+
+- `GET /api/v1/videos/:id` — returns `Video & { playback }`
+- `GET /api/v1/modules/:moduleId/videos` — returns `Array<Video & { playback }>`
+- `POST /api/v1/modules/:moduleId/videos/from-r2-hls` — returns `Video & { playback }`
+
+**Shape of `playback`:**
+
+```ts
+interface VideoPlaybackUrls {
+  /** Where the player loads the stream. Null if the Video is not yet ready. */
+  playbackUrl: string | null;
+  /** Separate captions endpoint, when captions are NOT embedded in the stream. */
+  captionsUrl?: string;
+  /** Thumbnail override; same as video.thumbnailUrl when set. */
+  poster?: string;
+}
+```
+
+**Per-source rules:**
+
+| `videoSource` | `playbackUrl` | `captionsUrl` | Notes |
+| --- | --- | --- | --- |
+| `cloudflare` | `video.cloudflareUrl` | `/api/v1/captions/:videoId/pt-BR` (only when `cloudflareId` is set) | Backend proxies the VTT to keep auth server-side. |
+| `youtube` | `video.externalUrl` | omitted | Player renders an iframe; YouTube serves its own captions inside. |
+| `vimeo` | `video.externalUrl` | omitted | Same as YouTube. |
+| `external` | `video.externalUrl` | omitted | Generic iframe. |
+| `r2_hls` | `video.hlsUrl` | omitted | Legendas vêm no SUBTITLES group do master playlist — player consome direto. |
+
+**Client guidance:**
+
+- Stop reading `cloudflareUrl` / `hlsUrl` / `externalUrl` directly; use
+  `playback.playbackUrl` and switch rendering based on `videoSource`
+  (iframe for youtube/vimeo/external, HLS for cloudflare/r2_hls).
+- Treat `playback.captionsUrl === undefined` as "no separate captions
+  resource" — for `r2_hls` the player should still surface track
+  switching from the manifest's SUBTITLES group. Not a bug.
+

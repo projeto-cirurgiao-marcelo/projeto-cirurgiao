@@ -23,6 +23,28 @@ export interface UploadStatusResponse {
   readyToStream: boolean;
 }
 
+/**
+ * Frontend-facing playback URLs derived from a Video row. Kept flat so
+ * player code can pick what it needs without inspecting `videoSource`.
+ *
+ * - `playbackUrl`: where the player should load the stream.
+ *   - cloudflare: Cloudflare Stream HLS manifest URL
+ *   - r2_hls: R2 master playlist (.m3u8)
+ *   - youtube/vimeo/external: the raw embed URL (player renders an iframe)
+ * - `captionsUrl`: optional. Present only when captions are served from a
+ *   separate URL (Cloudflare Stream). For r2_hls the SUBTITLES group is
+ *   embedded in the master playlist, so this stays undefined.
+ * - `poster`: optional thumbnail override.
+ */
+export interface VideoPlaybackUrls {
+  playbackUrl: string | null;
+  captionsUrl?: string;
+  poster?: string;
+}
+
+/** Video payload returned by controller endpoints — base Video + playback. */
+export type VideoWithPlayback = Video & { playback: VideoPlaybackUrls };
+
 @Injectable()
 export class VideosService {
   private readonly logger = new Logger(VideosService.name);
@@ -32,6 +54,58 @@ export class VideosService {
     private cloudflareStream: CloudflareStreamService,
     private cloudflareR2: CloudflareR2Service,
   ) {}
+
+  /**
+   * Derive the playback URLs the frontend should use. Centralised here so
+   * controllers and services never have to branch on `videoSource` manually.
+   */
+  buildPlaybackUrls(video: Video): VideoPlaybackUrls {
+    const source = (video.videoSource ?? 'cloudflare') as string;
+    const poster = video.thumbnailUrl ?? undefined;
+
+    switch (source) {
+      case 'r2_hls': {
+        return {
+          playbackUrl: video.hlsUrl ?? null,
+          // Captions live in the master playlist's SUBTITLES group — the
+          // player consumes them directly; no separate URL is exposed.
+          captionsUrl: undefined,
+          poster,
+        };
+      }
+      case 'youtube':
+      case 'vimeo':
+      case 'external': {
+        return {
+          playbackUrl: video.externalUrl ?? null,
+          captionsUrl: undefined,
+          poster,
+        };
+      }
+      case 'cloudflare':
+      default: {
+        // Captions here are served by CloudflareStreamService — a separate
+        // captions endpoint (/captions/:videoId/:language) returns the VTT,
+        // so we point the player at that endpoint rather than a raw
+        // Cloudflare URL (keeps the auth boundary at the backend).
+        const captionsUrl = video.cloudflareId
+          ? `/api/v1/captions/${video.id}/pt-BR`
+          : undefined;
+        return {
+          playbackUrl: video.cloudflareUrl ?? null,
+          captionsUrl,
+          poster,
+        };
+      }
+    }
+  }
+
+  /**
+   * Attach playback URLs to a Video row.
+   */
+  withPlayback(video: Video): VideoWithPlayback {
+    return { ...video, playback: this.buildPlaybackUrls(video) };
+  }
 
   /**
    * Criar um novo vídeo
@@ -84,6 +158,12 @@ export class VideosService {
           uploadProgress: createVideoDto.uploadProgress || 0,
           uploadError: createVideoDto.uploadError,
           tempFilePath: createVideoDto.tempFilePath,
+          // New fields — explicit so TypeScript keeps us honest when schema.prisma
+          // adds more. Default videoSource stays 'cloudflare' (DB default) unless
+          // the caller provides one (e.g. r2_hls from the dedicated endpoint).
+          hlsUrl: createVideoDto.hlsUrl,
+          externalUrl: createVideoDto.externalUrl,
+          videoSource: createVideoDto.videoSource,
           module: {
             connect: { id: moduleId },
           },
@@ -723,6 +803,15 @@ export class VideosService {
   }
 
   /**
+   * Same as findAll but attaches playback URLs. Preferred by controllers
+   * and any caller that ships Video objects to the frontend.
+   */
+  async findAllWithPlayback(moduleId: string): Promise<VideoWithPlayback[]> {
+    const videos = await this.findAll(moduleId);
+    return videos.map((v) => this.withPlayback(v));
+  }
+
+  /**
    * Buscar vídeo por ID
    */
   async findOne(id: string): Promise<Video> {
@@ -772,6 +861,14 @@ export class VideosService {
     }
 
     return video;
+  }
+
+  /**
+   * Same as findOne but attaches playback URLs. Preferred by controllers.
+   */
+  async findOneWithPlayback(id: string): Promise<VideoWithPlayback> {
+    const video = await this.findOne(id);
+    return this.withPlayback(video);
   }
 
   /**
