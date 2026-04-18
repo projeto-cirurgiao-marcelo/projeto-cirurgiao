@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
+import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
 import { AiSummariesService } from './ai-summaries.service';
 import { GenerateSummaryDto } from './dto/generate-summary.dto';
 import { UpdateSummaryDto } from './dto/update-summary.dto';
@@ -32,6 +33,7 @@ export class AiSummariesController {
   constructor(private readonly aiSummariesService: AiSummariesService) {}
 
   @Post('generate')
+  @UseGuards(UserThrottlerGuard)
   @ApiOperation({ summary: 'Gerar resumo com IA' })
   @ApiParam({ name: 'videoId', description: 'ID do vídeo' })
   @ApiResponse({

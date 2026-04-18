@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { USER_THROTTLE_TRACKER } from './shared/throttler/user-throttler.guard';
+import { UserThrottlerModule } from './shared/throttler/user-throttler.module';
 import { PrismaModule } from './shared/prisma/prisma.module';
 import { TokenCleanupService } from './shared/tasks/token-cleanup.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -32,18 +34,34 @@ import { AiLibraryModule } from './modules/ai-library/ai-library.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000,   // 1 segundo
-        limit: 20,   // máx 20 requests/segundo por IP
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const aiUserRpm = parseInt(
+          configService.get<string>('AI_USER_THROTTLE_RPM') ?? '30',
+          10,
+        );
+        return [
+          {
+            name: 'short',
+            ttl: 1000, // 1 segundo
+            limit: 20, // máx 20 requests/segundo por IP
+          },
+          {
+            name: 'medium',
+            ttl: 60_000, // 1 minuto
+            limit: 100, // máx 100 requests/minuto por IP
+          },
+          {
+            name: USER_THROTTLE_TRACKER, // 'ai-user'
+            ttl: 60_000,
+            limit: Number.isFinite(aiUserRpm) && aiUserRpm > 0 ? aiUserRpm : 30,
+          },
+        ];
       },
-      {
-        name: 'medium',
-        ttl: 60000,  // 1 minuto
-        limit: 100,  // máx 100 requests/minuto por IP
-      },
-    ]),
+    }),
+    UserThrottlerModule,
     PrismaModule,
     FirebaseModule, // Firebase Admin SDK
     AuthModule,

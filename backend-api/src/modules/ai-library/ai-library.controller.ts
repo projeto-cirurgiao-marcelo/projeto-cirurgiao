@@ -21,6 +21,7 @@ import {
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
 import { Role } from '@prisma/client';
 
 @Controller('library')
@@ -77,7 +78,7 @@ export class AiLibraryController {
   // ============================================
 
   @Post('chat/conversations/:id/messages')
-  @UseGuards(FirebaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard, UserThrottlerGuard)
   async sendMessage(
     @Request() req: any,
     @Param('id') conversationId: string,
@@ -121,7 +122,7 @@ export class AiLibraryController {
   // ============================================
 
   @Post('admin/documents/ingest')
-  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @UseGuards(FirebaseAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(Role.ADMIN)
   async ingestDocument(@Body() dto: IngestDocumentDto) {
     return this.aiLibraryService.ingestDocument(dto);

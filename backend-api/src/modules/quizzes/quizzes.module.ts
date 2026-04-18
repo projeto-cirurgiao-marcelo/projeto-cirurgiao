@@ -9,6 +9,7 @@ import { QuizzesService } from './quizzes.service';
 import { QuizGeneratorService } from './quiz-generator.service';
 import { QuizAttemptsService } from './quiz-attempts.service';
 import { GamificationModule } from '../gamification/gamification.module';
+import { UserThrottlerModule } from '../../shared/throttler/user-throttler.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { GamificationModule } from '../gamification/gamification.module';
     AiSummariesModule,
     VttModule,
     GamificationModule,
+    UserThrottlerModule,
   ],
   controllers: [QuizzesController],
   providers: [QuizzesService, QuizGeneratorService, QuizAttemptsService],

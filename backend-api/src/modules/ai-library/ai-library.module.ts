@@ -8,9 +8,10 @@ import { LibraryChatService } from './services/library-chat.service';
 import { TokenQuotaService } from './services/token-quota.service';
 import { PrismaModule } from '../../shared/prisma/prisma.module';
 import { FirebaseModule } from '../firebase/firebase.module';
+import { UserThrottlerModule } from '../../shared/throttler/user-throttler.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, FirebaseModule],
+  imports: [PrismaModule, ConfigModule, FirebaseModule, UserThrottlerModule],
   controllers: [AiLibraryController],
   providers: [
     AiLibraryService,

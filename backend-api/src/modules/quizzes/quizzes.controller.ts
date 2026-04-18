@@ -15,6 +15,7 @@ import { QuizAttemptsService } from './quiz-attempts.service';
 import { GenerateQuizDto } from './dto/generate-quiz.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
+import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
 
 @Controller()
 @UseGuards(FirebaseAuthGuard)
@@ -33,6 +34,7 @@ export class QuizzesController {
    * POST /api/v1/videos/:videoId/quizzes/generate
    */
   @Post('videos/:videoId/quizzes/generate')
+  @UseGuards(UserThrottlerGuard)
   async generateQuiz(
     @Param('videoId') videoId: string,
     @Body() dto: GenerateQuizDto,

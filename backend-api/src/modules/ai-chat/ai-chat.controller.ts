@@ -16,6 +16,7 @@ import { SendMessageDto, CreateConversationDto, MessageFeedbackDto } from './dto
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
 import { Role } from '@prisma/client';
 
 @Controller('chat')
@@ -87,7 +88,7 @@ export class AiChatController {
    * Enviar mensagem e obter resposta
    */
   @Post('conversations/:id/messages')
-  @UseGuards(FirebaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard, UserThrottlerGuard)
   async sendMessage(
     @Request() req: any,
     @Param('id') conversationId: string,
