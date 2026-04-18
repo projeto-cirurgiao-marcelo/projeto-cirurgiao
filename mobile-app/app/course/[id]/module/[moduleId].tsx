@@ -29,6 +29,7 @@ import { progressService } from '../../../../src/services/api/progress.service';
 import { Module, Video } from '../../../../src/types';
 import { VideoItemSkeleton } from '../../../../src/components/ui/Skeleton';
 import { logger } from '../../../../src/lib/logger';
+import { useNetworkStatus } from '../../../../src/hooks/useNetworkStatus';
 
 export default function ModuleVideosScreen() {
   const params = useLocalSearchParams();
@@ -78,9 +79,19 @@ export default function ModuleVideosScreen() {
     }
   }, [courseId, moduleId]);
 
+  const { onlineSince } = useNetworkStatus();
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Re-fetch ao reconectar (debounce 500ms no hook).
+  useEffect(() => {
+    if (onlineSince !== null) {
+      logger.log('[ModuleScreen] Rede voltou, refazendo fetch');
+      loadData();
+    }
+  }, [onlineSince, loadData]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

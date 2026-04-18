@@ -20,6 +20,7 @@ import { coursesService } from '../../../../src/services/api/courses.service';
 import { Video, Module } from '../../../../src/types/course.types';
 import { Colors as colors } from '../../../../src/constants/colors';
 import { logger } from '../../../../src/lib/logger';
+import { useNetworkStatus } from '../../../../src/hooks/useNetworkStatus';
 import { Ionicons } from '@expo/vector-icons';
 
 const TAB_ROUTES = [
@@ -72,6 +73,21 @@ export default function WatchVideoScreen() {
   useEffect(() => {
     loadVideoData();
   }, [videoId]);
+
+  const { onlineSince } = useNetworkStatus();
+
+  // Reentrada de rede: se o load falhou por conexao (video == null) OU o
+  // usuario viu erro, tenta de novo quando a rede voltar. Se o video ja
+  // carregou, o stream HLS retoma por conta propria (expo-video buffer).
+  useEffect(() => {
+    if (onlineSince !== null && (!video || error)) {
+      logger.log('[WatchVideo] Rede voltou, refazendo fetch do video');
+      loadVideoData();
+    }
+    // Nao dependemos de loadVideoData (declarada inline sem useCallback),
+    // apenas de onlineSince. Evita loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineSince]);
 
   const loadVideoData = async () => {
     try {

@@ -31,6 +31,7 @@ import { progressService } from '../../../src/services/api/progress.service';
 import { Course, Module, CourseProgress } from '../../../src/types';
 import { CourseDetailSkeleton } from '../../../src/components/ui/Skeleton';
 import { logger } from '../../../src/lib/logger';
+import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -62,9 +63,19 @@ export default function CourseDetailScreen() {
     }
   }, [id]);
 
+  const { onlineSince } = useNetworkStatus();
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Re-fetch ao reconectar (debounce 500ms no hook).
+  useEffect(() => {
+    if (onlineSince !== null) {
+      logger.log('[CourseDetail] Rede voltou, refazendo fetch');
+      loadData();
+    }
+  }, [onlineSince, loadData]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

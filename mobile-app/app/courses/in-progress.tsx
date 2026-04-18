@@ -16,6 +16,7 @@ import useAuthStore from '../../src/stores/auth-store';
 import { useGamificationStore } from '../../src/stores/gamification-store';
 import { progressService } from '../../src/services/api/progress.service';
 import { logger } from '../../src/lib/logger';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { InProgressCourseCard } from '../../src/components/course/InProgressCourseCard';
 import {
   Colors,
@@ -75,9 +76,19 @@ export default function InProgressScreen() {
     }
   }, []);
 
+  const { onlineSince } = useNetworkStatus();
+
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
+
+  // Re-fetch ao reconectar (debounce 500ms no hook).
+  useEffect(() => {
+    if (onlineSince !== null) {
+      logger.log('[InProgress] Rede voltou, refazendo fetch');
+      loadCourses();
+    }
+  }, [onlineSince, loadCourses]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { progressService } from '../../src/services/api/progress.service';
 import { coursesService } from '../../src/services/api/courses.service';
 import { logger } from '../../src/lib/logger';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ProgressCardSkeleton, CourseCardSkeleton } from '../../src/components/ui/Skeleton';
 import { EnrolledCourse, Course } from '../../src/types';
 import { CourseCardHome } from '../../src/components/course/CourseCardHome';
@@ -78,11 +79,21 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const { onlineSince } = useNetworkStatus();
+
   useEffect(() => {
     loadData();
     startPolling();
     return () => stopPolling();
   }, [loadData]);
+
+  // Re-fetch ao reconectar (debounced em 500ms dentro do hook).
+  useEffect(() => {
+    if (onlineSince !== null) {
+      logger.log('[HomeTab] Rede voltou, refazendo fetch');
+      loadData();
+    }
+  }, [onlineSince, loadData]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

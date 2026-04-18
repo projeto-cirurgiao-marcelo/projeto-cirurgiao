@@ -2,7 +2,7 @@
  * Tela do Fórum - Listagem de categorias com dados da API
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ForumCategory } from '../../src/types';
 import { forumCategoriesService } from '../../src/services/api/forum-categories.service';
 import { logger } from '../../src/lib/logger';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import CategoryCard from '../../src/components/forum/CategoryCard';
 import { ForumCategorySkeleton } from '../../src/components/ui/Skeleton';
 import {
@@ -48,12 +49,22 @@ export default function ForumScreen() {
     }
   };
 
+  const { onlineSince } = useNetworkStatus();
+
   // Recarrega ao focar na tela
   useFocusEffect(
     useCallback(() => {
       loadCategories();
     }, [])
   );
+
+  // Re-fetch ao reconectar (debounce 500ms no hook).
+  useEffect(() => {
+    if (onlineSince !== null) {
+      logger.log('[ForumTab] Rede voltou, refazendo fetch');
+      loadCategories(false);
+    }
+  }, [onlineSince]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);

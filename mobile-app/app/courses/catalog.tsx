@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { coursesService } from '../../src/services/api/courses.service';
 import { progressService } from '../../src/services/api/progress.service';
 import { logger } from '../../src/lib/logger';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { CatalogCourseCard } from '../../src/components/course/CatalogCourseCard';
 import { Colors as colors } from '../../src/constants/colors';
 import type { Course } from '../../src/types/course.types';
@@ -90,9 +91,19 @@ export default function CatalogScreen() {
     }
   }, []);
 
+  const { onlineSince } = useNetworkStatus();
+
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
+
+  // Re-fetch ao reconectar (debounce 500ms no hook).
+  useEffect(() => {
+    if (onlineSince !== null) {
+      logger.log('[Catalog] Rede voltou, refazendo fetch');
+      loadCourses();
+    }
+  }, [onlineSince, loadCourses]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
