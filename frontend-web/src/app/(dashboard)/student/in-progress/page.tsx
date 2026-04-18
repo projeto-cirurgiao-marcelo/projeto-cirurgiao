@@ -8,6 +8,8 @@ import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.
 import { CourseCard } from '@/components/student/course-card';
 import { Loader2, PlayCircle, TrendingUp } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Página de Cursos em Progresso
  * Mostra apenas cursos que o aluno começou mas não terminou (0% < progresso < 100%)
@@ -70,7 +72,7 @@ export default function InProgressPage() {
 
       setCourses(inProgress);
     } catch (error) {
-      console.error('Erro ao carregar cursos em progresso:', error);
+      logger.error('Erro ao carregar cursos em progresso:', error);
     } finally {
       setLoading(false);
     }

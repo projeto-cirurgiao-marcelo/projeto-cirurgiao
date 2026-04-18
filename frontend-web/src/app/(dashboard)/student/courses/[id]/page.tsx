@@ -12,6 +12,7 @@ import { ArrowLeft, Play, CheckCircle2, BookOpen, Loader2 } from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
 import { ModuleCard } from '@/components/student/module-card';
 
+import { logger } from '@/lib/logger';
 export default function CourseDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -60,7 +61,7 @@ export default function CourseDetailPage() {
       setError(null);
     } catch (err: any) {
       setError('Erro ao carregar curso');
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }

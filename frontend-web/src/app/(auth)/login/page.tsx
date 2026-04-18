@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
+import { logger } from '@/lib/logger';
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
@@ -38,14 +39,14 @@ export default function LoginPage() {
       // Pegar o usuário do store após o login
       const currentUser = useAuthStore.getState().user;
       
-      console.log('✅ [Login] Usuário logado:', currentUser);
+      logger.log('✅ [Login] Usuário logado:', currentUser);
       
       // Redirecionar baseado no tipo de usuário
       if (currentUser?.role === 'ADMIN' || currentUser?.role === 'INSTRUCTOR') {
-        console.log('🔄 [Login] Redirecionando ADMIN para /admin');
+        logger.log('🔄 [Login] Redirecionando ADMIN para /admin');
         router.push('/admin');
       } else {
-        console.log('🔄 [Login] Redirecionando STUDENT para /student/my-courses');
+        logger.log('🔄 [Login] Redirecionando STUDENT para /student/my-courses');
         router.push('/student/my-courses');
       }
     } catch (err: any) {

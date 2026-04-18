@@ -11,6 +11,8 @@ import { Loader2, Plus, ArrowLeft, MessageSquare, Search, SlidersHorizontal } fr
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/shared/page-transition';
 import Link from 'next/link';
 
+import { logger } from '@/lib/logger';
+
 type SortOption = 'recent' | 'popular' | 'unanswered';
 
 export default function CategoryTopicsPage() {
@@ -42,7 +44,7 @@ export default function CategoryTopicsPage() {
       setCategory(categoryData);
       setTopics(topicsResponse.data);
     } catch (err) {
-      console.error('Erro ao carregar dados:', err);
+      logger.error('Erro ao carregar dados:', err);
       setError('Erro ao carregar tópicos da categoria');
     } finally {
       setLoading(false);

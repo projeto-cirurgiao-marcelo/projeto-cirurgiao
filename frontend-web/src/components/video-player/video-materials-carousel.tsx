@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { materialsService, VideoMaterial, MaterialType } from '@/lib/api/materials.service';
 
 import { logger } from '@/lib/logger';
+
 interface VideoMaterialsCarouselProps {
   videoId: string;
 }

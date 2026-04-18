@@ -7,6 +7,7 @@ import { likesService, LikeStatus } from '@/lib/api/likes.service';
 import { cn } from '@/lib/utils';
 
 import { logger } from '@/lib/logger';
+
 interface VideoLikeButtonProps {
   videoId: string;
   className?: string;

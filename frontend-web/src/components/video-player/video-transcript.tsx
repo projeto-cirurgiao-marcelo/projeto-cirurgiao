@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { transcriptsService, Transcript, TranscriptSegment } from '@/lib/api/transcripts.service';
 
 import { logger } from '@/lib/logger';
+
 interface VideoTranscriptProps {
   videoId: string;
   currentTime: number;

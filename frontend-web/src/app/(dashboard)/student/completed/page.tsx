@@ -8,6 +8,8 @@ import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.
 import { CourseCard } from '@/components/student/course-card';
 import { Loader2, Award, Trophy, Calendar } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Página de Cursos Concluídos
  * Mostra apenas cursos 100% completos
@@ -70,7 +72,7 @@ export default function CompletedPage() {
 
       setCourses(completed);
     } catch (error) {
-      console.error('Erro ao carregar cursos concluídos:', error);
+      logger.error('Erro ao carregar cursos concluídos:', error);
     } finally {
       setLoading(false);
     }

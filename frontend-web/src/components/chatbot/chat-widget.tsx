@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { chatbotService, ChatMessage, ChatConversation, ChatSource } from '@/lib/api/chatbot.service';
 
 import { logger } from '@/lib/logger';
+
 interface ChatWidgetProps {
   videoId?: string;
   courseId?: string;

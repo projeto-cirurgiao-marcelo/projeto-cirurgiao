@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 import { logger } from '@/lib/logger';
+
 interface QuizCardProps {
   quiz?: Quiz;
   stats?: QuizStats;

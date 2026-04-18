@@ -7,6 +7,7 @@ import { forumService } from '@/lib/api/forum.service';
 import { toast } from 'sonner';
 
 import { logger } from '@/lib/logger';
+
 interface VoteButtonsProps {
   type: 'topic' | 'reply';
   id: string;

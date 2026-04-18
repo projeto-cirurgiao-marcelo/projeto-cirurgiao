@@ -8,6 +8,7 @@ import { materialsService, VideoMaterial, MaterialType } from '@/lib/api/materia
 import { cn } from '@/lib/utils';
 
 import { logger } from '@/lib/logger';
+
 interface VideoMaterialsProps {
   videoId: string;
   className?: string;

@@ -12,6 +12,8 @@ import { BookOpen, LogOut, Loader2, ChevronLeft, ChevronRight } from 'lucide-rea
 import { EnrolledCourse } from '@/lib/types/student.types';
 import { Course } from '@/lib/types/course.types';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Dashboard do Aluno - Catálogo de Cursos (Dark Mode)
  */
@@ -101,7 +103,7 @@ export default function MyCoursesPage() {
       setEnrolledCourses(enrolled);
       setAvailableCourses(available);
     } catch (error) {
-      console.error('Erro ao carregar cursos:', error);
+      logger.error('Erro ao carregar cursos:', error);
     } finally {
       setLoading(false);
     }

@@ -56,6 +56,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 
+import { logger } from '@/lib/logger';
+
 const REPORT_REASONS: { value: ReportReason; label: string }[] = [
   { value: 'SPAM', label: 'Spam' },
   { value: 'INAPPROPRIATE', label: 'Conteúdo inadequado' },
@@ -109,7 +111,7 @@ export default function TopicDetailPage() {
       const data = await forumService.getTopicById(topicId);
       setTopic(data);
     } catch (err) {
-      console.error('Erro ao carregar tópico:', err);
+      logger.error('Erro ao carregar tópico:', err);
       setError('Erro ao carregar tópico');
     } finally {
       setLoading(false);
@@ -132,7 +134,7 @@ export default function TopicDetailPage() {
       setReplyContent('');
       await loadTopic();
     } catch (err) {
-      console.error('Erro ao enviar resposta:', err);
+      logger.error('Erro ao enviar resposta:', err);
       toast({ title: 'Erro', description: 'Erro ao enviar resposta', variant: 'destructive' });
     } finally {
       setSubmitting(false);
@@ -155,7 +157,7 @@ export default function TopicDetailPage() {
       setEditReplyContent('');
       await loadTopic();
     } catch (err) {
-      console.error('Erro ao editar resposta:', err);
+      logger.error('Erro ao editar resposta:', err);
       toast({ title: 'Erro', description: 'Erro ao atualizar resposta', variant: 'destructive' });
     } finally {
       setSavingReply(false);
@@ -170,7 +172,7 @@ export default function TopicDetailPage() {
       toast({ title: 'Sucesso', description: 'Resposta deletada' });
       await loadTopic();
     } catch (err) {
-      console.error('Erro ao deletar resposta:', err);
+      logger.error('Erro ao deletar resposta:', err);
       toast({ title: 'Erro', description: 'Erro ao deletar resposta', variant: 'destructive' });
     }
   };
@@ -197,7 +199,7 @@ export default function TopicDetailPage() {
       setIsEditingTopic(false);
       await loadTopic();
     } catch (err) {
-      console.error('Erro ao editar tópico:', err);
+      logger.error('Erro ao editar tópico:', err);
       toast({ title: 'Erro', description: 'Erro ao atualizar tópico', variant: 'destructive' });
     } finally {
       setSavingTopic(false);
@@ -212,7 +214,7 @@ export default function TopicDetailPage() {
       toast({ title: 'Sucesso', description: 'Tópico deletado' });
       router.push('/student/forum');
     } catch (err) {
-      console.error('Erro ao deletar tópico:', err);
+      logger.error('Erro ao deletar tópico:', err);
       toast({ title: 'Erro', description: 'Erro ao deletar tópico', variant: 'destructive' });
     }
   };
@@ -272,7 +274,7 @@ export default function TopicDetailPage() {
       setReportReason('');
       setReportDescription('');
     } catch (err: any) {
-      console.error('Erro ao enviar denúncia:', err);
+      logger.error('Erro ao enviar denúncia:', err);
       const message = err?.response?.data?.message || 'Erro ao enviar denúncia';
       toast({ title: 'Erro', description: message, variant: 'destructive' });
     } finally {

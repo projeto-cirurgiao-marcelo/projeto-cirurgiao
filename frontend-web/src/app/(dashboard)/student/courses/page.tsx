@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Course } from '@/lib/types/course.types';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Página de Catálogo de Cursos
  * Mostra todos os cursos disponíveis com busca e filtros
@@ -100,7 +102,7 @@ export default function CoursesPage() {
 
       setAllCourses(coursesWithEnrollment);
     } catch (error) {
-      console.error('Erro ao carregar cursos:', error);
+      logger.error('Erro ao carregar cursos:', error);
     } finally {
       setLoading(false);
     }

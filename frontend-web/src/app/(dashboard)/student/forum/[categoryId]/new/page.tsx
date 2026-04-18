@@ -27,6 +27,7 @@ import { PageTransition } from '@/components/shared/page-transition';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
+import { logger } from '@/lib/logger';
 export default function NewTopicPage() {
   const params = useParams();
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function NewTopicPage() {
       setAllCategories(categoriesData);
       setSelectedCategoryId(categoryId);
     } catch (err) {
-      console.error('Erro ao carregar categoria:', err);
+      logger.error('Erro ao carregar categoria:', err);
       toast({
         title: 'Erro',
         description: 'Erro ao carregar categoria',
@@ -97,7 +98,7 @@ export default function NewTopicPage() {
 
       router.push(`/student/forum/topic/${newTopic.id}`);
     } catch (err) {
-      console.error('Erro ao criar tópico:', err);
+      logger.error('Erro ao criar tópico:', err);
       toast({
         title: 'Erro',
         description: 'Erro ao criar tópico',
