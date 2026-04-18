@@ -39,6 +39,12 @@ interface SubtitleTrackInfo {
   label: string;
 }
 
+/** Identifica uma track de forma estavel mesmo quando id nao vem. */
+function trackKey(track: SubtitleTrackInfo | null): string {
+  if (!track) return 'off';
+  return track.id ?? `${track.language}:${track.label}`;
+}
+
 function formatTime(seconds: number): string {
   if (!seconds || seconds < 0) return '0:00';
   const h = Math.floor(seconds / 3600);
@@ -68,7 +74,9 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrackInfo[]>([]);
-  const [ccEnabled, setCcEnabled] = useState(false);
+  // Track atualmente selecionada (null = desligado). Controlada pelo usuario.
+  const [activeTrack, setActiveTrack] = useState<SubtitleTrackInfo | null>(null);
+  const [showCcMenu, setShowCcMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [displayTime, setDisplayTime] = useState(0);
@@ -105,7 +113,8 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     return () => sub.remove();
   }, [player, initialPosition]);
 
-  // Detectar tracks disponíveis via sourceLoad
+  // Detectar tracks disponiveis via sourceLoad + auto-selecionar pt-BR quando existir.
+  // O usuario pode depois mudar manualmente via menu CC.
   useEffect(() => {
     if (!player) return;
     // @ts-ignore
@@ -120,7 +129,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
         if (ptTrack) {
           // @ts-ignore
           player.subtitleTrack = ptTrack;
-          setCcEnabled(true);
+          setActiveTrack(ptTrack);
         }
       }
     });
@@ -218,25 +227,46 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     setShowSpeedMenu(false);
   }, [player]);
 
-  // Toggle CC
-  const handleCcToggle = useCallback(() => {
+  const ccEnabled = activeTrack !== null;
+
+  /**
+   * Click no botao CC:
+   * - 0 tracks: no-op (botao sequer aparece, mas guard por seguranca).
+   * - 1 track: toggle simples ligar/desligar.
+   * - 2+ tracks: abre menu com opcao "Desligar" + cada idioma.
+   */
+  const handleCcPress = useCallback(() => {
     if (!player || subtitleTracks.length === 0) return;
 
-    if (ccEnabled) {
-      // @ts-ignore
-      player.subtitleTrack = null;
-      setCcEnabled(false);
-    } else {
-      const ptTrack = subtitleTracks.find(t =>
-        t.language === 'pt' || t.language === 'por' ||
-        t.label?.toLowerCase().includes('portugu')
-      );
-      const track = ptTrack || subtitleTracks[0];
-      // @ts-ignore
-      player.subtitleTrack = track;
-      setCcEnabled(true);
+    if (subtitleTracks.length === 1) {
+      const only = subtitleTracks[0];
+      if (ccEnabled) {
+        // @ts-ignore
+        player.subtitleTrack = null;
+        setActiveTrack(null);
+      } else {
+        // @ts-ignore
+        player.subtitleTrack = only;
+        setActiveTrack(only);
+      }
+      return;
     }
+
+    setShowCcMenu((prev) => !prev);
   }, [player, ccEnabled, subtitleTracks]);
+
+  /** Seleciona uma track manualmente. Passe null pra desligar. */
+  const handleTrackSelect = useCallback((track: SubtitleTrackInfo | null) => {
+    if (!player) return;
+    // @ts-ignore
+    player.subtitleTrack = track;
+    setActiveTrack(track);
+    setShowCcMenu(false);
+  }, [player]);
+
+  const dismissCcMenu = useCallback(() => {
+    setShowCcMenu(false);
+  }, []);
 
   // Expor funções para o componente pai via ref
   useImperativeHandle(ref, () => ({
@@ -555,11 +585,14 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
             </Text>
           </TouchableOpacity>
 
-          {/* CC */}
+          {/* CC: toggle se 1 track, menu se 2+ */}
           {subtitleTracks.length > 0 && (
             <TouchableOpacity
-              style={[styles.glassChip, ccEnabled && styles.glassChipActive]}
-              onPress={handleCcToggle}
+              style={[
+                styles.glassChip,
+                (ccEnabled || showCcMenu) && styles.glassChipActive,
+              ]}
+              onPress={handleCcPress}
               activeOpacity={0.6}
             >
               <Ionicons
@@ -570,6 +603,14 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
               <Text style={[styles.glassChipText, ccEnabled && styles.glassChipTextActive]}>
                 CC
               </Text>
+              {subtitleTracks.length > 1 && (
+                <Ionicons
+                  name="chevron-up"
+                  size={10}
+                  color={ccEnabled ? '#fff' : 'rgba(255,255,255,0.6)'}
+                  style={{ marginLeft: 2 }}
+                />
+              )}
             </TouchableOpacity>
           )}
 
@@ -613,6 +654,65 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
                 )}
               </TouchableOpacity>
             ))}
+          </BlurView>
+        </>
+      )}
+
+      {/* CC menu glass popup — so aparece quando ha 2+ tracks */}
+      {showCcMenu && !isFullscreen && subtitleTracks.length > 1 && (
+        <>
+          <Pressable style={styles.speedOverlay} onPress={dismissCcMenu} />
+          <BlurView intensity={60} tint="dark" style={styles.ccMenu}>
+            <Text style={styles.speedMenuTitle}>Legendas</Text>
+            {/* Opcao "Desligar" sempre no topo */}
+            <TouchableOpacity
+              key="off"
+              style={[
+                styles.speedOption,
+                !ccEnabled && styles.speedOptionActive,
+              ]}
+              onPress={() => handleTrackSelect(null)}
+              activeOpacity={0.6}
+            >
+              <Text
+                style={[
+                  styles.speedOptionText,
+                  !ccEnabled && styles.speedOptionTextActive,
+                ]}
+              >
+                Desligar
+              </Text>
+              {!ccEnabled && (
+                <Ionicons name="checkmark-circle" size={16} color="rgba(255,255,255,0.9)" />
+              )}
+            </TouchableOpacity>
+            {subtitleTracks.map((track) => {
+              const key = trackKey(track);
+              const isActive = ccEnabled && trackKey(activeTrack) === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.speedOption,
+                    isActive && styles.speedOptionActive,
+                  ]}
+                  onPress={() => handleTrackSelect(track)}
+                  activeOpacity={0.6}
+                >
+                  <Text
+                    style={[
+                      styles.speedOptionText,
+                      isActive && styles.speedOptionTextActive,
+                    ]}
+                  >
+                    {track.label || track.language}
+                  </Text>
+                  {isActive && (
+                    <Ionicons name="checkmark-circle" size={16} color="rgba(255,255,255,0.9)" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </BlurView>
         </>
       )}
@@ -781,6 +881,33 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     minWidth: 150,
+    zIndex: 99,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.12)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
+  ccMenu: {
+    position: 'absolute',
+    bottom: 46,
+    // Botao CC fica entre speed e fullscreen no controlsBar — posiciona o menu
+    // aproximadamente centralizado sob ele. Ajusta conforme largura de chips.
+    left: 80,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    minWidth: 180,
+    maxWidth: 240,
     zIndex: 99,
     overflow: 'hidden',
     borderWidth: 0.5,
