@@ -9,13 +9,14 @@ import { UserThrottlerModule } from '../../shared/throttler/user-throttler.modul
 import { AiSummariesController } from './ai-summaries.controller';
 import { AiTextAssistController } from './ai-text-assist.controller';
 import { AiSummariesService } from './ai-summaries.service';
+import { SummaryProcessor } from './summary.processor';
 import { VertexAiService } from './vertex-ai.service';
 import { AiThumbnailService } from './ai-thumbnail.service';
 
 @Module({
   imports: [PrismaModule, ConfigModule, FirebaseModule, VttModule, GamificationModule, UploadModule, UserThrottlerModule],
   controllers: [AiSummariesController, AiTextAssistController],
-  providers: [AiSummariesService, VertexAiService, AiThumbnailService],
+  providers: [AiSummariesService, VertexAiService, AiThumbnailService, SummaryProcessor],
   exports: [AiSummariesService, VertexAiService, AiThumbnailService],
 })
 export class AiSummariesModule {}
