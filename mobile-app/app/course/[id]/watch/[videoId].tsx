@@ -110,9 +110,6 @@ export default function WatchVideoScreen() {
 
       setVideo(videoData);
 
-      // URL de streaming agora vem pronta do backend em `video.playback.playbackUrl`.
-      // Nao derivamos mais no client (CLOUDFLARE_CUSTOMER_CODE removido — backend
-      // constroi a URL final). Ver docs/proposals/playback-unified.md.
       logger.log(
         `[WatchVideo] Playback recebido: kind=${videoData.playback?.kind ?? 'undefined'} ` +
         `url=${videoData.playback?.playbackUrl ?? 'null'}`
