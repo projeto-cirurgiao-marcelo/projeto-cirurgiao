@@ -71,9 +71,9 @@ user.
 **Effective:** same branch / release TBD.
 
 Every endpoint that returns a `Video` row now attaches a `playback`
-object derived from `videoSource`, so the player does not need to
-branch on the source field. The base Video shape is unchanged; the
-new field is additive.
+object with a **rendering `kind`** so the player doesn't need to branch
+on `videoSource`. The base Video shape is unchanged; the `playback`
+field is additive.
 
 **Affected endpoints:**
 
@@ -84,34 +84,77 @@ new field is additive.
 **Shape of `playback`:**
 
 ```ts
+type VideoPlaybackKind = 'hls' | 'iframe' | 'none';
+
 interface VideoPlaybackUrls {
-  /** Where the player loads the stream. Null if the Video is not yet ready. */
+  kind: VideoPlaybackKind;
+  /** Where the player loads the stream. null when kind === 'none'. */
   playbackUrl: string | null;
-  /** Separate captions endpoint, when captions are NOT embedded in the stream. */
+  /**
+   * True when captions are carried inside the HLS manifest (SUBTITLES
+   * group or CC track) and the player can switch tracks without a
+   * separate URL. Only meaningful when kind === 'hls'; undefined
+   * otherwise.
+   */
+  captionsEmbedded?: boolean;
+  /** Separate captions URL (VTT). Web-only for the cloudflare flow. */
   captionsUrl?: string;
-  /** Thumbnail override; same as video.thumbnailUrl when set. */
+  /** Thumbnail override. */
   poster?: string;
 }
 ```
 
-**Per-source rules:**
+**Invariants:**
 
-| `videoSource` | `playbackUrl` | `captionsUrl` | Notes |
-| --- | --- | --- | --- |
-| `cloudflare` | `video.cloudflareUrl` | `/api/v1/captions/:videoId/pt-BR` (only when `cloudflareId` is set) | Backend proxies the VTT to keep auth server-side. |
-| `youtube` | `video.externalUrl` | omitted | Player renders an iframe; YouTube serves its own captions inside. |
-| `vimeo` | `video.externalUrl` | omitted | Same as YouTube. |
-| `external` | `video.externalUrl` | omitted | Generic iframe. |
-| `r2_hls` | `video.hlsUrl` | omitted | Legendas vêm no SUBTITLES group do master playlist — player consome direto. |
+- `kind === 'hls'`    → `playbackUrl` non-null, `captionsEmbedded` boolean.
+- `kind === 'iframe'` → `playbackUrl` non-null, `captionsEmbedded` undefined.
+- `kind === 'none'`   → `playbackUrl` null, `captionsEmbedded` undefined.
+
+**Per-source mapping:**
+
+| `videoSource` | State | `kind` | `playbackUrl` | `captionsEmbedded` | `captionsUrl` |
+| --- | --- | --- | --- | --- | --- |
+| `cloudflare` | ready (`cloudflareUrl` set) | `hls` | `video.cloudflareUrl` | `false` | `/api/v1/captions/:videoId/pt-BR` (when `cloudflareId` is set) |
+| `cloudflare` | pending (`cloudflareUrl` null) | `none` | `null` | — | — |
+| `r2_hls` | ready (`hlsUrl` set) | `hls` | `video.hlsUrl` | `true` | omitted |
+| `r2_hls` | pending (`hlsUrl` null) | `none` | `null` | — | — |
+| `youtube` / `vimeo` / `external` | has `externalUrl` | `iframe` | `video.externalUrl` | — | — |
+| `youtube` / `vimeo` / `external` | no `externalUrl` | `none` | `null` | — | — |
+
+Notes:
+- Cloudflare entrega CC como track separada no manifesto, por isso
+  `captionsEmbedded: false` — clientes que queiram CC de qualidade
+  devem ir no `captionsUrl`. O `captionsEmbedded: true` do r2_hls sinaliza
+  "manifesto cobre tudo, pode ignorar `captionsUrl`".
+- Iframe sources (YouTube/Vimeo/external) servem suas próprias CC por
+  dentro do embed — backend não participa.
+- `kind: 'none'` é um estado terminal de UI: o cliente mostra
+  "Processando…" / placeholder. Polling do `uploadStatus` separado
+  decide quando refetchar o vídeo.
+
+**`captionsUrl` é WEB-ONLY** (cloudflare flow).
+
+Mobile clients **devem ignorar** `captionsUrl` mesmo quando presente no
+payload. Consumir cross-origin VTT do Cloudflare exige URL pre-signed
+com renovação de TTL durante a reprodução — manutenção que não vamos
+adicionar enquanto a migração pra R2 está em curso. No fluxo `r2_hls`,
+`captionsEmbedded: true` já cobre todos os clientes (player consome CC
+direto do manifesto).
+
+Regra prática mobile: se `kind === 'hls' && captionsEmbedded === true`
+você tem CC via manifesto. Se `kind === 'hls' && captionsEmbedded ===
+false`, o vídeo está em Cloudflare legado — CC só aparece para web até
+este conteúdo migrar para R2.
 
 **Client guidance:**
 
-- Stop reading `cloudflareUrl` / `hlsUrl` / `externalUrl` directly; use
-  `playback.playbackUrl` and switch rendering based on `videoSource`
-  (iframe for youtube/vimeo/external, HLS for cloudflare/r2_hls).
-- Treat `playback.captionsUrl === undefined` as "no separate captions
-  resource" — for `r2_hls` the player should still surface track
-  switching from the manifest's SUBTITLES group. Not a bug.
+- Trate `playback.kind` como a única fonte de verdade pra decidir como
+  renderizar. Não inspecione `videoSource` no player.
+- Pare de ler `cloudflareUrl` / `hlsUrl` / `externalUrl` diretamente —
+  use `playback.playbackUrl`.
+- Quando `playback.kind === 'none'`, não tente tocar nada; mostre um
+  placeholder e (opcionalmente) reflita o `uploadStatus` do próprio
+  Video.
 
 ---
 
@@ -411,6 +454,7 @@ Teammates A and B consuming these DTOs literally should copy
 hand-rolling the shapes. It contains:
 
 - `VideoSource` string literal union
+- `VideoPlaybackKind` ('hls' | 'iframe' | 'none')
 - `VideoPlaybackUrls` / `VideoPayload`
 - `CreateVideoFromR2HlsRequest`
 - `EnqueuedJobResponse` / `JobStatusResponse` / `JobStatus`
