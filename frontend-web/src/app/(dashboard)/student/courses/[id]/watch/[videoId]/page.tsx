@@ -85,6 +85,8 @@ export default function VideoPlayerPage() {
   const hasCompletedInitialRestore = useRef(false); // Flag para indicar que a restauração inicial foi concluída
   const [isPlayerReady, setIsPlayerReady] = useState(false); // Flag para indicar que o player está pronto
   const [sdkLoaded, setSdkLoaded] = useState(false); // Flag para SDK do Cloudflare carregado
+  const [sdkError, setSdkError] = useState(false); // Flag de erro ao carregar SDK Cloudflare (fallback UI)
+  const [sdkRetryCount, setSdkRetryCount] = useState(0); // Trigger pra re-tentar carregar o SDK
   const [iframeMounted, setIframeMounted] = useState(false); // Flag para indicar que o iframe foi montado
   const playerDurationRef = useRef(0); // Duração total do vídeo reportada pelo player
 
@@ -319,6 +321,19 @@ export default function VideoPlayerPage() {
     }
   }, [videoId, courseId]);
 
+  // Handler do "Tentar novamente" no fallback UI quando SDK falha:
+  // remove script quebrado, reseta state e incrementa retryCount pra
+  // disparar novamente o useEffect de carregar SDK.
+  const handleRetrySdk = useCallback(() => {
+    const brokenScript = document.querySelector('script[src*="cloudflarestream.com/embed/sdk"]');
+    if (brokenScript) {
+      brokenScript.remove();
+    }
+    setSdkError(false);
+    setSdkLoaded(false);
+    setSdkRetryCount((c) => c + 1);
+  }, []);
+
   // Carrega o SDK do Cloudflare Stream
   useEffect(() => {
     logger.log('[Player] Iniciando carregamento do SDK...');
@@ -334,11 +349,18 @@ export default function VideoPlayerPage() {
     const existingScript = document.querySelector('script[src*="cloudflarestream.com/embed/sdk"]');
     if (existingScript) {
       logger.log('[Player] Script já existe, aguardando carregamento...');
-      // Espera o script existente carregar
+      // Espera o script existente carregar — com timeout pra
+      // acionar fallback UI se nunca inicializar.
+      let elapsed = 0;
       const checkSDK = setInterval(() => {
+        elapsed += 100;
         if (window.Stream) {
           logger.log('[Player] SDK carregado (polling)');
           setSdkLoaded(true);
+          clearInterval(checkSDK);
+        } else if (elapsed >= 15000) {
+          logger.error('[Player] Timeout aguardando SDK do Cloudflare');
+          setSdkError(true);
           clearInterval(checkSDK);
         }
       }, 100);
@@ -355,10 +377,15 @@ export default function VideoPlayerPage() {
       setSdkLoaded(true);
     };
     script.onerror = () => {
+      // Aciona fallback UI no lugar do erro tecnico pro aluno.
       logger.error('[Player] Erro ao carregar SDK do Cloudflare');
+      setSdkError(true);
     };
     document.head.appendChild(script);
-  }, []);
+    // sdkRetryCount na deplist: quando o usuario clica "Tentar
+    // novamente", o effect re-executa e tenta carregar o script outra vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sdkRetryCount]);
 
   // Verifica periodicamente se o iframe foi montado (fallback para onLoad)
   useEffect(() => {
@@ -834,6 +861,27 @@ export default function VideoPlayerPage() {
                   onReady={handleHlsReady}
                   onEnded={handleVideoEnded}
                 />
+              ) : streamData?.type === 'cloudflare' && streamData.cloudflareId && sdkError ? (
+                // Fallback UI amigavel quando o SDK do Cloudflare Stream
+                // nao carrega (bloqueio de conteudo, rede instavel, CDN
+                // indisponivel etc.). Sem mensagem tecnica pro aluno.
+                <div className="w-full h-full flex items-center justify-center bg-gray-900 text-center px-6">
+                  <div className="max-w-sm">
+                    <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                    <h3 className="text-white text-lg font-semibold mb-2">
+                      Não foi possível carregar o vídeo.
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-6">
+                      Verifique sua conexão e tente novamente.
+                    </p>
+                    <Button
+                      onClick={handleRetrySdk}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Tentar novamente
+                    </Button>
+                  </div>
+                </div>
               ) : streamData?.type === 'cloudflare' && streamData.cloudflareId ? (
                 <iframe
                   ref={iframeRef}
