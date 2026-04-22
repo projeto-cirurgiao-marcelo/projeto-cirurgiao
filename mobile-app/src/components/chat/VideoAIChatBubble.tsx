@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { chatbotService } from '../../services/api/chatbot.service';
+import { logger } from '../../lib/logger';
 import type {
   ChatConversation,
   ChatMessage,
@@ -50,7 +51,7 @@ export function VideoAIChatBubble({ videoId, courseId, videoTitle }: VideoAIChat
         const sug = await chatbotService.getSuggestions(videoId, courseId);
         setSuggestions(sug);
       } catch (error) {
-        console.error('Erro ao carregar sugestoes:', error);
+        logger.error('Erro ao carregar sugestoes:', error);
       } finally {
         setLoadingConversation(false);
       }
@@ -111,7 +112,7 @@ export function VideoAIChatBubble({ videoId, courseId, videoTitle }: VideoAIChat
         setSuggestions(response.suggestions);
       }
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      logger.error('Erro ao enviar mensagem:', error);
       setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       Alert.alert('Erro', 'Nao foi possivel enviar a mensagem. Tente novamente.');
     } finally {
@@ -126,7 +127,7 @@ export function VideoAIChatBubble({ videoId, courseId, videoTitle }: VideoAIChat
         prev.map((m) => (m.id === messageId ? { ...m, feedback } : m))
       );
     } catch (error) {
-      console.error('Erro ao enviar feedback:', error);
+      logger.error('Erro ao enviar feedback:', error);
     }
   };
 

@@ -14,6 +14,7 @@ import {
   VideoSummary,
   RemainingGenerationsResponse,
 } from '../../services/api/summaries.service';
+import { logger } from '../../lib/logger';
 import { Colors as colors } from '../../constants/colors';
 
 interface VideoSummariesProps {
@@ -47,7 +48,7 @@ export function VideoSummaries({ videoId }: VideoSummariesProps) {
         setSelectedSummary(summariesData.summaries[0]);
       }
     } catch (err) {
-      console.error('Erro ao carregar resumos:', err);
+      logger.error('Erro ao carregar resumos:', err);
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export function VideoSummaries({ videoId }: VideoSummariesProps) {
         prev ? { ...prev, remaining: newSummary.remainingGenerations } : null
       );
     } catch (error) {
-      console.error('Erro ao gerar resumo:', error);
+      logger.error('Erro ao gerar resumo:', error);
       Alert.alert('Erro', 'Não foi possível gerar o resumo. Tente novamente.');
     } finally {
       setGenerating(false);

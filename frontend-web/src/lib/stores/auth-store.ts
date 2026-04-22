@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { firebaseAuthService, type FirebaseAuthUser } from '../firebase/auth.service';
 import { logger } from '../logger';
+import { maskEmail } from '../utils/mask-pii';
 import axios from 'axios';
 
 // Tipo do usuário no backend (com role)
@@ -77,7 +78,9 @@ export const useAuthStore = create<AuthStore>()(
 
           const backendUser = backendResponse.data.user;
 
-          logger.log('✅ [Backend] Usuário sincronizado:', backendUser);
+          logger.log('✅ [Backend] Usuário sincronizado:', backendUser
+            ? { ...backendUser, email: maskEmail(backendUser.email) }
+            : null);
 
           // 3. Salva no estado
           set({
@@ -129,7 +132,9 @@ export const useAuthStore = create<AuthStore>()(
 
           const backendUser = backendResponse.data.user;
 
-          logger.log('✅ [Backend] Usuário criado:', backendUser);
+          logger.log('✅ [Backend] Usuário criado:', backendUser
+            ? { ...backendUser, email: maskEmail(backendUser.email) }
+            : null);
 
           // 3. Salva no estado (Zustand persist handles localStorage)
           set({

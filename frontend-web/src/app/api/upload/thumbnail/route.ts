@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: data.url });
   } catch (error) {
-    console.error('Erro no upload:', error);
+    logger.error('Erro no upload:', error);
     return NextResponse.json(
       { error: 'Erro ao fazer upload da imagem' },
       { status: 500 }

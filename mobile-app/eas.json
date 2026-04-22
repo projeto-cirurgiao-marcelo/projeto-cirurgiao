@@ -7,27 +7,57 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "env": {
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3000/api/v1"
       },
+      "android": {
+        "resourceClass": "medium"
+      },
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "resourceClass": "m-medium"
       }
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1"
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "resourceClass": "medium"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
       }
     },
     "production": {
+      "channel": "production",
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1"
       },
-      "autoIncrement": true
+      "android": {
+        "resourceClass": "medium"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./playstore-service-account.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "CONFIGURAR_VIA_EAS_SECRETS",
+        "ascAppId": "CONFIGURAR_VIA_EAS_SECRETS",
+        "appleTeamId": "CONFIGURAR_VIA_EAS_SECRETS"
+      }
     }
   }
 }

@@ -9,9 +9,10 @@ import { PrismaModule } from '../../shared/prisma/prisma.module';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { GamificationModule } from '../gamification/gamification.module';
 import { VttModule } from '../../shared/vtt/vtt.module';
+import { UserThrottlerModule } from '../../shared/throttler/user-throttler.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, FirebaseModule, GamificationModule, VttModule],
+  imports: [PrismaModule, ConfigModule, FirebaseModule, GamificationModule, VttModule, UserThrottlerModule],
   controllers: [AiChatController],
   providers: [
     TranscriptChunkingService,

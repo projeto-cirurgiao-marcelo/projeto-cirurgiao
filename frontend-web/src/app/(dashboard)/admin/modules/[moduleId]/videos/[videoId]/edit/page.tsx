@@ -16,6 +16,7 @@ import { VideoCaptionsManager } from '@/components/admin/video-captions-manager'
 import { VideoQuizManager } from '@/components/admin/video-quiz-manager';
 import type { Video } from '@/lib/types/course.types';
 
+import { logger } from '@/lib/logger';
 export default function EditVideoPage() {
   const params = useParams();
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function EditVideoPage() {
       setDescription(data.description || '');
       setHlsUrl(data.hlsUrl || '');
     } catch (error) {
-      console.error('Erro ao carregar vídeo:', error);
+      logger.error('Erro ao carregar vídeo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar o vídeo.',
@@ -81,7 +82,7 @@ export default function EditVideoPage() {
         description: 'Vídeo atualizado com sucesso!',
       });
     } catch (error: any) {
-      console.error('Erro ao salvar vídeo:', error);
+      logger.error('Erro ao salvar vídeo:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível salvar o vídeo.',
@@ -103,7 +104,7 @@ export default function EditVideoPage() {
       });
       await loadVideo();
     } catch (error) {
-      console.error('Erro ao alterar publicação:', error);
+      logger.error('Erro ao alterar publicação:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível alterar o status de publicação.',
@@ -125,7 +126,7 @@ export default function EditVideoPage() {
       });
       router.push(`/admin/modules/${moduleId}/videos`);
     } catch (error) {
-      console.error('Erro ao deletar vídeo:', error);
+      logger.error('Erro ao deletar vídeo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível deletar o vídeo.',

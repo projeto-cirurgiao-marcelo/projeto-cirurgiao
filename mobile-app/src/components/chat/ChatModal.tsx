@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { chatbotService } from '../../services/api/chatbot.service';
 import { libraryService } from '../../services/api/library.service';
+import { logger } from '../../lib/logger';
 import { MessageBubble } from './MessageBubble';
 import { Colors as colors } from '../../constants/colors';
 import type {
@@ -118,7 +119,7 @@ export function ChatModal({
         setSuggestions(sug);
       }
     } catch (error) {
-      console.error('Erro ao carregar sugestoes:', error);
+      logger.error('Erro ao carregar sugestoes:', error);
     } finally {
       setLoadingSuggestions(false);
     }
@@ -196,7 +197,7 @@ export function ChatModal({
         }
       }
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      logger.error('Erro ao enviar mensagem:', error);
       setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       Alert.alert('Erro', 'Nao foi possivel enviar a mensagem. Tente novamente.');
     } finally {
@@ -215,7 +216,7 @@ export function ChatModal({
         prev.map((m) => (m.id === messageId ? { ...m, feedback } : m))
       );
     } catch (error) {
-      console.error('Erro ao enviar feedback:', error);
+      logger.error('Erro ao enviar feedback:', error);
     }
   };
 

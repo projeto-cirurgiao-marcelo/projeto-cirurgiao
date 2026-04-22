@@ -11,6 +11,7 @@ import { ArrowLeft, Play, CheckCircle2, Circle, Lock, Clock, Loader2, Video } fr
 import { Course, Module } from '@/lib/types/course.types';
 import Image from 'next/image';
 
+import { logger } from '@/lib/logger';
 export default function ModuleDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -68,7 +69,7 @@ export default function ModuleDetailPage() {
       setError(null);
     } catch (err: any) {
       setError('Erro ao carregar módulo');
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }

@@ -30,6 +30,8 @@ import { coursesService } from '../../../src/services/api/courses.service';
 import { progressService } from '../../../src/services/api/progress.service';
 import { Course, Module, CourseProgress } from '../../../src/types';
 import { CourseDetailSkeleton } from '../../../src/components/ui/Skeleton';
+import { logger } from '../../../src/lib/logger';
+import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -54,16 +56,26 @@ export default function CourseDetailScreen() {
       setCourse(courseData);
       setProgress(progressData);
     } catch (error) {
-      console.error('Erro ao carregar curso:', error);
+      logger.error('[CourseDetail] Erro ao carregar curso:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
   }, [id]);
 
+  const { onlineSince } = useNetworkStatus();
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Re-fetch ao reconectar (debounce 500ms no hook).
+  useEffect(() => {
+    if (onlineSince !== null) {
+      logger.log('[CourseDetail] Rede voltou, refazendo fetch');
+      loadData();
+    }
+  }, [onlineSince, loadData]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

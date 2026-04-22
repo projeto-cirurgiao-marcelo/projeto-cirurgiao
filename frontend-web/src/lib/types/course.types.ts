@@ -48,7 +48,14 @@ export interface Module {
 
 export type VideoUploadStatus = 'PENDING' | 'UPLOADING' | 'PROCESSING' | 'READY' | 'ERROR';
 
-export type VideoSource = 'cloudflare' | 'youtube' | 'vimeo' | 'external' | 'r2_hls';
+// Re-export shared contract types do backend pra manter fonte unica.
+// Nao copiamos valores aqui — o arquivo `@/types/api-shared` eh a fonte.
+export type {
+  VideoSource,
+  VideoPlaybackKind,
+  VideoPlaybackUrls,
+} from '@/types/api-shared';
+import type { VideoPlaybackUrls } from '@/types/api-shared';
 
 export interface Video {
   id: string;
@@ -66,10 +73,17 @@ export interface Video {
   uploadError: string | null;
   externalUrl: string | null;
   hlsUrl: string | null;
-  videoSource: VideoSource;
+  videoSource: 'cloudflare' | 'youtube' | 'vimeo' | 'external' | 'r2_hls';
   createdAt: string;
   updatedAt: string;
   module?: Module;
+  /**
+   * Playback contract (kind + playbackUrl + captions). Opcional por
+   * retrocompat enquanto backend staging/prod propaga o aditivo; em
+   * ambientes atualizados vem sempre preenchido. Player deve preferir
+   * isso ao branching manual por videoSource.
+   */
+  playback?: VideoPlaybackUrls;
 }
 
 export interface CreateCourseDto {

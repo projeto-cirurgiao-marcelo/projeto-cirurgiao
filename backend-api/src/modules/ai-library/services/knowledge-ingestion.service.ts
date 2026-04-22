@@ -87,8 +87,10 @@ export class KnowledgeIngestionService {
           // Gerar embedding a partir do conteúdo em português
           const embedding = await this.searchService.generateEmbedding(contentPt);
 
-          // Salvar chunk com embedding
-          await this.prisma.knowledgeChunk.upsert({
+          // Upsert non-vector fields via the typed Prisma API, then persist
+          // the pgvector `embedding` via raw SQL (Prisma DSL cannot express
+          // Unsupported column writes).
+          const upserted = await this.prisma.knowledgeChunk.upsert({
             where: {
               documentId_chunkIndex: {
                 documentId,
@@ -105,7 +107,6 @@ export class KnowledgeIngestionService {
               pageStart: chunks[i].pageStart || null,
               pageEnd: chunks[i].pageEnd || null,
               language: document.language,
-              embedding: embedding,
               isIndexed: true,
               isTranslated: true,
             },
@@ -116,11 +117,17 @@ export class KnowledgeIngestionService {
               chapterPt,
               pageStart: chunks[i].pageStart || null,
               pageEnd: chunks[i].pageEnd || null,
-              embedding: embedding,
               isIndexed: true,
               isTranslated: true,
             },
           });
+
+          const vectorLiteral = `[${embedding.join(',')}]`;
+          await this.prisma.$executeRawUnsafe(
+            `UPDATE knowledge_chunks SET embedding = $1::vector WHERE id = $2`,
+            vectorLiteral,
+            upserted.id,
+          );
 
           indexedChunks++;
 

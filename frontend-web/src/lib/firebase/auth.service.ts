@@ -14,6 +14,8 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 
+import { logger } from '@/lib/logger';
+
 // Tipos
 export interface FirebaseAuthUser {
   uid: string;
@@ -77,7 +79,7 @@ export const firebaseAuthService = {
         token,
       };
     } catch (error: any) {
-      console.error('Firebase register error:', error);
+      logger.error('Firebase register error:', error);
       return {
         success: false,
         error: getFirebaseErrorMessage(error.code),
@@ -99,7 +101,7 @@ export const firebaseAuthService = {
         token,
       };
     } catch (error: any) {
-      console.error('Firebase login error:', error);
+      logger.error('Firebase login error:', error);
       return {
         success: false,
         error: getFirebaseErrorMessage(error.code),
@@ -121,7 +123,7 @@ export const firebaseAuthService = {
         token,
       };
     } catch (error: any) {
-      console.error('Firebase Google login error:', error);
+      logger.error('Firebase Google login error:', error);
       return {
         success: false,
         error: getFirebaseErrorMessage(error.code),
@@ -137,7 +139,7 @@ export const firebaseAuthService = {
       await signOut(auth);
       return { success: true };
     } catch (error: any) {
-      console.error('Firebase logout error:', error);
+      logger.error('Firebase logout error:', error);
       return {
         success: false,
         error: getFirebaseErrorMessage(error.code),
@@ -153,7 +155,7 @@ export const firebaseAuthService = {
       await sendPasswordResetEmail(auth, email);
       return { success: true };
     } catch (error: any) {
-      console.error('Firebase password reset error:', error);
+      logger.error('Firebase password reset error:', error);
       return {
         success: false,
         error: getFirebaseErrorMessage(error.code),
@@ -175,7 +177,7 @@ export const firebaseAuthService = {
         error: 'Nenhum usuário logado',
       };
     } catch (error: any) {
-      console.error('Firebase verification email error:', error);
+      logger.error('Firebase verification email error:', error);
       return {
         success: false,
         error: getFirebaseErrorMessage(error.code),
@@ -193,7 +195,7 @@ export const firebaseAuthService = {
       }
       return null;
     } catch (error) {
-      console.error('Error getting current token:', error);
+      logger.error('Error getting current token:', error);
       return null;
     }
   },

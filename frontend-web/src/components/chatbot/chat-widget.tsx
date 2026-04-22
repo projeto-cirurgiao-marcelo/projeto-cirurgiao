@@ -9,6 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { chatbotService, ChatMessage, ChatConversation, ChatSource } from '@/lib/api/chatbot.service';
 
+import { logger } from '@/lib/logger';
+
 interface ChatWidgetProps {
   videoId?: string;
   courseId?: string;
@@ -54,7 +56,7 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
       const sug = await chatbotService.getSuggestions({ videoId, courseId });
       setSuggestions(sug);
     } catch (err) {
-      console.error('Erro ao carregar sugestões:', err);
+      logger.error('Erro ao carregar sugestões:', err);
       setSuggestions([
         'Quais são os principais tópicos desta aula?',
         'Pode explicar os conceitos mais importantes?',
@@ -114,7 +116,7 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
         setSuggestions(response.suggestions);
       }
     } catch (err: any) {
-      console.error('Erro ao enviar mensagem:', err);
+      logger.error('Erro ao enviar mensagem:', err);
       setError('Erro ao enviar mensagem. Tente novamente.');
       // Remover mensagem temporária em caso de erro
       setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id));
@@ -130,7 +132,7 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
         prev.map(m => (m.id === messageId ? { ...m, feedback } : m))
       );
     } catch (err) {
-      console.error('Erro ao enviar feedback:', err);
+      logger.error('Erro ao enviar feedback:', err);
     }
   };
 

@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 import { EnrolledCourse, CourseProgress, SaveProgressDto } from '../../types';
 
 export const progressService = {
@@ -75,10 +76,10 @@ export const progressService = {
       const response = await apiClient.get(`/progress/video/${videoId}`);
       // A API retorna watchTime, não position
       const watchTime = response.data?.watchTime;
-      console.log(`[progressService] watchTime carregado para ${videoId}: ${watchTime}`);
+      logger.log(`[progressService] watchTime carregado para ${videoId}: ${watchTime}`);
       return typeof watchTime === 'number' ? watchTime : 0;
     } catch (error) {
-      console.log(`[progressService] Nenhum progresso encontrado para ${videoId}`);
+      logger.log(`[progressService] Nenhum progresso encontrado para ${videoId}`);
       return 0;
     }
   },

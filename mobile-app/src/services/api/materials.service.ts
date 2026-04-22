@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 
 export type MaterialType = 'PDF' | 'LINK' | 'ARTICLE';
 
@@ -30,7 +31,7 @@ export const materialsService = {
       );
       return response.data || [];
     } catch (error) {
-      console.error('[materialsService] Erro ao listar materiais:', error);
+      logger.error('[materialsService] Erro ao listar materiais:', error);
       return [];
     }
   },

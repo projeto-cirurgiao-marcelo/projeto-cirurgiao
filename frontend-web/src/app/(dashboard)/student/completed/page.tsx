@@ -6,7 +6,10 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
 import { CourseCard } from '@/components/student/course-card';
+import { CourseCardSkeletonGrid } from '@/components/student/course-card-skeleton';
 import { Loader2, Award, Trophy, Calendar } from 'lucide-react';
+
+import { logger } from '@/lib/logger';
 
 /**
  * Página de Cursos Concluídos
@@ -70,7 +73,7 @@ export default function CompletedPage() {
 
       setCourses(completed);
     } catch (error) {
-      console.error('Erro ao carregar cursos concluídos:', error);
+      logger.error('Erro ao carregar cursos concluídos:', error);
     } finally {
       setLoading(false);
     }
@@ -179,9 +182,7 @@ export default function CompletedPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-        </div>
+        <CourseCardSkeletonGrid count={8} />
       ) : courses.length === 0 ? (
         <div className="text-center py-20">
           <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-6">

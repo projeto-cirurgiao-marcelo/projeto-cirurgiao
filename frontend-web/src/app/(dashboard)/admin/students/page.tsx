@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { usersService } from '@/lib/api/users.service';
 import { getErrorMessage } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import type {
   StudentsOverviewResponse,
   StudentWithStats,
@@ -97,7 +98,7 @@ export default function AdminStudentsPage() {
       setData(response);
     } catch (err) {
       setError(getErrorMessage(err));
-      console.error('Erro ao carregar dados de alunos:', err);
+      logger.error('Erro ao carregar dados de alunos:', err);
     } finally {
       setLoading(false);
     }
@@ -118,7 +119,7 @@ export default function AdminStudentsPage() {
       });
       await loadData();
     } catch (err) {
-      console.error('Erro ao atualizar status do aluno:', err);
+      logger.error('Erro ao atualizar status do aluno:', err);
     } finally {
       setTogglingId(null);
     }

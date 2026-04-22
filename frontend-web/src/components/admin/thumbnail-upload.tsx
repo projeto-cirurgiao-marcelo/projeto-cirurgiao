@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
+import { logger } from '@/lib/logger';
+
 interface ThumbnailUploadProps {
   value?: string;
   onChange: (url: string) => void;
@@ -66,7 +68,7 @@ export function ThumbnailUpload({
 
       toast({ title: 'Sucesso', description: 'Imagem enviada com sucesso!' });
     } catch (error) {
-      console.error('Erro ao fazer upload:', error);
+      logger.error('Erro ao fazer upload:', error);
       toast({ title: 'Erro', description: 'Não foi possível fazer upload da imagem.', variant: 'destructive' });
     } finally {
       setIsUploading(false);

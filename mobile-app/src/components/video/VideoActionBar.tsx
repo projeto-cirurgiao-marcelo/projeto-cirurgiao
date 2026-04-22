@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors as colors } from '../../constants/colors';
 import { VideoLikeButton } from './VideoLikeButton';
 import { progressService } from '../../services/api/progress.service';
+import { logger } from '../../lib/logger';
 
 interface VideoActionBarProps {
   videoId: string;
@@ -50,7 +51,7 @@ export function VideoActionBar({
         onCompletedChange?.(true);
       }
     } catch (error) {
-      console.error('Erro ao alterar status de conclusão:', error);
+      logger.error('Erro ao alterar status de conclusão:', error);
     } finally {
       setLoading(false);
     }

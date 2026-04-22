@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
+import { AuditService } from '../../shared/audit/audit.service';
+import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { Course } from '@prisma/client';
@@ -14,6 +16,7 @@ export class CoursesService {
   constructor(
     private prisma: PrismaService,
     private cloudflareR2: CloudflareR2Service,
+    private audit: AuditService,
   ) {}
 
   /**
@@ -74,7 +77,10 @@ export class CoursesService {
    * Listar todos os cursos
    */
   async findAll(includeUnpublished = false): Promise<Course[]> {
-    const where = includeUnpublished ? {} : { isPublished: true };
+    // Hide soft-deleted rows from every listing — admin panel can pass
+    // its own where clause if it ever needs to browse the recycle bin.
+    const where: any = { deletedAt: null };
+    if (!includeUnpublished) where.isPublished = true;
 
     return this.prisma.course.findMany({
       where,
@@ -118,6 +124,7 @@ export class CoursesService {
     return this.prisma.course.findMany({
       where: {
         instructorId,
+        deletedAt: null,
       },
       include: {
         modules: {
@@ -179,7 +186,9 @@ export class CoursesService {
       },
     });
 
-    if (!course) {
+    if (!course || course.deletedAt) {
+      // Soft-deleted courses surface as NotFound to keep the public API
+      // honest. AdminPanel listing + restore endpoint would bypass this.
       throw new NotFoundException('Curso não encontrado');
     }
 
@@ -220,7 +229,7 @@ export class CoursesService {
       },
     });
 
-    if (!course) {
+    if (!course || course.deletedAt) {
       throw new NotFoundException('Curso não encontrado');
     }
 
@@ -287,20 +296,33 @@ export class CoursesService {
   }
 
   /**
-   * Deletar curso
+   * Soft-delete do curso.
+   *
+   * Antes era `prisma.course.delete({ where: { id } })` — agora apenas
+   * marca `deletedAt = now()` e registra no audit log. Progressões,
+   * matrículas e forum topics dos alunos ficam intocados, o que mantém
+   * analytics históricos honestos. Um endpoint de restore futuro só
+   * precisa zerar `deletedAt`.
    */
-  async remove(id: string): Promise<void> {
-    // Verificar se o curso existe
+  async remove(id: string, actorId: string | null = null): Promise<void> {
+    // Garante que o curso existe E não está soft-deleted já.
     await this.findOne(id);
 
     try {
-      await this.prisma.course.delete({
+      await this.prisma.course.update({
         where: { id },
+        data: { deletedAt: new Date() },
       });
 
-      this.logger.log(`Course deleted: ${id}`);
+      this.logger.log(`Course soft-deleted: ${id}`);
+      await this.audit.record({
+        actorId,
+        action: AUDIT_ACTIONS.COURSE_SOFT_DELETE,
+        entityType: 'courses',
+        entityId: id,
+      });
     } catch (error) {
-      this.logger.error(`Error deleting course ${id}`, error);
+      this.logger.error(`Error soft-deleting course ${id}`, error);
       throw new BadRequestException('Erro ao deletar curso');
     }
   }

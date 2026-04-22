@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { notesService, VideoNote } from '@/lib/api/notes.service';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { logger } from '@/lib/logger';
 import { 
   StickyNote, 
   Plus, 
@@ -45,7 +46,7 @@ export function VideoNotes({ videoId, currentTime = 0, onSeek }: VideoNotesProps
       const data = await notesService.getByVideo(videoId);
       setNotes(data);
     } catch (error) {
-      console.error('Erro ao carregar notas:', error);
+      logger.error('Erro ao carregar notas:', error);
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,7 @@ export function VideoNotes({ videoId, currentTime = 0, onSeek }: VideoNotesProps
       setNewNoteContent('');
       setShowForm(false);
     } catch (error) {
-      console.error('Erro ao criar nota:', error);
+      logger.error('Erro ao criar nota:', error);
     } finally {
       setCreating(false);
     }
@@ -83,7 +84,7 @@ export function VideoNotes({ videoId, currentTime = 0, onSeek }: VideoNotesProps
       setEditingNoteId(null);
       setEditContent('');
     } catch (error) {
-      console.error('Erro ao atualizar nota:', error);
+      logger.error('Erro ao atualizar nota:', error);
     } finally {
       setSaving(false);
     }
@@ -96,7 +97,7 @@ export function VideoNotes({ videoId, currentTime = 0, onSeek }: VideoNotesProps
       await notesService.delete(noteId);
       setNotes(notes.filter(n => n.id !== noteId));
     } catch (error) {
-      console.error('Erro ao excluir nota:', error);
+      logger.error('Erro ao excluir nota:', error);
     }
   };
 
@@ -347,7 +348,7 @@ export function VideoNotesCompact({ videoId, currentTime = 0, onSeek }: VideoNot
       const data = await notesService.getByVideo(videoId);
       setNotes(data);
     } catch (error) {
-      console.error('Erro ao carregar notas:', error);
+      logger.error('Erro ao carregar notas:', error);
     } finally {
       setLoading(false);
     }
@@ -366,7 +367,7 @@ export function VideoNotesCompact({ videoId, currentTime = 0, onSeek }: VideoNot
       setNewNoteContent('');
       setShowForm(false);
     } catch (error) {
-      console.error('Erro ao criar nota:', error);
+      logger.error('Erro ao criar nota:', error);
     } finally {
       setCreating(false);
     }

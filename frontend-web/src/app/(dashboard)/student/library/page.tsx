@@ -15,6 +15,7 @@ import {
   Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import {
   libraryService,
   LibraryConversation,
@@ -57,7 +58,7 @@ export default function LibraryPage() {
       const data = await libraryService.listConversations();
       setConversations(data.conversations);
     } catch (error) {
-      console.error('Erro ao carregar conversas:', error);
+      logger.error('Erro ao carregar conversas:', error);
     } finally {
       setLoadingConversations(false);
     }
@@ -68,7 +69,7 @@ export default function LibraryPage() {
       const data = await libraryService.getQuota();
       setQuota(data);
     } catch (error) {
-      console.error('Erro ao carregar cota:', error);
+      logger.error('Erro ao carregar cota:', error);
     }
   };
 
@@ -77,7 +78,7 @@ export default function LibraryPage() {
       const data = await libraryService.getSuggestions();
       setSuggestions(data);
     } catch (error) {
-      console.error('Erro ao carregar sugestões:', error);
+      logger.error('Erro ao carregar sugestões:', error);
     }
   };
 
@@ -89,7 +90,7 @@ export default function LibraryPage() {
       setMessages(data.messages || []);
       setShowSidebar(false);
     } catch (error) {
-      console.error('Erro ao carregar conversa:', error);
+      logger.error('Erro ao carregar conversa:', error);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +105,7 @@ export default function LibraryPage() {
       setShowSidebar(false);
       inputRef.current?.focus();
     } catch (error) {
-      console.error('Erro ao criar conversa:', error);
+      logger.error('Erro ao criar conversa:', error);
     }
   };
 
@@ -118,7 +119,7 @@ export default function LibraryPage() {
         setMessages([]);
       }
     } catch (error) {
-      console.error('Erro ao deletar conversa:', error);
+      logger.error('Erro ao deletar conversa:', error);
     }
   };
 
@@ -135,7 +136,7 @@ export default function LibraryPage() {
         setActiveConversation(newConversation);
         conversationId = newConversation.id;
       } catch (error) {
-        console.error('Erro ao criar conversa:', error);
+        logger.error('Erro ao criar conversa:', error);
         return;
       }
     }
@@ -189,7 +190,7 @@ export default function LibraryPage() {
         prev.map(m => (m.id === messageId ? { ...m, feedback } : m)),
       );
     } catch (error) {
-      console.error('Erro ao enviar feedback:', error);
+      logger.error('Erro ao enviar feedback:', error);
     }
   };
 

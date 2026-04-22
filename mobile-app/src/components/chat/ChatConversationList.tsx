@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { chatbotService } from '../../services/api/chatbot.service';
 import { libraryService } from '../../services/api/library.service';
+import { logger } from '../../lib/logger';
 import { Colors as colors } from '../../constants/colors';
 import type { ChatConversation } from '../../types/chat.types';
 import type { LibraryConversation } from '../../types/library.types';
@@ -65,7 +66,7 @@ export function ChatConversationList({
         setConversations(mapped);
       }
     } catch (err) {
-      console.error('Erro ao carregar conversas:', err);
+      logger.error('Erro ao carregar conversas:', err);
     }
   }, []);
 
@@ -95,7 +96,7 @@ export function ChatConversationList({
             }
             setConversations((prev) => prev.filter((c) => c.id !== conversation.id));
           } catch (error) {
-            console.error('Erro ao excluir conversa:', error);
+            logger.error('Erro ao excluir conversa:', error);
             Alert.alert('Erro', 'Nao foi possivel excluir a conversa.');
           }
         },

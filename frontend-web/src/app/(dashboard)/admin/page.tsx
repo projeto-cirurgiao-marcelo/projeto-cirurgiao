@@ -24,6 +24,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/shared/page-transition';
 
+import { logger } from '@/lib/logger';
+
 interface DashboardStats {
   totalStudents: number;
   totalCourses: number;
@@ -83,7 +85,7 @@ export default function AdminDashboardPage() {
         completionRate: 0,
       });
     } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error);
+      logger.error('Erro ao carregar dados do dashboard:', error);
     } finally {
       setLoadingData(false);
     }

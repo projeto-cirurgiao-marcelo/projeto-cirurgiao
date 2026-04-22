@@ -5,6 +5,8 @@ import { FileText, ChevronDown, ChevronUp, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { transcriptsService, Transcript, TranscriptSegment } from '@/lib/api/transcripts.service';
 
+import { logger } from '@/lib/logger';
+
 interface VideoTranscriptProps {
   videoId: string;
   currentTime: number;
@@ -36,7 +38,7 @@ export function VideoTranscript({ videoId, currentTime, onSeek, initialTranscrip
         const data = await transcriptsService.getByVideoId(videoId);
         setTranscript(data);
       } catch (error) {
-        console.error('Erro ao carregar transcrição:', error);
+        logger.error('Erro ao carregar transcrição:', error);
       } finally {
         setLoading(false);
       }
@@ -212,7 +214,7 @@ export function VideoTranscriptCompact({ videoId, currentTime, onSeek, initialTr
         const data = await transcriptsService.getByVideoId(videoId);
         setTranscript(data);
       } catch (error) {
-        console.error('Erro ao carregar transcrição:', error);
+        logger.error('Erro ao carregar transcrição:', error);
       } finally {
         setLoading(false);
       }

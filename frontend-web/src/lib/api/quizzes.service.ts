@@ -1,4 +1,10 @@
 import { apiClient } from './client';
+import {
+  isEnqueuedJob,
+  waitForJob,
+  type WaitForJobOptions,
+} from './waitForJob';
+import type { EnqueuedJobResponse } from '@/types/api-shared';
 
 export interface Quiz {
   id: string;
@@ -79,8 +85,28 @@ export interface GenerateQuizDto {
 }
 
 export const quizzesService = {
-  async generateQuiz(videoId: string, data: GenerateQuizDto = {}): Promise<Quiz> {
-    const response = await apiClient.post(`videos/${videoId}/quizzes/generate`, data);
+  /**
+   * Gera um quiz do video via IA. Suporta tanto o shape legacy (backend
+   * retorna `Quiz` direto) quanto o novo (backend retorna
+   * `EnqueuedJobResponse`, `waitForJob` resolve pro `resultRef` e
+   * buscamos o Quiz por ID). Ver `summariesService.generateSummary`
+   * pra mais contexto do pattern.
+   */
+  async generateQuiz(
+    videoId: string,
+    data: GenerateQuizDto = {},
+    jobOpts?: WaitForJobOptions,
+  ): Promise<Quiz> {
+    const response = await apiClient.post<Quiz | EnqueuedJobResponse>(
+      `videos/${videoId}/quizzes/generate`,
+      data,
+    );
+
+    if (isEnqueuedJob(response.data)) {
+      const quizId = await waitForJob<string>(response.data, jobOpts);
+      return this.getQuiz(quizId);
+    }
+
     return response.data;
   },
 

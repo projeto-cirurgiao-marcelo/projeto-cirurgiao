@@ -1,4 +1,10 @@
 import { apiClient } from './client';
+import {
+  isEnqueuedJob,
+  waitForJob,
+  type WaitForJobOptions,
+} from './waitForJob';
+import type { EnqueuedJobResponse } from '@/types/api-shared';
 
 // ============================================
 // Tipos
@@ -76,12 +82,48 @@ export const libraryService = {
   },
 
   // Mensagens
-  async sendMessage(conversationId: string, message: string): Promise<SendMessageResponse> {
-    const { data } = await apiClient.post(
+  /**
+   * Envia mensagem no chat RAG da biblioteca. Suporta tanto o shape
+   * legacy (`SendMessageResponse` direto) quanto o novo
+   * (`EnqueuedJobResponse` + polling + GET conversa). Ver
+   * `chatbotService.sendMessage` pra detalhes do pattern.
+   */
+  async sendMessage(
+    conversationId: string,
+    message: string,
+    jobOpts?: WaitForJobOptions,
+  ): Promise<SendMessageResponse> {
+    const { data } = await apiClient.post<
+      SendMessageResponse | EnqueuedJobResponse
+    >(
       `/library/chat/conversations/${conversationId}/messages`,
       { message },
       { timeout: 120000 }, // 2 minutos — IA precisa buscar chunks + gerar resposta
     );
+
+    if (isEnqueuedJob(data)) {
+      const assistantMessageId = await waitForJob<string>(data, jobOpts);
+      const conversation = await this.getConversation(conversationId);
+      const messages = conversation.messages ?? [];
+      const assistantMessage = messages.find(
+        (m) => m.id === assistantMessageId,
+      );
+      if (!assistantMessage) {
+        throw new Error(
+          `Assistant message ${assistantMessageId} nao encontrada na conversa ${conversationId}`,
+        );
+      }
+      const idx = messages.indexOf(assistantMessage);
+      const userMessage = idx > 0 ? messages[idx - 1] : assistantMessage;
+      // `sources` do SendMessageResponse legacy vem das `sources` da
+      // propria assistantMessage (shape do LibraryMessage).
+      return {
+        userMessage,
+        assistantMessage,
+        sources: assistantMessage.sources ?? [],
+      };
+    }
+
     return data;
   },
 
