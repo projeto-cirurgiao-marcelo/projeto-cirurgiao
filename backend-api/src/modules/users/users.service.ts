@@ -1,15 +1,21 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { AuditService } from '../../shared/audit/audit.service';
+import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   async findAll() {
     return this.prisma.user.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         email: true,
@@ -442,14 +448,27 @@ export class UsersService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, actorId: string | null = null) {
     const user = await this.prisma.user.findUnique({ where: { id } });
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    await this.prisma.user.delete({ where: { id } });
+    // Soft-delete: preserva histórico de matrículas, progresso e posts
+    // de fórum. Email vira inativo mas a linha fica rastreável.
+    await this.prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+
+    await this.audit.record({
+      actorId,
+      action: AUDIT_ACTIONS.USER_SOFT_DELETE,
+      entityType: 'users',
+      entityId: id,
+      metadata: { email: user.email, role: user.role },
+    });
 
     return { message: 'Usuário removido com sucesso' };
   }

@@ -21,11 +21,17 @@ import {
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
+import { QueueService } from '../../shared/queue/queue.service';
+import { QUEUE_NAMES } from '../../shared/queue/queue.constants';
 import { Role } from '@prisma/client';
 
 @Controller('library')
 export class AiLibraryController {
-  constructor(private readonly aiLibraryService: AiLibraryService) {}
+  constructor(
+    private readonly aiLibraryService: AiLibraryService,
+    private readonly queueService: QueueService,
+  ) {}
 
   // ============================================
   // Endpoints de Conversas (Aluno)
@@ -77,7 +83,7 @@ export class AiLibraryController {
   // ============================================
 
   @Post('chat/conversations/:id/messages')
-  @UseGuards(FirebaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard, UserThrottlerGuard)
   async sendMessage(
     @Request() req: any,
     @Param('id') conversationId: string,
@@ -121,10 +127,41 @@ export class AiLibraryController {
   // ============================================
 
   @Post('admin/documents/ingest')
-  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @UseGuards(FirebaseAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(Role.ADMIN)
-  async ingestDocument(@Body() dto: IngestDocumentDto) {
-    return this.aiLibraryService.ingestDocument(dto);
+  @HttpCode(HttpStatus.ACCEPTED)
+  async ingestDocument(
+    @Body() dto: IngestDocumentDto,
+    @Request() req: any,
+  ) {
+    // aiLibraryService.ingestDocument creates the KnowledgeDocument row
+    // synchronously and kicks off the heavy embedding work in the
+    // background (via ingestionService.processDocument). We keep the
+    // original create-step inline so the response can return the
+    // documentId, then enqueue the heavy work so QueueService can track
+    // it. When the queue is off, fallback falls back to the inline path.
+    const document = await this.aiLibraryService.ingestDocument(dto);
+    const enqueueResult = await this.queueService.enqueue(
+      QUEUE_NAMES.PDF_INGEST,
+      {
+        type: QUEUE_NAMES.PDF_INGEST,
+        userId: req.user?.sub ?? req.user?.id ?? 'anonymous',
+        entityId: document.documentId,
+        documentId: document.documentId,
+      },
+      {
+        fallback: async () => {
+          // aiLibraryService.ingestDocument already kicked off the work
+          // in-process via `ingestionService.processDocument(...).catch(...)`
+          // — so the fallback is a no-op, we just return the doc ref.
+          return { resultRef: document.documentId };
+        },
+      },
+    );
+    return {
+      ...enqueueResult,
+      document,
+    };
   }
 
   @Get('admin/documents')

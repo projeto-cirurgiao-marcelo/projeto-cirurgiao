@@ -87,7 +87,10 @@ next-env.d.ts
 # ============================================
 # PRISMA
 # ============================================
-prisma/migrations/**/migration.sql
+# Migrations ARE tracked — they are the source of truth for DB schema.
+# (Historical note: they were previously ignored, which caused drift
+# between local filesystems and _prisma_migrations in prod. See
+# docs/DEPLOY.md "Database migration policy".)
 
 # ============================================
 # TERRAFORM
@@ -180,8 +183,11 @@ Knowledge/
 # Claude agent skills cache / local agents folder
 .agents/
 
-# Dev-only admin scripts (stays on disk, not in repo)
-scripts/
+# Dev-only admin scripts (stays on disk, not in repo). Use file globs, not
+# a bare `scripts/` rule, because bare dir ignores cannot be overridden
+# (`!scripts/init-db.sql` would never re-include the file).
+scripts/*
+!scripts/init-db.sql
 backend-api/scripts/*.js
 backend-api/start-proxy.bat
 mobile-app/fix_and_run.bat
@@ -207,6 +213,7 @@ backend-api/cloud-run-env.yaml
 backend-api/check-*.js
 backend-api/scripts/*.ts
 !backend-api/scripts/set-hls-urls.ts
+!backend-api/scripts/backfill-embeddings.ts
 
 # Large data exports (GitHub file limit 100MB)
 *.csv

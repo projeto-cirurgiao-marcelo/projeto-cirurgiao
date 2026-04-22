@@ -8,6 +8,7 @@ import {
   Body,
   UseGuards,
   Res,
+  HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -20,6 +21,9 @@ import {
 } from '@nestjs/swagger';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
+import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
+import { QueueService } from '../../shared/queue/queue.service';
+import { QUEUE_NAMES } from '../../shared/queue/queue.constants';
 import { AiSummariesService } from './ai-summaries.service';
 import { GenerateSummaryDto } from './dto/generate-summary.dto';
 import { UpdateSummaryDto } from './dto/update-summary.dto';
@@ -29,14 +33,23 @@ import { UpdateSummaryDto } from './dto/update-summary.dto';
 @UseGuards(FirebaseAuthGuard)
 @ApiBearerAuth()
 export class AiSummariesController {
-  constructor(private readonly aiSummariesService: AiSummariesService) {}
+  constructor(
+    private readonly aiSummariesService: AiSummariesService,
+    private readonly queueService: QueueService,
+  ) {}
 
   @Post('generate')
-  @ApiOperation({ summary: 'Gerar resumo com IA' })
+  @UseGuards(UserThrottlerGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary: 'Gerar resumo com IA',
+    description:
+      'Enfileira a geração do resumo e retorna 202 com um jobId. Use GET /jobs/:id para polling. Quando QUEUE_ENABLED=false, o job roda inline e já volta completed.',
+  })
   @ApiParam({ name: 'videoId', description: 'ID do vídeo' })
   @ApiResponse({
-    status: 201,
-    description: 'Resumo gerado com sucesso',
+    status: 202,
+    description: 'Job enfileirado (ou executado inline quando fila desativada)',
   })
   @ApiResponse({
     status: 400,
@@ -51,7 +64,22 @@ export class AiSummariesController {
     @GetUser('id') userId: string,
     @Body() dto: GenerateSummaryDto,
   ) {
-    return this.aiSummariesService.generateSummary(videoId, userId, dto);
+    return this.queueService.enqueue(QUEUE_NAMES.SUMMARY, {
+      type: QUEUE_NAMES.SUMMARY,
+      userId,
+      entityId: videoId,
+      videoId,
+      dto: dto as any,
+    }, {
+      fallback: async () => {
+        const summary = await this.aiSummariesService.generateSummary(
+          videoId,
+          userId,
+          dto,
+        );
+        return { resultRef: summary?.id };
+      },
+    });
   }
 
   @Get()

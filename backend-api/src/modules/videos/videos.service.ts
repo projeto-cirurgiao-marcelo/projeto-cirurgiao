@@ -2,9 +2,12 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
-import { CreateVideoDto, VideoUploadStatus } from './dto/create-video.dto';
+import { CreateVideoDto, VideoUploadStatus, VideoSource } from './dto/create-video.dto';
+import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
+import { AuditService } from '../../shared/audit/audit.service';
+import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { Video } from '@prisma/client';
 import { unlink } from 'fs';
 import { promisify } from 'util';
@@ -23,6 +26,56 @@ export interface UploadStatusResponse {
   readyToStream: boolean;
 }
 
+/**
+ * How the frontend should render this video — decoupled from
+ * `videoSource` (which is "where it came from"). New providers can map
+ * to an existing `kind` without changing any client code.
+ *
+ *   - `hls`: load `playbackUrl` in an HLS player (cloudflare ready +
+ *     r2_hls). Cliente olha `captionsEmbedded` pra decidir se precisa
+ *     buscar um `captionsUrl` separado.
+ *   - `iframe`: render `playbackUrl` em um <iframe> (youtube/vimeo/
+ *     external). Provedor cuida das captions internamente.
+ *   - `none`: nada a tocar ainda — `playbackUrl` será null. Vídeo ainda
+ *     processando ou sem URL registrada. UI deve mostrar placeholder.
+ */
+export type VideoPlaybackKind = 'hls' | 'iframe' | 'none';
+
+/**
+ * Frontend-facing playback descriptor derived from a Video row. Kept
+ * flat so player code picks what it needs from a single object.
+ *
+ * Rules:
+ *   - `kind: 'hls'`    → `playbackUrl` non-null, `captionsEmbedded` boolean.
+ *   - `kind: 'iframe'` → `playbackUrl` non-null, `captionsEmbedded` undefined.
+ *   - `kind: 'none'`   → `playbackUrl` null, `captionsEmbedded` undefined.
+ *
+ * `captionsUrl` only appears in the cloudflare-ready case and is
+ * **web-only today** — mobile clients should ignore it even when
+ * present (Cloudflare cross-origin VTT fetch would need pre-signed
+ * URLs, which is out of scope until the R2 migration completes; once
+ * a video ships on r2_hls, captions live in the HLS manifest's
+ * SUBTITLES group and no separate URL is needed).
+ */
+export interface VideoPlaybackUrls {
+  kind: VideoPlaybackKind;
+  playbackUrl: string | null;
+  /**
+   * True when the HLS manifest already carries captions (SUBTITLES
+   * group or CC track) and the player doesn't need a separate URL.
+   * Only meaningful when `kind === 'hls'`; undefined for `iframe` /
+   * `none`.
+   */
+  captionsEmbedded?: boolean;
+  /** Separate captions URL (VTT). Web-only for the cloudflare flow. */
+  captionsUrl?: string;
+  /** Optional thumbnail override. */
+  poster?: string;
+}
+
+/** Video payload returned by controller endpoints — base Video + playback. */
+export type VideoWithPlayback = Video & { playback: VideoPlaybackUrls };
+
 @Injectable()
 export class VideosService {
   private readonly logger = new Logger(VideosService.name);
@@ -31,7 +84,83 @@ export class VideosService {
     private prisma: PrismaService,
     private cloudflareStream: CloudflareStreamService,
     private cloudflareR2: CloudflareR2Service,
+    private audit: AuditService,
   ) {}
+
+  /**
+   * Derive the playback descriptor the frontend should use.
+   *
+   * Maps each `videoSource` onto a rendering `kind` so player code can
+   * branch on intent ("hls player" / "iframe" / "placeholder") instead
+   * of provider identity. See VideoPlaybackUrls docstring for the
+   * invariants that hold for each kind.
+   */
+  buildPlaybackUrls(video: Video): VideoPlaybackUrls {
+    const source = (video.videoSource ?? 'cloudflare') as string;
+    const poster = video.thumbnailUrl ?? undefined;
+
+    switch (source) {
+      case 'r2_hls': {
+        const playbackUrl = video.hlsUrl ?? null;
+        if (!playbackUrl) {
+          // R2 video registered but hlsUrl missing — treat as pending.
+          return { kind: 'none', playbackUrl: null, poster };
+        }
+        return {
+          kind: 'hls',
+          playbackUrl,
+          // External pipeline always publishes the master playlist with
+          // the SUBTITLES group attached, so no separate captionsUrl is
+          // needed.
+          captionsEmbedded: true,
+          poster,
+        };
+      }
+      case 'youtube':
+      case 'vimeo':
+      case 'external': {
+        const playbackUrl = video.externalUrl ?? null;
+        if (!playbackUrl) {
+          return { kind: 'none', playbackUrl: null, poster };
+        }
+        return {
+          kind: 'iframe',
+          playbackUrl,
+          poster,
+        };
+      }
+      case 'cloudflare':
+      default: {
+        const playbackUrl = video.cloudflareUrl ?? null;
+        if (!playbackUrl) {
+          // Cloudflare registrado mas ainda sem URL (upload/processing).
+          return { kind: 'none', playbackUrl: null, poster };
+        }
+        // Cloudflare entrega CC como track separada no manifesto HLS,
+        // não "embedded no mesmo container" — por isso captionsEmbedded
+        // é false mesmo quando o manifesto tem um CC track. Web usa
+        // `/api/v1/captions/:videoId/pt-BR` (auth via backend). Mobile
+        // ignora este campo — ver docstring.
+        const captionsUrl = video.cloudflareId
+          ? `/api/v1/captions/${video.id}/pt-BR`
+          : undefined;
+        return {
+          kind: 'hls',
+          playbackUrl,
+          captionsEmbedded: false,
+          captionsUrl,
+          poster,
+        };
+      }
+    }
+  }
+
+  /**
+   * Attach playback URLs to a Video row.
+   */
+  withPlayback(video: Video): VideoWithPlayback {
+    return { ...video, playback: this.buildPlaybackUrls(video) };
+  }
 
   /**
    * Criar um novo vídeo
@@ -84,6 +213,12 @@ export class VideosService {
           uploadProgress: createVideoDto.uploadProgress || 0,
           uploadError: createVideoDto.uploadError,
           tempFilePath: createVideoDto.tempFilePath,
+          // New fields — explicit so TypeScript keeps us honest when schema.prisma
+          // adds more. Default videoSource stays 'cloudflare' (DB default) unless
+          // the caller provides one (e.g. r2_hls from the dedicated endpoint).
+          hlsUrl: createVideoDto.hlsUrl,
+          externalUrl: createVideoDto.externalUrl,
+          videoSource: createVideoDto.videoSource,
           module: {
             connect: { id: moduleId },
           },
@@ -214,6 +349,67 @@ export class VideosService {
   }
 
   /**
+   * Criar vídeo a partir de master playlist HLS já hospedado em R2.
+   *
+   * Nothing to transcode or upload on the backend: the external FFmpeg+
+   * Whisper pipeline has already produced the full HLS ladder (including
+   * the SUBTITLES group) and published it at `hlsUrl`. We just create the
+   * Video row with `videoSource='r2_hls'` and `uploadStatus='READY'`.
+   */
+  async createFromR2Hls(
+    moduleId: string,
+    dto: CreateVideoFromR2HlsDto,
+  ): Promise<Video> {
+    const module = await this.prisma.module.findUnique({
+      where: { id: moduleId },
+    });
+    if (!module) {
+      throw new NotFoundException('Módulo não encontrado');
+    }
+
+    // Resolve order: caller can pin it, otherwise next-available.
+    const order =
+      dto.order !== undefined && dto.order !== null
+        ? dto.order
+        : await this.getNextOrder(moduleId);
+
+    const conflicting = await this.prisma.video.findFirst({
+      where: { moduleId, order },
+    });
+    if (conflicting) {
+      throw new BadRequestException(
+        'Já existe um vídeo com esta ordem neste módulo',
+      );
+    }
+
+    const captionsEmbedded = dto.captionsEmbedded !== false;
+
+    const video = await this.prisma.video.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        thumbnailUrl: dto.thumbnailUrl,
+        duration: dto.duration,
+        order,
+        isPublished: false,
+        uploadStatus: 'READY',
+        uploadProgress: 100,
+        hlsUrl: dto.hlsUrl,
+        videoSource: VideoSource.R2_HLS,
+        module: { connect: { id: moduleId } },
+      },
+      include: {
+        module: { select: { id: true, title: true, courseId: true } },
+      },
+    });
+
+    this.logger.log(
+      `R2/HLS video created: ${video.id} (module ${moduleId}, captionsEmbedded=${captionsEmbedded})`,
+    );
+    return video;
+  }
+
+  /**
    * Upload de vídeo para Cloudflare Stream via URL
    */
   async uploadFromUrl(moduleId: string, url: string, metadata: { title: string; description?: string; order: number }): Promise<Video> {
@@ -248,50 +444,6 @@ export class VideosService {
       return video;
     } catch (error) {
       this.logger.error('Error uploading video from URL', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Upload de vídeo para Cloudflare Stream via arquivo (buffer)
-   */
-  async uploadFromFile(
-    moduleId: string,
-    file: Buffer,
-    filename: string,
-    metadata: { title: string; description?: string; order: number },
-  ): Promise<Video> {
-    try {
-      // Verificar se o módulo existe
-      const module = await this.prisma.module.findUnique({
-        where: { id: moduleId },
-      });
-
-      if (!module) {
-        throw new NotFoundException('Módulo não encontrado');
-      }
-
-      // Upload para Cloudflare Stream
-      const cloudflareVideo = await this.cloudflareStream.uploadVideoFromFile(file, filename, {
-        name: metadata.title,
-      });
-
-      // Criar registro no banco
-      const video = await this.create(moduleId, {
-        title: metadata.title,
-        description: metadata.description,
-        cloudflareId: cloudflareVideo.uid,
-        cloudflareUrl: cloudflareVideo.playbackUrl,
-        thumbnailUrl: cloudflareVideo.thumbnailUrl,
-        duration: cloudflareVideo.duration,
-        order: metadata.order,
-        isPublished: false,
-        uploadStatus: VideoUploadStatus.READY,
-      });
-
-      return video;
-    } catch (error) {
-      this.logger.error('Error uploading video from file', error);
       throw error;
     }
   }
@@ -499,80 +651,6 @@ export class VideosService {
   }
 
   /**
-   * Upload de vídeo para Cloudflare Stream via arquivo no disco (TUS protocol)
-   * Usa TUS para suportar arquivos grandes com upload resumível
-   * @deprecated Use uploadFromDiskAsync para uploads assíncronos
-   */
-  async uploadFromDisk(
-    moduleId: string,
-    filePath: string,
-    filename: string,
-    metadata: { title: string; description?: string; order: number },
-  ): Promise<Video> {
-    try {
-      this.logger.log(`Starting upload from disk: ${filePath}`);
-
-      // Verificar se o módulo existe
-      const module = await this.prisma.module.findUnique({
-        where: { id: moduleId },
-      });
-
-      if (!module) {
-        throw new NotFoundException('Módulo não encontrado');
-      }
-
-      // Obter tamanho do arquivo
-      const stats = await import('fs').then(fs => fs.promises.stat(filePath));
-      const fileSize = stats.size;
-      this.logger.log(`File size: ${fileSize} bytes (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
-
-      // Upload para Cloudflare Stream usando TUS (suporta arquivos grandes)
-      const cloudflareVideo = await this.cloudflareStream.uploadVideoViaTus(
-        filePath,
-        filename,
-        fileSize,
-        { name: metadata.title }
-      );
-
-      this.logger.log(`Upload completed. Cloudflare UID: ${cloudflareVideo.uid}`);
-
-      // Criar registro no banco
-      const video = await this.create(moduleId, {
-        title: metadata.title,
-        description: metadata.description,
-        cloudflareId: cloudflareVideo.uid,
-        cloudflareUrl: cloudflareVideo.playbackUrl,
-        thumbnailUrl: cloudflareVideo.thumbnailUrl,
-        duration: cloudflareVideo.duration,
-        order: metadata.order,
-        isPublished: false,
-        uploadStatus: VideoUploadStatus.READY,
-      });
-
-      // Deletar arquivo temporário
-      try {
-        await unlinkAsync(filePath);
-        this.logger.log(`Temporary file deleted: ${filePath}`);
-      } catch (deleteError) {
-        this.logger.warn(`Failed to delete temporary file: ${filePath}`, deleteError);
-      }
-
-      return video;
-    } catch (error) {
-      this.logger.error('Error uploading video from disk', error);
-      
-      // Tentar deletar arquivo temporário em caso de erro
-      try {
-        await unlinkAsync(filePath);
-      } catch (deleteError) {
-        // Ignorar erro de deleção
-      }
-      
-      throw error;
-    }
-  }
-
-  /**
    * Obter URL de upload direto (TUS)
    */
   async getDirectUploadUrl(): Promise<{ uploadURL: string; uid: string }> {
@@ -715,11 +793,21 @@ export class VideosService {
     return this.prisma.video.findMany({
       where: {
         moduleId,
+        deletedAt: null,
       },
       orderBy: {
         order: 'asc',
       },
     });
+  }
+
+  /**
+   * Same as findAll but attaches playback URLs. Preferred by controllers
+   * and any caller that ships Video objects to the frontend.
+   */
+  async findAllWithPlayback(moduleId: string): Promise<VideoWithPlayback[]> {
+    const videos = await this.findAll(moduleId);
+    return videos.map((v) => this.withPlayback(v));
   }
 
   /**
@@ -746,7 +834,7 @@ export class VideosService {
       },
     });
 
-    if (!video) {
+    if (!video || video.deletedAt) {
       throw new NotFoundException('Vídeo não encontrado');
     }
 
@@ -772,6 +860,14 @@ export class VideosService {
     }
 
     return video;
+  }
+
+  /**
+   * Same as findOne but attaches playback URLs. Preferred by controllers.
+   */
+  async findOneWithPlayback(id: string): Promise<VideoWithPlayback> {
+    const video = await this.findOne(id);
+    return this.withPlayback(video);
   }
 
   /**
@@ -814,46 +910,38 @@ export class VideosService {
   }
 
   /**
-   * Deletar vídeo (também remove do Cloudflare Stream)
-   * IMPORTANTE: Mesmo se a deleção do Cloudflare falhar, o vídeo é removido do banco
+   * Soft-delete do vídeo.
+   *
+   * Mudança de contrato: não removemos mais do Cloudflare Stream nem
+   * apagamos arquivos temporários aqui. O vídeo permanece intacto no
+   * storage até um recycle-bin job (fora desta sprint) consolidar o
+   * hard-delete. Isso preserva progresso, summaries e quizzes já
+   * anexados ao `videoId` — tudo fica acessível para rollback.
+   *
+   * O arquivo temp de upload ainda é limpo no success path do upload
+   * em background (processUploadInBackground), então o leak de disco
+   * só ocorre se o upload falhar e o admin deletar antes do cleanup —
+   * risco aceitável e é a mesma janela que existia antes.
    */
-  async remove(id: string): Promise<void> {
-    // Verificar se o vídeo existe
-    const video = await this.findOne(id);
-
-    // Tentar deletar do Cloudflare Stream (se tiver cloudflareId)
-    // Não bloqueia a deleção do banco se falhar
-    if (video.cloudflareId) {
-      try {
-        await this.cloudflareStream.deleteVideo(video.cloudflareId);
-        this.logger.log(`Video deleted from Cloudflare: ${video.cloudflareId}`);
-      } catch (cloudflareError) {
-        // Log do erro mas continua com a deleção do banco
-        this.logger.warn(`Failed to delete video from Cloudflare (${video.cloudflareId}), continuing with DB deletion: ${cloudflareError.message}`);
-      }
-    }
-
-    // Deletar arquivo temporário se existir
-    if (video.tempFilePath) {
-      try {
-        await unlinkAsync(video.tempFilePath);
-        this.logger.log(`Temp file deleted: ${video.tempFilePath}`);
-      } catch (deleteError) {
-        // Ignorar erro de deleção de arquivo temp
-        this.logger.warn(`Failed to delete temp file: ${video.tempFilePath}`);
-      }
-    }
+  async remove(id: string, actorId: string | null = null): Promise<void> {
+    await this.findOne(id);
 
     try {
-      // Deletar do banco
-      await this.prisma.video.delete({
+      await this.prisma.video.update({
         where: { id },
+        data: { deletedAt: new Date() },
       });
 
-      this.logger.log(`Video deleted from database: ${id}`);
+      this.logger.log(`Video soft-deleted: ${id}`);
+      await this.audit.record({
+        actorId,
+        action: AUDIT_ACTIONS.VIDEO_SOFT_DELETE,
+        entityType: 'videos',
+        entityId: id,
+      });
     } catch (dbError) {
-      this.logger.error(`Error deleting video ${id} from database`, dbError);
-      throw new BadRequestException('Erro ao deletar vídeo do banco de dados');
+      this.logger.error(`Error soft-deleting video ${id}`, dbError);
+      throw new BadRequestException('Erro ao deletar vídeo');
     }
   }
 

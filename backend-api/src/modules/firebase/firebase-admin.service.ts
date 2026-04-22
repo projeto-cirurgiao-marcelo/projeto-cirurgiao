@@ -12,7 +12,7 @@ export class FirebaseAdminService implements OnModuleInit {
   onModuleInit() {
     try {
       // Verifica se já foi inicializado
-      if (admin.apps.length > 0) {
+      if (admin.apps.length > 0 && admin.apps[0]) {
         this.app = admin.apps[0];
         this.logger.log('Firebase Admin SDK already initialized');
         return;

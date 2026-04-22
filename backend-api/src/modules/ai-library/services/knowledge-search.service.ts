@@ -126,75 +126,64 @@ export class KnowledgeSearchService {
 
     this.logger.log(`Searching knowledge base for: "${query.substring(0, 80)}..."`);
 
-    // Gerar embedding da query
     const queryEmbedding = await this.generateEmbedding(query);
+    const queryVector = `[${queryEmbedding.join(',')}]`;
+    const maxDistance = 1 - minSimilarity;
 
-    // Fase 1: Carregar apenas IDs e embeddings (sem conteúdo pesado)
-    const whereClause: any = { isIndexed: true };
-    if (documentId) {
-      whereClause.documentId = documentId;
-    }
+    // pgvector <=> is cosine distance. We order by it (HNSW-backed) and
+    // filter by a max distance to emulate the previous minSimilarity gate.
+    const sql = `
+      SELECT c.id, c."documentId", c."chunkIndex",
+             c.content, c."contentPt",
+             c.chapter, c."chapterPt",
+             c."pageStart", c."pageEnd", c.language,
+             d.title AS document_title,
+             (c.embedding <=> $1::vector) AS distance
+      FROM knowledge_chunks c
+      JOIN knowledge_documents d ON d.id = c."documentId"
+      WHERE c."isIndexed" = true
+        AND c.embedding IS NOT NULL
+        ${documentId ? 'AND c."documentId" = $3' : ''}
+        AND (c.embedding <=> $1::vector) <= $2
+      ORDER BY c.embedding <=> $1::vector
+      LIMIT ${Math.max(1, Math.min(50, limit))}
+    `;
 
-    const chunksLight = await this.prisma.knowledgeChunk.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        embedding: true,
-      },
-    });
+    const params: unknown[] = [queryVector, maxDistance];
+    if (documentId) params.push(documentId);
 
-    if (chunksLight.length === 0) {
-      this.logger.warn('No indexed chunks found');
-      return [];
-    }
+    const rows = (await this.prisma.$queryRawUnsafe(sql, ...params)) as Array<{
+      id: string;
+      documentId: string;
+      chunkIndex: number;
+      content: string;
+      contentPt: string | null;
+      chapter: string | null;
+      chapterPt: string | null;
+      pageStart: number | null;
+      pageEnd: number | null;
+      language: string;
+      document_title: string;
+      distance: number;
+    }>;
 
-    // Fase 2: Calcular similaridade e pegar top-N IDs
-    const scored: { id: string; similarity: number }[] = [];
+    const results: KnowledgeSearchResult[] = rows.map((row) => ({
+      chunkId: row.id,
+      documentId: row.documentId,
+      documentTitle: row.document_title,
+      content: row.content,
+      contentPt: row.contentPt,
+      chapter: row.chapter,
+      chapterPt: row.chapterPt,
+      pageStart: row.pageStart,
+      pageEnd: row.pageEnd,
+      language: row.language,
+      similarity: 1 - row.distance,
+    }));
 
-    for (const chunk of chunksLight) {
-      if (!chunk.embedding) continue;
-      const similarity = this.cosineSimilarity(queryEmbedding, chunk.embedding as number[]);
-      if (similarity >= minSimilarity) {
-        scored.push({ id: chunk.id, similarity });
-      }
-    }
-
-    scored.sort((a, b) => b.similarity - a.similarity);
-    const topIds = scored.slice(0, limit);
-
-    if (topIds.length === 0) {
-      this.logger.warn('No chunks above similarity threshold');
-      return [];
-    }
-
-    // Fase 3: Buscar conteúdo completo apenas dos top-N
-    const topChunks = await this.prisma.knowledgeChunk.findMany({
-      where: { id: { in: topIds.map(t => t.id) } },
-      include: {
-        document: { select: { id: true, title: true } },
-      },
-    });
-
-    // Mapear similaridade e ordenar
-    const similarityMap = new Map(topIds.map(t => [t.id, t.similarity]));
-
-    const results: KnowledgeSearchResult[] = topChunks
-      .map(chunk => ({
-        chunkId: chunk.id,
-        documentId: chunk.documentId,
-        documentTitle: chunk.document.title,
-        content: chunk.content,
-        contentPt: chunk.contentPt,
-        chapter: chunk.chapter,
-        chapterPt: chunk.chapterPt,
-        pageStart: chunk.pageStart,
-        pageEnd: chunk.pageEnd,
-        language: chunk.language,
-        similarity: similarityMap.get(chunk.id) || 0,
-      }))
-      .sort((a, b) => b.similarity - a.similarity);
-
-    this.logger.log(`Found ${results.length} relevant chunks (top similarity: ${results[0]?.similarity.toFixed(3)})`);
+    this.logger.log(
+      `Found ${results.length} relevant chunks (top similarity: ${results[0]?.similarity.toFixed(3)})`,
+    );
 
     return results;
   }

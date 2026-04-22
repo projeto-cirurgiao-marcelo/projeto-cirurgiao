@@ -42,8 +42,8 @@ lerna-debug.log*
 .env.production.local
 
 # Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
+# Migrations are tracked — do NOT ignore them. See docs/DEPLOY.md "Database
+# migration policy".
 
 # Firebase Service Account Key (NUNCA commitar!)
 firebase-service-account.json

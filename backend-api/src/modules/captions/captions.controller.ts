@@ -23,6 +23,10 @@ import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CaptionsService } from './captions.service';
+import { QueueService } from '../../shared/queue/queue.service';
+import { QUEUE_NAMES } from '../../shared/queue/queue.constants';
+import { Request as ExpressRequest } from 'express';
+import { Req } from '@nestjs/common';
 import {
   GenerateCaptionDto,
   CaptionResponseDto,
@@ -35,10 +39,14 @@ import {
 @UseGuards(FirebaseAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class CaptionsController {
-  constructor(private readonly captionsService: CaptionsService) {}
+  constructor(
+    private readonly captionsService: CaptionsService,
+    private readonly queueService: QueueService,
+  ) {}
 
   @Post('generate')
   @Roles('ADMIN', 'INSTRUCTOR')
+  @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     summary: 'Gerar legendas automaticamente via IA',
     description: `Gera legendas automaticamente usando IA (speech-to-text) para o vídeo especificado.
@@ -61,12 +69,30 @@ Use o endpoint GET para verificar quando a legenda estiver pronta.`,
   async generateCaption(
     @Param('videoId') videoId: string,
     @Body() dto: GenerateCaptionDto,
-  ): Promise<CaptionResponseDto> {
-    const result = await this.captionsService.generateCaption(
-      videoId,
-      dto.language || 'pt',
+    @Req() req: ExpressRequest,
+  ) {
+    const language = dto.language || 'pt';
+    const userId =
+      (req as any).user?.sub ?? (req as any).user?.id ?? 'anonymous';
+    return this.queueService.enqueue(
+      QUEUE_NAMES.CAPTIONS,
+      {
+        type: QUEUE_NAMES.CAPTIONS,
+        userId,
+        entityId: videoId,
+        videoId,
+        language,
+      },
+      {
+        fallback: async () => {
+          const result = await this.captionsService.generateCaption(
+            videoId,
+            language,
+          );
+          return { resultRef: (result as any)?.label };
+        },
+      },
     );
-    return result;
   }
 
   @Get()

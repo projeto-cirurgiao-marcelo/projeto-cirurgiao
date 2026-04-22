@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
+import { AuditService } from '../../shared/audit/audit.service';
+import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { ReorderModulesDto } from './dto/reorder-modules.dto';
@@ -15,6 +17,7 @@ export class ModulesService {
   constructor(
     private prisma: PrismaService,
     private cloudflareR2: CloudflareR2Service,
+    private audit: AuditService,
   ) {}
 
   /**
@@ -82,6 +85,7 @@ export class ModulesService {
     return this.prisma.module.findMany({
       where: {
         courseId,
+        deletedAt: null,
       },
       include: {
         videos: {
@@ -128,7 +132,7 @@ export class ModulesService {
       },
     });
 
-    if (!module) {
+    if (!module || module.deletedAt) {
       throw new NotFoundException('Módulo não encontrado');
     }
 
@@ -182,20 +186,28 @@ export class ModulesService {
   }
 
   /**
-   * Deletar módulo
+   * Soft-delete do módulo. Vídeos filhos ficam intocados — podem ser
+   * restaurados em bloco depois via endpoint de restore (não nesta
+   * sprint). Registra no audit log.
    */
-  async remove(id: string): Promise<void> {
-    // Verificar se o módulo existe
+  async remove(id: string, actorId: string | null = null): Promise<void> {
     await this.findOne(id);
 
     try {
-      await this.prisma.module.delete({
+      await this.prisma.module.update({
         where: { id },
+        data: { deletedAt: new Date() },
       });
 
-      this.logger.log(`Module deleted: ${id}`);
+      this.logger.log(`Module soft-deleted: ${id}`);
+      await this.audit.record({
+        actorId,
+        action: AUDIT_ACTIONS.MODULE_SOFT_DELETE,
+        entityType: 'modules',
+        entityId: id,
+      });
     } catch (error) {
-      this.logger.error(`Error deleting module ${id}`, error);
+      this.logger.error(`Error soft-deleting module ${id}`, error);
       throw new BadRequestException('Erro ao deletar módulo');
     }
   }

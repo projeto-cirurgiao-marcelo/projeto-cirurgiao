@@ -112,7 +112,7 @@ export class CoursesController {
       }
     }
 
-    await this.coursesService.remove(id);
+    await this.coursesService.remove(id, req.user?.sub ?? req.user?.userId ?? null);
     return { message: 'Curso deletado com sucesso' };
   }
 

@@ -21,6 +21,7 @@ import { VideosService } from './videos.service';
 import { CoursesService } from '../courses/courses.service';
 import { ModulesService } from '../modules/modules.service';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
@@ -65,6 +66,24 @@ export class VideosController {
   @Roles(Role.INSTRUCTOR, Role.ADMIN)
   getUploadUrl() {
     return this.videosService.getDirectUploadUrl();
+  }
+
+  /**
+   * Criar vídeo a partir de master playlist HLS já hospedado em R2.
+   * O backend não processa nada — apenas registra o vídeo finalizado
+   * pelo pipeline externo (FFmpeg+Whisper → R2).
+   */
+  @Post('modules/:moduleId/videos/from-r2-hls')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  async createFromR2Hls(
+    @Param('moduleId') moduleId: string,
+    @Body() dto: CreateVideoFromR2HlsDto,
+    @Request() req,
+  ) {
+    await this.checkInstructorPermission(moduleId, req.user.sub, req.user.role);
+    const video = await this.videosService.createFromR2Hls(moduleId, dto);
+    return this.videosService.withPlayback(video);
   }
 
   /**
@@ -228,7 +247,7 @@ export class VideosController {
 
   @Get('modules/:moduleId/videos')
   findAll(@Param('moduleId') moduleId: string) {
-    return this.videosService.findAll(moduleId);
+    return this.videosService.findAllWithPlayback(moduleId);
   }
 
   @Get('modules/:moduleId/videos/next-order')
@@ -254,7 +273,7 @@ export class VideosController {
 
   @Get('videos/:id')
   findOne(@Param('id') id: string) {
-    return this.videosService.findOne(id);
+    return this.videosService.findOneWithPlayback(id);
   }
 
   @Patch('videos/:id')
@@ -276,7 +295,7 @@ export class VideosController {
   async remove(@Param('id') id: string, @Request() req) {
     const video = await this.videosService.findOne(id);
     await this.checkInstructorPermission(video.moduleId, req.user.sub, req.user.role);
-    await this.videosService.remove(id);
+    await this.videosService.remove(id, req.user?.sub ?? null);
     return { message: 'Vídeo deletado com sucesso' };
   }
 

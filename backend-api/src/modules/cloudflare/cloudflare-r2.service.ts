@@ -35,9 +35,12 @@ export class CloudflareR2Service {
   constructor(private configService: ConfigService) {
     const r2AccessKeyId = this.configService.get<string>('CLOUDFLARE_R2_ACCESS_KEY_ID');
     const r2SecretAccessKey = this.configService.get<string>('CLOUDFLARE_R2_SECRET_ACCESS_KEY');
-    this.bucket = this.configService.get<string>('CLOUDFLARE_R2_BUCKET');
-    this.endpoint = this.configService.get<string>('CLOUDFLARE_R2_ENDPOINT');
-    this.publicUrl = this.configService.get<string>('CLOUDFLARE_R2_PUBLIC_URL');
+    // ConfigService returns undefined for missing keys; we tolerate that
+    // (R2 features go into degraded mode below) but TypeScript strict
+    // needs a concrete string assignment here.
+    this.bucket = this.configService.get<string>('CLOUDFLARE_R2_BUCKET') ?? '';
+    this.endpoint = this.configService.get<string>('CLOUDFLARE_R2_ENDPOINT') ?? '';
+    this.publicUrl = this.configService.get<string>('CLOUDFLARE_R2_PUBLIC_URL') ?? '';
 
     if (!r2AccessKeyId || !r2SecretAccessKey || !this.bucket || !this.endpoint) {
       this.logger.warn('Cloudflare R2 credentials not fully configured - R2 features will be disabled');
