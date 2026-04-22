@@ -232,3 +232,6 @@ skills-lock.json
 # Superpowers plans and specs (local workflow docs, not shipped)
 docs/superpowers/plans/
 docs/superpowers/specs/
+
+# Agent team warmup artifact
+CIRURGIAO_AUDIT.md
