@@ -78,6 +78,74 @@ credenciais lado a lado.
 
 ---
 
+## Arquitetura — débitos anteriores ao sprint
+
+Itens identificados durante o sprint v1.0 mas originados antes dele. Não
+foram introduzidos por nenhum dos 3 tracks; são dívida arquitetural
+pré-existente. Alvo de remediação fora do escopo v1.0.
+
+### Autenticação híbrida Firebase + JWT
+
+**Descoberto durante smoke test do sprint v1.0 (2026-04-18).**
+
+Vários endpoints do backend usam `FirebaseAuthGuard` pra validar o
+`Authorization: Bearer <token>` header em vez do `JwtAuthGuard` próprio
+que valida o token emitido por `POST /auth/login`. Na prática:
+
+- Cliente faz `POST /auth/login` → recebe `accessToken` (JWT nosso).
+- Cliente tenta `GET /api/v1/courses` com esse JWT → **401** porque esse
+  endpoint exige Firebase ID token, não JWT.
+- Funciona via frontend porque o Firebase Web SDK emite ID token
+  automaticamente, e `apiClient` injeta ele no header.
+
+Impacto:
+- **Smoke test via curl direto é complicado**: cada endpoint tem guard
+  diferente, e pra endpoints com `FirebaseAuthGuard` precisamos de
+  Firebase ID token (obtido via Firebase SDK client-side), não do JWT
+  do `/auth/login`.
+- Documentação de API fica ambígua — não dá pra dizer "envie o Bearer
+  do /auth/login" pra todos os endpoints.
+- Refresh flow fica duplicado (refresh do JWT próprio + renovação do
+  Firebase ID token).
+
+Plano (próximo sprint):
+1. Auditar cada controller e listar qual guard está em uso.
+2. Decidir: migrar tudo pra `JwtAuthGuard` OU tudo pra `FirebaseAuthGuard`
+   consistente. A escolha depende de:
+   - Se queremos manter suporte a login email/senha sem Firebase → ficar
+     com `JwtAuthGuard` (gera próprio JWT após validar Firebase ID).
+   - Se Firebase é a fonte de verdade → consolidar em `FirebaseAuthGuard`
+     e deprecar `/auth/login` (virar `/auth/firebase-login` apenas).
+3. Migration path gradual (feature flag por controller?) ou big-bang?
+4. Atualizar `apiClient` do web e mobile pra usar o token correto em
+   todas as requests.
+5. Smoke test pós-migração confirma que curl direto com único tipo de
+   token funciona em todos os endpoints.
+
+Owner: próximo sprint, track backend (C). Estimativa: 2-3 dias
+(auditoria + migração + smoke). **Não é bloqueador go-live** porque
+frontend funciona hoje — é dívida de developer-experience e
+documentação.
+
+**Workaround pra smoke test no go-live (sprint v1.0):**
+
+Usar Firebase ID token (obtido via frontend real ou via script
+helper) em vez do JWT do `/auth/login` pra testes via curl. Exemplo:
+
+```bash
+# No web (DevTools console), logado:
+await firebase.auth().currentUser.getIdToken()
+# ou no mobile, com o user logado:
+await firebase.auth().currentUser.getIdToken()
+```
+
+Copiar esse token e usar como `Authorization: Bearer <token>` em curl.
+**Alternativa recomendada pro go-live**: rodar smoke test direto pela
+UI (web + mobile), não via curl — simula melhor a experiência real
+de usuário e evita esse gotcha.
+
+---
+
 ## Próximo sprint — Web (T7.1)
 
 A (web) auditou fluxos que precisam de skeletons/loading states mas
