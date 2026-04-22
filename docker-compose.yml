@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # PostgreSQL 15 - Banco de dados principal
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: projeto-cirurgiao-postgres
     environment:
       POSTGRES_DB: projeto_cirurgiao

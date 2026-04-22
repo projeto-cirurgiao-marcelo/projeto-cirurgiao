@@ -16,6 +16,7 @@
 .env.*.local
 gcp-service-account-key.json
 firebase-adminsdk-*.json
+cloud-run-env.yaml
 
 # iOS
 iOS/GoogleService-Info.plist
