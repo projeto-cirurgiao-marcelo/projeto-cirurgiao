@@ -9,6 +9,8 @@ import { AdminHeader } from '@/components/layout/admin-header';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Layout compartilhado para todas as páginas admin
  * Inclui sidebar e header automaticamente
@@ -28,13 +30,13 @@ export default function AdminLayout({
   useEffect(() => {
     // Aguarda a hidratação e o carregamento antes de verificar autenticação
     if (hasHydrated && !isLoading && !isAuthenticated) {
-      console.log('🔴 [Admin Layout] Usuário não autenticado, redirecionando para login');
+      logger.log('🔴 [Admin Layout] Usuário não autenticado, redirecionando para login');
       router.push('/login');
     }
     
     // Verificar se é admin
     if (hasHydrated && !isLoading && isAuthenticated && user?.role !== 'ADMIN') {
-      console.log('🔴 [Admin Layout] Usuário não é admin, redirecionando');
+      logger.log('🔴 [Admin Layout] Usuário não é admin, redirecionando');
       router.push('/student/my-courses');
     }
   }, [hasHydrated, isLoading, isAuthenticated, user, router]);

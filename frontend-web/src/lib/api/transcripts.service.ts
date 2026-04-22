@@ -1,5 +1,7 @@
 import { apiClient } from './client';
 
+import { logger } from '@/lib/logger';
+
 // Tipos
 export interface TranscriptSegment {
   startTime: number;
@@ -44,7 +46,7 @@ export const transcriptsService = {
       
       return data;
     } catch (error) {
-      console.error('Erro ao buscar transcrição:', error);
+      logger.error('Erro ao buscar transcrição:', error);
       return null;
     }
   },
@@ -57,7 +59,7 @@ export const transcriptsService = {
       const response = await apiClient.get<TranscriptExistsResponse>(`/videos/${videoId}/transcript/exists`);
       return response.data.hasTranscript;
     } catch (error) {
-      console.error('Erro ao verificar transcrição:', error);
+      logger.error('Erro ao verificar transcrição:', error);
       return false;
     }
   },

@@ -1,6 +1,8 @@
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, UploadTaskSnapshot } from 'firebase/storage';
 import app from './config';
 
+import { logger } from '@/lib/logger';
+
 // Inicializar Firebase Storage
 const storage = getStorage(app);
 
@@ -65,7 +67,7 @@ export async function uploadFile(
         }
       },
       (error) => {
-        console.error('Erro no upload:', error);
+        logger.error('Erro no upload:', error);
         reject(new Error(`Erro ao fazer upload: ${error.message}`));
       },
       async () => {

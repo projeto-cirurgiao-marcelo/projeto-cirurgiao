@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { gamificationService } from '@/lib/gamification';
 import { useNotificationStore } from '@/lib/stores/notification-store';
+import { logger } from '@/lib/logger';
 import type {
   GamificationProfile,
   Badge,
@@ -105,7 +106,7 @@ export const useGamificationStore = create<GamificationStore>()((set, get) => ({
         isLoadingProfile: false,
       });
     } catch (error: any) {
-      console.error('[Gamification] Erro ao carregar perfil:', error);
+      logger.error('[Gamification] Erro ao carregar perfil:', error);
       set({
         isLoadingProfile: false,
         profileError: error?.message || 'Erro ao carregar perfil',
@@ -119,7 +120,7 @@ export const useGamificationStore = create<GamificationStore>()((set, get) => ({
       const data = await gamificationService.getBadges();
       set({ badges: data.badges, badgesSummary: data.summary, isLoadingBadges: false });
     } catch (error) {
-      console.error('[Gamification] Erro ao carregar badges:', error);
+      logger.error('[Gamification] Erro ao carregar badges:', error);
       set({ isLoadingBadges: false });
     }
   },
@@ -130,7 +131,7 @@ export const useGamificationStore = create<GamificationStore>()((set, get) => ({
       const data = await gamificationService.getLeaderboard(period);
       set({ leaderboard: data, isLoadingLeaderboard: false });
     } catch (error) {
-      console.error('[Gamification] Erro ao carregar leaderboard:', error);
+      logger.error('[Gamification] Erro ao carregar leaderboard:', error);
       set({ isLoadingLeaderboard: false });
     }
   },
@@ -141,7 +142,7 @@ export const useGamificationStore = create<GamificationStore>()((set, get) => ({
       const data = await gamificationService.getChallenges();
       set({ challenges: data, isLoadingChallenges: false });
     } catch (error) {
-      console.error('[Gamification] Erro ao carregar desafios:', error);
+      logger.error('[Gamification] Erro ao carregar desafios:', error);
       set({ isLoadingChallenges: false });
     }
   },
@@ -170,7 +171,7 @@ export const useGamificationStore = create<GamificationStore>()((set, get) => ({
       }
       return result;
     } catch (error) {
-      console.error('[Gamification] Erro ao reivindicar desafio:', error);
+      logger.error('[Gamification] Erro ao reivindicar desafio:', error);
       return null;
     }
   },
@@ -186,7 +187,7 @@ export const useGamificationStore = create<GamificationStore>()((set, get) => ({
         get().processEvents(unseenEvents);
       }
     } catch (error) {
-      console.warn('[Gamification] Erro no polling de eventos:', error);
+      logger.warn('[Gamification] Erro no polling de eventos:', error);
     } finally {
       set({ isPollingEvents: false });
     }

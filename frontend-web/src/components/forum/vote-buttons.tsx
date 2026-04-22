@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import { forumService } from '@/lib/api/forum.service';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
+
 interface VoteButtonsProps {
   type: 'topic' | 'reply';
   id: string;
@@ -63,7 +65,7 @@ export function VoteButtons({
       setCurrentVote(userVote);
 
       toast.error('Erro ao votar. Tente novamente.');
-      console.error('Erro ao votar:', error);
+      logger.error('Erro ao votar:', error);
     } finally {
       setIsLoading(false);
     }

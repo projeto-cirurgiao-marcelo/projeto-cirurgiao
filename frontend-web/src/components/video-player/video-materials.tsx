@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { materialsService, VideoMaterial, MaterialType } from '@/lib/api/materials.service';
 import { cn } from '@/lib/utils';
 
+import { logger } from '@/lib/logger';
+
 interface VideoMaterialsProps {
   videoId: string;
   className?: string;
@@ -28,7 +30,7 @@ export function VideoMaterials({ videoId, className }: VideoMaterialsProps) {
       const data = await materialsService.getByVideo(videoId);
       setMaterials(data);
     } catch (err: any) {
-      console.error('Erro ao carregar materiais:', err);
+      logger.error('Erro ao carregar materiais:', err);
       setError('Erro ao carregar materiais');
     } finally {
       setLoading(false);
@@ -164,7 +166,7 @@ export function VideoMaterialsCompact({ videoId, className }: VideoMaterialsProp
       const data = await materialsService.getByVideo(videoId);
       setMaterials(data);
     } catch (err) {
-      console.error('Erro ao carregar materiais:', err);
+      logger.error('Erro ao carregar materiais:', err);
     } finally {
       setLoading(false);
     }
@@ -234,7 +236,7 @@ export function VideoMaterialsBadge({ videoId }: { videoId: string }) {
       const data = await materialsService.getByVideo(videoId);
       setCount(data.length);
     } catch (err) {
-      console.error('Erro ao carregar contagem de materiais:', err);
+      logger.error('Erro ao carregar contagem de materiais:', err);
     } finally {
       setLoading(false);
     }

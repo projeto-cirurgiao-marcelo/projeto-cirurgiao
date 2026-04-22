@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { materialsService, VideoMaterial, MaterialType, CreateMaterialDto } from '@/lib/api/materials.service';
 import { storageService, UploadProgress } from '@/lib/firebase/storage.service';
 
+import { logger } from '@/lib/logger';
+
 interface VideoMaterialsManagerProps {
   videoId: string;
 }
@@ -54,7 +56,7 @@ export function VideoMaterialsManager({ videoId }: VideoMaterialsManagerProps) {
       const data = await materialsService.getByVideo(videoId);
       setMaterials(data);
     } catch (err) {
-      console.error('Erro ao carregar materiais:', err);
+      logger.error('Erro ao carregar materiais:', err);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os materiais.',
@@ -201,7 +203,7 @@ export function VideoMaterialsManager({ videoId }: VideoMaterialsManagerProps) {
       resetForm();
       await loadMaterials();
     } catch (err: any) {
-      console.error('Erro ao adicionar material:', err);
+      logger.error('Erro ao adicionar material:', err);
       toast({
         title: 'Erro',
         description: err.message || 'Não foi possível adicionar o material.',
@@ -235,7 +237,7 @@ export function VideoMaterialsManager({ videoId }: VideoMaterialsManagerProps) {
       resetForm();
       await loadMaterials();
     } catch (err: any) {
-      console.error('Erro ao atualizar material:', err);
+      logger.error('Erro ao atualizar material:', err);
       toast({
         title: 'Erro',
         description: err.message || 'Não foi possível atualizar o material.',
@@ -260,7 +262,7 @@ export function VideoMaterialsManager({ videoId }: VideoMaterialsManagerProps) {
       });
       await loadMaterials();
     } catch (err: any) {
-      console.error('Erro ao remover material:', err);
+      logger.error('Erro ao remover material:', err);
       toast({
         title: 'Erro',
         description: err.message || 'Não foi possível remover o material.',

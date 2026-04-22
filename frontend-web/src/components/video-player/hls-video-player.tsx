@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import Hls from 'hls.js';
+import { logger } from '@/lib/logger';
 
 export interface HlsPlayerRef {
   getCurrentTime: () => number;
@@ -35,11 +36,36 @@ interface HlsVideoPlayerProps {
   onPlay?: () => void;
   onPause?: () => void;
   className?: string;
+  /**
+   * VTT URL explicita — pra flows onde as legendas vem fora do HLS
+   * manifest (ex: cloudflare Stream com `captionsEmbedded === false`).
+   * Quando presente, pula a derivacao por convencao do R2
+   * (`playlist.m3u8` -> `subtitles_pt.vtt`).
+   *
+   * Pode ser uma URL absoluta ou um path relativo ao mesmo origin.
+   * Se exigir Authorization, prefira resolver pra um blob URL antes
+   * de passar (fetch via apiClient na page + URL.createObjectURL).
+   */
+  externalCaptionsUrl?: string;
+  externalCaptionsLang?: string; // default 'pt'
+  externalCaptionsLabel?: string; // default 'Portugues'
 }
 
 const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
   function HlsVideoPlayer(
-    { src, initialTime = 0, onTimeUpdate, onReady, onEnded, onPlay, onPause, className },
+    {
+      src,
+      initialTime = 0,
+      onTimeUpdate,
+      onReady,
+      onEnded,
+      onPlay,
+      onPause,
+      className,
+      externalCaptionsUrl,
+      externalCaptionsLang = 'pt',
+      externalCaptionsLabel = 'Portugues',
+    },
     ref
   ) {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -117,7 +143,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
       // Sempre usar HLS.js quando disponivel (Chrome, Firefox, Edge)
       if (Hls.isSupported()) {
-        console.log('[HlsPlayer] Initializing HLS.js with src:', src);
+        logger.log('[HlsPlayer] Initializing HLS.js with src:', src);
 
         const hls = new Hls({
           enableWorker: true,
@@ -130,7 +156,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         hlsRef.current = hls;
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-          console.log('[HlsPlayer] Manifest parsed, levels:', data.levels.length);
+          logger.log('[HlsPlayer] Manifest parsed, levels:', data.levels.length);
           const levels: QualityLevel[] = data.levels.map((level, index) => ({
             index,
             height: level.height,
@@ -143,7 +169,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         });
 
         hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
-          console.log('[HlsPlayer] Level switched to:', data.level);
+          logger.log('[HlsPlayer] Level switched to:', data.level);
         });
 
         let recoverAttempts = 0;
@@ -152,11 +178,11 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (!data.fatal) return; // Ignorar erros nao-fatais silenciosamente
 
-          console.warn('[HlsPlayer] Fatal error:', data.type, data.details);
+          logger.warn('[HlsPlayer] Fatal error:', data.type, data.details);
 
           recoverAttempts++;
           if (recoverAttempts > MAX_RECOVER) {
-            console.error('[HlsPlayer] Max recovery attempts reached, stopping.');
+            logger.error('[HlsPlayer] Max recovery attempts reached, stopping.');
             hls.destroy();
             return;
           }
@@ -177,12 +203,12 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
       // Fallback: Native HLS (Safari/iOS apenas)
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        console.log('[HlsPlayer] Using native HLS (Safari)');
+        logger.log('[HlsPlayer] Using native HLS (Safari)');
         video.src = src;
         return;
       }
 
-      console.error('[HlsPlayer] HLS not supported in this browser');
+      logger.error('[HlsPlayer] HLS not supported in this browser');
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [src]);
 
@@ -197,18 +223,18 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
       const handleLoadedMetadata = () => {
         const duration = video.duration || 0;
-        console.log('[HlsPlayer] loadedmetadata, duration:', duration);
+        logger.log('[HlsPlayer] loadedmetadata, duration:', duration);
         onReadyRef.current?.(duration);
 
         if (initialTime > 0 && !hasRestoredPosition.current) {
           hasRestoredPosition.current = true;
-          console.log('[HlsPlayer] Restoring position to:', initialTime);
+          logger.log('[HlsPlayer] Restoring position to:', initialTime);
           video.currentTime = initialTime;
         }
       };
 
       const handleEnded = () => {
-        console.log('[HlsPlayer] Video ended');
+        logger.log('[HlsPlayer] Video ended');
         onEndedRef.current?.();
       };
 
@@ -250,21 +276,32 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
 
     const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-    // Derivar URL do VTT a partir do m3u8 (mesmo diretorio no R2)
-    const subtitleUrl = src.replace(/playlist\.m3u8$/, 'subtitles_pt.vtt');
+    // Resolve VTT URL:
+    //   1) Se `externalCaptionsUrl` for passado pelo caller (contrato
+    //      playback.captionsUrl no flow cloudflare), usa direto.
+    //   2) Senao, deriva do m3u8 por convencao R2
+    //      (playlist.m3u8 -> subtitles_pt.vtt) e faz HEAD pra confirmar.
+    const derivedSubtitleUrl = src.replace(/playlist\.m3u8$/, 'subtitles_pt.vtt');
+    const subtitleUrl = externalCaptionsUrl ?? derivedSubtitleUrl;
 
-    // Verificar se o VTT existe (HEAD request uma vez)
     const [hasSubtitles, setHasSubtitles] = useState(false);
     useEffect(() => {
-      fetch(subtitleUrl, { method: 'HEAD' })
+      if (externalCaptionsUrl) {
+        // Caller garantiu que o VTT existe — nao fazemos HEAD (pode
+        // ser blob URL ou endpoint auth-protected onde HEAD seria
+        // inconsistente).
+        setHasSubtitles(true);
+        return;
+      }
+      fetch(derivedSubtitleUrl, { method: 'HEAD' })
         .then(res => {
           if (res.ok) {
             setHasSubtitles(true);
-            console.log('[HlsPlayer] Subtitles found:', subtitleUrl);
+            logger.log('[HlsPlayer] Subtitles found:', derivedSubtitleUrl);
           }
         })
         .catch(() => { /* VTT nao existe, ok */ });
-    }, [subtitleUrl]);
+    }, [derivedSubtitleUrl, externalCaptionsUrl]);
 
     return (
       <div className={`relative w-full h-full bg-black ${className ?? ''}`}>
@@ -279,8 +316,8 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
             <track
               kind="subtitles"
               src={subtitleUrl}
-              srcLang="pt"
-              label="Portugues"
+              srcLang={externalCaptionsLang}
+              label={externalCaptionsLabel}
               default
             />
           )}

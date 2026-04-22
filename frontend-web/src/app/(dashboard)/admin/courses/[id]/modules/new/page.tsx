@@ -15,6 +15,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useToast } from '@/hooks/use-toast';
 import { modulesService } from '@/lib/api';
 
+import { logger } from '@/lib/logger';
+
 const moduleFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().optional(),
@@ -60,7 +62,7 @@ export default function NewModulePage() {
       // Redirecionar para página de edição do curso
       router.push(`/admin/courses/${courseId}/edit`);
     } catch (error) {
-      console.error('Erro ao criar módulo:', error);
+      logger.error('Erro ao criar módulo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível criar o módulo.',

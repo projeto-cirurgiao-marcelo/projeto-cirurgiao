@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { gamificationService } from '@/lib/gamification';
+import { logger } from '@/lib/logger';
 import type {
   GamificationEvent,
   GamificationEventType,
@@ -109,7 +110,7 @@ export const useNotificationStore = create<
       const notifications = data.events.map(mapEventToNotification);
       set({ notifications, unreadCount: data.unreadCount, isLoading: false, hasLoaded: true });
     } catch (error) {
-      console.warn('[Notifications] Erro ao carregar histórico:', error);
+      logger.warn('[Notifications] Erro ao carregar histórico:', error);
       set({ isLoading: false });
     }
   },

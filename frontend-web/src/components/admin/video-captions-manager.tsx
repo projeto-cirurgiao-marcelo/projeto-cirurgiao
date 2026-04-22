@@ -21,6 +21,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import {
   captionsService,
   Caption,
@@ -74,7 +75,7 @@ export function VideoCaptionsManager({
       // Não logar erro 401 para evitar spam no console
       // O erro 401 será tratado pelo interceptor global
       if (error?.response?.status !== 401) {
-        console.error('Erro ao carregar legendas:', error);
+        logger.error('Erro ao carregar legendas:', error);
       }
       // Em caso de erro, apenas mostrar lista vazia
       setCaptions([]);
@@ -114,7 +115,7 @@ export function VideoCaptionsManager({
           }
         }
       } catch (error) {
-        console.error('Erro ao verificar status:', error);
+        logger.error('Erro ao verificar status:', error);
       }
     }, 5000); // Verificar a cada 5 segundos
 
@@ -144,7 +145,7 @@ export function VideoCaptionsManager({
       setCaptions([...captions, result]);
       setPollingCaption(result.language);
     } catch (error: any) {
-      console.error('Erro ao gerar legenda:', error);
+      logger.error('Erro ao gerar legenda:', error);
       toast.error('Erro ao gerar legenda', {
         description: error?.response?.data?.message || 'Tente novamente mais tarde.',
       });
@@ -164,7 +165,7 @@ export function VideoCaptionsManager({
       setCaptions(captions.filter((c) => c.language !== language));
       toast.success('Legenda deletada com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao deletar legenda:', error);
+      logger.error('Erro ao deletar legenda:', error);
       toast.error('Erro ao deletar legenda', {
         description: error?.response?.data?.message || 'Tente novamente mais tarde.',
       });

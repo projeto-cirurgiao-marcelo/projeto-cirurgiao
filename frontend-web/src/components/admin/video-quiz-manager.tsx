@@ -26,6 +26,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { quizzesService, Quiz } from '@/lib/api/quizzes.service';
 
+import { logger } from '@/lib/logger';
+
 interface VideoQuizManagerProps {
   videoId: string;
 }
@@ -61,7 +63,7 @@ export function VideoQuizManager({ videoId }: VideoQuizManagerProps) {
       const data = await quizzesService.listQuizzesByVideo(videoId).catch(() => []);
       setQuizzes(data);
     } catch (error: any) {
-      console.error('Erro ao carregar quizzes:', error);
+      logger.error('Erro ao carregar quizzes:', error);
       setQuizzes([]);
     } finally {
       setIsLoading(false);
@@ -98,7 +100,7 @@ export function VideoQuizManager({ videoId }: VideoQuizManagerProps) {
       setShowGenerateDialog(false);
       resetForm();
     } catch (error: any) {
-      console.error('Erro ao gerar quiz:', error);
+      logger.error('Erro ao gerar quiz:', error);
       toast({
         title: 'Erro ao gerar quiz',
         description: error.response?.data?.message || 'Não foi possível gerar o quiz. Verifique se o vídeo tem transcrição ou legendas.',
@@ -123,7 +125,7 @@ export function VideoQuizManager({ videoId }: VideoQuizManagerProps) {
       setShowDeleteDialog(false);
       setQuizToDelete(null);
     } catch (error: any) {
-      console.error('Erro ao deletar quiz:', error);
+      logger.error('Erro ao deletar quiz:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível deletar o quiz.',
@@ -140,7 +142,7 @@ export function VideoQuizManager({ videoId }: VideoQuizManagerProps) {
       setPreviewQuiz(fullQuiz);
       setShowPreviewDialog(true);
     } catch (error) {
-      console.error('Erro ao carregar quiz:', error);
+      logger.error('Erro ao carregar quiz:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar o quiz.',

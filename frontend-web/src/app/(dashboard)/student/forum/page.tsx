@@ -7,6 +7,7 @@ import { CategoryCard } from '@/components/forum/category-card';
 import { Loader2, MessageSquare, Search, TrendingUp, Users } from 'lucide-react';
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/shared/page-transition';
 
+import { logger } from '@/lib/logger';
 export default function ForumPage() {
   const [categories, setCategories] = useState<ForumCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,7 @@ export default function ForumPage() {
       const data = await forumCategoriesService.getAll();
       setCategories(data);
     } catch (err) {
-      console.error('Erro ao carregar categorias:', err);
+      logger.error('Erro ao carregar categorias:', err);
       setError('Erro ao carregar categorias do fórum');
     } finally {
       setLoading(false);

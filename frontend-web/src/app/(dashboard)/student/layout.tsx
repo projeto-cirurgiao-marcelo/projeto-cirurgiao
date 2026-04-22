@@ -14,6 +14,8 @@ import { ChatWidget } from '@/components/chatbot/chat-widget';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Layout compartilhado para todas as paginas de estudante
  * Inclui sidebar, header e GamificationProvider automaticamente
@@ -43,12 +45,12 @@ export default function StudentLayout({
 
   useEffect(() => {
     if (hasHydrated && !isLoading && !isAuthenticated) {
-      console.log('[Student Layout] Usuario nao autenticado, redirecionando para login');
+      logger.log('[Student Layout] Usuario nao autenticado, redirecionando para login');
       router.push('/login');
     }
 
     if (hasHydrated && !isLoading && isAuthenticated && user?.role === 'INSTRUCTOR') {
-      console.log('[Student Layout] Usuario e instrutor, redirecionando');
+      logger.log('[Student Layout] Usuario e instrutor, redirecionando');
       router.push('/admin');
     }
   }, [hasHydrated, isLoading, isAuthenticated, user, router]);

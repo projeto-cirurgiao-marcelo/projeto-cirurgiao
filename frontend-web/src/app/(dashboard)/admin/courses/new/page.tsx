@@ -30,6 +30,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 import { aiTextService } from '@/lib/api/ai-text.service';
 
+import { logger } from '@/lib/logger';
+
 const courseSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().optional(),
@@ -203,7 +205,7 @@ export default function NewCoursePage() {
                             field.onChange(url);
                             toast({ title: 'Pronto', description: 'Thumbnail gerada com IA' });
                           } catch (err) {
-                            console.error(err);
+                            logger.error(err);
                             toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail', variant: 'destructive' });
                           }
                         }}

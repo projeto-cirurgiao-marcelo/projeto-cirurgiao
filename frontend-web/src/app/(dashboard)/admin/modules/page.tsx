@@ -37,6 +37,7 @@ import { coursesService, modulesService, getErrorMessage } from '@/lib/api';
 import { toast } from 'sonner';
 import type { Course, Module, PaginatedResponse } from '@/lib/types/course.types';
 
+import { logger } from '@/lib/logger';
 export default function AdminModulesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -83,7 +84,7 @@ export default function AdminModulesPage() {
         const coursesData = Array.isArray(response) ? response : (response.data || []);
         setCourses(coursesData as Course[]);
       } catch (err) {
-        console.error('Erro ao carregar cursos:', err);
+        logger.error('Erro ao carregar cursos:', err);
         toast.error('Erro ao carregar cursos');
       } finally {
         setLoadingCourses(false);
@@ -105,7 +106,7 @@ export default function AdminModulesPage() {
       setModules(data);
     } catch (err) {
       setError(getErrorMessage(err));
-      console.error('Erro ao carregar modulos:', err);
+      logger.error('Erro ao carregar modulos:', err);
     } finally {
       setLoadingModules(false);
     }

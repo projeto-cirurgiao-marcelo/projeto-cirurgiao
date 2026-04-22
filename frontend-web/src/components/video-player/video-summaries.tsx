@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import {
   summariesService,
   VideoSummary,
@@ -61,7 +62,7 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
       setRemainingGenerations(response.remainingGenerations);
       setMaxAllowed(response.maxAllowed);
     } catch (error) {
-      console.error('Erro ao carregar resumos:', error);
+      logger.error('Erro ao carregar resumos:', error);
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +94,7 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
       setSelectedSummary(newSummary);
       setIsViewModalOpen(true);
     } catch (error: any) {
-      console.error('Erro ao gerar resumo:', error);
+      logger.error('Erro ao gerar resumo:', error);
       toast.error(error.response?.data?.message || 'Erro ao gerar resumo');
     } finally {
       setIsGenerating(false);
@@ -132,7 +133,7 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
       setIsEditMode(false);
       toast.success('Resumo atualizado com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar resumo:', error);
+      logger.error('Erro ao salvar resumo:', error);
       toast.error('Erro ao salvar alterações');
     } finally {
       setIsSaving(false);
@@ -144,7 +145,7 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
       await summariesService.downloadSummary(videoId, summary.id);
       toast.success('Download iniciado!');
     } catch (error) {
-      console.error('Erro ao baixar resumo:', error);
+      logger.error('Erro ao baixar resumo:', error);
       toast.error('Erro ao baixar resumo');
     }
   };
@@ -163,7 +164,7 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
         setSelectedSummary(null);
       }
     } catch (error) {
-      console.error('Erro ao excluir resumo:', error);
+      logger.error('Erro ao excluir resumo:', error);
       toast.error('Erro ao excluir resumo');
     }
   };

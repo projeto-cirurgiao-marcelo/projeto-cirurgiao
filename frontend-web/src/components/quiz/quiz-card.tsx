@@ -9,6 +9,8 @@ import { Quiz, QuizStats, quizzesService } from '@/lib/api/quizzes.service';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
+import { logger } from '@/lib/logger';
+
 interface QuizCardProps {
   quiz?: Quiz;
   stats?: QuizStats;
@@ -38,7 +40,7 @@ export function QuizCard({ quiz, stats, videoId, courseId }: QuizCardProps) {
       // Navega para a página do quiz gerado
       router.push(`/student/courses/${courseId}/quiz/${newQuiz.id}`);
     } catch (err: any) {
-      console.error('Erro ao preparar quiz:', err);
+      logger.error('Erro ao preparar quiz:', err);
       const message = err?.response?.data?.message || 'Erro ao preparar o quiz. Verifique se o vídeo possui transcrição.';
       toast({
         title: 'Erro',
