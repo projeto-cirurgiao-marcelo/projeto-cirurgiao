@@ -19,8 +19,9 @@ import { progressService } from '../../../../src/services/api/progress.service';
 import { coursesService } from '../../../../src/services/api/courses.service';
 import { Video, Module } from '../../../../src/types/course.types';
 import { Colors as colors } from '../../../../src/constants/colors';
+import { logger } from '../../../../src/lib/logger';
+import { useNetworkStatus } from '../../../../src/hooks/useNetworkStatus';
 import { Ionicons } from '@expo/vector-icons';
-import * as ScreenOrientation from 'expo-screen-orientation';
 
 const TAB_ROUTES = [
   { key: 'lessons', title: 'Aulas', icon: 'list-outline' as const },
@@ -36,7 +37,6 @@ export default function WatchVideoScreen() {
   const playerRef = useRef<VideoPlayerRef>(null);
 
   const [video, setVideo] = useState<Video | null>(null);
-  const [streamUrl, setStreamUrl] = useState<string>('');
   const [moduleVideos, setModuleVideos] = useState<Video[]>([]);
   const [allCourseVideos, setAllCourseVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,17 +67,26 @@ export default function WatchVideoScreen() {
     };
   }, [videoId, allCourseVideos]);
 
-  // Liberar rotação nesta tela, travar portrait ao sair
-  useEffect(() => {
-    ScreenOrientation.unlockAsync();
-    return () => {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-    };
-  }, []);
-
+  // App e portrait-only (app.json). Rotacao pra landscape e responsabilidade
+  // exclusiva do VideoPlayer ao entrar em fullscreen (via lockAsync).
   useEffect(() => {
     loadVideoData();
   }, [videoId]);
+
+  const { onlineSince } = useNetworkStatus();
+
+  // Reentrada de rede: se o load falhou por conexao (video == null) OU o
+  // usuario viu erro, tenta de novo quando a rede voltar. Se o video ja
+  // carregou, o stream HLS retoma por conta propria (expo-video buffer).
+  useEffect(() => {
+    if (onlineSince !== null && (!video || error)) {
+      logger.log('[WatchVideo] Rede voltou, refazendo fetch do video');
+      loadVideoData();
+    }
+    // Nao dependemos de loadVideoData (declarada inline sem useCallback),
+    // apenas de onlineSince. Evita loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineSince]);
 
   const loadVideoData = async () => {
     try {
@@ -92,7 +101,7 @@ export default function WatchVideoScreen() {
         progressService.getVideoProgress(videoId).catch(() => null),
       ]);
 
-      console.log(`[WatchVideo] Posição salva carregada: ${savedPosition}s`);
+      logger.log(`[WatchVideo] Posição salva carregada: ${savedPosition}s`);
 
       // Restaurar estado de conclusão
       if (videoProgress?.completed) {
@@ -101,11 +110,10 @@ export default function WatchVideoScreen() {
 
       setVideo(videoData);
 
-      // Resolver URL de streaming do Cloudflare
-      const streamData = videosService.getStreamData(videoData);
-      const resolvedUrl = streamData.hlsUrl || '';
-      setStreamUrl(resolvedUrl);
-      console.log(`[WatchVideo] Stream URL resolvida: ${resolvedUrl} (tipo: ${streamData.type})`);
+      logger.log(
+        `[WatchVideo] Playback recebido: kind=${videoData.playback?.kind ?? 'undefined'} ` +
+        `url=${videoData.playback?.playbackUrl ?? 'null'}`
+      );
 
       // Garantir que a posição é um número válido
       const validPosition = typeof savedPosition === 'number' && savedPosition > 0 ? savedPosition : 0;
@@ -133,10 +141,10 @@ export default function WatchVideoScreen() {
         setAllCourseVideos(videos);
         setModuleVideos(currentModuleVideos);
       } catch (err) {
-        console.error('Erro ao carregar curso:', err);
+        logger.error('[WatchVideo] Erro ao carregar curso:', err);
       }
     } catch (err) {
-      console.error('Erro ao carregar vídeo:', err);
+      logger.error('[WatchVideo] Erro ao carregar vídeo:', err);
       setError('Não foi possível carregar o vídeo. Tente novamente.');
     } finally {
       setLoading(false);
@@ -144,7 +152,7 @@ export default function WatchVideoScreen() {
   };
 
   const handleVideoEnded = useCallback(() => {
-    console.log('Vídeo concluído');
+    logger.log('[WatchVideo] Vídeo concluído');
     setIsCompleted(true);
 
     // Navegar automaticamente para próxima aula após 3 segundos
@@ -286,15 +294,52 @@ export default function WatchVideoScreen() {
             </View>
           </View>
 
-          {/* Player de vídeo */}
-          <VideoPlayer
-            ref={playerRef}
-            video={video}
-            streamUrl={streamUrl}
-            onEnded={handleVideoEnded}
-            onProgressUpdate={handleProgressUpdate}
-            initialPosition={initialPosition}
-          />
+          {/* Player de video: switcha por playback.kind (contrato unificado).
+              - 'hls' + URL -> VideoPlayer HLS nativo (r2_hls ou cloudflare).
+              - 'iframe' -> fallback "Em breve no app mobile"; aluno pode abrir
+                no web (YouTube/Vimeo/external). EmbedPlayer com WebView e
+                sprint seguinte (TECH-DEBT).
+              - 'none' ou playback ausente -> VideoUnavailable. */}
+          {(() => {
+            const playback = video.playback;
+            const kind = playback?.kind;
+            const playbackUrl = playback?.playbackUrl ?? null;
+
+            if (kind === 'hls' && playbackUrl) {
+              return (
+                <VideoPlayer
+                  ref={playerRef}
+                  video={video}
+                  streamUrl={playbackUrl}
+                  onEnded={handleVideoEnded}
+                  onProgressUpdate={handleProgressUpdate}
+                  initialPosition={initialPosition}
+                />
+              );
+            }
+            if (kind === 'iframe' && playbackUrl) {
+              return (
+                <View style={styles.unavailableContainer}>
+                  <Ionicons name="open-outline" size={32} color={colors.textMuted} />
+                  <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
+                  <Text style={styles.unavailableSubtitle}>
+                    Este vídeo usa um player externo ({video.videoSource}).{'\n'}
+                    Por enquanto, acesse pelo navegador em projetocirurgiao.app.
+                  </Text>
+                </View>
+              );
+            }
+            // kind === 'none' ou playback ausente (payload antiga sem contrato).
+            return (
+              <View style={styles.unavailableContainer}>
+                <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
+                <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
+                <Text style={styles.unavailableSubtitle}>
+                  Este vídeo ainda não está pronto para reprodução.
+                </Text>
+              </View>
+            );
+          })()}
 
           {/* Info compacta abaixo do player */}
           <View style={styles.videoInfo}>
@@ -447,6 +492,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+  },
+  // Fallback quando playback.kind e 'iframe' ou 'none'. Manter proporcao 16:9
+  // pra nao quebrar layout (o player HLS tambem e 16:9 via VideoPlayer).
+  unavailableContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#111',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 8,
+  },
+  unavailableTitle: {
+    color: '#ccc',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  unavailableSubtitle: {
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   videoMetaRow: {
     flexDirection: 'row',

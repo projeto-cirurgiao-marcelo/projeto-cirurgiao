@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { notesService } from '../../services/api/notes.service';
+import { logger } from '../../lib/logger';
 import type { VideoNote } from '../../types/notes.types';
 import { Colors as colors } from '../../constants/colors';
 
@@ -42,7 +43,7 @@ export function VideoNotes({ videoId, currentTime, onSeek }: VideoNotesProps) {
       const data = await notesService.listByVideo(videoId);
       setNotes(data);
     } catch (err) {
-      console.error('Erro ao carregar notas:', err);
+      logger.error('Erro ao carregar notas:', err);
     } finally {
       setLoading(false);
     }
@@ -109,7 +110,7 @@ export function VideoNotes({ videoId, currentTime, onSeek }: VideoNotesProps) {
       setNoteContent('');
       setEditingNote(null);
     } catch (error) {
-      console.error('Erro ao salvar nota:', error);
+      logger.error('Erro ao salvar nota:', error);
       Alert.alert('Erro', 'Nao foi possivel salvar a nota. Tente novamente.');
     } finally {
       setSaving(false);
@@ -127,7 +128,7 @@ export function VideoNotes({ videoId, currentTime, onSeek }: VideoNotesProps) {
             await notesService.delete(note.id);
             setNotes((prev) => prev.filter((n) => n.id !== note.id));
           } catch (error) {
-            console.error('Erro ao excluir nota:', error);
+            logger.error('Erro ao excluir nota:', error);
             Alert.alert('Erro', 'Nao foi possivel excluir a nota.');
           }
         },

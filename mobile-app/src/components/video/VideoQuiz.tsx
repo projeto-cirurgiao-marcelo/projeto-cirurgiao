@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { quizzesService } from '../../services/api/quizzes.service';
+import { logger } from '../../lib/logger';
 import { CircularProgress } from '../ui/CircularProgress';
 import { useAuthStore } from '../../stores/auth-store';
 import type {
@@ -77,7 +78,7 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
         setStats(null);
       }
     } catch (err) {
-      console.error('Erro ao carregar quiz:', err);
+      logger.error('Erro ao carregar quiz:', err);
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
       setQuiz(newQuiz);
       setStats(null);
     } catch (error) {
-      console.error('Erro ao gerar quiz:', error);
+      logger.error('Erro ao gerar quiz:', error);
       Alert.alert('Erro', 'Nao foi possivel gerar o quiz. Verifique se o video possui transcricao.');
     } finally {
       setGenerating(false);
@@ -155,7 +156,7 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
         const newStats = await quizzesService.getStats(quiz.id);
         setStats(newStats);
       } catch (error) {
-        console.error('Erro ao enviar quiz:', error);
+        logger.error('Erro ao enviar quiz:', error);
         Alert.alert('Erro', 'Nao foi possivel enviar as respostas. Tente novamente.');
       } finally {
         setSubmitting(false);
@@ -188,7 +189,7 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
         setStats(newStats);
       }
     } catch (error) {
-      console.error('Erro ao gerar novo quiz:', error);
+      logger.error('Erro ao gerar novo quiz:', error);
       Alert.alert('Erro', 'Nao foi possivel gerar um novo quiz. Tente novamente.');
     } finally {
       setGenerating(false);

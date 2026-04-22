@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { chatbotService } from '../../services/api/chatbot.service';
 import { libraryService } from '../../services/api/library.service';
+import { logger } from '../../lib/logger';
 import { ChatConversationList } from './ChatConversationList';
 import { ExpandableFAB } from './ExpandableFAB';
 import { ChatModal } from './ChatModal';
@@ -63,7 +64,7 @@ export function ChatScreen() {
         setActiveConversation({ ...full, _segment: conversation._segment });
       }
     } catch (error) {
-      console.error('Erro ao carregar conversa:', error);
+      logger.error('Erro ao carregar conversa:', error);
       Alert.alert('Erro', 'Nao foi possivel carregar a conversa.');
       setView('list');
     }
@@ -124,7 +125,7 @@ export function ChatScreen() {
         );
       }
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      logger.error('Erro ao enviar mensagem:', error);
       setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       Alert.alert('Erro', 'Nao foi possivel enviar a mensagem. Tente novamente.');
     } finally {
@@ -144,7 +145,7 @@ export function ChatScreen() {
         prev.map((m) => (m.id === messageId ? { ...m, feedback } : m))
       );
     } catch (error) {
-      console.error('Erro ao enviar feedback:', error);
+      logger.error('Erro ao enviar feedback:', error);
     }
   };
 

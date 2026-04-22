@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 import type { VideoNote, CreateNoteDto, UpdateNoteDto } from '../../types/notes.types';
 
 export const notesService = {
@@ -7,7 +8,7 @@ export const notesService = {
       const response = await apiClient.get<VideoNote[]>(`/videos/${videoId}/notes`);
       return response.data;
     } catch (error) {
-      console.error('[notesService] Erro ao listar notas:', error);
+      logger.error('[notesService] Erro ao listar notas:', error);
       return [];
     }
   },
@@ -17,7 +18,7 @@ export const notesService = {
       const response = await apiClient.get<{ count: number }>(`/videos/${videoId}/notes/count`);
       return response.data.count;
     } catch (error) {
-      console.error('[notesService] Erro ao contar notas:', error);
+      logger.error('[notesService] Erro ao contar notas:', error);
       return 0;
     }
   },

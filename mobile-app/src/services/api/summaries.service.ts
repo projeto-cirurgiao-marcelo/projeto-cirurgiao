@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 
 export interface VideoSummary {
   id: string;
@@ -43,7 +44,7 @@ export const summariesService = {
       );
       return response.data;
     } catch (error) {
-      console.error('[summariesService] Erro ao listar resumos:', error);
+      logger.error('[summariesService] Erro ao listar resumos:', error);
       return { summaries: [], count: 0, maxAllowed: 3, remainingGenerations: 3 };
     }
   },
@@ -60,7 +61,7 @@ export const summariesService = {
       }
       return null;
     } catch (error) {
-      console.error('[summariesService] Erro ao buscar resumo:', error);
+      logger.error('[summariesService] Erro ao buscar resumo:', error);
       return null;
     }
   },
@@ -99,7 +100,7 @@ export const summariesService = {
       );
       return response.data;
     } catch (error) {
-      console.error('[summariesService] Erro ao verificar gerações restantes:', error);
+      logger.error('[summariesService] Erro ao verificar gerações restantes:', error);
       return { used: 0, remaining: 3, maxAllowed: 3 };
     }
   },

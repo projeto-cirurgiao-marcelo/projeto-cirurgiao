@@ -15,6 +15,7 @@ import {
   VideoMaterial,
   MaterialType,
 } from '../../services/api/materials.service';
+import { logger } from '../../lib/logger';
 import { Colors as colors } from '../../constants/colors';
 
 interface VideoMaterialsProps {
@@ -35,7 +36,7 @@ export function VideoMaterials({ videoId }: VideoMaterialsProps) {
       const data = await materialsService.getByVideoId(videoId);
       setMaterials(data);
     } catch (err) {
-      console.error('Erro ao carregar materiais:', err);
+      logger.error('Erro ao carregar materiais:', err);
       setMaterials([]);
     } finally {
       setLoading(false);
@@ -54,7 +55,7 @@ export function VideoMaterials({ videoId }: VideoMaterialsProps) {
         );
       }
     } catch (err) {
-      console.error('Erro ao abrir link:', err);
+      logger.error('Erro ao abrir link:', err);
       Alert.alert('Erro', 'Ocorreu um erro ao abrir o material.');
     }
   };

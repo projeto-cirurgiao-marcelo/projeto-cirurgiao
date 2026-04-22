@@ -1,27 +1,26 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
 import { Ionicons } from '@expo/vector-icons';
 import { FontSize, FontWeight, Spacing } from '../../constants/colors';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
+/**
+ * Banner de offline global (fica no root layout). Consome useNetworkStatus
+ * pra compartilhar a mesma fonte de verdade com as telas que refazem fetch
+ * ao reconectar. Animacao de slide preservada.
+ */
 export function OfflineBanner() {
-  const [isOffline, setIsOffline] = useState(false);
+  const { isOnline } = useNetworkStatus();
+  const isOffline = !isOnline;
   const [slideAnim] = useState(new Animated.Value(-50));
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const offline = !(state.isConnected && state.isInternetReachable !== false);
-      setIsOffline(offline);
-
-      Animated.timing(slideAnim, {
-        toValue: offline ? 0 : -50,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    });
-
-    return () => unsubscribe();
-  }, [slideAnim]);
+    Animated.timing(slideAnim, {
+      toValue: isOffline ? 0 : -50,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isOffline, slideAnim]);
 
   if (!isOffline) return null;
 

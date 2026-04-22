@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ForumCategory, ForumTopic } from '../../../../src/types';
 import { forumCategoriesService } from '../../../../src/services/api/forum-categories.service';
 import { forumService } from '../../../../src/services/api/forum.service';
+import { logger } from '../../../../src/lib/logger';
 import TopicCard from '../../../../src/components/forum/TopicCard';
 import {
   Colors,
@@ -62,7 +63,7 @@ export default function CategoryTopicsScreen() {
       setPage(pageNum);
       setTotalPages(topicsData.meta.totalPages);
     } catch (err) {
-      console.error('Erro ao carregar tópicos:', err);
+      logger.error('[ForumCategory] Erro ao carregar tópicos:', err);
       setError('Não foi possível carregar os tópicos.');
     } finally {
       setIsLoading(false);

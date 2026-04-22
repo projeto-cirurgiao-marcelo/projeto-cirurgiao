@@ -3,7 +3,7 @@
     "name": "Projeto Cirurgião",
     "slug": "projeto-cirurgiao",
     "version": "1.0.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "projetocirurgiao",
@@ -13,7 +13,7 @@
       "backgroundColor": "#FFFFFF"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.projetocirurgiao.app",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {

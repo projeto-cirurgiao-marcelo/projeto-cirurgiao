@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { logger } from '../../lib/logger';
 import type {
   LibraryConversation,
   LibraryMessage,
@@ -20,7 +21,7 @@ export const libraryService = {
       });
       return data;
     } catch (error) {
-      console.error('[libraryService] Erro ao listar conversas:', error);
+      logger.error('[libraryService] Erro ao listar conversas:', error);
       return { conversations: [], total: 0 };
     }
   },
@@ -57,7 +58,7 @@ export const libraryService = {
       const { data } = await apiClient.get('/library/suggestions');
       return data;
     } catch (error) {
-      console.error('[libraryService] Erro ao obter sugestoes:', error);
+      logger.error('[libraryService] Erro ao obter sugestoes:', error);
       return [];
     }
   },

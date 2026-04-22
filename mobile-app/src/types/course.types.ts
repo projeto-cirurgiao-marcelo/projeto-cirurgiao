@@ -2,6 +2,8 @@
  * Tipos relacionados a Cursos - Migrado do frontend-web
  */
 
+import type { VideoPlaybackUrls } from './api-shared';
+
 export interface Course {
   id: string;
   title: string;
@@ -70,6 +72,13 @@ export interface Video {
   createdAt: string;
   updatedAt: string;
   module?: Module;
+  /**
+   * Contrato unificado de playback (backend resolve URL + decide kind de render).
+   * Campos legados acima (cloudflareUrl, hlsUrl, externalUrl, cloudflareId)
+   * continuam presentes por aditividade — preferir ler `playback` nos consumidores.
+   * Opcional hoje porque algumas rotas antigas podem nao ter atualizado ainda.
+   */
+  playback?: VideoPlaybackUrls;
 }
 
 export interface PaginatedResponse<T> {
