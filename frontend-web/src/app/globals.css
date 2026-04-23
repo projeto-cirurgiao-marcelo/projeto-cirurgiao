@@ -138,6 +138,22 @@
   --duration-slow: 300ms;
   --duration-slower: 500ms;
 
+  /* === Video Player Skin (inspirado em Video.js 10 default skin, Apache-2.0) === */
+  --media-controls-bg: oklch(0 0 0 / 0.65);
+  --media-controls-bg-hover: oklch(0 0 0 / 0.85);
+  --media-controls-fg: oklch(1 0 0);
+  --media-controls-active-bg: oklch(1 0 0);
+  --media-controls-active-bg-hover: oklch(1 0 0 / 0.9);
+  --media-controls-active-fg: oklch(0 0 0);
+  --media-controls-menu-bg: oklch(0 0 0 / 0.88);
+  --media-controls-menu-hover-bg: oklch(1 0 0 / 0.18);
+  --media-controls-menu-selected-bg: oklch(1 0 0 / 0.3);
+  --media-controls-radius: 0.5rem;
+  --media-controls-transition-duration: 150ms;
+  --media-controls-transition-timing: cubic-bezier(0, 0, 0.2, 1);
+  --media-controls-surface-backdrop-filter: blur(12px) saturate(1.5);
+  --media-controls-surface-shadow: 0 4px 16px oklch(0 0 0 / 0.25);
+
   /* === Spacing (8pt grid) === */
   --space-1: 0.25rem; /* 4px */
   --space-2: 0.5rem; /* 8px */
@@ -297,6 +313,56 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer components {
+  /* === Video Player Controls (Fase A skin) === */
+  .media-control-btn {
+    background-color: var(--media-controls-bg);
+    color: var(--media-controls-fg);
+    border-radius: var(--media-controls-radius);
+    backdrop-filter: var(--media-controls-surface-backdrop-filter);
+    -webkit-backdrop-filter: var(--media-controls-surface-backdrop-filter);
+    transition:
+      background-color var(--media-controls-transition-duration) var(--media-controls-transition-timing),
+      color var(--media-controls-transition-duration) var(--media-controls-transition-timing);
+  }
+
+  .media-control-btn:hover {
+    background-color: var(--media-controls-bg-hover);
+  }
+
+  .media-control-btn[data-active="true"] {
+    background-color: var(--media-controls-active-bg);
+    color: var(--media-controls-active-fg);
+  }
+
+  .media-control-btn[data-active="true"]:hover {
+    background-color: var(--media-controls-active-bg-hover);
+  }
+
+  .media-menu-surface {
+    background-color: var(--media-controls-menu-bg);
+    border-radius: var(--media-controls-radius);
+    backdrop-filter: var(--media-controls-surface-backdrop-filter);
+    -webkit-backdrop-filter: var(--media-controls-surface-backdrop-filter);
+    box-shadow: var(--media-controls-surface-shadow);
+    overflow: hidden;
+  }
+
+  .media-menu-item {
+    color: var(--media-controls-fg);
+    transition: background-color var(--media-controls-transition-duration) var(--media-controls-transition-timing);
+  }
+
+  .media-menu-item:hover {
+    background-color: var(--media-controls-menu-hover-bg);
+  }
+
+  .media-menu-item[data-selected="true"] {
+    background-color: var(--media-controls-menu-selected-bg);
+    font-weight: 700;
   }
 }
 

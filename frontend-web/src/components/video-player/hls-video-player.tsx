@@ -336,11 +336,8 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
                 e.stopPropagation();
                 handleToggleSubtitles();
               }}
-              className={`px-2 py-1 text-xs font-semibold rounded cursor-pointer select-none ${
-                subtitlesOn
-                  ? 'text-black bg-white hover:bg-white/90'
-                  : 'text-white bg-black/70 hover:bg-black/90'
-              }`}
+              data-active={subtitlesOn}
+              className="media-control-btn px-2 py-1 text-xs font-semibold cursor-pointer select-none"
               title={subtitlesOn ? 'Desativar legendas' : 'Ativar legendas'}
             >
               CC
@@ -355,20 +352,19 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
                 setShowRateMenu(prev => !prev);
                 setShowQualityMenu(false);
               }}
-              className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded cursor-pointer select-none"
+              className="media-control-btn px-2 py-1 text-xs font-semibold cursor-pointer select-none"
               title="Velocidade"
             >
               {playbackRate}x
             </button>
             {showRateMenu && (
-              <div className="absolute top-full right-0 mt-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[80px]">
+              <div className="media-menu-surface absolute top-full right-0 mt-1 min-w-[80px]">
                 {rates.map((rate) => (
                   <button
                     key={rate}
                     onMouseDown={(e) => { e.stopPropagation(); handleRateChange(rate); }}
-                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
-                      playbackRate === rate ? 'bg-white/30 font-bold' : ''
-                    }`}
+                    data-selected={playbackRate === rate}
+                    className="media-menu-item block w-full text-left px-3 py-1.5 text-xs cursor-pointer"
                   >
                     {rate}x
                   </button>
@@ -386,18 +382,17 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
                   setShowQualityMenu(prev => !prev);
                   setShowRateMenu(false);
                 }}
-                className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded cursor-pointer select-none"
+                className="media-control-btn px-2 py-1 text-xs font-semibold cursor-pointer select-none"
                 title="Qualidade"
               >
                 {currentQualityLabel}
               </button>
               {showQualityMenu && (
-                <div className="absolute top-full right-0 mt-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                <div className="media-menu-surface absolute top-full right-0 mt-1 min-w-[100px]">
                   <button
                     onMouseDown={(e) => { e.stopPropagation(); handleQualityChange(-1); }}
-                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
-                      currentQuality === -1 ? 'bg-white/30 font-bold' : ''
-                    }`}
+                    data-selected={currentQuality === -1}
+                    className="media-menu-item block w-full text-left px-3 py-1.5 text-xs cursor-pointer"
                   >
                     Auto
                   </button>
@@ -405,9 +400,8 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
                     <button
                       key={q.index}
                       onMouseDown={(e) => { e.stopPropagation(); handleQualityChange(q.index); }}
-                      className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
-                        currentQuality === q.index ? 'bg-white/30 font-bold' : ''
-                      }`}
+                      data-selected={currentQuality === q.index}
+                      className="media-menu-item block w-full text-left px-3 py-1.5 text-xs cursor-pointer"
                     >
                       {q.label}
                     </button>
