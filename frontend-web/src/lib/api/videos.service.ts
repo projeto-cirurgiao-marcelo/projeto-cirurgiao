@@ -17,14 +17,12 @@ export interface DirectUploadResponse {
   video: Video;
 }
 
-// Interface para dados de streaming (Cloudflare, embed ou HLS R2)
+// Interface para dados de streaming (embed externo ou HLS R2)
 export interface StreamDataResponse {
-  type: 'cloudflare' | 'embed' | 'hls';
-  cloudflareId?: string;
-  cloudflareUrl?: string;
+  type: 'embed' | 'hls';
   embedUrl?: string;
   hlsUrl?: string;
-  videoSource?: 'youtube' | 'vimeo' | 'external' | 'cloudflare' | 'r2_hls';
+  videoSource?: 'youtube' | 'vimeo' | 'external' | 'r2_hls';
 }
 
 // Interface para status de upload
@@ -203,77 +201,37 @@ export const videosService = {
     return response.data;
   },
 
-  /**
-   * Obter URL de streaming do vídeo para o player
-   * Suporta tanto vídeos Cloudflare quanto embeds externos
-   */
-  /**
-   * Resolve stream data a partir de um objeto Video já carregado (sem request adicional)
-   */
   getStreamDataFromVideo(video: Video): StreamDataResponse {
     logger.log('[videosService.getStreamDataFromVideo] Video data:', {
       id: video.id,
       videoSource: video.videoSource,
-      cloudflareId: video.cloudflareId,
       hlsUrl: (video as any).hlsUrl,
     });
 
-    // Prioridade 0: Se tem hlsUrl explícito (HLS do R2 CDN - suporta 4K)
+    // Prioridade 0: hlsUrl explícito (R2 HLS — suporta 4K)
     if ((video as any).hlsUrl) {
       logger.log('[videosService] Retornando como HLS R2 (tem hlsUrl)');
-      return {
-        type: 'hls',
-        hlsUrl: (video as any).hlsUrl,
-        videoSource: 'r2_hls',
-      };
+      return { type: 'hls', hlsUrl: (video as any).hlsUrl, videoSource: 'r2_hls' };
     }
 
-    // Prioridade 0.5: Se externalUrl aponta para .m3u8 (HLS no R2/CDN)
+    // Prioridade 1: externalUrl aponta para .m3u8 (HLS no R2/CDN)
     if (video.externalUrl && video.externalUrl.includes('.m3u8')) {
       logger.log('[videosService] Retornando como HLS (externalUrl contém .m3u8)');
+      return { type: 'hls', hlsUrl: video.externalUrl, videoSource: 'r2_hls' };
+    }
+
+    // Prioridade 2: embed externo (YouTube, Vimeo, external)
+    if (
+      video.videoSource &&
+      video.videoSource !== 'cloudflare' &&
+      video.videoSource !== 'r2_hls' &&
+      video.externalUrl
+    ) {
       return {
-        type: 'hls',
-        hlsUrl: video.externalUrl,
-        videoSource: 'r2_hls',
+        type: 'embed',
+        embedUrl: video.externalUrl,
+        videoSource: video.videoSource as 'youtube' | 'vimeo' | 'external',
       };
-    }
-
-    // Prioridade 1: Se tem cloudflareId, é um vídeo Cloudflare
-    if (video.cloudflareId) {
-      return {
-        type: 'cloudflare',
-        cloudflareId: video.cloudflareId,
-        cloudflareUrl: video.cloudflareUrl || undefined,
-        videoSource: 'cloudflare',
-      };
-    }
-
-    // Prioridade 2: Se externalUrl contém cloudflarestream.com
-    if (video.externalUrl && video.externalUrl.includes('cloudflarestream.com')) {
-      let cloudflareId: string | null = null;
-      const customerMatch = video.externalUrl.match(/cloudflarestream\.com\/([a-f0-9]{32})/);
-      if (customerMatch) cloudflareId = customerMatch[1];
-      if (!cloudflareId) {
-        const iframeMatch = video.externalUrl.match(/cloudflarestream\.com\/([a-f0-9]+)/);
-        cloudflareId = iframeMatch ? iframeMatch[1] : null;
-      }
-      if (cloudflareId) {
-        return { type: 'cloudflare', cloudflareId, cloudflareUrl: video.externalUrl, videoSource: 'cloudflare' };
-      }
-    }
-
-    // Prioridade 3: embed externo
-    if (video.videoSource && video.videoSource !== 'cloudflare' && video.videoSource !== 'r2_hls' && video.externalUrl) {
-      return { type: 'embed', embedUrl: video.externalUrl, videoSource: video.videoSource as 'youtube' | 'vimeo' | 'external' };
-    }
-
-    // Fallback: cloudflareUrl sem cloudflareId
-    if (video.cloudflareUrl) {
-      const match = video.cloudflareUrl.match(/cloudflarestream\.com\/([a-f0-9]+)/);
-      const cfId = match ? match[1] : null;
-      if (cfId) {
-        return { type: 'cloudflare', cloudflareId: cfId, cloudflareUrl: video.cloudflareUrl, videoSource: 'cloudflare' };
-      }
     }
 
     throw new Error('Vídeo ainda não está disponível para streaming');
@@ -286,96 +244,7 @@ export const videosService = {
       throw new Error('Este vídeo não está publicado');
     }
 
-    // Prioridade 0: Se tem hlsUrl (HLS do R2 CDN - suporta 4K)
-    if (video.hlsUrl) {
-      logger.log('[videosService.getStreamUrl] Retornando como HLS R2 (tem hlsUrl)');
-      return {
-        type: 'hls',
-        hlsUrl: video.hlsUrl,
-        videoSource: 'r2_hls',
-      };
-    }
-
-    // Prioridade 0.5: Se externalUrl aponta para .m3u8 (HLS no R2/CDN)
-    if (video.externalUrl && video.externalUrl.includes('.m3u8')) {
-      logger.log('[videosService.getStreamUrl] Retornando como HLS (externalUrl contém .m3u8)');
-      return {
-        type: 'hls',
-        hlsUrl: video.externalUrl,
-        videoSource: 'r2_hls',
-      };
-    }
-
-    // Prioridade 1: Se tem cloudflareId, é um vídeo Cloudflare
-    if (video.cloudflareId) {
-      logger.log('[videosService.getStreamUrl] Retornando como Cloudflare (tem cloudflareId)');
-      return {
-        type: 'cloudflare',
-        cloudflareId: video.cloudflareId,
-        cloudflareUrl: video.cloudflareUrl || undefined,
-        videoSource: 'cloudflare',
-      };
-    }
-    
-    // Prioridade 2: Se externalUrl contém cloudflarestream.com, é um vídeo Cloudflare
-    if (video.externalUrl && video.externalUrl.includes('cloudflarestream.com')) {
-      // Extrair o ID do Cloudflare da URL (pode ser de diferentes formatos)
-      // Formato 1: https://customer-xxx.cloudflarestream.com/VIDEO_ID/...
-      // Formato 2: https://iframe.cloudflarestream.com/VIDEO_ID
-      // Formato 3: https://watch.cloudflarestream.com/VIDEO_ID
-      let cloudflareId: string | null = null;
-      
-      // Tenta extrair de URLs como customer-xxx.cloudflarestream.com/VIDEO_ID/...
-      const customerMatch = video.externalUrl.match(/cloudflarestream\.com\/([a-f0-9]{32})/);
-      if (customerMatch) {
-        cloudflareId = customerMatch[1];
-      }
-      
-      // Se não encontrou, tenta outros padrões
-      if (!cloudflareId) {
-        const iframeMatch = video.externalUrl.match(/cloudflarestream\.com\/([a-f0-9]+)/);
-        cloudflareId = iframeMatch ? iframeMatch[1] : null;
-      }
-      
-      if (cloudflareId) {
-        logger.log('[videosService.getStreamUrl] Retornando como Cloudflare (externalUrl contém cloudflarestream.com), ID:', cloudflareId);
-        return {
-          type: 'cloudflare',
-          cloudflareId: cloudflareId,
-          cloudflareUrl: video.externalUrl,
-          videoSource: 'cloudflare',
-        };
-      }
-    }
-    
-    // Prioridade 3: Se tem externalUrl e videoSource diferente de cloudflare, é embed externo
-    if (video.videoSource && video.videoSource !== 'cloudflare' && video.externalUrl) {
-      logger.log('[videosService.getStreamUrl] Retornando como embed externo');
-      return {
-        type: 'embed',
-        embedUrl: video.externalUrl,
-        videoSource: video.videoSource as 'youtube' | 'vimeo' | 'external',
-      };
-    }
-    
-    // Fallback: Se tem cloudflareUrl mas não cloudflareId
-    if (video.cloudflareUrl) {
-      // Tentar extrair o ID da URL
-      const match = video.cloudflareUrl.match(/cloudflarestream\.com\/([a-f0-9]+)/);
-      const cloudflareId = match ? match[1] : null;
-      
-      if (cloudflareId) {
-        logger.log('[videosService.getStreamUrl] Retornando como Cloudflare (extraído de cloudflareUrl)');
-        return {
-          type: 'cloudflare',
-          cloudflareId: cloudflareId,
-          cloudflareUrl: video.cloudflareUrl,
-          videoSource: 'cloudflare',
-        };
-      }
-    }
-    
-    throw new Error('Vídeo ainda não está disponível para streaming');
+    return this.getStreamDataFromVideo(video);
   },
 
   /**
