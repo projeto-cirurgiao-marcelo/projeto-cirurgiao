@@ -317,6 +317,28 @@
 }
 
 @layer components {
+  /* === media-chrome tokens (Fase B) === */
+  media-controller {
+    --media-primary-color: rgb(var(--primary));
+    --media-secondary-color: var(--media-controls-bg);
+    --media-text-color: var(--media-controls-fg);
+    --media-control-background: var(--media-controls-bg);
+    --media-control-hover-background: var(--media-controls-bg-hover);
+    --media-range-track-background: oklch(1 0 0 / 0.2);
+    --media-range-track-border-radius: var(--media-controls-radius);
+    --media-range-bar-color: rgb(var(--primary));
+    --media-range-thumb-background: oklch(1 0 0);
+    --media-tooltip-display: none;
+    --media-font-family: var(--font-sans);
+    --media-control-padding: 0.5rem;
+    --media-button-icon-width: 1.25rem;
+    --media-button-icon-height: 1.25rem;
+  }
+
+  media-controller::part(top-chrome) {
+    padding: 0.5rem;
+  }
+
   /* === Video Player Controls (Fase A skin) === */
   .media-control-btn {
     background-color: var(--media-controls-bg);
