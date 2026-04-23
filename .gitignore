@@ -235,3 +235,7 @@ docs/superpowers/specs/
 
 # Agent team warmup artifact
 CIRURGIAO_AUDIT.md
+
+# Git worktrees (local isolated workspaces, not shipped)
+.worktrees/
+worktrees/
