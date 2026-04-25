@@ -9,6 +9,8 @@ import { GamificationService } from '../gamification/gamification.service';
 import { QuizzesService } from './quizzes.service';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { QuizResult } from './interfaces/quiz.interface';
+import { AnalyticsService } from '../../shared/analytics/analytics.service';
+import { AnalyticsEvents } from '../../shared/analytics/analytics.events';
 
 @Injectable()
 export class QuizAttemptsService {
@@ -18,6 +20,7 @@ export class QuizAttemptsService {
     private prisma: PrismaService,
     private quizzesService: QuizzesService,
     private gamificationService: GamificationService,
+    private analytics: AnalyticsService,
   ) {}
 
   /**
@@ -156,6 +159,16 @@ export class QuizAttemptsService {
     } catch (err) {
       this.logger.warn('Gamification quiz processAction failed', err);
     }
+
+    // Analytics: registra conclusao de quiz (best-effort, no-op safe)
+    this.analytics.capture(userId, AnalyticsEvents.QUIZ_COMPLETED, {
+      quizId: attempt.quizId,
+      score: attempt.score,
+      passed: attempt.passed,
+      timeSpent: attempt.timeSpent ?? 0,
+      correctCount: attempt.correctCount,
+      totalQuestions: attempt.totalQuestions,
+    });
 
     // 6. Retornar resultado
     return {

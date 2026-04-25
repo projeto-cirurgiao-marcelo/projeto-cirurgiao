@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { AnalyticsService } from '../../shared/analytics/analytics.service';
 import { XpService } from './xp.service';
 
 describe('XpService dedup behaviour', () => {
@@ -10,7 +11,7 @@ describe('XpService dedup behaviour', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [XpService, PrismaService],
+      providers: [XpService, PrismaService, AnalyticsService],
     }).compile();
     service = module.get<XpService>(XpService);
     prisma = module.get<PrismaService>(PrismaService);
