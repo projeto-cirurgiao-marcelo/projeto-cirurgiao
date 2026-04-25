@@ -52,6 +52,7 @@ model User {
   forumReplyVotes   ForumReplyVote[]
   forumReports      ForumReport[]
   quizAttempts      QuizAttempt[]
+  questionBankItems QuestionBankItem[]
   chatConversations ChatConversation[] // Conversas do chatbot
   profile           UserProfile?
 
@@ -916,5 +917,27 @@ model Specialty {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  questions    QuestionBankItem[]
+
   @@map("specialties")
+}
+
+model QuestionBankItem {
+  id            String     @id @default(uuid())
+  specialtyId   String
+  specialty     Specialty  @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  question      String     @db.Text
+  options       Json
+  correctAnswer Int
+  explanation   String     @db.Text
+  difficulty    Difficulty @default(MEDIUM)
+  active        Boolean    @default(true)
+  createdById   String
+  createdBy     User       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  approvedAt    DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([specialtyId, active])
+  @@map("question_bank_items")
 }
