@@ -835,6 +835,8 @@ model UserStreak {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  weekendFreezeEnabled Boolean @default(true)
+
   @@map("user_streaks")
 }
 
