@@ -767,6 +767,12 @@ enum GamificationChallengeDifficulty {
   HARD
 }
 
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 // Log de XP (append-only)
 model XpLog {
   id          String   @id @default(uuid())
@@ -892,4 +898,23 @@ model AuditLog {
   @@index([entityType, entityId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+// ============================================
+// VET SPECIALTIES (mastery + question bank category)
+// ============================================
+
+model Specialty {
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  name         String
+  description  String?
+  icon         String?
+  displayOrder Int      @default(0)
+  active       Boolean  @default(true)
+  difficulty   Difficulty @default(MEDIUM)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("specialties")
 }
