@@ -143,6 +143,23 @@ export const quizzesService = {
     return response.data;
   },
 
+  /**
+   * Verifica server-side se uma resposta está correta — retorna apenas boolean
+   * (sem revelar o gabarito). Usado pra disparar feedback visual contextual
+   * (LottieFeedback correct/wrong) imediato.
+   */
+  async checkAnswer(
+    quizId: string,
+    questionId: string,
+    answer: number,
+  ): Promise<{ isCorrect: boolean }> {
+    const response = await apiClient.post<{ isCorrect: boolean }>(
+      `/quizzes/${quizId}/check-answer`,
+      { questionId, answer },
+    );
+    return response.data;
+  },
+
   async listAttempts(quizId: string): Promise<QuizAttempt[]> {
     try {
       const response = await apiClient.get<QuizAttempt[]>(

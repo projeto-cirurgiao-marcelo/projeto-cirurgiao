@@ -32,6 +32,7 @@ import { ConfidenceRating, type ConfidenceLevel } from './ConfidenceRating';
 import { XpBurst } from '../juice/XpBurst';
 import { ConfettiSkia } from '../juice/ConfettiSkia';
 import { ScreenShake } from '../juice/ScreenShake';
+import { LottieFeedback, type LottieFeedbackKind } from '../juice/LottieFeedback';
 
 export interface QuizPlayerProps {
   videoId: string;
@@ -55,10 +56,14 @@ type PlayStep = 'answering' | 'awaitingConfidence';
  * Combo state lives in `useQuizStore` so the ComboMeter HUD can subscribe
  * directly without prop-drilling.
  *
- * Server is the source of truth for correctness — `QuizQuestion` does NOT
- * expose `correctAnswer` to the client, so we optimistically assume "correct"
- * for immediate UI feedback (combo bumps, XpBurst). The submit response
- * reconciles the truth in the result phase.
+ * Server is the source of truth for correctness. Per-question check via
+ * `quizzesService.checkAnswer` (returns { isCorrect } without exposing the
+ * gabarito). LottieFeedback (Dr. Gelpi) and juice (XpBurst / combo / shake)
+ * fire based on the real result. Final aggregate score still comes from
+ * submit, but the per-question feedback now matches the truth.
+ *
+ * Fallback: if checkAnswer throws (network), we assume correct optimistically
+ * to avoid punishing the user for backend hiccups.
  */
 export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const { user } = useAuthStore();
@@ -102,6 +107,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const [xpBurstValue, setXpBurstValue] = useState(0);
   const [confettiActive, setConfettiActive] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
+  const [lottieKind, setLottieKind] = useState<LottieFeedbackKind | null>(null);
 
   // Result state
   const [result, setResult] = useState<QuizResultType | null>(null);
@@ -188,6 +194,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     setXpBurstValue(0);
     setConfettiActive(false);
     setShakeTrigger(0);
+    setLottieKind(null);
   };
 
   const handleStartQuiz = () => {
@@ -201,43 +208,60 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
 
   /**
    * Tap on an option in the answering substate.
-   * Optimistic correctness (server reconciles): assume correct so the
-   * juice fires. ComboMeter / XpBurst are *visual sugar* — final score
-   * comes from the submit response.
+   * Calls server-side `checkAnswer` (returns only { isCorrect }, no gabarito)
+   * to drive LottieFeedback + juice. Falls back to optimistic-positive on
+   * network failure so a backend hiccup doesn't punish the user.
    */
-  const handleSelectOption = (optionIndex: number) => {
+  const handleSelectOption = async (optionIndex: number) => {
     if (playStep !== 'answering' || !quiz) return;
     setSelectedOption(optionIndex);
 
     const question = quiz.questions[currentQuestionIndex];
     storeSelectAnswer(question.id, optionIndex);
 
-    // Optimistic: treat every answer as correct for UI feedback.
-    // (Backend hides correctAnswer from QuizQuestion DTO.)
-    const isCorrect = true;
+    // Server-side correctness check (no gabarito exposure)
+    let isCorrect = false;
+    try {
+      const resp = await quizzesService.checkAnswer(
+        quiz.id,
+        question.id,
+        optionIndex,
+      );
+      isCorrect = resp.isCorrect;
+    } catch (err) {
+      logger.error(
+        '[QuizPlayer] checkAnswer failed; assuming correct optimistically',
+        err,
+      );
+      // Network failure: fall back to optimistic-positive (don't punish user
+      // for backend hiccups).
+      isCorrect = true;
+    }
+
     markCorrectness(question.id, isCorrect);
+    setLottieKind(isCorrect ? 'correct' : 'wrong');
 
     if (isCorrect) {
       // combo BEFORE the markCorrectness call was `combo`; after the call it
       // becomes combo+1. Read the post-update value via the store directly.
       const newCombo = useQuizStore.getState().combo;
-      // Simplified XP estimate: base 15 + 2 per combo step.
-      const xpEstimate = 15 + Math.max(0, newCombo - 1) * 2;
-      setXpBurstValue(xpEstimate);
-      setXpBurstVisible(true);
-
       haptic.fire('correct');
       sound.play('correct');
 
       // Combo-tier pulse every 3 hits.
-      if (newCombo > 0 && newCombo % 3 === 0) {
+      if (newCombo >= 3 && newCombo % 3 === 0) {
         haptic.fire('comboTier');
         sound.play('combo');
       }
+
+      // Simplified XP estimate: base 15 + 2 per combo step.
+      const xpEstimate = 15 + Math.max(0, newCombo - 1) * 2;
+      setXpBurstValue(xpEstimate);
+      setXpBurstVisible(true);
     } else {
-      setShakeTrigger((t) => t + 1);
       haptic.fire('wrong');
       sound.play('wrong');
+      setShakeTrigger((t) => t + 1);
     }
 
     // Advance to confidence rating substate.
@@ -530,6 +554,10 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
           <ConfettiSkia
             active={confettiActive}
             count={result?.score === 100 ? 120 : 60}
+          />
+          <LottieFeedback
+            kind={lottieKind}
+            onDone={() => setLottieKind(null)}
           />
         </SafeAreaView>
       </Modal>
