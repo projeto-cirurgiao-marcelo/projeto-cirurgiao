@@ -156,29 +156,59 @@ ${content.substring(0, 15000)} ${content.length > 15000 ? '...(conteúdo truncad
         throw new Error('Invalid quiz structure: missing questions array');
       }
 
-      // Validar cada questão
-      parsed.questions.forEach((q: any, index: number) => {
+      // Filtra questões inválidas em vez de rejeitar quiz todo.
+      // Casos comuns: Gemini retorna 5 opções (A-E), correctAnswer fora de 0-3,
+      // explicação ausente. Descartamos a questão problemática e mantemos as válidas.
+      const validQuestions = parsed.questions.filter((q: any, index: number) => {
         if (!q.question || typeof q.question !== 'string') {
-          throw new Error(`Question ${index}: missing or invalid question text`);
+          this.logger.warn(`Skipping question ${index}: invalid question text`);
+          return false;
         }
-        if (!Array.isArray(q.options) || q.options.length !== 4) {
-          throw new Error(`Question ${index}: must have exactly 4 options`);
+        // Aceita 4 opções estrito; se >4, trunca pras primeiras 4 (preserva correctAnswer se ≤3).
+        if (!Array.isArray(q.options)) {
+          this.logger.warn(`Skipping question ${index}: options not array`);
+          return false;
+        }
+        if (q.options.length > 4) {
+          this.logger.warn(
+            `Question ${index}: ${q.options.length} options, truncating to 4`,
+          );
+          q.options = q.options.slice(0, 4);
+        }
+        if (q.options.length !== 4) {
+          this.logger.warn(
+            `Skipping question ${index}: must have exactly 4 options (got ${q.options.length})`,
+          );
+          return false;
         }
         if (
           typeof q.correctAnswer !== 'number' ||
           q.correctAnswer < 0 ||
           q.correctAnswer > 3
         ) {
-          throw new Error(
-            `Question ${index}: correctAnswer must be 0, 1, 2, or 3`,
+          this.logger.warn(
+            `Skipping question ${index}: correctAnswer=${q.correctAnswer} out of [0..3]`,
           );
+          return false;
         }
         if (!q.explanation || typeof q.explanation !== 'string') {
-          throw new Error(`Question ${index}: missing or invalid explanation`);
+          this.logger.warn(`Skipping question ${index}: invalid explanation`);
+          return false;
         }
+        return true;
       });
 
-      return parsed as GeneratedQuiz;
+      if (validQuestions.length < 2) {
+        throw new Error(
+          `Quiz inválido: apenas ${validQuestions.length} questões aproveitáveis (mínimo 2)`,
+        );
+      }
+
+      this.logger.log(
+        `Quiz parsed: ${validQuestions.length} valid questions out of ${parsed.questions.length}`,
+      );
+
+      return { questions: validQuestions } as GeneratedQuiz;
     } catch (error) {
       this.logger.error('Error parsing quiz response:', error);
       this.logger.error('Response was:', response);

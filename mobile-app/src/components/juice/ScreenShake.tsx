@@ -27,6 +27,7 @@ export function ScreenShake({ trigger, intensity = 10, children }: ScreenShakePr
   }, [trigger]);
 
   const style = useAnimatedStyle(() => ({
+    flex: 1,
     transform: [{ translateX: x.value }],
   }));
 
