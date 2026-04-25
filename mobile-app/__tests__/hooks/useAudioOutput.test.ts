@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { useAudioOutput } from '../useAudioOutput';
+import { useAudioOutput } from '../../src/hooks/useAudioOutput';
 
 jest.mock('expo-av', () => ({
   Audio: {
