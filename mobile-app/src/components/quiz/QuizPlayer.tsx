@@ -219,23 +219,30 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     const question = quiz.questions[currentQuestionIndex];
     storeSelectAnswer(question.id, optionIndex);
 
-    // Server-side correctness check (no gabarito exposure)
+    // Server-side correctness check (no gabarito exposure).
+    // DEV: random 50/50 pra testar ambas animações Lottie sem depender de
+    // acertar/errar de verdade. Remover bloco __DEV__ antes de release.
     let isCorrect = false;
-    try {
-      const resp = await quizzesService.checkAnswer(
-        quiz.id,
-        question.id,
-        optionIndex,
-      );
-      isCorrect = resp.isCorrect;
-    } catch (err) {
-      logger.error(
-        '[QuizPlayer] checkAnswer failed; assuming correct optimistically',
-        err,
-      );
-      // Network failure: fall back to optimistic-positive (don't punish user
-      // for backend hiccups).
-      isCorrect = true;
+    if (__DEV__) {
+      isCorrect = Math.random() > 0.5;
+      logger.log('[QuizPlayer] DEV mode — random isCorrect:', isCorrect);
+    } else {
+      try {
+        const resp = await quizzesService.checkAnswer(
+          quiz.id,
+          question.id,
+          optionIndex,
+        );
+        isCorrect = resp.isCorrect;
+      } catch (err) {
+        logger.error(
+          '[QuizPlayer] checkAnswer failed; assuming correct optimistically',
+          err,
+        );
+        // Network failure: fall back to optimistic-positive (don't punish user
+        // for backend hiccups).
+        isCorrect = true;
+      }
     }
 
     markCorrectness(question.id, isCorrect);
