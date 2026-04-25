@@ -170,6 +170,28 @@ export class QuizzesService {
   }
 
   /**
+   * Verifica se uma resposta está correta sem revelar o gabarito.
+   * Usado pelo mobile pra disparar feedback visual (LottieFeedback) imediato
+   * sem expor correctAnswer via DevTools.
+   */
+  async checkAnswer(
+    quizId: string,
+    questionId: string,
+    answer: number,
+  ): Promise<{ isCorrect: boolean }> {
+    const question = await this.prisma.quizQuestion.findFirst({
+      where: { id: questionId, quizId },
+      select: { correctAnswer: true },
+    });
+
+    if (!question) {
+      throw new NotFoundException('Questão não encontrada neste quiz');
+    }
+
+    return { isCorrect: question.correctAnswer === answer };
+  }
+
+  /**
    * Deleta um quiz
    */
   async deleteQuiz(quizId: string) {

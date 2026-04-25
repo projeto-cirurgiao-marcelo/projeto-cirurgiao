@@ -150,6 +150,40 @@ describe('QuizzesService', () => {
     });
   });
 
+  describe('checkAnswer', () => {
+    it('returns isCorrect=true when answer matches correctAnswer', async () => {
+      prisma.quizQuestion.findFirst.mockResolvedValue({
+        correctAnswer: 2,
+      } as any);
+
+      const result = await service.checkAnswer('q1', 'qq1', 2);
+
+      expect(result).toEqual({ isCorrect: true });
+      expect(prisma.quizQuestion.findFirst).toHaveBeenCalledWith({
+        where: { id: 'qq1', quizId: 'q1' },
+        select: { correctAnswer: true },
+      });
+    });
+
+    it('returns isCorrect=false when answer differs from correctAnswer', async () => {
+      prisma.quizQuestion.findFirst.mockResolvedValue({
+        correctAnswer: 1,
+      } as any);
+
+      const result = await service.checkAnswer('q1', 'qq1', 3);
+
+      expect(result).toEqual({ isCorrect: false });
+    });
+
+    it('throws NotFoundException when question not found in quiz', async () => {
+      prisma.quizQuestion.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.checkAnswer('q1', 'missing', 0),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('listQuizzesByVideo', () => {
     it('scopes by videoId and omits correct answers from the select', async () => {
       prisma.quiz.findMany.mockResolvedValue([]);
