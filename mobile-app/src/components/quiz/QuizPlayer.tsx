@@ -14,6 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { quizzesService } from '../../services/api/quizzes.service';
 import { logger } from '../../lib/logger';
 import { useAuthStore } from '../../stores/auth-store';
+import { useQuizStore } from '../../stores/quiz-store';
+import { useHaptic } from '../../hooks/useHaptic';
+import { useSound } from '../../hooks/useSound';
 import type {
   Quiz,
   QuizAnswerDto,
@@ -24,6 +27,11 @@ import { Colors as colors } from '../../constants/colors';
 import { QuizIntro } from './QuizIntro';
 import { QuestionCard } from './QuestionCard';
 import { QuizResult } from './QuizResult';
+import { ComboMeter } from './ComboMeter';
+import { ConfidenceRating, type ConfidenceLevel } from './ConfidenceRating';
+import { XpBurst } from '../juice/XpBurst';
+import { ConfettiSkia } from '../juice/ConfettiSkia';
+import { ScreenShake } from '../juice/ScreenShake';
 
 export interface QuizPlayerProps {
   videoId: string;
@@ -32,6 +40,7 @@ export interface QuizPlayerProps {
 }
 
 type Phase = 'intro' | 'play' | 'result';
+type PlayStep = 'answering' | 'awaitingConfidence';
 
 /**
  * Top-level orchestrator for the video quiz feature.
@@ -39,19 +48,36 @@ type Phase = 'intro' | 'play' | 'result';
  * Owns:
  *   - quiz fetch / generation / submission
  *   - phase machine (intro -> play -> result)
+ *   - sub-machine inside play: answering -> awaitingConfidence -> next
  *   - the answer map & timing for the current attempt
+ *   - juice (XpBurst, Confetti, ScreenShake), haptic + sound triggers
  *
- * Renders one of <QuizIntro />, <QuestionCard /> or <QuizResult /> based on phase.
+ * Combo state lives in `useQuizStore` so the ComboMeter HUD can subscribe
+ * directly without prop-drilling.
  *
- * NOTE (Sprint 1 / Task 13): juice components (XpBurst, ConfettiSkia, ScreenShake,
- * ComboMeter, ConfidenceRating) and useQuizStore wiring are intentionally NOT
- * connected here — Task 14 wires them in.
+ * Server is the source of truth for correctness — `QuizQuestion` does NOT
+ * expose `correctAnswer` to the client, so we optimistically assume "correct"
+ * for immediate UI feedback (combo bumps, XpBurst). The submit response
+ * reconciles the truth in the result phase.
  */
 export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR';
 
+  const haptic = useHaptic();
+  const sound = useSound();
+
+  const {
+    combo,
+    markCorrectness,
+    selectAnswer: storeSelectAnswer,
+    setConfidence: storeSetConfidence,
+    startQuiz: storeStartQuiz,
+    reset: storeReset,
+  } = useQuizStore();
+
   const [phase, setPhase] = useState<Phase>('intro');
+  const [playStep, setPlayStep] = useState<PlayStep>('answering');
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [stats, setStats] = useState<QuizStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,9 +87,20 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   // Play state
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<string, number>>(new Map());
+  const [confidences, setConfidences] = useState<Map<string, ConfidenceLevel>>(
+    new Map(),
+  );
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [selectedConfidence, setSelectedConfidence] =
+    useState<ConfidenceLevel | undefined>(undefined);
   const startTimeRef = useRef(Date.now());
   const questionStartRef = useRef(Date.now());
+
+  // Juice state
+  const [xpBurstVisible, setXpBurstVisible] = useState(false);
+  const [xpBurstValue, setXpBurstValue] = useState(0);
+  const [confettiActive, setConfettiActive] = useState(false);
+  const [shakeTrigger, setShakeTrigger] = useState(0);
 
   // Result state
   const [result, setResult] = useState<QuizResultType | null>(null);
@@ -72,6 +109,14 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     loadQuiz();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
+
+  // Cleanup combo store on unmount
+  useEffect(() => {
+    return () => {
+      storeReset();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadQuiz = async () => {
     try {
@@ -109,30 +154,94 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     }
   }, [videoId]);
 
+  const resetPlayState = () => {
+    setCurrentQuestionIndex(0);
+    setAnswers(new Map());
+    setConfidences(new Map());
+    setSelectedOption(null);
+    setSelectedConfidence(undefined);
+    setPlayStep('answering');
+    setXpBurstVisible(false);
+    setXpBurstValue(0);
+    setConfettiActive(false);
+    setShakeTrigger(0);
+  };
+
   const handleStartQuiz = () => {
     if (!quiz) return;
     setPhase('play');
-    setCurrentQuestionIndex(0);
-    setAnswers(new Map());
-    setSelectedOption(null);
+    resetPlayState();
     startTimeRef.current = Date.now();
     questionStartRef.current = Date.now();
+    storeStartQuiz(quiz.id, quiz.questions);
   };
 
+  /**
+   * Tap on an option in the answering substate.
+   * Optimistic correctness (server reconciles): assume correct so the
+   * juice fires. ComboMeter / XpBurst are *visual sugar* — final score
+   * comes from the submit response.
+   */
   const handleSelectOption = (optionIndex: number) => {
+    if (playStep !== 'answering' || !quiz) return;
     setSelectedOption(optionIndex);
+
+    const question = quiz.questions[currentQuestionIndex];
+    storeSelectAnswer(question.id, optionIndex);
+
+    // Optimistic: treat every answer as correct for UI feedback.
+    // (Backend hides correctAnswer from QuizQuestion DTO.)
+    const isCorrect = true;
+    markCorrectness(question.id, isCorrect);
+
+    if (isCorrect) {
+      // combo BEFORE the markCorrectness call was `combo`; after the call it
+      // becomes combo+1. Read the post-update value via the store directly.
+      const newCombo = useQuizStore.getState().combo;
+      // Simplified XP estimate: base 15 + 2 per combo step.
+      const xpEstimate = 15 + Math.max(0, newCombo - 1) * 2;
+      setXpBurstValue(xpEstimate);
+      setXpBurstVisible(true);
+
+      haptic.fire('correct');
+      sound.play('correct');
+
+      // Combo-tier pulse every 3 hits.
+      if (newCombo > 0 && newCombo % 3 === 0) {
+        haptic.fire('comboTier');
+        sound.play('combo');
+      }
+    } else {
+      setShakeTrigger((t) => t + 1);
+      haptic.fire('wrong');
+      sound.play('wrong');
+    }
+
+    // Advance to confidence rating substate.
+    setPlayStep('awaitingConfidence');
   };
 
   const handleSubmit = useCallback(
-    async (finalAnswers: Map<string, number>, currentQuiz: Quiz) => {
+    async (
+      finalAnswers: Map<string, number>,
+      finalConfidences: Map<string, ConfidenceLevel>,
+      currentQuiz: Quiz,
+    ) => {
       try {
         setSubmitting(true);
-        const totalTimeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        const totalTimeSpent = Math.floor(
+          (Date.now() - startTimeRef.current) / 1000,
+        );
 
-        const answersDto: QuizAnswerDto[] = currentQuiz.questions.map((q) => ({
-          questionId: q.id,
-          answer: finalAnswers.get(q.id) ?? 0,
-        }));
+        const answersDto: QuizAnswerDto[] = currentQuiz.questions.map((q) => {
+          const dto: QuizAnswerDto = {
+            questionId: q.id,
+            answer: finalAnswers.get(q.id) ?? 0,
+          };
+          const conf = finalConfidences.get(q.id);
+          if (conf) dto.confidence = conf;
+          return dto;
+        });
 
         const quizResult = await quizzesService.submit(currentQuiz.id, {
           answers: answersDto,
@@ -141,6 +250,14 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
 
         setResult(quizResult);
         setPhase('result');
+
+        // Result-phase juice
+        if (quizResult.passed) {
+          setConfettiActive(true);
+          haptic.fire('levelup');
+          sound.play('levelup');
+          setTimeout(() => setConfettiActive(false), 3000);
+        }
 
         // Refresh stats
         const newStats = await quizzesService.getStats(currentQuiz.id);
@@ -152,33 +269,45 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         setSubmitting(false);
       }
     },
-    []
+    [haptic, sound],
   );
 
-  const handleNextQuestion = () => {
+  /**
+   * Confidence selected → commit answer + confidence, advance to next
+   * question or submit if we're on the last one.
+   */
+  const handleSelectConfidence = (level: ConfidenceLevel) => {
     if (!quiz || selectedOption === null) return;
-
     const question = quiz.questions[currentQuestionIndex];
+
+    setSelectedConfidence(level);
+    storeSetConfidence(question.id, level);
 
     const newAnswers = new Map(answers);
     newAnswers.set(question.id, selectedOption);
     setAnswers(newAnswers);
 
+    const newConfidences = new Map(confidences);
+    newConfidences.set(question.id, level);
+    setConfidences(newConfidences);
+
     if (currentQuestionIndex < quiz.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       setSelectedOption(null);
+      setSelectedConfidence(undefined);
+      setPlayStep('answering');
+      setXpBurstVisible(false);
       questionStartRef.current = Date.now();
     } else {
-      handleSubmit(newAnswers, quiz);
+      handleSubmit(newAnswers, newConfidences, quiz);
     }
   };
 
   const resetToIntro = () => {
     setPhase('intro');
     setResult(null);
-    setAnswers(new Map());
-    setCurrentQuestionIndex(0);
-    setSelectedOption(null);
+    resetPlayState();
+    storeReset();
   };
 
   const handleRetryNewQuiz = useCallback(async () => {
@@ -186,9 +315,8 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       setGenerating(true);
       setPhase('intro');
       setResult(null);
-      setAnswers(new Map());
-      setCurrentQuestionIndex(0);
-      setSelectedOption(null);
+      resetPlayState();
+      storeReset();
       const newQuiz = await quizzesService.generateQuiz(videoId);
       setQuiz(newQuiz);
       // Refresh stats (mantém histórico de tentativas anteriores)
@@ -202,6 +330,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     } finally {
       setGenerating(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
   const handleCloseModal = () => {
@@ -231,6 +360,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     if (!quiz) return null;
     const question = quiz.questions[currentQuestionIndex];
     const isLast = currentQuestionIndex === quiz.questions.length - 1;
+    const awaitingConfidence = playStep === 'awaitingConfidence';
 
     return (
       <View style={styles.fullscreenContainer}>
@@ -255,39 +385,35 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
           }}
           selectedAnswer={selectedOption}
           onSelect={handleSelectOption}
-          disabled={submitting}
+          disabled={submitting || awaitingConfidence}
           progress={{
             current: currentQuestionIndex + 1,
             total: quiz.questions.length,
           }}
         />
 
-        {/* Bottom action */}
+        {/* Bottom area: confidence rating in awaitingConfidence,
+            otherwise hint text. The Next button is gone — confidence
+            selection drives advancement. */}
         <View style={styles.playFooter}>
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              (selectedOption === null || submitting) && styles.buttonDisabled,
-            ]}
-            onPress={handleNextQuestion}
-            disabled={selectedOption === null || submitting}
-            activeOpacity={0.8}
-          >
-            {submitting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.buttonText}>
-                  {isLast ? 'Finalizar' : 'Proxima'}
-                </Text>
-                <Ionicons
-                  name={isLast ? 'checkmark' : 'arrow-forward'}
-                  size={16}
-                  color="#fff"
-                />
-              </>
-            )}
-          </TouchableOpacity>
+          {awaitingConfidence ? (
+            <ConfidenceRating
+              selected={selectedConfidence}
+              onSelect={handleSelectConfidence}
+              disabled={submitting}
+            />
+          ) : (
+            <Text style={styles.hintText}>
+              Toque em uma alternativa para responder
+              {isLast ? ' (última questão)' : ''}
+            </Text>
+          )}
+          {submitting && (
+            <View style={styles.submittingRow}>
+              <ActivityIndicator size="small" color={colors.accent} />
+              <Text style={styles.submittingText}>Enviando…</Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -350,8 +476,22 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom']}>
           <StatusBar barStyle="dark-content" backgroundColor={colors.card} />
-          {phase === 'play' && renderPlayPhase()}
-          {phase === 'result' && renderResultPhase()}
+          <ScreenShake trigger={shakeTrigger}>
+            {phase === 'play' && renderPlayPhase()}
+            {phase === 'result' && renderResultPhase()}
+          </ScreenShake>
+
+          {/* Overlays — outside ScreenShake so they don't shake with content */}
+          {phase === 'play' && <ComboMeter combo={combo} />}
+          <XpBurst
+            xp={xpBurstValue}
+            visible={xpBurstVisible}
+            onDone={() => setXpBurstVisible(false)}
+          />
+          <ConfettiSkia
+            active={confettiActive}
+            count={result?.score === 100 ? 120 : 60}
+          />
         </SafeAreaView>
       </Modal>
     </View>
@@ -373,29 +513,30 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // Play footer / next button
+  // Play footer (now hosts ConfidenceRating or hint)
   playFooter: {
-    padding: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     backgroundColor: colors.card,
   },
-  nextButton: {
+  hintText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  submittingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
+    gap: 8,
+    paddingVertical: 8,
   },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+  submittingText: {
+    fontSize: 12,
+    color: colors.textMuted,
   },
 
   // Fullscreen modal chrome
