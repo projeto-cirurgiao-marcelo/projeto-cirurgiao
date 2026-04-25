@@ -127,7 +127,7 @@ export class QuizAttemptsService {
           'quiz_pass',
           xp,
           `Passou no quiz (${score}%)`,
-          videoId,
+          attempt.id,
         );
         if (score === 100) {
           await this.gamificationService.processAction(
@@ -135,7 +135,7 @@ export class QuizAttemptsService {
             'quiz_perfect',
             75,
             'Nota máxima no quiz',
-            `${videoId}_perfect`,
+            `${attempt.id}_perfect`,
           );
         }
       }
