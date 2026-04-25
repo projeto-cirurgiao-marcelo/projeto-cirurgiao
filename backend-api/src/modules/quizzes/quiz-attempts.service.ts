@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
+import { XpCalculatorService } from '../gamification/xp-calculator.service';
 import { QuizzesService } from './quizzes.service';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { QuizResult } from './interfaces/quiz.interface';
@@ -20,6 +21,7 @@ export class QuizAttemptsService {
     private prisma: PrismaService,
     private quizzesService: QuizzesService,
     private gamificationService: GamificationService,
+    private xpCalculator: XpCalculatorService,
     private analytics: AnalyticsService,
   ) {}
 
@@ -103,6 +105,65 @@ export class QuizAttemptsService {
     });
 
     this.logger.log(`Quiz attempt ${attempt.id} saved`);
+
+    // === Sprint 1: per-question XP via XpCalculator (variable: base × combo × confidence) ===
+    let comboMaxObserved = 0;
+    try {
+      let comboRunning = await this.xpCalculator.getCurrentCombo(userId);
+      for (const correctedAnswer of correctedAnswers) {
+        const userAnswerInput = dto.answers.find(
+          (a) => a.questionId === correctedAnswer.questionId,
+        );
+        const question = quiz.questions.find(
+          (q: any) => q.id === correctedAnswer.questionId,
+        );
+        // QuizQuestion does not yet have `difficulty` field; fall back to MEDIUM if absent.
+        // TODO Sprint 2: add Difficulty to QuizQuestion.
+        const difficulty: any = (question && (question as any).difficulty) ?? 'MEDIUM';
+
+        const xp = await this.xpCalculator.calculate({
+          difficulty,
+          comboBefore: comboRunning,
+          confidence: userAnswerInput?.confidence ?? null,
+          isCorrect: correctedAnswer.isCorrect,
+        });
+        comboRunning = correctedAnswer.isCorrect ? comboRunning + 1 : 0;
+        comboMaxObserved = Math.max(comboMaxObserved, comboRunning);
+
+        // Persist confidence + xpAwarded on the existing QuizAnswer row
+        const answerRow = (attempt as any).answers.find(
+          (a: any) => a.questionId === correctedAnswer.questionId,
+        );
+        if (answerRow) {
+          await this.prisma.quizAnswer.update({
+            where: { id: answerRow.id },
+            data: {
+              confidence: userAnswerInput?.confidence ?? null,
+              xpAwarded: xp.total,
+            },
+          });
+        }
+
+        if (xp.total > 0) {
+          await this.gamificationService.processAction(
+            userId,
+            'quiz_question',
+            xp.total,
+            `Acerto questão ${correctedAnswer.questionId.slice(0, 8)}`,
+            `${attempt.id}:${correctedAnswer.questionId}`,
+          );
+        }
+      }
+
+      // Persist comboMax on the attempt
+      await this.prisma.quizAttempt.update({
+        where: { id: attempt.id },
+        data: { comboMax: comboMaxObserved },
+      });
+    } catch (err) {
+      this.logger.warn('Per-question XP calculation failed', err);
+    }
+    // === end Sprint 1 per-question XP ===
 
     // Gamificação: conceder XP por quiz
     // Buscar tentativas anteriores por VÍDEO (não por quiz), pois cada tentativa gera um quiz novo

@@ -1,5 +1,6 @@
-import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ConfidenceLevel } from '@prisma/client';
 
 export class QuizAnswerDto {
   @IsString()
@@ -11,6 +12,10 @@ export class QuizAnswerDto {
   @IsOptional()
   @IsInt()
   timeSpent?: number; // Tempo gasto nesta questão em segundos
+
+  @IsOptional()
+  @IsEnum(['GUESSED', 'THOUGHT_KNEW', 'KNEW', 'MASTERED'])
+  confidence?: ConfidenceLevel; // Sprint 1: nível de confiança auto-reportado pelo aluno
 }
 
 export class SubmitQuizDto {
