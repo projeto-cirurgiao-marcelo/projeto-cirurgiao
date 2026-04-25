@@ -554,14 +554,18 @@ model QuizAttempt {
   timeSpent      Int?     // Tempo gasto em segundos
   passed         Boolean  @default(false) // Se passou ou não
   completedAt    DateTime @default(now())
+  comboMax       Int        @default(0)
+  specialtyId    String?
 
-  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  answers QuizAnswer[]
+  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty Specialty?   @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  answers   QuizAnswer[]
 
   @@index([quizId])
   @@index([userId])
   @@index([completedAt])
+  @@index([specialtyId])
   @@map("quiz_attempts")
 }
 
@@ -930,6 +934,7 @@ model Specialty {
 
   questions    QuestionBankItem[]
   userMastery  UserMastery[]
+  quizAttempts QuizAttempt[]
 
   @@map("specialties")
 }
