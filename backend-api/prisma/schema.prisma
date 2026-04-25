@@ -53,6 +53,7 @@ model User {
   forumReports      ForumReport[]
   quizAttempts      QuizAttempt[]
   questionBankItems QuestionBankItem[]
+  userMastery       UserMastery[]
   chatConversations ChatConversation[] // Conversas do chatbot
   profile           UserProfile?
 
@@ -918,6 +919,7 @@ model Specialty {
   updatedAt    DateTime @updatedAt
 
   questions    QuestionBankItem[]
+  userMastery  UserMastery[]
 
   @@map("specialties")
 }
@@ -940,4 +942,24 @@ model QuestionBankItem {
 
   @@index([specialtyId, active])
   @@map("question_bank_items")
+}
+
+model UserMastery {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialtyId   String
+  specialty     Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  score         Float     @default(0)
+  totalAttempts Int       @default(0)
+  totalCorrect  Int       @default(0)
+  lastReviewAt  DateTime?
+  lastDecayAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, specialtyId])
+  @@index([userId])
+  @@index([specialtyId])
+  @@map("user_mastery")
 }
