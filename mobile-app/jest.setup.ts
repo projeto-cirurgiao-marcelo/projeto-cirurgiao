@@ -30,6 +30,10 @@ jest.mock('react-native-worklets', () => ({
   runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
   runOnUI: (fn: (...args: unknown[]) => unknown) => fn,
   createWorkletRuntime: () => ({}),
+  createSerializable: (value: unknown) => value,
+  isWorkletFunction: () => false,
+  RuntimeKind: { Worklet: 'worklet', UI: 'ui', Default: 'default' },
+  serializableMappingCache: { set: () => {}, get: () => undefined },
 }));
 
 // ---------------------------------------------------------------------------
