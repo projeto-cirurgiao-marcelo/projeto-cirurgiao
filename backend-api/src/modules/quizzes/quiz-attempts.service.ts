@@ -149,7 +149,7 @@ export class QuizAttemptsService {
             'quiz_improvement',
             10,
             `Melhorou nota: ${previousBest}% → ${score}%`,
-            `${videoId}_improvement`,
+            `${attempt.id}_improvement`,
           );
         }
       }
