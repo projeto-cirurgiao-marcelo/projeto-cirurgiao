@@ -963,3 +963,16 @@ model UserMastery {
   @@index([specialtyId])
   @@map("user_mastery")
 }
+
+model XpRule {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  description    String
+  baseXp         Int      @default(0)
+  multiplierJson Json
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("xp_rules")
+}
