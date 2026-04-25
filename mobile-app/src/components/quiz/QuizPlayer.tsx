@@ -411,13 +411,6 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const isModalVisible = phase === 'play' || phase === 'result';
 
   const renderPlayPhase = () => {
-    logger.log('[QuizPlayer] renderPlayPhase quiz.questions=', JSON.stringify({
-      hasQuiz: !!quiz,
-      questionsCount: quiz?.questions?.length,
-      currentIndex: currentQuestionIndex,
-      firstQuestionKeys: quiz?.questions?.[0] ? Object.keys(quiz.questions[0]) : null,
-      firstOptionsType: quiz?.questions?.[0]?.options ? Array.isArray(quiz.questions[0].options) ? 'array' : typeof quiz.questions[0].options : 'undefined',
-    }));
     if (!quiz || !quiz.questions || quiz.questions.length === 0) return null;
     const question = quiz.questions[currentQuestionIndex];
     if (!question || !question.options) return null;

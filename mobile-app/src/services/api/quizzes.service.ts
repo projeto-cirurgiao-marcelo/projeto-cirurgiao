@@ -130,8 +130,6 @@ export const quizzesService = {
 
   async getById(quizId: string): Promise<Quiz> {
     const response = await apiClient.get<Quiz>(`/quizzes/${quizId}`);
-    logger.log('[quizzesService.getById] raw keys:', Object.keys(response.data ?? {}));
-    logger.log('[quizzesService.getById] questions length:', (response.data as any)?.questions?.length);
     return response.data;
   },
 
