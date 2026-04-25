@@ -807,6 +807,7 @@ model XpLog {
   description String?
   referenceId String?  // ID da entidade que gerou o XP (videoId, quizId, etc)
   createdAt   DateTime @default(now())
+  multiplierBreakdown Json?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
