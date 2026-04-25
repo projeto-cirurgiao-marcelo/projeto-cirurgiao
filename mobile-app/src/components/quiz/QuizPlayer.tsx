@@ -82,6 +82,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const [stats, setStats] = useState<QuizStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Play state
@@ -140,15 +141,37 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     }
   };
 
+  const mapJobStatusToLabel = (status: string): string => {
+    switch (status) {
+      case 'queued':
+        return 'Aguardando processamento…';
+      case 'active':
+        return 'Gerando questões com IA…';
+      case 'completed':
+        return 'Concluído!';
+      case 'failed':
+        return 'Falhou';
+      default:
+        return 'Gerando…';
+    }
+  };
+
   const handleGenerate = useCallback(async () => {
     try {
       setGenerating(true);
-      const newQuiz = await quizzesService.generateQuiz(videoId);
+      setGenerationStatus('Iniciando…');
+      const newQuiz = await quizzesService.generateQuizAsync(
+        videoId,
+        undefined,
+        (status) => setGenerationStatus(mapJobStatusToLabel(status)),
+      );
       setQuiz(newQuiz);
       setStats(null);
+      setGenerationStatus(null);
     } catch (error) {
       logger.error('Erro ao gerar quiz:', error);
       Alert.alert('Erro', 'Nao foi possivel gerar o quiz. Verifique se o video possui transcricao.');
+      setGenerationStatus(null);
     } finally {
       setGenerating(false);
     }
@@ -313,20 +336,27 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const handleRetryNewQuiz = useCallback(async () => {
     try {
       setGenerating(true);
+      setGenerationStatus('Iniciando…');
       setPhase('intro');
       setResult(null);
       resetPlayState();
       storeReset();
-      const newQuiz = await quizzesService.generateQuiz(videoId);
+      const newQuiz = await quizzesService.generateQuizAsync(
+        videoId,
+        undefined,
+        (status) => setGenerationStatus(mapJobStatusToLabel(status)),
+      );
       setQuiz(newQuiz);
       // Refresh stats (mantém histórico de tentativas anteriores)
       if (newQuiz) {
         const newStats = await quizzesService.getStats(newQuiz.id);
         setStats(newStats);
       }
+      setGenerationStatus(null);
     } catch (error) {
       logger.error('Erro ao gerar novo quiz:', error);
       Alert.alert('Erro', 'Nao foi possivel gerar um novo quiz. Tente novamente.');
+      setGenerationStatus(null);
     } finally {
       setGenerating(false);
     }
@@ -357,8 +387,16 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const isModalVisible = phase === 'play' || phase === 'result';
 
   const renderPlayPhase = () => {
-    if (!quiz) return null;
+    logger.log('[QuizPlayer] renderPlayPhase quiz.questions=', JSON.stringify({
+      hasQuiz: !!quiz,
+      questionsCount: quiz?.questions?.length,
+      currentIndex: currentQuestionIndex,
+      firstQuestionKeys: quiz?.questions?.[0] ? Object.keys(quiz.questions[0]) : null,
+      firstOptionsType: quiz?.questions?.[0]?.options ? Array.isArray(quiz.questions[0].options) ? 'array' : typeof quiz.questions[0].options : 'undefined',
+    }));
+    if (!quiz || !quiz.questions || quiz.questions.length === 0) return null;
     const question = quiz.questions[currentQuestionIndex];
+    if (!question || !question.options) return null;
     const isLast = currentQuestionIndex === quiz.questions.length - 1;
     const awaitingConfidence = playStep === 'awaitingConfidence';
 
@@ -461,6 +499,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
           stats={stats}
           isAdmin={isAdmin}
           generating={generating}
+          generationStatus={generationStatus}
           onGenerate={handleGenerate}
           onStart={handleStartQuiz}
           onRetryNewQuiz={handleRetryNewQuiz}

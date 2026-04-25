@@ -22,6 +22,8 @@ export interface QuizIntroProps {
   stats: QuizStats | null;
   isAdmin: boolean;
   generating: boolean;
+  /** Optional status label shown next to the spinner during async generation. */
+  generationStatus?: string | null;
   onGenerate: () => void;
   onStart: () => void;
   onRetryNewQuiz: () => void;
@@ -38,6 +40,7 @@ export function QuizIntro({
   stats,
   isAdmin,
   generating,
+  generationStatus,
   onGenerate,
   onStart,
   onRetryNewQuiz,
@@ -62,7 +65,12 @@ export function QuizIntro({
             activeOpacity={0.8}
           >
             {generating ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.buttonText}>
+                  {generationStatus ?? 'Gerando…'}
+                </Text>
+              </View>
             ) : (
               <>
                 <Ionicons name="sparkles" size={16} color="#fff" />
@@ -95,7 +103,7 @@ export function QuizIntro({
             })()}
             <View style={styles.introBadge}>
               <Ionicons name="help-circle-outline" size={12} color={colors.textSecondary} />
-              <Text style={styles.introBadgeText}>{quiz.questions.length} questoes</Text>
+              <Text style={styles.introBadgeText}>{quiz.questions?.length ?? 0} questoes</Text>
             </View>
             {quiz.timeLimit && (
               <View style={styles.introBadge}>
@@ -145,7 +153,12 @@ export function QuizIntro({
             activeOpacity={0.8}
           >
             {generating ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.buttonText}>
+                  {generationStatus ?? 'Gerando…'}
+                </Text>
+              </View>
             ) : (
               <>
                 <Ionicons
@@ -316,5 +329,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 });
