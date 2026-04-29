@@ -262,3 +262,7 @@ smoke-*.html
 
 # Superpowers / handoff scratch dirs
 .superpowers/
+
+# MCP server config — contains API keys (Stitch, 21st Magic, n8n, etc).
+# Track .mcp.json.example template instead. Each dev keeps own keys local.
+.mcp.json
