@@ -1,76 +1,124 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
-import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
-import { CourseCard } from '@/components/student/course-card';
-import { CourseCardSkeletonGrid } from '@/components/student/course-card-skeleton';
-import { Loader2, Award, Trophy, Calendar } from 'lucide-react';
-
+import {
+  progressService,
+  EnrolledCourseWithProgress,
+} from '@/lib/api/progress.service';
+import { Award, ArrowRight, FileDown } from 'lucide-react';
+import {
+  AtlasButton,
+  AtlasCompletionStrip,
+  AtlasCourseCard,
+  AtlasEmptyState,
+  AtlasLoadingBar,
+  AtlasPageHeader,
+  AtlasSkeletonCard,
+  AtlasStatsInline,
+  type AtlasCourseThumbVariant,
+} from '@/components/atlas';
 import { logger } from '@/lib/logger';
 
-/**
- * Página de Cursos Concluídos
- * Mostra apenas cursos 100% completos
- */
+const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
+  'default',
+  'alt',
+  'alt2',
+  'alt3',
+  'alt4',
+];
+
+function pickThumbVariant(id: string): AtlasCourseThumbVariant {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  const idx = Math.abs(hash) % THUMB_VARIANTS.length;
+  return THUMB_VARIANTS[idx];
+}
+
+function formatCompletedDate(date: string | null): string | undefined {
+  if (!date) return undefined;
+  try {
+    const d = new Date(date);
+    const months = [
+      'jan',
+      'fev',
+      'mar',
+      'abr',
+      'mai',
+      'jun',
+      'jul',
+      'ago',
+      'set',
+      'out',
+      'nov',
+      'dez',
+    ];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return undefined;
+  }
+}
+
+const RECOGNITION_DISMISS_KEY = 'atlas:completed:recognition-dismissed-at';
+
 export default function CompletedPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const { isAdminViewingAsStudent } = useViewModeStore();
-  const [courses, setCourses] = useState<any[]>([]);
+
+  const [courses, setCourses] = useState<EnrolledCourseWithProgress[]>([]);
+  const [enrolledCount, setEnrolledCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [recognitionDismissed, setRecognitionDismissed] = useState(false);
 
   useEffect(() => {
     if (!hasHydrated) return;
-
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-
     if (user?.role === 'ADMIN' && !isAdminViewingAsStudent) {
       router.push('/admin/courses');
       return;
     }
 
-    loadCompletedCourses();
+    if (typeof window !== 'undefined') {
+      const dismissedAt = window.localStorage.getItem(RECOGNITION_DISMISS_KEY);
+      if (dismissedAt) {
+        const elapsed = Date.now() - parseInt(dismissedAt, 10);
+        if (elapsed < 7 * 24 * 3600 * 1000) {
+          setRecognitionDismissed(true);
+        }
+      }
+    }
+
+    void loadCompletedCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, hasHydrated]);
 
   const loadCompletedCourses = async () => {
     try {
       const enrolledData = await progressService.getEnrolledCourses();
-
-      // Filtrar apenas cursos concluídos (progresso = 100%)
+      setEnrolledCount(enrolledData.length);
       const completed = enrolledData
-        .filter((course: EnrolledCourseWithProgress) => 
-          course.progress.percentage === 100
-        )
-        .map((course: EnrolledCourseWithProgress) => ({
-          ...course,
-          enrollment: {
-            id: course.enrollment.id,
-            enrolledAt: course.enrollment.enrolledAt,
-            lastAccessedAt: course.enrollment.lastAccessAt,
-            completedAt: course.enrollment.completedAt,
-            progress: course.progress.percentage,
-          },
-          progress: {
-            totalVideos: course.progress.totalVideos,
-            watchedVideos: course.progress.watchedVideos,
-            percentage: course.progress.percentage,
-          },
-        }))
-        // Ordenar por data de conclusão (mais recente primeiro)
+        .filter((course) => course.progress.percentage === 100)
         .sort((a, b) => {
-          const dateA = new Date(a.enrollment.completedAt || a.enrollment.lastAccessedAt || a.enrollment.enrolledAt).getTime();
-          const dateB = new Date(b.enrollment.completedAt || b.enrollment.lastAccessedAt || b.enrollment.enrolledAt).getTime();
+          const dateA = new Date(
+            a.enrollment.completedAt ||
+              a.enrollment.lastAccessAt ||
+              a.enrollment.enrolledAt,
+          ).getTime();
+          const dateB = new Date(
+            b.enrollment.completedAt ||
+              b.enrollment.lastAccessAt ||
+              b.enrollment.enrolledAt,
+          ).getTime();
           return dateB - dateA;
         });
-
       setCourses(completed);
     } catch (error) {
       logger.error('Erro ao carregar cursos concluídos:', error);
@@ -79,145 +127,132 @@ export default function CompletedPage() {
     }
   };
 
-  const formatCompletionDate = (date: string | null) => {
-    if (!date) return 'Data não disponível';
-    try {
-      const d = new Date(date);
-      return d.toLocaleDateString('pt-BR', { 
-        day: '2-digit', 
-        month: 'long', 
-        year: 'numeric' 
-      });
-    } catch {
-      return 'Data inválida';
+  const totalLessons = useMemo(
+    () => courses.reduce((sum, c) => sum + c.progress.totalVideos, 0),
+    [courses],
+  );
+
+  const completionRate =
+    enrolledCount === 0
+      ? 0
+      : Math.round((courses.length / enrolledCount) * 100);
+
+  const dismissRecognition = () => {
+    setRecognitionDismissed(true);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(
+        RECOGNITION_DISMISS_KEY,
+        String(Date.now()),
+      );
     }
   };
 
   if (!hasHydrated || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
+      <main className="px-7 py-7">
+        <AtlasLoadingBar />
+      </main>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
-          <Award className="h-6 w-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-            Cursos Concluídos
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Parabéns por completar estes cursos!
-          </p>
-        </div>
-      </div>
+    <>
+      <AtlasPageHeader
+        metaLabel="Biblioteca · Histórico"
+        title="Concluídos"
+        titleEm="— sua trajetória até aqui"
+        actions={
+          courses.length > 0 ? (
+            <AtlasButton variant="outline" size="md">
+              <FileDown strokeWidth={1.75} />
+              Exportar certificados
+            </AtlasButton>
+          ) : undefined
+        }
+      >
+        <AtlasStatsInline
+          stats={[
+            {
+              value: String(courses.length),
+              total: enrolledCount > 0 ? `/ ${enrolledCount}` : undefined,
+              label: 'Cursos concluídos',
+            },
+            { value: String(totalLessons), label: 'Aulas finalizadas' },
+            {
+              value: `${completionRate}%`,
+              format: 'mono',
+              label: 'Taxa de conclusão',
+            },
+            {
+              value: String(courses.length),
+              label: 'Certificados emitidos',
+            },
+          ]}
+        />
+      </AtlasPageHeader>
 
-      {/* Stats */}
-      {courses.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <Trophy className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{courses.length}</p>
-                <p className="text-xs text-gray-600">Cursos concluídos</p>
-              </div>
-            </div>
-          </div>
+      <div className="px-5 sm:px-7 py-5 sm:py-6">
+        {courses.length > 0 && !recognitionDismissed && (
+          <AtlasCompletionStrip
+            title={`Boa! Você concluiu ${courses.length} ${
+              courses.length === 1 ? 'curso' : 'cursos'
+            }.`}
+            description="Os certificados ficam disponíveis para download por tempo indeterminado em cada curso."
+            onDismiss={dismissRecognition}
+          />
+        )}
 
-          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Award className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {courses.reduce((sum, c) => sum + c.progress.totalVideos, 0)}
-                </p>
-                <p className="text-xs text-gray-600">Aulas assistidas</p>
-              </div>
+        {loading ? (
+          <>
+            <AtlasLoadingBar className="mb-[18px]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <AtlasSkeletonCard key={i} />
+              ))}
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <Calendar className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">100%</p>
-                <p className="text-xs text-gray-600">Taxa de conclusão</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Congratulations Banner */}
-      {courses.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white rounded-full shadow-sm">
-              <Trophy className="h-8 w-8 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">
-                Parabéns pelo seu progresso!
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Você completou {courses.length} {courses.length === 1 ? 'curso' : 'cursos'}. Continue assim!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      {loading ? (
-        <CourseCardSkeletonGrid count={8} />
-      ) : courses.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-6">
-            <Award className="h-24 w-24 mx-auto text-gray-400" />
-          </div>
-          <h3 className="text-2xl font-bold mb-3 text-gray-900 tracking-tight">
-            Nenhum curso concluído ainda
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Complete um curso para vê-lo aqui e ganhar seu certificado
-          </p>
-          <button
-            onClick={() => router.push('/student/my-courses')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Ver Meus Cursos
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Lista de cursos concluídos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          </>
+        ) : courses.length === 0 ? (
+          <AtlasEmptyState
+            icon={Award}
+            title="Nenhum curso concluído ainda"
+            description="Conclua um curso para vê-lo aqui e acessar o certificado em PDF."
+            action={
+              <AtlasButton
+                variant="primary"
+                size="md"
+                onClick={() => router.push('/student/in-progress')}
+              >
+                Ver cursos em andamento
+                <ArrowRight strokeWidth={1.75} />
+              </AtlasButton>
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
             {courses.map((course) => (
-              <div key={course.id}>
-                <CourseCard course={course} />
-                {course.enrollment.completedAt && (
-                  <div className="mt-2 text-xs text-gray-500 text-center">
-                    Concluído em {formatCompletionDate(course.enrollment.completedAt)}
-                  </div>
-                )}
-              </div>
+              <AtlasCourseCard
+                key={course.id}
+                href={`/student/courses/${course.id}`}
+                title={course.title}
+                category="Cirurgia veterinária"
+                instructor={course.instructor?.name}
+                lessonsCount={course.progress.totalVideos}
+                status="completed"
+                progressPercent={100}
+                lessonsProgress={`${course.progress.totalVideos} / ${course.progress.totalVideos}`}
+                completedAt={formatCompletedDate(course.enrollment.completedAt)}
+                thumbVariant={pickThumbVariant(course.id)}
+                thumbImageUrl={
+                  course.thumbnailHorizontal ||
+                  course.thumbnailVertical ||
+                  course.thumbnail ||
+                  undefined
+                }
+              />
             ))}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

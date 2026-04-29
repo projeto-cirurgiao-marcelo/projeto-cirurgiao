@@ -165,21 +165,25 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
 
   return (
     <>
-      {/* Botão flutuante - posicionado à esquerda para não sobrepor o botão de anotações */}
+      {/* Botão flutuante FAB — Atlas re-skin (movido pra direita pra não conflitar com rail user footer) */}
       <motion.div
-        className="fixed bottom-6 left-6 z-50"
+        className="fixed right-4 sm:right-6 z-50 bottom-[calc(72px+env(safe-area-inset-bottom))] md:bottom-6"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 1, type: 'spring' }}
       >
-        <Button
+        <button
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
-          size="lg"
+          aria-label={isOpen ? 'Fechar chat IA' : 'Abrir chat IA'}
           className={cn(
-            'rounded-full w-14 h-14 shadow-lg',
-            isOpen
-              ? 'bg-gray-600 hover:bg-gray-700'
-              : 'bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700'
+            'size-12 rounded-full flex items-center justify-center',
+            'bg-atlas-surface border border-atlas-line',
+            'shadow-[0_8px_24px_rgba(0,0,0,0.08)]',
+            'transition-colors duration-150',
+            'hover:bg-atlas-surface-2',
+            'text-atlas-primary',
+            isOpen && 'text-atlas-muted',
           )}
         >
           <AnimatePresence mode="wait">
@@ -190,7 +194,7 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: 90, opacity: 0 }}
               >
-                <X className="h-6 w-6" />
+                <X className="size-5" strokeWidth={1.75} />
               </motion.div>
             ) : (
               <motion.div
@@ -199,11 +203,11 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: -90, opacity: 0 }}
               >
-                <MessageCircle className="h-6 w-6" />
+                <MessageCircle className="size-5" strokeWidth={1.5} />
               </motion.div>
             )}
           </AnimatePresence>
-        </Button>
+        </button>
       </motion.div>
 
       {/* Janela do chat */}
@@ -214,7 +218,7 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-24 left-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[600px] max-h-[calc(100vh-150px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[600px] max-h-[calc(100vh-150px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-500 to-blue-600 p-4 text-white">

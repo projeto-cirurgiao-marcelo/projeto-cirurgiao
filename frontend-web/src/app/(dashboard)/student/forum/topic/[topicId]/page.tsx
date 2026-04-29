@@ -54,7 +54,7 @@ import { PageTransition, StaggerContainer, StaggerItem } from '@/components/shar
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useToast } from '@/hooks/use-toast';
+import { atlasToast } from '@/components/atlas';
 
 import { logger } from '@/lib/logger';
 
@@ -70,7 +70,6 @@ export default function TopicDetailPage() {
   const params = useParams();
   const router = useRouter();
   const topicId = params.topicId as string;
-  const { toast } = useToast();
   const user = useAuthStore((s) => s.user);
 
   const [topic, setTopic] = useState<ForumTopic | null>(null);
@@ -123,19 +122,19 @@ export default function TopicDetailPage() {
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyContent.trim()) {
-      toast({ title: 'Erro', description: 'Por favor, escreva uma resposta', variant: 'destructive' });
+      atlasToast.warning('Escreva uma resposta antes de enviar');
       return;
     }
 
     try {
       setSubmitting(true);
       await forumService.createReply({ topicId, content: replyContent });
-      toast({ title: 'Sucesso', description: 'Resposta enviada com sucesso' });
+      // Sem toast — resposta aparece imediato na lista (feedback inline)
       setReplyContent('');
       await loadTopic();
     } catch (err) {
       logger.error('Erro ao enviar resposta:', err);
-      toast({ title: 'Erro', description: 'Erro ao enviar resposta', variant: 'destructive' });
+      atlasToast.error('Falha ao enviar resposta');
     } finally {
       setSubmitting(false);
     }
@@ -152,13 +151,13 @@ export default function TopicDetailPage() {
     try {
       setSavingReply(true);
       await forumService.updateReply(editingReply.id, editReplyContent.trim());
-      toast({ title: 'Sucesso', description: 'Resposta atualizada' });
+      // Sem toast — conteúdo atualiza inline
       setEditingReply(null);
       setEditReplyContent('');
       await loadTopic();
     } catch (err) {
       logger.error('Erro ao editar resposta:', err);
-      toast({ title: 'Erro', description: 'Erro ao atualizar resposta', variant: 'destructive' });
+      atlasToast.error('Falha ao atualizar resposta');
     } finally {
       setSavingReply(false);
     }
@@ -169,11 +168,11 @@ export default function TopicDetailPage() {
 
     try {
       await forumService.deleteReply(replyId);
-      toast({ title: 'Sucesso', description: 'Resposta deletada' });
+      // Sem toast — resposta sai da lista
       await loadTopic();
     } catch (err) {
       logger.error('Erro ao deletar resposta:', err);
-      toast({ title: 'Erro', description: 'Erro ao deletar resposta', variant: 'destructive' });
+      atlasToast.error('Falha ao deletar resposta');
     }
   };
 
@@ -195,12 +194,12 @@ export default function TopicDetailPage() {
         title: editTopicTitle.trim(),
         content: editTopicContent.trim(),
       });
-      toast({ title: 'Sucesso', description: 'Tópico atualizado' });
+      // Sem toast — conteúdo do tópico atualiza inline
       setIsEditingTopic(false);
       await loadTopic();
     } catch (err) {
       logger.error('Erro ao editar tópico:', err);
-      toast({ title: 'Erro', description: 'Erro ao atualizar tópico', variant: 'destructive' });
+      atlasToast.error('Falha ao atualizar tópico');
     } finally {
       setSavingTopic(false);
     }
@@ -211,11 +210,11 @@ export default function TopicDetailPage() {
 
     try {
       await forumService.deleteTopic(topicId);
-      toast({ title: 'Sucesso', description: 'Tópico deletado' });
+      atlasToast.success('Tópico removido');
       router.push('/student/forum');
     } catch (err) {
       logger.error('Erro ao deletar tópico:', err);
-      toast({ title: 'Erro', description: 'Erro ao deletar tópico', variant: 'destructive' });
+      atlasToast.error('Falha ao deletar tópico');
     }
   };
 
@@ -225,10 +224,10 @@ export default function TopicDetailPage() {
     if (!topic) return;
     try {
       await forumService.updateTopic(topicId, { isPinned: !topic.isPinned });
-      toast({ title: 'Sucesso', description: topic.isPinned ? 'Tópico desafixado' : 'Tópico fixado' });
+      atlasToast.success(topic.isPinned ? 'Tópico desafixado' : 'Tópico fixado');
       await loadTopic();
     } catch (err) {
-      toast({ title: 'Erro', description: 'Erro ao alterar fixação', variant: 'destructive' });
+      atlasToast.error('Falha ao alterar fixação');
     }
   };
 
@@ -236,10 +235,10 @@ export default function TopicDetailPage() {
     if (!topic) return;
     try {
       await forumService.updateTopic(topicId, { isClosed: !topic.isClosed });
-      toast({ title: 'Sucesso', description: topic.isClosed ? 'Tópico reaberto' : 'Tópico fechado' });
+      atlasToast.success(topic.isClosed ? 'Tópico reaberto' : 'Tópico fechado');
       await loadTopic();
     } catch (err) {
-      toast({ title: 'Erro', description: 'Erro ao alterar status', variant: 'destructive' });
+      atlasToast.error('Falha ao alterar status');
     }
   };
 
@@ -247,10 +246,10 @@ export default function TopicDetailPage() {
     if (!topic) return;
     try {
       await forumService.updateTopic(topicId, { isSolved: !topic.isSolved });
-      toast({ title: 'Sucesso', description: topic.isSolved ? 'Desmarcado como resolvido' : 'Marcado como resolvido' });
+      atlasToast.success(topic.isSolved ? 'Desmarcado como resolvido' : 'Marcado como resolvido');
       await loadTopic();
     } catch (err) {
-      toast({ title: 'Erro', description: 'Erro ao alterar status', variant: 'destructive' });
+      atlasToast.error('Falha ao alterar status');
     }
   };
 
@@ -258,7 +257,7 @@ export default function TopicDetailPage() {
 
   const handleSubmitReport = async () => {
     if (!reportReason) {
-      toast({ title: 'Erro', description: 'Selecione um motivo', variant: 'destructive' });
+      atlasToast.warning('Selecione um motivo');
       return;
     }
 
@@ -269,14 +268,16 @@ export default function TopicDetailPage() {
         reason: reportReason as ReportReason,
         description: reportDescription.trim() || undefined,
       });
-      toast({ title: 'Denúncia enviada', description: 'Obrigado por ajudar a manter a comunidade segura.' });
+      atlasToast.success('Denúncia enviada', {
+        description: 'Obrigado por ajudar a manter a comunidade segura.',
+      });
       setIsReportDialogOpen(false);
       setReportReason('');
       setReportDescription('');
     } catch (err: any) {
       logger.error('Erro ao enviar denúncia:', err);
       const message = err?.response?.data?.message || 'Erro ao enviar denúncia';
-      toast({ title: 'Erro', description: message, variant: 'destructive' });
+      atlasToast.error('Falha ao enviar denúncia', { description: message });
     } finally {
       setSubmittingReport(false);
     }
@@ -284,73 +285,88 @@ export default function TopicDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Carregando tópico...</p>
+      <main className="min-h-screen bg-atlas-bg px-5 sm:px-7 py-7">
+        <div className="max-w-4xl mx-auto">
+          <div className="h-1 bg-atlas-line rounded-sm overflow-hidden mb-6">
+            <div className="h-full w-1/3 bg-atlas-primary animate-pulse" />
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error || !topic) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <p className="text-red-600 font-medium">{error || 'Tópico não encontrado'}</p>
-        <Button onClick={() => router.back()} variant="outline">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar
-        </Button>
-      </div>
+      <main className="min-h-screen bg-atlas-bg px-5 sm:px-7 py-10">
+        <div className="max-w-3xl mx-auto">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-1.5 text-xs text-atlas-muted hover:text-atlas-ink transition-colors mb-5"
+          >
+            <ArrowLeft className="size-3.5" strokeWidth={1.75} />
+            Voltar
+          </button>
+          <div className="bg-atlas-surface border border-dashed border-atlas-line rounded-md px-7 pt-14 pb-16 text-center">
+            <p className="font-serif text-[17px] font-medium text-atlas-ink mb-1.5">
+              {error || 'Tópico não encontrado'}
+            </p>
+            <p className="text-atlas-muted text-[13px] max-w-[420px] mx-auto leading-[1.55]">
+              Verifique o link ou volte para o fórum.
+            </p>
+          </div>
+        </div>
+      </main>
     );
   }
 
   const replyCount = topic._count?.replies || 0;
 
   return (
-    <PageTransition>
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-atlas-bg">
+      <div className="mx-auto max-w-4xl px-5 sm:px-7 py-6 sm:py-8">
         {/* Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-sm mb-6 flex-wrap">
-          <Link href="/student/forum" className="text-gray-400 hover:text-blue-600 transition-colors font-medium">
+        <nav className="flex items-center gap-1.5 text-[12.5px] mb-5 flex-wrap text-atlas-muted">
+          <Link href="/student/forum" className="hover:text-atlas-ink transition-colors">
             Fórum
           </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+          <ChevronRight className="size-3 text-atlas-muted-2" />
           {topic.category && (
             <>
               <Link
                 href={`/student/forum/${topic.category.id}`}
-                className="text-gray-400 hover:text-blue-600 transition-colors font-medium"
+                className="hover:text-atlas-ink transition-colors"
               >
                 {topic.category.name}
               </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+              <ChevronRight className="size-3 text-atlas-muted-2" />
             </>
           )}
-          <span className="text-gray-700 font-medium truncate max-w-[200px]">{topic.title}</span>
+          <span className="text-atlas-ink font-medium truncate max-w-[200px]">
+            {topic.title}
+          </span>
         </nav>
 
         {/* Topic Card */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+        <div className="bg-atlas-surface rounded-md border border-atlas-line overflow-hidden mb-6">
           {/* Status Badges Bar */}
           {(topic.isPinned || topic.isClosed || topic.isSolved) && (
-            <div className="flex items-center gap-2 px-6 py-2.5 bg-gray-50 border-b border-gray-100">
+            <div className="flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-atlas-surface-2 border-b border-atlas-line">
               {topic.isPinned && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-700">
-                  <Pin className="h-3 w-3" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm atlas-mono text-[10px] font-medium bg-atlas-warn/10 text-atlas-warn-deep border border-atlas-warn/30 uppercase tracking-[0.04em]">
+                  <Pin className="size-2.5" strokeWidth={1.75} />
                   Fixado
                 </span>
               )}
               {topic.isSolved && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100 text-emerald-700">
-                  <CheckCircle className="h-3 w-3" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm atlas-mono text-[10px] font-medium bg-atlas-success/10 text-atlas-success border border-atlas-success/30 uppercase tracking-[0.04em]">
+                  <CheckCircle className="size-2.5" strokeWidth={1.75} />
                   Resolvido
                 </span>
               )}
               {topic.isClosed && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-200 text-gray-600">
-                  <Lock className="h-3 w-3" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm atlas-mono text-[10px] font-medium bg-atlas-surface text-atlas-muted border border-atlas-line uppercase tracking-[0.04em]">
+                  <Lock className="size-2.5" strokeWidth={1.75} />
                   Fechado
                 </span>
               )}
@@ -580,7 +596,6 @@ export default function TopicDetailPage() {
           </div>
         )}
       </div>
-    </div>
 
     {/* Dialog: Editar Tópico */}
     <Dialog open={isEditingTopic} onOpenChange={setIsEditingTopic}>
@@ -703,6 +718,6 @@ export default function TopicDetailPage() {
       </DialogContent>
     </Dialog>
 
-    </PageTransition>
+    </main>
   );
 }

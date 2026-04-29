@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas — Páginas do Estudante</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --ink: #0F172A;
+  --ink-2: #2D3748;
+  --muted: #475569;
+  --muted-2: #64748B;
+  --line: #E2E8F0;
+  --line-strong: #CBD5E1;
+  --primary: #2F80ED;
+  --primary-2: #1D4ED8;
+  --primary-soft: #EFF6FF;
+  --warn: #F59E0B;
+  --warn-deep: #D97706;
+  --accent: #EF4444;
+  --success: #10B981;
+  --radius: 6px;
+  --radius-sm: 3px;
+  --ease: cubic-bezier(.2,.7,.2,1);
+  --font-sans: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--surface-2); color: var(--ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+body { font-size: 14px; line-height: 1.5; }
+
+button, a { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; text-decoration: none; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.serif { font-family: var(--font-serif); }
+.caps { text-transform: uppercase; letter-spacing: 0.12em; font-size: 10.5px; font-weight: 500; line-height: 1.2; }
+
+/* ===========================================
+   LAB WRAPPER
+=========================================== */
+.lab {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 40px 28px 80px;
+}
+.lab-intro {
+  margin-bottom: 32px;
+  padding: 24px 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.lab-intro .caps { color: var(--muted); margin-bottom: 6px; }
+.lab-intro h1 {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.18;
+  margin-bottom: 6px;
+}
+.lab-intro h1 em { font-style: italic; color: var(--muted); font-weight: 400; }
+.lab-intro p { color: var(--muted); max-width: 720px; line-height: 1.55; font-size: 13.5px; }
+
+.screen-frame {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.screen-label {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--ink);
+  color: rgba(255,255,255,0.92);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+.screen-label .right { display: flex; align-items: center; gap: 12px; opacity: 0.7; font-size: 10.5px; }
+.screen-label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+/* ===========================================
+   APP SHELL (replicado de cada tela)
+=========================================== */
+.app {
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  min-height: 720px;
+}
+
+/* ——— RAIL ——— */
+.rail {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+}
+.rail-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--line);
+  min-height: 60px;
+}
+.brand-mark {
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+}
+.brand-text { font-family: var(--font-serif); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.brand-text em { font-style: italic; font-weight: 400; color: var(--muted); }
+
+.rail-section { padding: 16px 12px 8px; }
+.rail-section-label { padding: 0 8px 8px; color: var(--muted-2); }
+
+.rail-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  position: relative;
+  transition: background .15s var(--ease);
+}
+.rail-item:hover { background: var(--surface-2); }
+.rail-item.active { background: var(--primary-soft); color: var(--primary-2); }
+.rail-item.active::before {
+  content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+  width: 2px; height: 16px; background: var(--primary);
+}
+.rail-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke-width: 1.5; }
+
+.rail-footer { margin-top: auto; padding: 12px; border-top: 1px solid var(--line); }
+.rail-user { display: flex; align-items: center; gap: 10px; padding: 6px 8px; }
+.avatar {
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: var(--primary); color: #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+}
+.rail-user-name { font-size: 13px; font-weight: 500; }
+.rail-user-role { font-size: 11px; color: var(--muted); }
+
+/* ——— MAIN ——— */
+.main { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+
+.topbar {
+  display: flex; align-items: center; gap: 24px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.search {
+  flex: 1; max-width: 420px;
+  position: relative;
+}
+.search input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 12px 8px 34px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s var(--ease);
+}
+.search input:focus { border-color: var(--ink-2); }
+.search input::placeholder { color: var(--muted-2); }
+.search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.icon-btn {
+  width: 34px; height: 34px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  position: relative;
+  transition: background .15s var(--ease);
+}
+.icon-btn:hover { background: var(--surface-2); }
+.icon-btn svg { width: 17px; height: 17px; stroke-width: 1.5; }
+.icon-btn .badge {
+  position: absolute; top: 6px; right: 6px;
+  min-width: 14px; height: 14px; padding: 0 3px;
+  background: var(--accent); color: #fff;
+  border-radius: 7px;
+  font-size: 9px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+}
+
+/* ===========================================
+   PAGE HEADER (padrão Atlas)
+=========================================== */
+.page-header {
+  padding: 28px 28px 22px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.page-header-top {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+.page-header-meta { color: var(--muted); margin-bottom: 6px; }
+.page-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.page-title em { font-style: italic; color: var(--muted); font-weight: 400; }
+.page-header-actions {
+  display: flex; gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ===========================================
+   STATS INLINE (substitui os cards-bloco)
+=========================================== */
+.stats-inline {
+  display: flex;
+  gap: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.stat-inline {
+  flex: 1;
+  padding: 0 28px 0 0;
+  margin-right: 28px;
+  border-right: 1px solid var(--line);
+}
+.stat-inline:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+.stat-inline-num {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.stat-inline-num .total { color: var(--muted-2); font-weight: 400; }
+.stat-inline-num.mono {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.stat-inline-label { color: var(--muted); font-size: 12px; }
+
+/* Stats compactos (linha única, sem destaque) */
+.stats-line {
+  display: flex; gap: 24px;
+  padding: 12px 0;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.stats-line .stat { display: flex; align-items: center; gap: 7px; }
+.stats-line .stat svg { width: 13px; height: 13px; stroke-width: 1.75; }
+.stats-line .stat strong { color: var(--ink); font-weight: 500; }
+
+/* ===========================================
+   BUTTONS
+=========================================== */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px;
+  font-size: 13px; font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  transition: all .15s var(--ease);
+  white-space: nowrap;
+  font-family: inherit;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--ink-2); }
+.btn svg { width: 14px; height: 14px; stroke-width: 1.75; }
+.btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn.primary:hover { background: var(--primary-2); border-color: var(--primary-2); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--ink); }
+.btn.sm { padding: 6px 11px; font-size: 12px; }
+
+/* ===========================================
+   PAGE BODY
+=========================================== */
+.page-body { padding: 24px 28px 48px; }
+
+.section-title {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-title h2 {
+  font-family: var(--font-serif);
+  font-size: 17px; font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.section-title .hint { color: var(--muted); font-size: 12px; }
+
+/* ===========================================
+   HERO PROMO (refeito)
+=========================================== */
+.hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.hero-content {
+  padding: 32px 36px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-bottom: 14px;
+  color: var(--primary-2);
+}
+.hero-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+.hero-title em { font-style: italic; color: var(--muted); font-weight: 400; }
+.hero-sub {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  max-width: 480px;
+}
+.hero-cta-row {
+  display: flex; gap: 10px;
+  margin-bottom: 24px;
+}
+.hero-cities {
+  display: flex; flex-wrap: wrap; gap: 12px 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.hero-cities-label { color: var(--muted-2); font-size: 11px; }
+.hero-city {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.hero-city .pin { width: 4px; height: 4px; background: var(--primary); border-radius: 50%; }
+
+.hero-visual {
+  position: relative;
+  background: linear-gradient(135deg, #0F172A 0%, #1E40AF 70%, #2F80ED 100%);
+  overflow: hidden;
+  min-height: 320px;
+}
+.hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 30% 70%, rgba(255,255,255,0.1) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(47,128,237,0.3) 0%, transparent 50%);
+}
+.hero-c-mark {
+  position: absolute;
+  right: -50px; top: 50%; transform: translateY(-50%);
+  font-family: var(--font-serif);
+  font-size: 320px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.08);
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+}
+.hero-visual-overlay {
+  position: absolute;
+  bottom: 24px; left: 24px; right: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  color: #fff;
+}
+.hero-visual-stat {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.hero-visual-stat .num {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+}
+.hero-visual-stat .label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* ===========================================
+   FILTER CHIPS
+=========================================== */
+.filters-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.filters-search {
+  flex: 1;
+  position: relative;
+}
+.filters-search input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 12px 9px 36px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s var(--ease);
+}
+.filters-search input:focus { border-color: var(--ink-2); }
+.filters-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); }
+
+.chip {
+  padding: 7px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: all .15s var(--ease);
+}
+.chip:hover { border-color: var(--ink-2); color: var(--ink); }
+.chip.active { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-2); }
+.chip svg { width: 12px; height: 12px; stroke-width: 1.75; }
+.chip .count { font-family: var(--font-mono); font-size: 10.5px; opacity: 0.7; }
+
+/* ===========================================
+   COURSE CARD (Atlas)
+=========================================== */
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.course-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  cursor: pointer;
+  transition: background .15s var(--ease);
+}
+.course-card:hover { background: var(--surface-2); }
+.course-card:hover .course-thumb { border-color: var(--line-strong); }
+
+.course-thumb {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  transition: border-color .15s var(--ease);
+}
+.course-thumb::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(47,128,237,0.25) 0%, transparent 50%),
+    radial-gradient(circle at 75% 70%, rgba(255,255,255,0.06) 0%, transparent 40%);
+}
+.course-thumb-text {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.85);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-align: center;
+  padding: 16px;
+  line-height: 1.2;
+}
+.course-thumb.alt { background: linear-gradient(135deg, #1E293B 0%, #047857 100%); }
+.course-thumb.alt2 { background: linear-gradient(135deg, #1E293B 0%, #92400E 100%); }
+.course-thumb.alt3 { background: linear-gradient(135deg, #0F172A 0%, #7F1D1D 100%); }
+.course-thumb.alt4 { background: linear-gradient(135deg, #1E293B 0%, #1E40AF 100%); }
+
+.course-thumb-status {
+  position: absolute;
+  top: 10px; left: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.course-thumb-status .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); }
+.course-thumb-status.complete .dot { background: var(--success); }
+.course-thumb-status.new .dot { background: var(--primary); }
+
+.course-body { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; }
+.course-meta-top {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.course-meta-top .sep { color: var(--muted-2); }
+.course-title-card {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+  color: var(--ink);
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.course-instructor {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.course-progress-row {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.course-progress-numbers {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.course-progress-numbers strong { color: var(--ink); font-weight: 500; }
+.course-progress-bar {
+  height: 2px;
+  background: var(--line);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+.course-progress-fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: var(--primary);
+  border-radius: 1px;
+}
+.course-progress-fill.complete { background: var(--success); }
+.course-progress-fill.warn { background: var(--warn); }
+
+/* Estado "novo" — sem progresso, com CTA inline */
+.course-cta-inline {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px;
+}
+.course-cta-inline .lessons-count { font-family: var(--font-mono); color: var(--muted); }
+.course-cta-inline .start-link { color: var(--primary-2); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.course-cta-inline .start-link svg { width: 12px; height: 12px; stroke-width: 2; }
+
+/* ===========================================
+   LIST DENSE (in-progress) — alternativa ao grid
+=========================================== */
+.course-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.course-row {
+  display: grid;
+  grid-template-columns: 96px 1fr 200px 110px;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  transition: background .15s var(--ease);
+  cursor: pointer;
+}
+.course-row:last-child { border-bottom: none; }
+.course-row:hover { background: var(--surface-2); }
+
+.course-row-thumb {
+  width: 96px; height: 60px;
+  background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+.course-row-thumb.alt { background: linear-gradient(135deg, #1E293B 0%, #047857 100%); }
+.course-row-thumb.alt2 { background: linear-gradient(135deg, #1E293B 0%, #92400E 100%); }
+.course-row-thumb::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 30% 60%, rgba(47,128,237,0.2) 0%, transparent 50%);
+}
+.course-row-thumb-label {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.8);
+  text-align: center;
+  padding: 6px;
+  line-height: 1.2;
+}
+
+.course-row-info { min-width: 0; }
+.course-row-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.course-row-meta .sep { color: var(--muted-2); }
+.course-row-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+.course-row-last {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.course-row-last .timestamp { font-family: var(--font-mono); color: var(--warn-deep); }
+
+.course-row-progress {
+  display: flex; flex-direction: column;
+  gap: 6px;
+}
+.course-row-progress-numbers {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.course-row-progress-numbers strong { color: var(--ink); font-weight: 500; }
+.course-row-progress-bar {
+  height: 2px;
+  background: var(--line);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+.course-row-progress-fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: var(--primary);
+}
+
+.course-row-action { display: flex; justify-content: flex-end; }
+
+/* ===========================================
+   COMPLETION BANNER (refeito sem gradient)
+=========================================== */
+.completion-strip {
+  display: flex; align-items: center; gap: 18px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--success);
+  border-radius: var(--radius);
+  margin-bottom: 28px;
+}
+.completion-icon {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.completion-icon svg { width: 17px; height: 17px; stroke-width: 1.75; }
+.completion-text { flex: 1; }
+.completion-title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  margin-bottom: 2px;
+}
+.completion-sub { color: var(--muted); font-size: 12.5px; }
+
+.completion-card-stamp {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+  backdrop-filter: blur(8px);
+  border-radius: 2px;
+  display: inline-flex; align-items: center; gap: 5px;
+  text-transform: uppercase;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.completion-card-stamp svg { width: 10px; height: 10px; stroke-width: 2; }
+
+.course-card-completed-meta {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+/* ===========================================
+   EMPTY STATE
+=========================================== */
+.empty {
+  padding: 56px 28px 64px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  border-style: dashed;
+}
+.empty-icon {
+  width: 48px; height: 48px;
+  margin: 0 auto 18px;
+  color: var(--muted-2);
+  display: flex; align-items: center; justify-content: center;
+}
+.empty-icon svg { width: 100%; height: 100%; stroke-width: 1.25; }
+.empty-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  margin-bottom: 6px;
+}
+.empty-text {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 360px;
+  margin: 0 auto 18px;
+  line-height: 1.55;
+}
+
+/* ===========================================
+   LOADING (fina barra horizontal)
+=========================================== */
+.loading-bar {
+  height: 2px;
+  background: var(--line);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1px;
+}
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  left: -30%; top: 0; height: 100%; width: 30%;
+  background: var(--primary);
+  animation: loading 1.4s var(--ease) infinite;
+}
+@keyframes loading {
+  0% { left: -30%; }
+  100% { left: 100%; }
+}
+
+.skeleton-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.skeleton-thumb {
+  aspect-ratio: 16 / 10;
+  background: var(--surface-2);
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-thumb::after,
+.skeleton-line::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+  animation: shimmer 1.6s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.skeleton-body { padding: 14px 16px 16px; }
+.skeleton-line {
+  height: 9px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-line.short { width: 40%; }
+.skeleton-line.med { width: 70%; }
+
+/* ===========================================
+   SECTION TABS (filter por estado)
+=========================================== */
+.section-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 22px;
+}
+.section-tab {
+  padding: 10px 16px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: color .15s var(--ease);
+}
+.section-tab:hover { color: var(--ink); }
+.section-tab.active { color: var(--ink); border-bottom-color: var(--primary); }
+.section-tab .count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted-2);
+  padding: 1px 6px;
+  background: var(--surface-2);
+  border-radius: 2px;
+}
+.section-tab.active .count { color: var(--primary-2); background: var(--primary-soft); }
+
+@media (max-width: 1100px) {
+  .course-grid { grid-template-columns: repeat(2, 1fr); }
+  .course-row { grid-template-columns: 80px 1fr 130px 90px; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-visual { min-height: 200px; }
+}
+</style>
+</head>
+<body>
+
+<div class="lab">
+
+  <div class="lab-intro">
+    <div class="caps">Atlas DS · Páginas do estudante</div>
+    <h1>Listagens e navegação <em>— mantendo a linguagem editorial</em></h1>
+    <p>Aplicação consistente de Atlas em três rotas-chave do estudante: catálogo, em andamento e concluídos. Headers padronizados, stats inline em vez de cards-bloco, hero promocional sem gradient saturado, course cards com hierarquia tipográfica clara, lista densa para acompanhamento de progresso, e estados vazios e de carregamento que respiram.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- TELA 1: /student/courses — CATÁLOGO                          -->
+  <!-- ============================================================ -->
+  <div class="screen-frame">
+    <div class="screen-label">
+      <span>GET /student/courses</span>
+      <span class="right">
+        <span class="dot"></span>
+        Catálogo de cursos · Desktop 1280px
+      </span>
+    </div>
+
+    <div class="app">
+      <!-- Rail -->
+      <aside class="rail">
+        <div class="rail-brand">
+          <div class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+              <path d="M4 20l8-16 8 16" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 14h8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-text">Projeto <em>Cirurgião</em></div>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-section-label caps">Biblioteca</div>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Início
+          </a>
+          <a class="rail-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V4.5A1.5 1.5 0 0 1 5.5 3H20v18H5.5A1.5 1.5 0 0 1 4 19.5Z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            Catálogo
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            Em andamento
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Concluídos
+          </a>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-section-label caps">Estudo</div>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7z"/></svg>
+            Atlas IA
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7z"/></svg>
+            Fórum
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L18 22l-6-3-6 3 2.5-8.5"/></svg>
+            Conquistas
+          </a>
+        </div>
+
+        <div class="rail-footer">
+          <div class="rail-user">
+            <div class="avatar">G</div>
+            <div>
+              <div class="rail-user-name">Gustav</div>
+              <div class="rail-user-role">gustavobressnin6</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <div class="topbar">
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg>
+            <input placeholder="Buscar cursos, aulas, técnicas...">
+          </div>
+          <div class="topbar-right">
+            <button class="icon-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="badge num">9+</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <div class="page-header-meta caps">Biblioteca · Catálogo</div>
+              <h1 class="page-title">Todos os <em>cursos disponíveis</em></h1>
+            </div>
+            <div class="page-header-actions">
+              <button class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                Filtros
+              </button>
+              <button class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                Ordenar
+              </button>
+            </div>
+          </div>
+
+          <div class="stats-inline">
+            <div class="stat-inline">
+              <div class="stat-inline-num num">24</div>
+              <div class="stat-inline-label caps">Cursos disponíveis</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num num">3 <span class="total">/ 24</span></div>
+              <div class="stat-inline-label caps">Matriculados</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num num">5</div>
+              <div class="stat-inline-label caps">Adicionados este mês</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num mono">182h</div>
+              <div class="stat-inline-label caps">Conteúdo total</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-body">
+
+          <!-- HERO PROMO -->
+          <div class="hero">
+            <div class="hero-content">
+              <div class="hero-eyebrow caps">
+                <span class="dot"></span>
+                Pós-graduação · Inscrições abertas
+              </div>
+              <h2 class="hero-title">
+                A nova turma de pós-graduação <em>em cirurgias</em> está oficialmente aberta.
+              </h2>
+              <p class="hero-sub">
+                18 meses de prática real, duplas por mesa e mentoria direta para formar cirurgiões confiantes.
+              </p>
+              <div class="hero-cta-row">
+                <button class="btn primary">
+                  Conhecer o programa
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+                <button class="btn ghost">Falar com a equipe</button>
+              </div>
+              <div class="hero-cities">
+                <span class="hero-cities-label caps">Expandindo em 2026</span>
+                <span class="hero-city"><span class="pin"></span>Porto Alegre</span>
+                <span class="hero-city"><span class="pin"></span>Manaus</span>
+                <span class="hero-city"><span class="pin"></span>S. José do Rio Preto</span>
+                <span class="hero-city"><span class="pin"></span>Brasília</span>
+                <span class="hero-city"><span class="pin"></span>Belo Horizonte</span>
+              </div>
+            </div>
+            <div class="hero-visual">
+              <div class="hero-c-mark">C</div>
+              <div class="hero-visual-overlay">
+                <div class="hero-visual-stat">
+                  <span class="num">18</span>
+                  <span class="label">meses</span>
+                </div>
+                <div class="hero-visual-stat">
+                  <span class="num">5</span>
+                  <span class="label">capitais</span>
+                </div>
+                <div class="hero-visual-stat">
+                  <span class="num">2026</span>
+                  <span class="label">início</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FILTROS -->
+          <div class="filters-row">
+            <div class="filters-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg>
+              <input placeholder="Filtrar por título, módulo, instrutor...">
+            </div>
+            <button class="chip active">
+              Todos <span class="count">24</span>
+            </button>
+            <button class="chip">
+              Emergência <span class="count">6</span>
+            </button>
+            <button class="chip">
+              Ortopedia <span class="count">8</span>
+            </button>
+            <button class="chip">
+              Tecidos moles <span class="count">5</span>
+            </button>
+            <button class="chip">
+              Anestesia <span class="count">3</span>
+            </button>
+          </div>
+
+          <!-- GRID DE CURSOS -->
+          <div class="course-grid">
+
+            <!-- Card em progresso -->
+            <a class="course-card">
+              <div class="course-thumb">
+                <div class="course-thumb-text">Aprofundamento de tecidos moles</div>
+                <div class="course-thumb-status">
+                  <span class="dot"></span>
+                  Em curso
+                </div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Tecidos moles</span>
+                  <span class="sep">·</span>
+                  <span>5 aulas</span>
+                  <span class="sep">·</span>
+                  <span>2h 12m</span>
+                </div>
+                <div class="course-title-card">Curso de Teste E2E — fixture para automação</div>
+                <div class="course-instructor">Dr. Marco Pereira</div>
+                <div class="course-progress-row">
+                  <div class="course-progress-numbers">
+                    <span><strong>3</strong> / 5 aulas</span>
+                    <span><strong>20%</strong></span>
+                  </div>
+                  <div class="course-progress-bar">
+                    <div class="course-progress-fill" style="width:20%"></div>
+                  </div>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card novo -->
+            <a class="course-card">
+              <div class="course-thumb alt">
+                <div class="course-thumb-text">Procedimentos de emergência</div>
+                <div class="course-thumb-status new">
+                  <span class="dot"></span>
+                  Novo
+                </div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Emergência</span>
+                  <span class="sep">·</span>
+                  <span>14 aulas</span>
+                  <span class="sep">·</span>
+                  <span>6h 48m</span>
+                </div>
+                <div class="course-title-card">Toracocentese, abdominocentese e cateterizações</div>
+                <div class="course-instructor">Dra. Helena Martins</div>
+                <div class="course-cta-inline">
+                  <span class="lessons-count">14 aulas</span>
+                  <span class="start-link">
+                    Iniciar curso
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card em curso, mais avançado -->
+            <a class="course-card">
+              <div class="course-thumb alt2">
+                <div class="course-thumb-text">Suturas e técnicas básicas</div>
+                <div class="course-thumb-status">
+                  <span class="dot"></span>
+                  Em curso
+                </div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Fundamentos</span>
+                  <span class="sep">·</span>
+                  <span>8 aulas</span>
+                  <span class="sep">·</span>
+                  <span>3h 30m</span>
+                </div>
+                <div class="course-title-card">Padrões de sutura para cirurgia geral</div>
+                <div class="course-instructor">Dr. Rafael Souza</div>
+                <div class="course-progress-row">
+                  <div class="course-progress-numbers">
+                    <span><strong>5</strong> / 8 aulas</span>
+                    <span><strong>62%</strong></span>
+                  </div>
+                  <div class="course-progress-bar">
+                    <div class="course-progress-fill warn" style="width:62%"></div>
+                  </div>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card disponível -->
+            <a class="course-card">
+              <div class="course-thumb alt3">
+                <div class="course-thumb-text">Anestesia e monitoramento</div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Clínico</span>
+                  <span class="sep">·</span>
+                  <span>12 aulas</span>
+                  <span class="sep">·</span>
+                  <span>5h 24m</span>
+                </div>
+                <div class="course-title-card">Protocolos de anestesia em pequenos animais</div>
+                <div class="course-instructor">Dra. Luiza Almeida</div>
+                <div class="course-cta-inline">
+                  <span class="lessons-count">12 aulas</span>
+                  <span class="start-link">
+                    Matricular
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card completo -->
+            <a class="course-card">
+              <div class="course-thumb alt4">
+                <div class="course-thumb-text">Introdução à cirurgia veterinária</div>
+                <div class="course-thumb-status complete">
+                  <span class="dot"></span>
+                  Concluído
+                </div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Fundamentos</span>
+                  <span class="sep">·</span>
+                  <span>6 aulas</span>
+                  <span class="sep">·</span>
+                  <span>2h 48m</span>
+                </div>
+                <div class="course-title-card">Princípios e organização da sala cirúrgica</div>
+                <div class="course-instructor">Dr. Marco Pereira</div>
+                <div class="course-progress-row">
+                  <div class="course-progress-numbers">
+                    <span><strong>6</strong> / 6 aulas</span>
+                    <span><strong>100%</strong></span>
+                  </div>
+                  <div class="course-progress-bar">
+                    <div class="course-progress-fill complete" style="width:100%"></div>
+                  </div>
+                </div>
+              </div>
+            </a>
+
+            <!-- + 3 cards adicionais -->
+            <a class="course-card">
+              <div class="course-thumb">
+                <div class="course-thumb-text">Ortopedia: fraturas em pequenos animais</div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Ortopedia</span>
+                  <span class="sep">·</span>
+                  <span>18 aulas</span>
+                  <span class="sep">·</span>
+                  <span>8h 12m</span>
+                </div>
+                <div class="course-title-card">Diagnóstico, técnica cirúrgica e fixação</div>
+                <div class="course-instructor">Dr. Tiago Ferreira</div>
+                <div class="course-cta-inline">
+                  <span class="lessons-count">18 aulas</span>
+                  <span class="start-link">
+                    Matricular
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            <a class="course-card">
+              <div class="course-thumb alt2">
+                <div class="course-thumb-text">Esterilização e bloco cirúrgico</div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Fundamentos</span>
+                  <span class="sep">·</span>
+                  <span>10 aulas</span>
+                  <span class="sep">·</span>
+                  <span>4h 12m</span>
+                </div>
+                <div class="course-title-card">Protocolos de antissepsia e gestão de instrumental</div>
+                <div class="course-instructor">Dra. Carolina Brito</div>
+                <div class="course-cta-inline">
+                  <span class="lessons-count">10 aulas</span>
+                  <span class="start-link">
+                    Matricular
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            <a class="course-card">
+              <div class="course-thumb alt">
+                <div class="course-thumb-text">Cirurgia gastrointestinal</div>
+                <div class="course-thumb-status new">
+                  <span class="dot"></span>
+                  Novo
+                </div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Tecidos moles</span>
+                  <span class="sep">·</span>
+                  <span>16 aulas</span>
+                  <span class="sep">·</span>
+                  <span>7h 24m</span>
+                </div>
+                <div class="course-title-card">Enterectomia, gastrotomia e diagnóstico por imagem</div>
+                <div class="course-instructor">Dr. Rafael Souza</div>
+                <div class="course-cta-inline">
+                  <span class="lessons-count">16 aulas</span>
+                  <span class="start-link">
+                    Iniciar curso
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- TELA 2: /student/in-progress — EM ANDAMENTO (lista densa)    -->
+  <!-- ============================================================ -->
+  <div class="screen-frame">
+    <div class="screen-label">
+      <span>GET /student/in-progress</span>
+      <span class="right">
+        <span class="dot"></span>
+        Cursos em andamento · Lista densa
+      </span>
+    </div>
+
+    <div class="app">
+      <aside class="rail">
+        <div class="rail-brand">
+          <div class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+              <path d="M4 20l8-16 8 16" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 14h8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-text">Projeto <em>Cirurgião</em></div>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-section-label caps">Biblioteca</div>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Início
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V4.5A1.5 1.5 0 0 1 5.5 3H20v18H5.5A1.5 1.5 0 0 1 4 19.5Z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            Catálogo
+          </a>
+          <a class="rail-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            Em andamento
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Concluídos
+          </a>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-section-label caps">Estudo</div>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7z"/></svg>
+            Atlas IA
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7z"/></svg>
+            Fórum
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L18 22l-6-3-6 3 2.5-8.5"/></svg>
+            Conquistas
+          </a>
+        </div>
+
+        <div class="rail-footer">
+          <div class="rail-user">
+            <div class="avatar">G</div>
+            <div>
+              <div class="rail-user-name">Gustav</div>
+              <div class="rail-user-role">gustavobressnin6</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg>
+            <input placeholder="Buscar cursos, aulas, técnicas...">
+          </div>
+          <div class="topbar-right">
+            <button class="icon-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="badge num">9+</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <div class="page-header-meta caps">Biblioteca · Acompanhamento</div>
+              <h1 class="page-title">Em andamento <em>— continue de onde parou</em></h1>
+            </div>
+            <div class="page-header-actions">
+              <button class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                Ordenar por último acesso
+              </button>
+            </div>
+          </div>
+
+          <div class="stats-inline">
+            <div class="stat-inline">
+              <div class="stat-inline-num num">3</div>
+              <div class="stat-inline-label caps">Cursos ativos</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num mono">42%</div>
+              <div class="stat-inline-label caps">Progresso médio</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num num">14 <span class="total">/ 32</span></div>
+              <div class="stat-inline-label caps">Aulas assistidas</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num mono">6h 24m</div>
+              <div class="stat-inline-label caps">Tempo total assistido</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-body">
+
+          <!-- Tabs por status -->
+          <div class="section-tabs">
+            <button class="section-tab active">
+              Todos <span class="count">3</span>
+            </button>
+            <button class="section-tab">
+              Recentes <span class="count">2</span>
+            </button>
+            <button class="section-tab">
+              Quase lá <span class="count">1</span>
+            </button>
+            <button class="section-tab">
+              Pausados <span class="count">0</span>
+            </button>
+          </div>
+
+          <!-- LISTA DENSA -->
+          <div class="course-list">
+
+            <a class="course-row">
+              <div class="course-row-thumb alt2">
+                <div class="course-row-thumb-label">Suturas</div>
+              </div>
+              <div class="course-row-info">
+                <div class="course-row-meta">
+                  <span>Fundamentos</span>
+                  <span class="sep">·</span>
+                  <span>Dr. Rafael Souza</span>
+                </div>
+                <div class="course-row-title">Padrões de sutura para cirurgia geral</div>
+                <div class="course-row-last">
+                  Última: <strong>Aula 05 — Sutura intradérmica</strong>
+                  <span>·</span>
+                  <span class="timestamp">2:14 / 18:42</span>
+                </div>
+              </div>
+              <div class="course-row-progress">
+                <div class="course-row-progress-numbers">
+                  <span><strong>5</strong> / 8 aulas</span>
+                  <span><strong>62%</strong></span>
+                </div>
+                <div class="course-row-progress-bar">
+                  <div class="course-row-progress-fill" style="width:62%"></div>
+                </div>
+              </div>
+              <div class="course-row-action">
+                <button class="btn primary sm">
+                  Retomar
+                  <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+                </button>
+              </div>
+            </a>
+
+            <a class="course-row">
+              <div class="course-row-thumb">
+                <div class="course-row-thumb-label">Tecidos moles</div>
+              </div>
+              <div class="course-row-info">
+                <div class="course-row-meta">
+                  <span>Tecidos moles</span>
+                  <span class="sep">·</span>
+                  <span>Dr. Marco Pereira</span>
+                </div>
+                <div class="course-row-title">Curso de Teste E2E — fixture para automação</div>
+                <div class="course-row-last">
+                  Última: <strong>Aula 02 — Toracocentese</strong>
+                  <span>·</span>
+                  <span class="timestamp">1:25 / 7:57</span>
+                </div>
+              </div>
+              <div class="course-row-progress">
+                <div class="course-row-progress-numbers">
+                  <span><strong>3</strong> / 5 aulas</span>
+                  <span><strong>20%</strong></span>
+                </div>
+                <div class="course-row-progress-bar">
+                  <div class="course-row-progress-fill" style="width:20%"></div>
+                </div>
+              </div>
+              <div class="course-row-action">
+                <button class="btn primary sm">
+                  Retomar
+                  <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+                </button>
+              </div>
+            </a>
+
+            <a class="course-row">
+              <div class="course-row-thumb alt">
+                <div class="course-row-thumb-label">Emergência</div>
+              </div>
+              <div class="course-row-info">
+                <div class="course-row-meta">
+                  <span>Emergência</span>
+                  <span class="sep">·</span>
+                  <span>Dra. Helena Martins</span>
+                </div>
+                <div class="course-row-title">Toracocentese, abdominocentese e cateterizações</div>
+                <div class="course-row-last">
+                  Última: <strong>Aula 06 — Cateter venoso central</strong>
+                  <span>·</span>
+                  <span class="timestamp">9:42 / 12:18</span>
+                </div>
+              </div>
+              <div class="course-row-progress">
+                <div class="course-row-progress-numbers">
+                  <span><strong>6</strong> / 14 aulas</span>
+                  <span><strong>43%</strong></span>
+                </div>
+                <div class="course-row-progress-bar">
+                  <div class="course-row-progress-fill" style="width:43%"></div>
+                </div>
+              </div>
+              <div class="course-row-action">
+                <button class="btn primary sm">
+                  Retomar
+                  <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+                </button>
+              </div>
+            </a>
+
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- TELA 3: /student/completed — CONCLUÍDOS                      -->
+  <!-- ============================================================ -->
+  <div class="screen-frame">
+    <div class="screen-label">
+      <span>GET /student/completed</span>
+      <span class="right">
+        <span class="dot"></span>
+        Cursos concluídos · Grid + selo
+      </span>
+    </div>
+
+    <div class="app">
+      <aside class="rail">
+        <div class="rail-brand">
+          <div class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+              <path d="M4 20l8-16 8 16" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 14h8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-text">Projeto <em>Cirurgião</em></div>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-section-label caps">Biblioteca</div>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Início
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V4.5A1.5 1.5 0 0 1 5.5 3H20v18H5.5A1.5 1.5 0 0 1 4 19.5Z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            Catálogo
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            Em andamento
+          </a>
+          <a class="rail-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Concluídos
+          </a>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-section-label caps">Estudo</div>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7z"/></svg>
+            Atlas IA
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7z"/></svg>
+            Fórum
+          </a>
+          <a class="rail-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L18 22l-6-3-6 3 2.5-8.5"/></svg>
+            Conquistas
+          </a>
+        </div>
+
+        <div class="rail-footer">
+          <div class="rail-user">
+            <div class="avatar">G</div>
+            <div>
+              <div class="rail-user-name">Gustav</div>
+              <div class="rail-user-role">gustavobressnin6</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg>
+            <input placeholder="Buscar cursos, aulas, técnicas...">
+          </div>
+          <div class="topbar-right">
+            <button class="icon-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="badge num">9+</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <div class="page-header-meta caps">Biblioteca · Histórico</div>
+              <h1 class="page-title">Concluídos <em>— sua trajetória até aqui</em></h1>
+            </div>
+            <div class="page-header-actions">
+              <button class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar certificados
+              </button>
+            </div>
+          </div>
+
+          <div class="stats-inline">
+            <div class="stat-inline">
+              <div class="stat-inline-num num">2</div>
+              <div class="stat-inline-label caps">Cursos concluídos</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num num">14</div>
+              <div class="stat-inline-label caps">Aulas finalizadas</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num mono">11h 18m</div>
+              <div class="stat-inline-label caps">Tempo total dedicado</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-num mono">100%</div>
+              <div class="stat-inline-label caps">Taxa de conclusão</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-body">
+
+          <!-- Strip de reconhecimento (sutil) -->
+          <div class="completion-strip">
+            <div class="completion-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="completion-text">
+              <div class="completion-title">Boa! Você concluiu 2 cursos.</div>
+              <div class="completion-sub">Os certificados ficam disponíveis para download por tempo indeterminado em cada curso.</div>
+            </div>
+            <button class="btn ghost sm">Dispensar</button>
+          </div>
+
+          <!-- GRID -->
+          <div class="course-grid">
+
+            <a class="course-card">
+              <div class="course-thumb alt4" style="position:relative">
+                <div class="course-thumb-text">Introdução à cirurgia veterinária</div>
+                <div class="completion-card-stamp">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Concluído
+                </div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Fundamentos</span>
+                  <span class="sep">·</span>
+                  <span>6 aulas</span>
+                  <span class="sep">·</span>
+                  <span>2h 48m</span>
+                </div>
+                <div class="course-title-card">Princípios e organização da sala cirúrgica</div>
+                <div class="course-instructor">Dr. Marco Pereira</div>
+                <div class="course-progress-row">
+                  <div class="course-progress-numbers">
+                    <span><strong>6</strong> / 6 aulas</span>
+                    <span><strong>100%</strong></span>
+                  </div>
+                  <div class="course-progress-bar">
+                    <div class="course-progress-fill complete" style="width:100%"></div>
+                  </div>
+                </div>
+                <div class="course-card-completed-meta">
+                  Concluído em 18 fev 2026
+                </div>
+              </div>
+            </a>
+
+            <a class="course-card">
+              <div class="course-thumb alt2" style="position:relative">
+                <div class="course-thumb-text">Esterilização e bloco cirúrgico</div>
+                <div class="completion-card-stamp">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Concluído
+                </div>
+              </div>
+              <div class="course-body">
+                <div class="course-meta-top">
+                  <span>Fundamentos</span>
+                  <span class="sep">·</span>
+                  <span>10 aulas</span>
+                  <span class="sep">·</span>
+                  <span>4h 12m</span>
+                </div>
+                <div class="course-title-card">Protocolos de antissepsia e gestão de instrumental</div>
+                <div class="course-instructor">Dra. Carolina Brito</div>
+                <div class="course-progress-row">
+                  <div class="course-progress-numbers">
+                    <span><strong>10</strong> / 10 aulas</span>
+                    <span><strong>100%</strong></span>
+                  </div>
+                  <div class="course-progress-bar">
+                    <div class="course-progress-fill complete" style="width:100%"></div>
+                  </div>
+                </div>
+                <div class="course-card-completed-meta">
+                  Concluído em 04 mar 2026
+                </div>
+              </div>
+            </a>
+
+          </div>
+
+          <!-- Empty state demo -->
+          <div style="margin-top: 36px;">
+            <div class="section-title">
+              <h2>Empty state · referência visual</h2>
+              <span class="hint mono">/student/completed quando courses.length === 0</span>
+            </div>
+
+            <div class="empty">
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <h3 class="empty-title">Nenhum curso concluído ainda</h3>
+              <p class="empty-text">
+                Conclua um curso para vê-lo aqui e acessar o certificado em PDF.
+              </p>
+              <button class="btn primary">
+                Ver cursos em andamento
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading state demo -->
+          <div style="margin-top: 36px;">
+            <div class="section-title">
+              <h2>Loading state · referência visual</h2>
+              <span class="hint mono">barra fina + skeleton tipográfico</span>
+            </div>
+
+            <div class="loading-bar" style="margin-bottom: 18px;"></div>
+
+            <div class="course-grid">
+              <div class="skeleton-card">
+                <div class="skeleton-thumb"></div>
+                <div class="skeleton-body">
+                  <div class="skeleton-line short"></div>
+                  <div class="skeleton-line"></div>
+                  <div class="skeleton-line med"></div>
+                </div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton-thumb"></div>
+                <div class="skeleton-body">
+                  <div class="skeleton-line short"></div>
+                  <div class="skeleton-line"></div>
+                  <div class="skeleton-line med"></div>
+                </div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton-thumb"></div>
+                <div class="skeleton-body">
+                  <div class="skeleton-line short"></div>
+                  <div class="skeleton-line"></div>
+                  <div class="skeleton-line med"></div>
+                </div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton-thumb"></div>
+                <div class="skeleton-body">
+                  <div class="skeleton-line short"></div>
+                  <div class="skeleton-line"></div>
+                  <div class="skeleton-line med"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

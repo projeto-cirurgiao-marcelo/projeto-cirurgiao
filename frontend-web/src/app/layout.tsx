@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals-premium.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import { Toaster } from "@/components/ui/sonner";
+import { AtlasToaster } from "@/components/atlas";
 
 export const metadata: Metadata = {
   title: "Projeto Cirurgião - Plataforma de Ensino em Cirurgia Veterinária",
@@ -19,7 +19,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
-        <Toaster />
+        <AtlasToaster />
       </body>
     </html>
   );

@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ThumbsUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { likesService, LikeStatus } from '@/lib/api/likes.service';
+import { AtlasButton } from '@/components/atlas';
 import { cn } from '@/lib/utils';
-
 import { logger } from '@/lib/logger';
 
 interface VideoLikeButtonProps {
@@ -14,6 +13,18 @@ interface VideoLikeButtonProps {
   showCount?: boolean;
   size?: 'sm' | 'default' | 'lg';
 }
+
+function formatLikes(count: number): string {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+  return count.toString();
+}
+
+const SIZE_MAP: Record<'sm' | 'default' | 'lg', 'sm' | 'md' | 'lg'> = {
+  sm: 'sm',
+  default: 'md',
+  lg: 'lg',
+};
 
 export function VideoLikeButton({
   videoId,
@@ -26,11 +37,10 @@ export function VideoLikeButton({
     userHasLiked: false,
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
 
-  // Carregar status inicial
   useEffect(() => {
-    loadLikeStatus();
+    void loadLikeStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
   const loadLikeStatus = async () => {
@@ -44,11 +54,8 @@ export function VideoLikeButton({
 
   const handleToggleLike = async () => {
     if (isLoading) return;
-
     setIsLoading(true);
-    setIsAnimating(true);
 
-    // Otimistic update
     const previousStatus = { ...likeStatus };
     setLikeStatus({
       totalLikes: likeStatus.userHasLiked
@@ -62,61 +69,44 @@ export function VideoLikeButton({
       setLikeStatus(newStatus);
     } catch (error) {
       logger.error('Erro ao curtir/descurtir:', error);
-      // Reverter em caso de erro
       setLikeStatus(previousStatus);
     } finally {
       setIsLoading(false);
-      setTimeout(() => setIsAnimating(false), 300);
     }
   };
 
-  // Formatar número de likes (ex: 1.2K, 10K, 1M)
-  const formatLikes = (count: number): string => {
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
-    }
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`;
-    }
-    return count.toString();
-  };
-
-  const iconSize = size === 'sm' ? 'h-4 w-4' : size === 'lg' ? 'h-6 w-6' : 'h-5 w-5';
-  const textSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm';
+  const liked = likeStatus.userHasLiked;
+  const atlasSize = SIZE_MAP[size];
 
   return (
-    <Button
-      variant={likeStatus.userHasLiked ? 'default' : 'outline'}
-      size={size}
+    <AtlasButton
+      variant={liked ? 'primary' : 'outline'}
+      size={atlasSize}
       onClick={handleToggleLike}
       disabled={isLoading}
-      className={cn(
-        'transition-all duration-200',
-        likeStatus.userHasLiked
-          ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white'
-          : 'border-gray-300 hover:border-blue-400 hover:text-blue-600',
-        isAnimating && 'scale-110',
-        className
-      )}
+      aria-pressed={liked}
+      className={className}
     >
       <ThumbsUp
-        className={cn(
-          iconSize,
-          'transition-transform duration-200',
-          likeStatus.userHasLiked && 'fill-current',
-          isAnimating && 'animate-bounce'
-        )}
+        strokeWidth={1.75}
+        fill={liked ? 'currentColor' : 'none'}
       />
       {showCount && (
-        <span className={cn('ml-1.5 font-semibold', textSize)}>
+        <span
+          className={cn(
+            'atlas-mono atlas-num',
+            size === 'sm' && 'text-[11.5px]',
+            size === 'default' && 'text-[12px]',
+            size === 'lg' && 'text-[13px]',
+          )}
+        >
           {formatLikes(likeStatus.totalLikes)}
         </span>
       )}
-    </Button>
+    </AtlasButton>
   );
 }
 
-// Versão Badge (apenas exibição, sem interação)
 interface VideoLikeBadgeProps {
   videoId: string;
   className?: string;
@@ -129,7 +119,8 @@ export function VideoLikeBadge({ videoId, className }: VideoLikeBadgeProps) {
   });
 
   useEffect(() => {
-    loadLikeStatus();
+    void loadLikeStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
   const loadLikeStatus = async () => {
@@ -141,27 +132,18 @@ export function VideoLikeBadge({ videoId, className }: VideoLikeBadgeProps) {
     }
   };
 
-  const formatLikes = (count: number): string => {
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
-    }
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`;
-    }
-    return count.toString();
-  };
-
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full',
-        'bg-blue-50 text-blue-700 border border-blue-200',
-        'text-sm font-semibold',
-        className
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm',
+        'bg-atlas-primary-soft text-atlas-primary-2 border border-atlas-line',
+        className,
       )}
     >
-      <ThumbsUp className="h-4 w-4" />
-      <span>{formatLikes(likeStatus.totalLikes)}</span>
+      <ThumbsUp className="size-3.5" strokeWidth={1.75} />
+      <span className="atlas-mono atlas-num text-[11.5px]">
+        {formatLikes(likeStatus.totalLikes)}
+      </span>
     </div>
   );
 }

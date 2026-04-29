@@ -116,6 +116,8 @@ export interface EnrolledCourseWithProgress {
   slug: string;
   description: string;
   thumbnail: string | null;
+  thumbnailHorizontal: string | null;
+  thumbnailVertical: string | null;
   isPublished: boolean;
   price: number;
   instructor: {

@@ -1,108 +1,178 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
-import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
-import { CourseCard } from '@/components/student/course-card';
-import { CourseCardSkeletonGrid } from '@/components/student/course-card-skeleton';
-import { Button } from '@/components/ui/button';
-import { BookOpen, LogOut, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { EnrolledCourse } from '@/lib/types/student.types';
+import {
+  progressService,
+  EnrolledCourseWithProgress,
+} from '@/lib/api/progress.service';
+import { ArrowRight, BookOpen } from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
-
+import {
+  AtlasButton,
+  AtlasCourseCard,
+  AtlasEmptyState,
+  AtlasLoadingBar,
+  AtlasPageHeader,
+  AtlasSkeletonCard,
+  AtlasStatsInline,
+  type AtlasCourseStatus,
+  type AtlasCourseThumbVariant,
+} from '@/components/atlas';
 import { logger } from '@/lib/logger';
 
-/**
- * Dashboard do Aluno - Catálogo de Cursos (Dark Mode)
- */
+const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
+  'default',
+  'alt',
+  'alt2',
+  'alt3',
+  'alt4',
+];
+
+function pickThumbVariant(id: string): AtlasCourseThumbVariant {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  const idx = Math.abs(hash) % THUMB_VARIANTS.length;
+  return THUMB_VARIANTS[idx];
+}
+
+function formatCompletedDate(date: string | null): string | undefined {
+  if (!date) return undefined;
+  try {
+    const d = new Date(date);
+    const months = [
+      'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+      'jul', 'ago', 'set', 'out', 'nov', 'dez',
+    ];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return undefined;
+  }
+}
+
+interface NewCourseRow {
+  kind: 'new';
+  id: string;
+  title: string;
+  thumbnail: string | null;
+  thumbnailHorizontal: string | null;
+  thumbnailVertical: string | null;
+  instructor?: { name: string } | undefined;
+  totalVideos: number;
+}
+
+interface EnrolledCourseRow {
+  kind: 'enrolled';
+  id: string;
+  title: string;
+  thumbnail: string | null;
+  thumbnailHorizontal: string | null;
+  thumbnailVertical: string | null;
+  instructor?: { name: string } | undefined;
+  status: AtlasCourseStatus;
+  progressPercent: number;
+  watched: number;
+  total: number;
+  lastAccessAt: string | null;
+  completedAt: string | null;
+}
+
 export default function MyCoursesPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const logout = useAuthStore((s) => s.logout);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const { isAdminViewingAsStudent } = useViewModeStore();
-  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+
+  const [enrolled, setEnrolled] = useState<EnrolledCourseRow[]>([]);
+  const [available, setAvailable] = useState<NewCourseRow[]>([]);
+  const [totalCatalog, setTotalCatalog] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Aguardar hidratação do Zustand antes de verificar autenticação
-    if (!hasHydrated) {
-      return;
-    }
-
+    if (!hasHydrated) return;
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-
     if (user?.role === 'ADMIN' && !isAdminViewingAsStudent) {
       router.push('/admin/courses');
       return;
     }
-
-    loadCourses();
+    void loadCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, hasHydrated]);
 
   const loadCourses = async () => {
     try {
-      // Carregar cursos matriculados e todos os cursos em paralelo
       const [enrolledData, allCoursesData] = await Promise.all([
         progressService.getEnrolledCourses().catch(() => []),
         coursesService.findAll({ page: 1, limit: 100 }),
       ]);
 
-      const allCoursesArray = Array.isArray(allCoursesData) ? allCoursesData : allCoursesData.data || [];
-      const enrolledIds = new Set(enrolledData.map((c: EnrolledCourseWithProgress) => c.id));
+      const allCoursesArray: Course[] = Array.isArray(allCoursesData)
+        ? (allCoursesData as Course[])
+        : ((allCoursesData as any).data as Course[]) || [];
 
-      // Converter cursos matriculados para o formato esperado
-      const enrolled: any[] = enrolledData.map((course: EnrolledCourseWithProgress) => ({
-        ...course,
-        enrollment: {
-          id: course.enrollment.id,
-          enrolledAt: course.enrollment.enrolledAt,
-          lastAccessedAt: course.enrollment.lastAccessAt,
-          completedAt: course.enrollment.completedAt,
-          progress: course.progress.percentage,
-        },
-        progress: {
-          totalVideos: course.progress.totalVideos,
-          watchedVideos: course.progress.watchedVideos,
-          percentage: course.progress.percentage,
-        },
-      }));
+      setTotalCatalog(allCoursesArray.length);
 
-      // Filtrar cursos disponíveis (não matriculados)
-      const available: any[] = allCoursesArray
-        .filter((course: Course) => !enrolledIds.has(course.id))
-        .map((course: Course) => {
-          const totalVideos = course.modules?.reduce((sum: number, m: any) =>
-            sum + (m.videos?.length || 0), 0
-          ) || 0;
+      const enrolledIds = new Set(
+        (enrolledData as EnrolledCourseWithProgress[]).map((c) => c.id),
+      );
 
+      const enrolledRows: EnrolledCourseRow[] = (
+        enrolledData as EnrolledCourseWithProgress[]
+      ).map((c) => {
+        const pct = c.progress.percentage;
+        const status: AtlasCourseStatus =
+          c.enrollment.completedAt || pct >= 100
+            ? 'completed'
+            : pct === 0
+              ? 'new'
+              : 'in-progress';
+        return {
+          kind: 'enrolled',
+          id: c.id,
+          title: c.title,
+          thumbnail: c.thumbnail,
+          thumbnailHorizontal: c.thumbnailHorizontal,
+          thumbnailVertical: c.thumbnailVertical,
+          instructor: c.instructor,
+          status,
+          progressPercent: Math.round(pct),
+          watched: c.progress.watchedVideos,
+          total: c.progress.totalVideos,
+          lastAccessAt: c.enrollment.lastAccessAt,
+          completedAt: c.enrollment.completedAt,
+        };
+      });
+
+      const availableRows: NewCourseRow[] = allCoursesArray
+        .filter((course) => !enrolledIds.has(course.id))
+        .map((course) => {
+          const totalVideos =
+            course.modules?.reduce(
+              (sum: number, m: any) => sum + (m.videos?.length || 0),
+              0,
+            ) || 0;
           return {
-            ...course,
-            enrollment: {
-              id: '',
-              enrolledAt: '',
-              lastAccessedAt: null,
-              completedAt: null,
-              progress: 0,
-            },
-            progress: {
-              totalVideos,
-              watchedVideos: 0,
-              percentage: 0,
-            },
+            kind: 'new',
+            id: course.id,
+            title: course.title,
+            thumbnail: course.thumbnail,
+            thumbnailHorizontal: course.thumbnailHorizontal,
+            thumbnailVertical: course.thumbnailVertical,
+            instructor: course.instructor,
+            totalVideos,
           };
         });
 
-      setEnrolledCourses(enrolled);
-      setAvailableCourses(available);
+      setEnrolled(enrolledRows);
+      setAvailable(availableRows);
     } catch (error) {
       logger.error('Erro ao carregar cursos:', error);
     } finally {
@@ -110,248 +180,251 @@ export default function MyCoursesPage() {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-  };
+  const inProgress = useMemo(
+    () =>
+      enrolled
+        .filter((c) => c.status === 'in-progress')
+        .sort((a, b) => {
+          const dA = new Date(a.lastAccessAt || 0).getTime();
+          const dB = new Date(b.lastAccessAt || 0).getTime();
+          return dB - dA;
+        }),
+    [enrolled],
+  );
 
-  // Separar cursos em progresso (iniciados mas não concluídos)
-  const inProgressCourses = enrolledCourses.filter(c => c.progress.percentage > 0 && c.progress.percentage < 100);
+  const awaitingStart = useMemo(
+    () => enrolled.filter((c) => c.status === 'new'),
+    [enrolled],
+  );
 
-  const scrollContainer = (direction: 'left' | 'right', containerId: string) => {
-    const container = document.getElementById(containerId);
-    if (container) {
-      const scrollAmount = 400;
-      container.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-    }
-  };
+  const recentlyCompleted = useMemo(
+    () =>
+      enrolled
+        .filter((c) => c.status === 'completed')
+        .sort((a, b) => {
+          const dA = new Date(a.completedAt || 0).getTime();
+          const dB = new Date(b.completedAt || 0).getTime();
+          return dB - dA;
+        }),
+    [enrolled],
+  );
 
-  // Mostrar loading enquanto aguarda hidratação ou carregamento do usuário
   if (!hasHydrated || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
+      <main className="px-7 py-7">
+        <AtlasLoadingBar />
+      </main>
     );
   }
 
+  const enrolledCount = enrolled.length;
+  const inProgressCount = inProgress.length;
+  const completedCount = recentlyCompleted.length;
+  const availableCount = available.length;
+
+  const showEmpty =
+    !loading && enrolledCount === 0 && availableCount === 0;
+
   return (
     <>
-      {loading ? (
-        <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
-          <CourseCardSkeletonGrid count={8} />
-        </div>
-      ) : enrolledCourses.length === 0 && availableCourses.length === 0 ? (
-        <div className="container mx-auto px-6 py-20 text-center">
-          <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-6">
-            <BookOpen className="h-24 w-24 mx-auto text-gray-400" />
-          </div>
-          <h3 className="text-2xl font-bold mb-3 text-gray-900 tracking-tight">Nenhum curso disponível</h3>
-          <p className="text-gray-600">
-            Novos cursos serão adicionados em breve
-          </p>
-        </div>
-      ) : (
-        <main className="container mx-auto px-4 md:px-6 py-6 md:py-8 space-y-8 md:space-y-12">
-          {/* Continue Assistindo */}
-          {inProgressCourses.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Continue Assistindo</h2>
-                <div className="flex gap-1 md:gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('left', 'continue-scroll')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('right', 'continue-scroll')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </div>
-              </div>
-              <div
-                id="continue-scroll"
-                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {inProgressCourses.map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
-                    <CourseCard course={course} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+      <AtlasPageHeader
+        metaLabel="Biblioteca"
+        title="Meus"
+        titleEm="cursos"
+      >
+        <AtlasStatsInline
+          stats={[
+            {
+              value: String(enrolledCount),
+              total: totalCatalog > 0 ? `/ ${totalCatalog}` : undefined,
+              label: 'Matriculados',
+            },
+            { value: String(inProgressCount), label: 'Em andamento' },
+            { value: String(completedCount), label: 'Concluídos' },
+            { value: String(availableCount), label: 'Disponíveis pra começar' },
+          ]}
+        />
+      </AtlasPageHeader>
 
-          {/* Meus Cursos */}
-          {enrolledCourses.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Meus Cursos</h2>
-                <div className="flex gap-1 md:gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('left', 'enrolled-scroll')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('right', 'enrolled-scroll')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </div>
-              </div>
-              <div
-                id="enrolled-scroll"
-                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      <div className="px-5 sm:px-7 py-5 sm:py-6 space-y-8 sm:space-y-10">
+        {loading ? (
+          <>
+            <AtlasLoadingBar className="mb-[18px]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[18px]">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <AtlasSkeletonCard key={i} />
+              ))}
+            </div>
+          </>
+        ) : showEmpty ? (
+          <AtlasEmptyState
+            icon={BookOpen}
+            title="Nenhum curso disponível"
+            description="Novos cursos serão adicionados em breve. Volte em alguns dias."
+          />
+        ) : (
+          <>
+            {inProgress.length > 0 && (
+              <Section
+                title="Continue de onde parou"
+                hint="Retome os cursos que você começou"
+                linkLabel="Ver todos em andamento"
+                linkHref="/student/in-progress"
               >
-                {enrolledCourses.map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
-                    <CourseCard course={course} />
-                  </div>
+                {inProgress.slice(0, 3).map((c) => (
+                  <AtlasCourseCard
+                    key={c.id}
+                    href={`/student/courses/${c.id}`}
+                    title={c.title}
+                    category="Cirurgia veterinária"
+                    instructor={c.instructor?.name}
+                    lessonsCount={c.total}
+                    status="in-progress"
+                    progressPercent={c.progressPercent}
+                    lessonsProgress={`${c.watched} / ${c.total}`}
+                    thumbVariant={pickThumbVariant(c.id)}
+                    thumbImageUrl={
+                      c.thumbnailHorizontal ||
+                      c.thumbnailVertical ||
+                      c.thumbnail ||
+                      undefined
+                    }
+                  />
                 ))}
-              </div>
-            </section>
-          )}
+              </Section>
+            )}
 
-          {/* Cursos Disponíveis - Linha 1 */}
-          {availableCourses.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Cursos Disponíveis</h2>
-                <div className="flex gap-1 md:gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('left', 'available-scroll-1')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('right', 'available-scroll-1')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </div>
-              </div>
-              <div
-                id="available-scroll-1"
-                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            {awaitingStart.length > 0 && (
+              <Section
+                title="Aguardando início"
+                hint="Matriculados que ainda não começaram"
+                linkLabel="Explorar catálogo"
+                linkHref="/student/courses"
               >
-                {availableCourses.slice(0, 9).map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
-                    <CourseCard course={course} />
-                  </div>
+                {awaitingStart.slice(0, 4).map((c) => (
+                  <AtlasCourseCard
+                    key={c.id}
+                    href={`/student/courses/${c.id}`}
+                    title={c.title}
+                    category="Cirurgia veterinária"
+                    instructor={c.instructor?.name}
+                    lessonsCount={c.total}
+                    status="new"
+                    thumbVariant={pickThumbVariant(c.id)}
+                    thumbImageUrl={
+                      c.thumbnailHorizontal ||
+                      c.thumbnailVertical ||
+                      c.thumbnail ||
+                      undefined
+                    }
+                  />
                 ))}
-              </div>
-            </section>
-          )}
+              </Section>
+            )}
 
-          {/* Cursos Disponíveis - Linha 2 */}
-          {availableCourses.length > 9 && (
-            <section>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Mais Cursos</h2>
-                <div className="flex gap-1 md:gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('left', 'available-scroll-2')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('right', 'available-scroll-2')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </div>
-              </div>
-              <div
-                id="available-scroll-2"
-                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            {recentlyCompleted.length > 0 && (
+              <Section
+                title="Concluídos recentemente"
+                hint="Sua trajetória até aqui"
+                linkLabel="Ver histórico completo"
+                linkHref="/student/completed"
               >
-                {availableCourses.slice(9, 18).map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
-                    <CourseCard course={course} />
-                  </div>
+                {recentlyCompleted.slice(0, 4).map((c) => (
+                  <AtlasCourseCard
+                    key={c.id}
+                    href={`/student/courses/${c.id}`}
+                    title={c.title}
+                    category="Cirurgia veterinária"
+                    instructor={c.instructor?.name}
+                    lessonsCount={c.total}
+                    status="completed"
+                    progressPercent={100}
+                    lessonsProgress={`${c.total} / ${c.total}`}
+                    completedAt={formatCompletedDate(c.completedAt)}
+                    thumbVariant={pickThumbVariant(c.id)}
+                    thumbImageUrl={
+                      c.thumbnailHorizontal ||
+                      c.thumbnailVertical ||
+                      c.thumbnail ||
+                      undefined
+                    }
+                  />
                 ))}
-              </div>
-            </section>
-          )}
+              </Section>
+            )}
 
-          {/* Todos os Cursos - Linha 3 */}
-          {availableCourses.length > 18 && (
-            <section>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight">Explore Mais</h2>
-                <div className="flex gap-1 md:gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('left', 'available-scroll-3')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => scrollContainer('right', 'available-scroll-3')}
-                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </div>
-              </div>
-              <div
-                id="available-scroll-3"
-                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4 md:mx-0 md:px-0"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {availableCourses.slice(18).map((course) => (
-                  <div key={course.id} className="flex-shrink-0 w-[calc(50%-6px)] min-w-[160px] max-w-[200px] sm:w-[200px] md:w-[280px] md:max-w-none">
-                    <CourseCard course={course} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </main>
-      )}
-
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+            {inProgress.length === 0 &&
+              awaitingStart.length === 0 &&
+              recentlyCompleted.length === 0 &&
+              available.length > 0 && (
+                <Section
+                  title="Comece por aqui"
+                  hint="Você ainda não está matriculado em nenhum curso"
+                  linkLabel="Ver catálogo completo"
+                  linkHref="/student/courses"
+                >
+                  {available.slice(0, 4).map((c) => (
+                    <AtlasCourseCard
+                      key={c.id}
+                      href={`/student/courses/${c.id}`}
+                      title={c.title}
+                      category="Cirurgia veterinária"
+                      instructor={c.instructor?.name}
+                      lessonsCount={c.totalVideos}
+                      status="new"
+                      thumbVariant={pickThumbVariant(c.id)}
+                      thumbImageUrl={
+                        c.thumbnailHorizontal ||
+                        c.thumbnailVertical ||
+                        c.thumbnail ||
+                        undefined
+                      }
+                    />
+                  ))}
+                </Section>
+              )}
+          </>
+        )}
+      </div>
     </>
+  );
+}
+
+function Section({
+  title,
+  hint,
+  linkLabel,
+  linkHref,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  linkLabel: string;
+  linkHref: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 sm:gap-4 mb-[14px]">
+        <div className="min-w-0">
+          <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink">
+            {title}
+          </h2>
+          {hint && (
+            <p className="text-xs text-atlas-muted mt-0.5">{hint}</p>
+          )}
+        </div>
+        <Link
+          href={linkHref}
+          className="text-xs font-medium text-atlas-primary-2 hover:text-atlas-primary inline-flex items-center gap-1 shrink-0 self-start sm:self-auto"
+        >
+          {linkLabel}
+          <ArrowRight className="size-3" strokeWidth={2} />
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
+        {children}
+      </div>
+    </section>
   );
 }
