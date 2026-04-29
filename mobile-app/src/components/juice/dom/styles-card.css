@@ -1,0 +1,227 @@
+/* === Card celebratório bottom (acerto + variant erro) === */
+/* Extraído de Marcelo Portilho/Projeto Cirurgião */
+
+/* Fade-up animation usado por title/subtitle/pills/button */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Card branco que sobe de baixo */
+.celebrate-card {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: white;
+  border-radius: 28px 28px 0 0;
+  padding: 24px 22px 36px;
+  transform: translateY(100%);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 30;
+}
+.modal-overlay.show .celebrate-card {
+  transform: translateY(0);
+}
+
+.celebrate-card .title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0B2845;
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.5s forwards;
+}
+.celebrate-card .subtitle {
+  font-size: 14px;
+  color: #6F8AA8;
+  font-weight: 600;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.6s forwards;
+}
+
+/* === Reward pills === */
+.reward-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.7s forwards;
+}
+.reward-pill {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #F4FAFF, #E1EFFC);
+  border: 1.5px solid #C5D2E0;
+  text-align: left;
+}
+.reward-pill .label {
+  font-family: ui-monospace, 'Menlo', 'Consolas', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #6F8AA8;
+  text-transform: uppercase;
+}
+.reward-pill .value {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0B2845;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.reward-pill .value .plus {
+  color: #22C56E;
+  font-size: 14px;
+}
+.reward-pill.gold .value { color: #C77F00; }
+
+/* === ConfidenceRating buttons === */
+.confidence-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.75s forwards;
+}
+.confidence-row .conf-prompt {
+  width: 100%;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  color: #6F8AA8;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.confidence-grid {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.conf-btn {
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 12px;
+  background: #F4FAFF;
+  border: 1.5px solid #C5D2E0;
+  font-family: system-ui, sans-serif;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s;
+  min-height: 64px;
+}
+.conf-btn .conf-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+.conf-btn .conf-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0B2845;
+  text-align: center;
+  line-height: 1.2;
+}
+.conf-btn:hover { transform: translateY(-1px); border-color: #4FA8E8; }
+.conf-btn.active {
+  background: linear-gradient(135deg, #1E6FD9, #4FA8E8);
+  border-color: #1E6FD9;
+  box-shadow: 0 4px 12px rgba(30, 111, 217, 0.35);
+}
+.conf-btn.active .conf-label { color: white; }
+
+/* === Continue button === */
+.continue-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #1E6FD9, #4FA8E8);
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 16px;
+  font-family: system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 6px 20px rgba(30, 111, 217, 0.4);
+  cursor: pointer;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.85s forwards;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.continue-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(30, 111, 217, 0.5); }
+.continue-btn:active { transform: translateY(0); }
+.continue-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === Variant erro === */
+.celebrate-card.error-mode .title { color: #5A3520; }
+.celebrate-card.error-mode .subtitle { color: #B8825C; }
+
+.reward-pill.encourage {
+  background: linear-gradient(135deg, #FFF7EE, #FFE8D1);
+  border-color: #FFD0A0;
+}
+.reward-pill.encourage .label { color: #B8825C; }
+.reward-pill.encourage .value { color: #C97A3D; font-size: 18px; }
+
+.continue-btn.error-mode {
+  background: linear-gradient(135deg, #C97A3D, #E89B5C);
+  box-shadow: 0 6px 20px rgba(201, 122, 61, 0.4);
+}
+.continue-btn.error-mode:hover { box-shadow: 0 8px 24px rgba(201, 122, 61, 0.5); }
+
+.celebrate-card.error-mode .conf-btn.active {
+  background: linear-gradient(135deg, #C97A3D, #E89B5C);
+  border-color: #C97A3D;
+  box-shadow: 0 4px 12px rgba(201, 122, 61, 0.35);
+}
+
+/* Modal overlay precisa de background dimmed quando show */
+.modal-overlay.show {
+  background: linear-gradient(180deg,
+    rgba(11, 40, 69, 0.5) 0%,
+    rgba(30, 111, 217, 0.6) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: all;
+}
+.modal-overlay.show.error-mode {
+  background: linear-gradient(180deg,
+    rgba(60, 35, 20, 0.45) 0%,
+    rgba(180, 110, 60, 0.55) 100%);
+}
+
+/* Position gelpi acima do card (não centralizado) */
+.modal-overlay.show .gelpi-stage {
+  top: auto;
+  bottom: 340px;
+  transform: translateX(-50%);
+}
+@keyframes gelpiEnterCard {
+  0% { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.6); }
+  60% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1.05); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.modal-overlay.show .gelpi-stage {
+  animation: gelpiEnterCard 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes gelpiEnterCardSoft {
+  0% { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.85); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.modal-overlay.show.error-mode .gelpi-stage {
+  animation: gelpiEnterCardSoft 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}

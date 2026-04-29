@@ -28,11 +28,14 @@ import { QuizIntro } from './QuizIntro';
 import { QuestionCard } from './QuestionCard';
 import { QuizResult } from './QuizResult';
 import { ComboMeter } from './ComboMeter';
-import { ConfidenceRating, type ConfidenceLevel } from './ConfidenceRating';
+import { type ConfidenceLevel } from './ConfidenceRating';
 import { XpBurst } from '../juice/XpBurst';
 import { ConfettiSkia } from '../juice/ConfettiSkia';
 import { ScreenShake } from '../juice/ScreenShake';
-import { GelpiFeedback, type GelpiFeedbackKind } from '../juice/GelpiFeedback';
+import {
+  GelpiCelebrateModal,
+  type GelpiCelebrateKind,
+} from '../juice/GelpiCelebrateModal';
 
 export interface QuizPlayerProps {
   videoId: string;
@@ -58,7 +61,7 @@ type PlayStep = 'answering' | 'awaitingConfidence';
  *
  * Server is the source of truth for correctness. Per-question check via
  * `quizzesService.checkAnswer` (returns { isCorrect } without exposing the
- * gabarito). GelpiFeedback (Dr. Gelpi DOM) and juice (XpBurst / combo / shake)
+ * gabarito). GelpiCelebrateModal (Dr. Gelpi DOM + bottom card) and juice (XpBurst / combo / shake)
  * fire based on the real result. Final aggregate score still comes from
  * submit, but the per-question feedback now matches the truth.
  *
@@ -80,6 +83,20 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     startQuiz: storeStartQuiz,
     reset: storeReset,
   } = useQuizStore();
+  const storeAnswers = useQuizStore((s) => s.answers);
+
+  // Accuracy parcial até a pergunta atual (corretas / respondidas com isCorrect set)
+  const accuracyPct = (() => {
+    let correct = 0;
+    let answered = 0;
+    for (const a of storeAnswers.values()) {
+      if (a.isCorrect !== undefined) {
+        answered += 1;
+        if (a.isCorrect) correct += 1;
+      }
+    }
+    return answered === 0 ? 0 : (correct / answered) * 100;
+  })();
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [playStep, setPlayStep] = useState<PlayStep>('answering');
@@ -107,7 +124,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const [xpBurstValue, setXpBurstValue] = useState(0);
   const [confettiActive, setConfettiActive] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
-  const [lottieKind, setLottieKind] = useState<GelpiFeedbackKind | null>(null);
+  const [lottieKind, setLottieKind] = useState<GelpiCelebrateKind | null>(null);
 
   // Result state
   const [result, setResult] = useState<QuizResultType | null>(null);
@@ -209,7 +226,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   /**
    * Tap on an option in the answering substate.
    * Calls server-side `checkAnswer` (returns only { isCorrect }, no gabarito)
-   * to drive GelpiFeedback + juice. Falls back to optimistic-positive on
+   * to drive GelpiCelebrateModal + juice. Falls back to optimistic-positive on
    * network failure so a backend hiccup doesn't punish the user.
    */
   const handleSelectOption = async (optionIndex: number) => {
@@ -320,23 +337,33 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   );
 
   /**
-   * Confidence selected → commit answer + confidence, advance to next
-   * question or submit if we're on the last one.
+   * Confidence tapped INSIDE the celebrate modal — store level locally and in
+   * the quiz-store, but do NOT advance. User clicks "Continuar →" to advance.
    */
-  const handleSelectConfidence = (level: ConfidenceLevel) => {
+  const handleConfidenceTap = (level: ConfidenceLevel) => {
     if (!quiz || selectedOption === null) return;
     const question = quiz.questions[currentQuestionIndex];
-
     setSelectedConfidence(level);
     storeSetConfidence(question.id, level);
+  };
+
+  /**
+   * "Continuar →" tapped in the modal — commit answer + confidence, close
+   * the modal, advance to next question or submit if we're on the last one.
+   */
+  const handleContinue = () => {
+    if (!quiz || selectedOption === null || !selectedConfidence) return;
+    const question = quiz.questions[currentQuestionIndex];
 
     const newAnswers = new Map(answers);
     newAnswers.set(question.id, selectedOption);
     setAnswers(newAnswers);
 
     const newConfidences = new Map(confidences);
-    newConfidences.set(question.id, level);
+    newConfidences.set(question.id, selectedConfidence);
     setConfidences(newConfidences);
+
+    setLottieKind(null);
 
     if (currentQuestionIndex < quiz.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -447,17 +474,10 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
           }}
         />
 
-        {/* Bottom area: confidence rating in awaitingConfidence,
-            otherwise hint text. The Next button is gone — confidence
-            selection drives advancement. */}
+        {/* Bottom area: confidence rating now lives INSIDE GelpiCelebrateModal
+            during awaitingConfidence. Footer only shows hint or submitting. */}
         <View style={styles.playFooter}>
-          {awaitingConfidence ? (
-            <ConfidenceRating
-              selected={selectedConfidence}
-              onSelect={handleSelectConfidence}
-              disabled={submitting}
-            />
-          ) : (
+          {!awaitingConfidence && (
             <Text style={styles.hintText}>
               Toque em uma alternativa para responder
               {isLast ? ' (última questão)' : ''}
@@ -548,9 +568,14 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
             active={confettiActive}
             count={result?.score === 100 ? 120 : 60}
           />
-          <GelpiFeedback
+          <GelpiCelebrateModal
             kind={lottieKind}
-            onDone={() => setLottieKind(null)}
+            xpGained={lottieKind === 'wrong' ? 0 : xpBurstValue}
+            comboValue={combo}
+            accuracyPct={accuracyPct}
+            selectedConfidence={selectedConfidence}
+            onSelectConfidence={handleConfidenceTap}
+            onContinue={handleContinue}
           />
         </SafeAreaView>
       </Modal>
