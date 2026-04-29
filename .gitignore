@@ -239,3 +239,26 @@ CIRURGIAO_AUDIT.md
 # Git worktrees (local isolated workspaces, not shipped)
 .worktrees/
 worktrees/
+
+# --- Additions 2026-04-29 (chore/repo-housekeeping) ---
+
+# External video pipeline (Gustav's machine, processed offline,
+# documented in CLAUDE.md — agent team does not touch this)
+video-pipeline/
+
+# Spreadsheet exports (PII risk — student lists, payment exports)
+*.xls
+*.xlsx
+!**/fixtures/**/*.xls
+!**/fixtures/**/*.xlsx
+!**/test-data/**/*.xls
+!**/test-data/**/*.xlsx
+
+# Orphan UUID-named files in docs/ (typically image/screenshot dumps)
+docs/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-*
+
+# Local smoke test pages
+smoke-*.html
+
+# Superpowers / handoff scratch dirs
+.superpowers/
