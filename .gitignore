@@ -266,3 +266,7 @@ smoke-*.html
 # MCP server config — contains API keys (Stitch, 21st Magic, n8n, etc).
 # Track .mcp.json.example template instead. Each dev keeps own keys local.
 .mcp.json
+
+# Local Claude Code worktree state (full repo clones for parallel agents)
+.claude/worktrees/
+.claude/.agents/
