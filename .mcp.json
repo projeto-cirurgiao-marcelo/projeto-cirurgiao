@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "mercadopago": {
-      "type": "url",
-      "url": "https://mcp.mercadopago.com/mcp"
-    }
-    }
-}

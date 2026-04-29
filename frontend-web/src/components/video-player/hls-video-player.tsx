@@ -326,7 +326,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         {/* Custom controls overlay - Quality & Speed */}
         <div
           ref={controlsRef}
-          className="absolute bottom-14 right-2 flex items-center gap-1"
+          className="absolute top-2 right-2 flex items-center gap-1"
           style={{ zIndex: 2147483647 }}
         >
           {/* CC Toggle */}
@@ -361,7 +361,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
               {playbackRate}x
             </button>
             {showRateMenu && (
-              <div className="absolute bottom-full right-0 mb-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[80px]">
+              <div className="absolute top-full right-0 mt-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[80px]">
                 {rates.map((rate) => (
                   <button
                     key={rate}
@@ -392,7 +392,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
                 {currentQualityLabel}
               </button>
               {showQualityMenu && (
-                <div className="absolute bottom-full right-0 mb-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                <div className="absolute top-full right-0 mt-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
                   <button
                     onMouseDown={(e) => { e.stopPropagation(); handleQualityChange(-1); }}
                     className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${

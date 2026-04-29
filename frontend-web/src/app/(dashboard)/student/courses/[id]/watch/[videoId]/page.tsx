@@ -8,7 +8,7 @@ import { coursesService } from '@/lib/api/courses.service';
 import { videosService } from '@/lib/api/videos.service';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock, ThumbsUp } from 'lucide-react';
+import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock } from 'lucide-react';
 import { Course, Video as VideoType } from '@/lib/types/course.types';
 import { StreamDataResponse } from '@/lib/api/videos.service';
 import { VideoBreadcrumbs, VideoBreadcrumbsMobile } from '@/components/video-player/video-breadcrumbs';
@@ -20,32 +20,7 @@ import { VideoChatWidget } from '@/components/chatbot/video-chat-widget';
 import { QuizCard } from '@/components/quiz/quiz-card';
 import { quizzesService, QuizStats } from '@/lib/api/quizzes.service';
 import { logger } from '@/lib/logger';
-import dynamic from 'next/dynamic';
-import type { HlsPlayerRef } from '@/components/video-player/hls-video-player';
-
-const HlsVideoPlayer = dynamic(
-  () => import('@/components/video-player/hls-video-player'),
-  { ssr: false }
-);
-
-// Declaração de tipo para o SDK do Cloudflare Stream
-declare global {
-  interface Window {
-    Stream?: (iframe: HTMLIFrameElement) => CloudflareStreamPlayer;
-  }
-}
-
-interface CloudflareStreamPlayer {
-  currentTime: number;
-  duration: number;
-  paused: boolean;
-  muted: boolean;
-  volume: number;
-  play: () => Promise<void>;
-  pause: () => void;
-  addEventListener: (event: string, callback: (data?: any) => void) => void;
-  removeEventListener: (event: string, callback: (data?: any) => void) => void;
-}
+import HlsVideoPlayer, { type HlsPlayerRef } from '@/components/video-player/hls-video-player';
 
 export default function VideoPlayerPage() {
   const router = useRouter();
@@ -62,36 +37,25 @@ export default function VideoPlayerPage() {
   const [streamData, setStreamData] = useState<StreamDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Estado de quiz (stats agregadas das tentativas anteriores)
+
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
 
-  // Estado de progresso
   const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
   const [currentWatchTime, setCurrentWatchTime] = useState(0);
-  const [playerCurrentTime, setPlayerCurrentTime] = useState(0); // Tempo real do player
+  const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
-  const [savedWatchTime, setSavedWatchTime] = useState(0); // Tempo salvo para restaurar posição
-  
-  // Refs para controle de progresso
+  const [savedWatchTime, setSavedWatchTime] = useState(0);
+
   const lastSavedTimeRef = useRef(0);
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const currentWatchTimeRef = useRef(0); // Ref para evitar stale closure
-  const iframeRef = useRef<HTMLIFrameElement>(null); // Ref para o iframe do player Cloudflare
-  const playerRef = useRef<CloudflareStreamPlayer | null>(null); // Ref para a API do player
+  const currentWatchTimeRef = useRef(0);
   const hlsPlayerRef = useRef<HlsPlayerRef>(null);
-  const hasRestoredPosition = useRef(false); // Flag para restaurar posição apenas uma vez
-  const hasCompletedInitialRestore = useRef(false); // Flag para indicar que a restauração inicial foi concluída
-  const [isPlayerReady, setIsPlayerReady] = useState(false); // Flag para indicar que o player está pronto
-  const [sdkLoaded, setSdkLoaded] = useState(false); // Flag para SDK do Cloudflare carregado
-  const [sdkError, setSdkError] = useState(false); // Flag de erro ao carregar SDK Cloudflare (fallback UI)
-  const [sdkRetryCount, setSdkRetryCount] = useState(0); // Trigger pra re-tentar carregar o SDK
-  const [iframeMounted, setIframeMounted] = useState(false); // Flag para indicar que o iframe foi montado
-  // Blob URL das legendas quando playback.captionsUrl vem do backend
-  // (apiClient injeta Authorization automaticamente via interceptor).
+  const hasRestoredPosition = useRef(false);
+  const playerDurationRef = useRef(0);
+
+  // Blob URL das legendas quando o backend envia playback.captionsUrl separado
   const [captionsBlobUrl, setCaptionsBlobUrl] = useState<string | null>(null);
-  const playerDurationRef = useRef(0); // Duração total do vídeo reportada pelo player
 
   const saveProgressOnExit = useCallback(async () => {
     const timeToSave = currentWatchTimeRef.current;
@@ -113,7 +77,6 @@ export default function VideoPlayerPage() {
     }
   }, [videoId, isCompleted]);
 
-  // Effect principal - carrega dados e configura cleanup
   useEffect(() => {
     if (!hasHydrated) return;
 
@@ -128,7 +91,7 @@ export default function VideoPlayerPage() {
     }
 
     loadData();
-    
+
     return () => {
       if (saveIntervalRef.current) {
         clearInterval(saveIntervalRef.current);
@@ -138,14 +101,12 @@ export default function VideoPlayerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, courseId, videoId, hasHydrated]);
 
-  // Salvar progresso ao fechar a aba ou navegar para outra página
   useEffect(() => {
     const handleBeforeUnload = () => {
       const timeToSave = currentWatchTimeRef.current;
       const lastSaved = lastSavedTimeRef.current;
       logger.log('[Progress] beforeunload - timeToSave:', timeToSave, 'lastSaved:', lastSaved);
       if (timeToSave > lastSaved) {
-        // Usar sendBeacon para garantir que a requisição seja enviada mesmo ao fechar
         const token = useAuthStore.getState().firebaseToken;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
         const data = JSON.stringify({
@@ -155,10 +116,8 @@ export default function VideoPlayerPage() {
           videoDuration: playerDurationRef.current > 0 ? Math.floor(playerDurationRef.current) : undefined,
         });
 
-        // Tentar usar fetch keepalive com URL completa do backend e auth header
         if (navigator.sendBeacon) {
           const blob = new Blob([data], { type: 'application/json' });
-          // sendBeacon não suporta headers customizados, então usamos fetch com keepalive como fallback
           try {
             fetch(`${apiUrl}/progress`, {
               method: 'POST',
@@ -167,11 +126,10 @@ export default function VideoPlayerPage() {
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
               },
               body: data,
-              keepalive: true, // Garante que a requisição sobreviva ao unload
+              keepalive: true,
             });
             logger.log('[Progress] Progresso enviado via fetch keepalive');
           } catch {
-            // Fallback para sendBeacon sem auth (menos confiável)
             navigator.sendBeacon(`${apiUrl}/progress`, blob);
             logger.log('[Progress] Fallback: Progresso enviado via sendBeacon');
           }
@@ -200,7 +158,6 @@ export default function VideoPlayerPage() {
       setLoading(true);
       setError(null);
 
-      // Start all fetches in parallel — no waterfalls
       const coursePromise = coursesService.getById(courseId);
       const videoPromise = videosService.findOne(videoId);
       const progressPromise = progressService.getCourseProgress(courseId).catch(() => null);
@@ -211,7 +168,6 @@ export default function VideoPlayerPage() {
         progressPromise,
       ]);
 
-      // Buscar stats agregadas de quizzes do vídeo (todas as tentativas)
       try {
         const stats = await quizzesService.getVideoQuizStats(videoId);
         setQuizStats(stats.totalAttempts > 0 ? stats : null);
@@ -219,26 +175,31 @@ export default function VideoPlayerPage() {
         setQuizStats(null);
       }
 
-      const isEmbedVideo = videoData.videoSource && videoData.videoSource !== 'cloudflare' && videoData.videoSource !== 'r2_hls';
-      const isHlsVideo = videoData.videoSource === 'r2_hls' && videoData.hlsUrl;
+      // Vídeos ainda no Cloudflare Stream (não migrados para R2 HLS)
+      const isCloudflareOnly =
+        (videoData.videoSource === 'cloudflare' || videoData.cloudflareId) &&
+        !videoData.hlsUrl &&
+        !(videoData.externalUrl?.includes('.m3u8'));
 
-      if (!isEmbedVideo && !isHlsVideo) {
-        if (!videoData.cloudflareId) {
-          setError('Vídeo ainda não foi enviado ao Cloudflare Stream');
-          setCourse(courseData);
-          setCurrentVideo(videoData);
-          return;
-        }
-
-        if (videoData.uploadStatus !== 'READY') {
-          setError(`Vídeo ainda está sendo processado (Status: ${videoData.uploadStatus})`);
-          setCourse(courseData);
-          setCurrentVideo(videoData);
-          return;
-        }
+      if (isCloudflareOnly) {
+        setError('Este vídeo está sendo migrado para o novo sistema de streaming. Tente novamente em breve.');
+        setCourse(courseData);
+        setCurrentVideo(videoData);
+        return;
       }
 
-      // Resolve stream data localmente sem request extra (evita 429)
+      // Vídeo embed sem URL configurada
+      const isEmbedVideo =
+        videoData.videoSource &&
+        videoData.videoSource !== 'cloudflare' &&
+        videoData.videoSource !== 'r2_hls';
+      if (isEmbedVideo && !videoData.externalUrl) {
+        setError('URL do vídeo não configurada.');
+        setCourse(courseData);
+        setCurrentVideo(videoData);
+        return;
+      }
+
       const streamInfo = videosService.getStreamDataFromVideo(videoData);
 
       if (progressData) {
@@ -248,10 +209,10 @@ export default function VideoPlayerPage() {
         if (videoProgress) {
           logger.log('[Progress] watchTime do servidor:', videoProgress.watchTime);
           setCurrentWatchTime(videoProgress.watchTime);
-          setSavedWatchTime(videoProgress.watchTime); // Salva para restaurar posição
+          setSavedWatchTime(videoProgress.watchTime);
           lastSavedTimeRef.current = videoProgress.watchTime;
           setIsCompleted(videoProgress.completed);
-          hasRestoredPosition.current = false; // Reset flag para restaurar posição
+          hasRestoredPosition.current = false;
         } else {
           logger.log('[Progress] Nenhum progresso encontrado para este vídeo');
         }
@@ -277,13 +238,12 @@ export default function VideoPlayerPage() {
     }
 
     logger.log('[AutoSave] Iniciando auto-save a cada 10 segundos');
-    
+
     saveIntervalRef.current = setInterval(async () => {
       const currentTime = currentWatchTimeRef.current;
       const lastSaved = lastSavedTimeRef.current;
       logger.log('[AutoSave] Verificando... currentTime:', Math.floor(currentTime), 'lastSaved:', Math.floor(lastSaved));
-      
-      // Salva se assistiu pelo menos 3 segundos a mais que o último save
+
       if (currentTime > lastSaved + 3) {
         try {
           logger.log('[AutoSave] Salvando progresso:', Math.floor(currentTime));
@@ -304,12 +264,10 @@ export default function VideoPlayerPage() {
     }, 10000);
   };
 
-  // Mantém a ref sincronizada com o state
   useEffect(() => {
     currentWatchTimeRef.current = currentWatchTime;
   }, [currentWatchTime]);
 
-  // Handler para quando o vídeo termina
   const handleVideoEnded = useCallback(async () => {
     try {
       setSavingProgress(true);
@@ -324,75 +282,8 @@ export default function VideoPlayerPage() {
     }
   }, [videoId, courseId]);
 
-  // Handler do "Tentar novamente" no fallback UI quando SDK falha:
-  // remove script quebrado, reseta state e incrementa retryCount pra
-  // disparar novamente o useEffect de carregar SDK.
-  const handleRetrySdk = useCallback(() => {
-    const brokenScript = document.querySelector('script[src*="cloudflarestream.com/embed/sdk"]');
-    if (brokenScript) {
-      brokenScript.remove();
-    }
-    setSdkError(false);
-    setSdkLoaded(false);
-    setSdkRetryCount((c) => c + 1);
-  }, []);
-
-  // Carrega o SDK do Cloudflare Stream
-  useEffect(() => {
-    logger.log('[Player] Iniciando carregamento do SDK...');
-
-    // Verifica se o SDK já está carregado
-    if (window.Stream) {
-      logger.log('[Player] SDK já estava carregado');
-      setSdkLoaded(true);
-      return;
-    }
-
-    // Verifica se o script já existe
-    const existingScript = document.querySelector('script[src*="cloudflarestream.com/embed/sdk"]');
-    if (existingScript) {
-      logger.log('[Player] Script já existe, aguardando carregamento...');
-      // Espera o script existente carregar — com timeout pra
-      // acionar fallback UI se nunca inicializar.
-      let elapsed = 0;
-      const checkSDK = setInterval(() => {
-        elapsed += 100;
-        if (window.Stream) {
-          logger.log('[Player] SDK carregado (polling)');
-          setSdkLoaded(true);
-          clearInterval(checkSDK);
-        } else if (elapsed >= 15000) {
-          logger.error('[Player] Timeout aguardando SDK do Cloudflare');
-          setSdkError(true);
-          clearInterval(checkSDK);
-        }
-      }, 100);
-      return () => clearInterval(checkSDK);
-    }
-
-    // Carrega o SDK dinamicamente
-    logger.log('[Player] Carregando SDK dinamicamente...');
-    const script = document.createElement('script');
-    script.src = 'https://embed.cloudflarestream.com/embed/sdk.latest.js';
-    script.async = true;
-    script.onload = () => {
-      logger.log('[Player] SDK carregado com sucesso');
-      setSdkLoaded(true);
-    };
-    script.onerror = () => {
-      // Aciona fallback UI no lugar do erro tecnico pro aluno.
-      logger.error('[Player] Erro ao carregar SDK do Cloudflare');
-      setSdkError(true);
-    };
-    document.head.appendChild(script);
-    // sdkRetryCount na deplist: quando o usuario clica "Tentar
-    // novamente", o effect re-executa e tenta carregar o script outra vez.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sdkRetryCount]);
-
-  // Carrega legendas VTT quando o backend envia playback.captionsUrl
-  // (flow cloudflare com captionsEmbedded===false). apiClient injeta
-  // Authorization automaticamente. Resultado vira blob URL pro <track>.
+  // Carrega legendas VTT quando o backend envia playback.captionsUrl separado
+  // (HLS flow sem captions embedded no manifest). apiClient injeta auth header.
   useEffect(() => {
     const captionsUrl = currentVideo?.playback?.captionsUrl;
     const kind = currentVideo?.playback?.kind;
@@ -406,7 +297,6 @@ export default function VideoPlayerPage() {
     let cancelled = false;
     let createdObjectUrl: string | null = null;
 
-    // Usamos apiClient pra herdar auth header + 429 interceptor.
     import('@/lib/api/client').then(({ apiClient }) => {
       apiClient
         .get<Blob>(captionsUrl, { responseType: 'blob' })
@@ -417,7 +307,7 @@ export default function VideoPlayerPage() {
           setCaptionsBlobUrl(createdObjectUrl);
         })
         .catch((err) => {
-          logger.warn('[Captions] falha ao carregar VTT cloudflare:', err);
+          logger.warn('[Captions] falha ao carregar VTT:', err);
           setCaptionsBlobUrl(null);
         });
     });
@@ -427,240 +317,6 @@ export default function VideoPlayerPage() {
       if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
     };
   }, [currentVideo?.playback?.captionsUrl, currentVideo?.playback?.kind, currentVideo?.playback?.captionsEmbedded]);
-
-  // Verifica periodicamente se o iframe foi montado (fallback para onLoad)
-  useEffect(() => {
-    if (iframeMounted) return; // Já está montado
-
-    logger.log('[Player] Iniciando polling para iframe. streamData:', streamData?.type, 'cloudflareId:', streamData?.cloudflareId);
-
-    const checkIframe = setInterval(() => {
-      // Tenta via ref primeiro
-      if (iframeRef.current) {
-        logger.log('[Player] iframe detectado via ref');
-        setIframeMounted(true);
-        clearInterval(checkIframe);
-        return;
-      }
-
-      // Fallback: busca o iframe no DOM diretamente
-      const iframe = document.querySelector('iframe[src*="cloudflarestream.com"]') as HTMLIFrameElement;
-      if (iframe) {
-        logger.log('[Player] iframe detectado via querySelector');
-        // Atualiza a ref manualmente
-        (iframeRef as any).current = iframe;
-        setIframeMounted(true);
-        clearInterval(checkIframe);
-      }
-    }, 200);
-
-    // Timeout de 10 segundos
-    const timeout = setTimeout(() => {
-      clearInterval(checkIframe);
-      if (!iframeMounted) {
-        logger.warn('[Player] Timeout aguardando iframe. Verificando DOM...');
-        const allIframes = document.querySelectorAll('iframe');
-        logger.log('[Player] Total de iframes no DOM:', allIframes.length);
-        allIframes.forEach((iframe, i) => {
-          logger.log(`[Player] iframe[${i}]:`, iframe.src);
-        });
-      }
-    }, 10000);
-
-    return () => {
-      clearInterval(checkIframe);
-      clearTimeout(timeout);
-    };
-  }, [iframeMounted, streamData?.cloudflareId, streamData?.type]);
-
-  // Ref para armazenar o savedWatchTime para uso nos handlers
-  const savedWatchTimeRef = useRef(0);
-  
-  // Mantém a ref sincronizada com o state
-  useEffect(() => {
-    savedWatchTimeRef.current = savedWatchTime;
-  }, [savedWatchTime]);
-
-  // Inicializa o player quando o iframe e SDK estiverem prontos
-  useEffect(() => {
-    logger.log('[Player] useEffect init - sdkLoaded:', sdkLoaded, 'iframeMounted:', iframeMounted, 'iframeRef:', !!iframeRef.current, 'Stream:', !!window.Stream);
-
-    if (!sdkLoaded || !iframeMounted || !iframeRef.current || !window.Stream) {
-      logger.log('[Player] Condições não atendidas, aguardando...');
-      return;
-    }
-
-    logger.log('[Player] Todas as condições atendidas, inicializando em 500ms...');
-
-    // Pequeno delay para garantir que o iframe está completamente carregado
-    const initTimeout = setTimeout(() => {
-      try {
-        if (!window.Stream || !iframeRef.current) {
-          logger.log('[Player] Stream ou iframe não disponível no timeout');
-          return;
-        }
-        logger.log('[Player] Inicializando player com iframe:', iframeRef.current.src);
-        const player = window.Stream(iframeRef.current);
-        playerRef.current = player;
-        logger.log('[Player] Player inicializado:', player);
-
-        // Event listeners para o player
-        const handleTimeUpdate = () => {
-          if (playerRef.current) {
-            const currentTime = playerRef.current.currentTime || 0;
-            setPlayerCurrentTime(currentTime);
-
-            // Capturar duração se ainda não temos
-            if (playerDurationRef.current === 0 && playerRef.current.duration > 0) {
-              playerDurationRef.current = playerRef.current.duration;
-              logger.log('[Player] Duração capturada via timeupdate:', playerRef.current.duration);
-            }
-
-            // Atualiza o tempo máximo assistido
-            if (currentTime > currentWatchTimeRef.current) {
-              setCurrentWatchTime(currentTime);
-              currentWatchTimeRef.current = currentTime; // Atualiza a ref imediatamente
-            }
-          }
-        };
-
-        const handleLoadedData = () => {
-          logger.log('[Player] loadeddata/canplay disparado, savedWatchTimeRef:', savedWatchTimeRef.current);
-          setIsPlayerReady(true);
-
-          // Capturar duração do vídeo reportada pelo player
-          if (playerRef.current && playerRef.current.duration > 0) {
-            playerDurationRef.current = playerRef.current.duration;
-            logger.log('[Player] Duração do vídeo capturada:', playerRef.current.duration);
-          }
-
-          // Restaura posição salva com retry - usa a ref para pegar o valor mais atual
-          const timeToRestore = savedWatchTimeRef.current;
-          if (timeToRestore > 0 && !hasRestoredPosition.current && playerRef.current) {
-            hasRestoredPosition.current = true; // Marca antes para evitar múltiplas tentativas
-            hasCompletedInitialRestore.current = false; // Ainda não completou
-            
-            const restorePosition = (attempt: number = 1) => {
-              if (!playerRef.current || attempt > 5) {
-                hasCompletedInitialRestore.current = true;
-                return;
-              }
-              
-              logger.log(`[Player] Tentativa ${attempt} de restaurar posição para: ${timeToRestore}`);
-              playerRef.current.currentTime = timeToRestore;
-              
-              // Verifica se funcionou após um delay
-              setTimeout(() => {
-                if (playerRef.current) {
-                  const currentTime = playerRef.current.currentTime;
-                  logger.log(`[Player] Após restauração, currentTime: ${currentTime}`);
-                  
-                  // Se não restaurou corretamente (diferença > 2 segundos), tenta novamente
-                  if (Math.abs(currentTime - timeToRestore) > 2 && attempt < 5) {
-                    restorePosition(attempt + 1);
-                  } else {
-                    logger.log('[Player] Posição restaurada com sucesso!');
-                    hasCompletedInitialRestore.current = true;
-                  }
-                }
-              }, 500);
-            };
-            
-            // Aguarda um pouco antes de tentar restaurar (player pode não estar 100% pronto)
-            setTimeout(() => restorePosition(1), 300);
-          } else {
-            hasCompletedInitialRestore.current = true; // Não precisa restaurar
-          }
-        };
-
-        const handleEnded = () => {
-          handleVideoEnded();
-        };
-
-        const handleError = (error: any) => {
-          logger.error('[Player] Erro no player:', error);
-          // Não mostrar erro se for apenas um problema de rede temporário
-        };
-
-        // Handler para quando o play é iniciado - restaura posição se necessário
-        let hasRestoredOnPlay = false;
-        const handlePlay = () => {
-          logger.log('[Player] play event disparado, currentTime:', playerRef.current?.currentTime, 'savedWatchTimeRef:', savedWatchTimeRef.current);
-          
-          // Usa a ref para pegar o valor mais atual
-          const timeToRestore = savedWatchTimeRef.current;
-          
-          // Se temos uma posição salva e ainda não restauramos após o play
-          if (timeToRestore > 0 && !hasRestoredOnPlay && playerRef.current) {
-            const currentTime = playerRef.current.currentTime;
-            
-            // Se o player resetou para o início (< 3 segundos), restaura a posição
-            if (currentTime < 3) {
-              logger.log('[Player] Detectado reset após play, restaurando para:', timeToRestore);
-              hasRestoredOnPlay = true;
-              
-              // Pequeno delay para garantir que o play foi processado
-              setTimeout(() => {
-                if (playerRef.current) {
-                  playerRef.current.currentTime = timeToRestore;
-                  logger.log('[Player] Posição restaurada após play para:', timeToRestore);
-                }
-              }, 100);
-            } else {
-              hasRestoredOnPlay = true; // Não precisa restaurar, já está na posição correta
-            }
-          }
-        };
-
-        // Registra os event listeners
-        logger.log('[Player] Registrando event listeners...');
-        player.addEventListener('timeupdate', handleTimeUpdate);
-        player.addEventListener('loadeddata', handleLoadedData);
-        player.addEventListener('ended', handleEnded);
-        player.addEventListener('canplay', handleLoadedData);
-        player.addEventListener('play', handlePlay);
-        logger.log('[Player] Event listeners registrados');
-
-        // Se o vídeo já estiver carregado, marca como pronto
-        logger.log('[Player] duration atual:', player.duration);
-        if (player.duration > 0) {
-          logger.log('[Player] Vídeo já carregado, chamando handleLoadedData');
-          handleLoadedData();
-        }
-
-        // Polling adicional de segurança para currentTime
-        const pollInterval = setInterval(() => {
-          if (playerRef.current && !playerRef.current.paused) {
-            const currentTime = playerRef.current.currentTime || 0;
-            if (currentTime > 0) {
-              setPlayerCurrentTime(currentTime);
-              if (currentTime > currentWatchTimeRef.current) {
-                setCurrentWatchTime(currentTime);
-              }
-            }
-          }
-        }, 500);
-
-        // Cleanup
-        return () => {
-          clearInterval(pollInterval);
-          if (player) {
-            player.removeEventListener('timeupdate', handleTimeUpdate);
-            player.removeEventListener('loadeddata', handleLoadedData);
-            player.removeEventListener('ended', handleEnded);
-            player.removeEventListener('canplay', handleLoadedData);
-            player.removeEventListener('play', handlePlay);
-          }
-        };
-      } catch (err) {
-        logger.error('[Player] Erro ao inicializar player:', err);
-      }
-    }, 500);
-
-    return () => {
-      clearTimeout(initTimeout);
-    };
-  }, [sdkLoaded, iframeMounted, streamData?.cloudflareId, handleVideoEnded]);
 
   const handleMarkAsComplete = async () => {
     try {
@@ -744,20 +400,14 @@ export default function VideoPlayerPage() {
     }
   };
 
-  // Handler para seek (pular para um tempo específico)
   const handleSeek = useCallback((time: number) => {
-    if (streamData?.type === 'hls' && hlsPlayerRef.current) {
+    if (hlsPlayerRef.current) {
       logger.log('[HlsPlayer] Seeking to:', time);
       hlsPlayerRef.current.seekTo(time);
       setPlayerCurrentTime(time);
-    } else if (playerRef.current) {
-      logger.log('[Player] Seeking to:', time);
-      playerRef.current.currentTime = time;
-      setPlayerCurrentTime(time);
     }
-  }, [streamData?.type]);
+  }, []);
 
-  // Callbacks para o player HLS (R2)
   const handleHlsTimeUpdate = useCallback((currentTime: number, duration: number) => {
     setPlayerCurrentTime(currentTime);
 
@@ -774,7 +424,6 @@ export default function VideoPlayerPage() {
   const handleHlsReady = useCallback((duration: number) => {
     logger.log('[HlsPlayer] Ready, duration:', duration);
     playerDurationRef.current = duration;
-    setIsPlayerReady(true);
   }, []);
 
   const handleBackToAllCourses = () => {
@@ -788,7 +437,6 @@ export default function VideoPlayerPage() {
   const hasPreviousVideo = !!getPreviousVideo();
   const hasNextVideo = !!getNextVideo();
 
-  // Loading state
   if (!hasHydrated || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -800,13 +448,13 @@ export default function VideoPlayerPage() {
     );
   }
 
-  const hasValidStreamData = streamData && (
-    (streamData.type === 'cloudflare' && streamData.cloudflareId) ||
-    (streamData.type === 'embed' && streamData.embedUrl) ||
-    (streamData.type === 'hls' && streamData.hlsUrl)
-  );
+  const hasValidStreamData =
+    (currentVideo?.playback?.kind && currentVideo.playback.kind !== 'none') ||
+    (streamData && (
+      (streamData.type === 'embed' && streamData.embedUrl) ||
+      (streamData.type === 'hls' && streamData.hlsUrl)
+    ));
 
-  // Error state
   if (error || !currentVideo || !hasValidStreamData) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
@@ -844,7 +492,7 @@ export default function VideoPlayerPage() {
               {courseProgress && (
                 <div className="hidden md:flex items-center gap-2 text-sm text-gray-600">
                   <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-300"
                       style={{ width: `${courseProgress.progressPercentage}%` }}
                     />
@@ -894,20 +542,14 @@ export default function VideoPlayerPage() {
             {/* Player Container */}
             <div className="bg-black rounded-lg overflow-hidden border border-gray-800 mb-3 sm:mb-4" style={{ aspectRatio: '16/9' }}>
               {/*
-                Novo contrato `playback` (VideoPayload.playback):
-                - kind === 'hls'    -> HlsVideoPlayer, com captions
-                  embedded no manifest (r2_hls) ou vindas via blob URL
-                  do endpoint autenticado (cloudflare + generate).
-                - kind === 'iframe' -> iframe sandboxed (YouTube/Vimeo/external).
-                  Cloudflare ainda usa o iframe legado abaixo pra preservar
-                  o SDK + restauracao de posicao; `playback.kind` do flow
-                  cloudflare continua sendo 'iframe' mas o videoSource
-                  distingue.
-                - kind === 'none'   -> placeholder "processando".
-                Quando `playback` nao esta presente (backend antigo), cai
-                no branching legado baseado em streamData.
+                Contrato `playback` (VideoPayload.playback):
+                - kind === 'hls'    → HlsVideoPlayer (R2 HLS). Suporta captions
+                  embedded no manifest ou via blob URL de endpoint autenticado.
+                - kind === 'iframe' → iframe sandboxed (YouTube/Vimeo/external).
+                - kind === 'none'   → placeholder "processando".
+                Fallback via streamData quando backend não envia `playback`.
               */}
-              {currentVideo.playback && currentVideo.playback.kind === 'hls' && currentVideo.playback.playbackUrl ? (
+              {currentVideo.playback && currentVideo.playback.playbackUrl && (currentVideo.playback.kind === 'hls' || currentVideo.playback.playbackUrl.includes('.m3u8')) ? (
                 <HlsVideoPlayer
                   ref={hlsPlayerRef}
                   src={currentVideo.playback.playbackUrl}
@@ -921,8 +563,7 @@ export default function VideoPlayerPage() {
                       : undefined
                   }
                 />
-              ) : currentVideo.playback && currentVideo.playback.kind === 'iframe' && currentVideo.playback.playbackUrl && currentVideo.videoSource !== 'cloudflare' ? (
-                // YouTube/Vimeo/external — iframe sandboxed, provider owns UI.
+              ) : currentVideo.playback && currentVideo.playback.kind === 'iframe' && currentVideo.playback.playbackUrl && !currentVideo.playback.playbackUrl.includes('.m3u8') ? (
                 <iframe
                   src={currentVideo.playback.playbackUrl.includes('?')
                     ? `${currentVideo.playback.playbackUrl}&autoplay=0`
@@ -955,41 +596,6 @@ export default function VideoPlayerPage() {
                   onReady={handleHlsReady}
                   onEnded={handleVideoEnded}
                 />
-              ) : streamData?.type === 'cloudflare' && streamData.cloudflareId && sdkError ? (
-                // Fallback UI amigavel quando o SDK do Cloudflare Stream
-                // nao carrega (bloqueio de conteudo, rede instavel, CDN
-                // indisponivel etc.). Sem mensagem tecnica pro aluno.
-                <div className="w-full h-full flex items-center justify-center bg-gray-900 text-center px-6">
-                  <div className="max-w-sm">
-                    <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                    <h3 className="text-white text-lg font-semibold mb-2">
-                      Não foi possível carregar o vídeo.
-                    </h3>
-                    <p className="text-gray-300 text-sm mb-6">
-                      Verifique sua conexão e tente novamente.
-                    </p>
-                    <Button
-                      onClick={handleRetrySdk}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                      Tentar novamente
-                    </Button>
-                  </div>
-                </div>
-              ) : streamData?.type === 'cloudflare' && streamData.cloudflareId ? (
-                <iframe
-                  ref={iframeRef}
-                  src={`https://iframe.cloudflarestream.com/${streamData.cloudflareId.split('?')[0]}?preload=auto&previewThumbnails=true${savedWatchTime > 0 ? `&startTime=${savedWatchTime}` : ''}`}
-                  className="w-full h-full"
-                  style={{ border: 'none' }}
-                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  title={currentVideo.title}
-                  onLoad={() => {
-                    logger.log('[Player] iframe onLoad disparado');
-                    setIframeMounted(true);
-                  }}
-                />
               ) : streamData?.type === 'embed' && streamData.embedUrl ? (
                 <iframe
                   src={streamData.embedUrl.includes('?')
@@ -1017,14 +623,12 @@ export default function VideoPlayerPage() {
                     <p className="text-sm text-gray-600 line-clamp-2 sm:line-clamp-none hidden sm:block">{currentVideo.description}</p>
                   )}
                 </div>
-                
-                {/* Botão de Like */}
+
                 <div className="flex-shrink-0">
                   <VideoLikeButton videoId={videoId} size="default" />
                 </div>
               </div>
 
-              {/* Info de Progresso */}
               {currentWatchTime > 0 ? (
                 <div className="flex items-center gap-2 mt-2 text-xs sm:text-sm text-gray-600">
                   <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -1057,13 +661,12 @@ export default function VideoPlayerPage() {
                 </Button>
               )}
 
-              {/* Botão Marcar como Completo */}
               <Button
                 onClick={handleMarkAsComplete}
                 disabled={savingProgress}
                 variant={isCompleted ? "default" : "outline"}
-                className={isCompleted 
-                  ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg" 
+                className={isCompleted
+                  ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
                   : "border-2 border-gray-300 hover:border-gray-400"
                 }
               >
@@ -1088,13 +691,12 @@ export default function VideoPlayerPage() {
               <VideoSummaries videoId={videoId} hasTranscript={true} />
             </div>
 
-            {/* Materiais, Anotações e Resumos - Mobile (lista compacta) */}
+            {/* Materiais, Anotações e Resumos - Mobile */}
             <div className="mt-4 sm:hidden space-y-3">
               <VideoMaterialsCompactList videoId={videoId} />
               <VideoNotesCompact videoId={videoId} currentTime={playerCurrentTime} />
               <VideoSummaries videoId={videoId} hasTranscript={true} />
 
-              {/* Quiz - Mobile */}
               <QuizCard
                 stats={quizStats || undefined}
                 videoId={videoId}
@@ -1176,10 +778,8 @@ export default function VideoPlayerPage() {
               )}
             </div>
 
-            {/* Materiais Relacionados - Carrossel (Desktop) */}
             <VideoMaterialsCarousel videoId={videoId} />
 
-            {/* Quiz da Aula (Desktop) */}
             <QuizCard
               stats={quizStats || undefined}
               videoId={videoId}
@@ -1189,7 +789,6 @@ export default function VideoPlayerPage() {
         </div>
       </div>
 
-      {/* Chat contextualizado da aula (botão roxo à direita) */}
       {currentVideo && (
         <VideoChatWidget
           videoId={videoId}
@@ -1202,7 +801,6 @@ export default function VideoPlayerPage() {
       {/* Barra de Navegação Mobile - Fixa na parte inferior */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-lg z-50 safe-area-inset-bottom">
         <div className="flex items-center justify-between px-2 py-2 gap-1">
-          {/* Botão Anterior */}
           <Button
             onClick={handlePreviousVideo}
             disabled={!hasPreviousVideo}
@@ -1214,7 +812,6 @@ export default function VideoPlayerPage() {
             <span className="text-[10px]">Anterior</span>
           </Button>
 
-          {/* Botão Lista/Curso */}
           <Button
             onClick={handleBackToCourse}
             variant="ghost"
@@ -1225,7 +822,6 @@ export default function VideoPlayerPage() {
             <span className="text-[10px]">Aulas</span>
           </Button>
 
-          {/* Botão Concluir */}
           <Button
             onClick={handleMarkAsComplete}
             disabled={savingProgress}
@@ -1243,7 +839,6 @@ export default function VideoPlayerPage() {
             <span className="text-[10px]">{isCompleted ? 'Concluído' : 'Concluir'}</span>
           </Button>
 
-          {/* Botão Próximo */}
           <Button
             onClick={handleNextVideo}
             disabled={!hasNextVideo}
