@@ -1,73 +1,116 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
-import { progressService, EnrolledCourseWithProgress } from '@/lib/api/progress.service';
-import { CourseCard } from '@/components/student/course-card';
-import { CourseCardSkeletonGrid } from '@/components/student/course-card-skeleton';
-import { Loader2, PlayCircle, TrendingUp } from 'lucide-react';
-
+import {
+  progressService,
+  EnrolledCourseWithProgress,
+} from '@/lib/api/progress.service';
+import { ArrowDownUp, Clock, ArrowRight } from 'lucide-react';
+import {
+  AtlasButton,
+  AtlasCourseRow,
+  AtlasEmptyState,
+  AtlasLoadingBar,
+  AtlasPageHeader,
+  AtlasSectionTabs,
+  AtlasStatsInline,
+  type AtlasCourseThumbVariant,
+  type SectionTab,
+} from '@/components/atlas';
 import { logger } from '@/lib/logger';
 
-/**
- * Página de Cursos em Progresso
- * Mostra apenas cursos que o aluno começou mas não terminou (0% < progresso < 100%)
- */
+const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
+  'default',
+  'alt',
+  'alt2',
+  'alt3',
+  'alt4',
+];
+
+function pickThumbVariant(id: string): AtlasCourseThumbVariant {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  const idx = Math.abs(hash) % THUMB_VARIANTS.length;
+  return THUMB_VARIANTS[idx];
+}
+
+function formatLastAccess(date: string | null | undefined): string | undefined {
+  if (!date) return undefined;
+  try {
+    const d = new Date(date);
+    const months = [
+      'jan',
+      'fev',
+      'mar',
+      'abr',
+      'mai',
+      'jun',
+      'jul',
+      'ago',
+      'set',
+      'out',
+      'nov',
+      'dez',
+    ];
+    return `Acessado em ${d.getDate()} ${months[d.getMonth()]}`;
+  } catch {
+    return undefined;
+  }
+}
+
+function thumbLabel(title: string): string {
+  const words = title.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return 'Curso';
+  if (words.length === 1) return words[0];
+  return words.slice(0, 2).join(' ');
+}
+
+const FOURTEEN_DAYS_MS = 14 * 24 * 3600 * 1000;
+
 export default function InProgressPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const { isAdminViewingAsStudent } = useViewModeStore();
-  const [courses, setCourses] = useState<any[]>([]);
+
+  const [courses, setCourses] = useState<EnrolledCourseWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>('all');
 
   useEffect(() => {
     if (!hasHydrated) return;
-
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-
     if (user?.role === 'ADMIN' && !isAdminViewingAsStudent) {
       router.push('/admin/courses');
       return;
     }
-
-    loadInProgressCourses();
+    void loadInProgressCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, hasHydrated]);
 
   const loadInProgressCourses = async () => {
     try {
       const enrolledData = await progressService.getEnrolledCourses();
 
-      // Filtrar apenas cursos em progresso (0% < progresso < 100%)
       const inProgress = enrolledData
-        .filter((course: EnrolledCourseWithProgress) => 
-          course.progress.percentage > 0 && course.progress.percentage < 100
+        .filter(
+          (course) =>
+            course.progress.percentage > 0 && course.progress.percentage < 100,
         )
-        .map((course: EnrolledCourseWithProgress) => ({
-          ...course,
-          enrollment: {
-            id: course.enrollment.id,
-            enrolledAt: course.enrollment.enrolledAt,
-            lastAccessedAt: course.enrollment.lastAccessAt,
-            completedAt: course.enrollment.completedAt,
-            progress: course.progress.percentage,
-          },
-          progress: {
-            totalVideos: course.progress.totalVideos,
-            watchedVideos: course.progress.watchedVideos,
-            percentage: course.progress.percentage,
-          },
-        }))
-        // Ordenar por último acesso (mais recente primeiro)
         .sort((a, b) => {
-          const dateA = new Date(a.enrollment.lastAccessedAt || a.enrollment.enrolledAt).getTime();
-          const dateB = new Date(b.enrollment.lastAccessedAt || b.enrollment.enrolledAt).getTime();
+          const dateA = new Date(
+            a.enrollment.lastAccessAt || a.enrollment.enrolledAt,
+          ).getTime();
+          const dateB = new Date(
+            b.enrollment.lastAccessAt || b.enrollment.enrolledAt,
+          ).getTime();
           return dateB - dateA;
         });
 
@@ -79,106 +122,158 @@ export default function InProgressPage() {
     }
   };
 
+  const now = Date.now();
+
+  const buckets = useMemo(() => {
+    const recent: typeof courses = [];
+    const almost: typeof courses = [];
+    const paused: typeof courses = [];
+
+    for (const c of courses) {
+      const lastAccess = new Date(
+        c.enrollment.lastAccessAt || c.enrollment.enrolledAt,
+      ).getTime();
+      const idle = now - lastAccess;
+
+      if (c.progress.percentage >= 75) almost.push(c);
+      if (idle <= 7 * 24 * 3600 * 1000) recent.push(c);
+      if (idle >= FOURTEEN_DAYS_MS) paused.push(c);
+    }
+    return { recent, almost, paused };
+  }, [courses, now]);
+
+  const filtered = useMemo(() => {
+    if (activeTab === 'recent') return buckets.recent;
+    if (activeTab === 'almost') return buckets.almost;
+    if (activeTab === 'paused') return buckets.paused;
+    return courses;
+  }, [activeTab, buckets, courses]);
+
+  const totalLessons = courses.reduce(
+    (sum, c) => sum + c.progress.totalVideos,
+    0,
+  );
+  const watchedLessons = courses.reduce(
+    (sum, c) => sum + c.progress.watchedVideos,
+    0,
+  );
+  const avgProgress =
+    courses.length === 0
+      ? 0
+      : Math.round(
+          courses.reduce((sum, c) => sum + c.progress.percentage, 0) /
+            courses.length,
+        );
+
+  const tabs: SectionTab[] = [
+    { id: 'all', label: 'Todos', count: courses.length },
+    { id: 'recent', label: 'Recentes', count: buckets.recent.length },
+    { id: 'almost', label: 'Quase lá', count: buckets.almost.length },
+    { id: 'paused', label: 'Pausados', count: buckets.paused.length },
+  ];
+
   if (!hasHydrated || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
+      <main className="px-7 py-7">
+        <AtlasLoadingBar />
+      </main>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-          <PlayCircle className="h-6 w-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-            Cursos em Progresso
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Continue de onde parou e complete seus cursos
-          </p>
-        </div>
+    <>
+      <AtlasPageHeader
+        metaLabel="Biblioteca · Acompanhamento"
+        title="Em andamento"
+        titleEm="— continue de onde parou"
+        actions={
+          <AtlasButton variant="outline" size="md">
+            <ArrowDownUp strokeWidth={1.75} />
+            Ordenar
+          </AtlasButton>
+        }
+      >
+        <AtlasStatsInline
+          stats={[
+            { value: String(courses.length), label: 'Cursos ativos' },
+            {
+              value: `${avgProgress}%`,
+              format: 'mono',
+              label: 'Progresso médio',
+            },
+            {
+              value: String(watchedLessons),
+              total: `/ ${totalLessons}`,
+              label: 'Aulas assistidas',
+            },
+            {
+              value: String(buckets.almost.length),
+              label: 'Quase concluídos',
+            },
+          ]}
+        />
+      </AtlasPageHeader>
+
+      <div className="px-5 sm:px-7 py-5 sm:py-6">
+        <AtlasSectionTabs
+          tabs={tabs}
+          activeId={activeTab}
+          onChange={setActiveTab}
+        />
+
+        {loading ? (
+          <AtlasLoadingBar />
+        ) : filtered.length === 0 ? (
+          <AtlasEmptyState
+            icon={Clock}
+            title={
+              activeTab === 'all'
+                ? 'Nenhum curso em andamento'
+                : 'Nada nesta categoria'
+            }
+            description={
+              activeTab === 'all'
+                ? 'Comece um curso para acompanhar seu progresso aqui.'
+                : 'Mude para outra aba ou retome um curso novo.'
+            }
+            action={
+              activeTab === 'all' ? (
+                <AtlasButton
+                  variant="primary"
+                  size="md"
+                  onClick={() => router.push('/student/courses')}
+                >
+                  Explorar catálogo
+                  <ArrowRight strokeWidth={1.75} />
+                </AtlasButton>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="bg-atlas-surface border border-atlas-line rounded-md overflow-hidden">
+            {filtered.map((course) => (
+              <AtlasCourseRow
+                key={course.id}
+                href={`/student/courses/${course.id}`}
+                title={course.title}
+                category="Cirurgia veterinária"
+                instructor={course.instructor?.name}
+                progressPercent={Math.round(course.progress.percentage)}
+                lessonsProgress={`${course.progress.watchedVideos} / ${course.progress.totalVideos}`}
+                lastMeta={formatLastAccess(course.enrollment.lastAccessAt)}
+                thumbVariant={pickThumbVariant(course.id)}
+                thumbLabel={thumbLabel(course.title)}
+                thumbImageUrl={
+                  course.thumbnailHorizontal ||
+                  course.thumbnailVertical ||
+                  course.thumbnail ||
+                  undefined
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* Stats */}
-      {courses.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <PlayCircle className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{courses.length}</p>
-                <p className="text-xs text-gray-600">Cursos em andamento</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(
-                    courses.reduce((sum, c) => sum + c.progress.percentage, 0) / courses.length
-                  )}%
-                </p>
-                <p className="text-xs text-gray-600">Progresso médio</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <PlayCircle className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {courses.reduce((sum, c) => sum + c.progress.watchedVideos, 0)}
-                </p>
-                <p className="text-xs text-gray-600">Aulas assistidas</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      {loading ? (
-        <CourseCardSkeletonGrid count={8} />
-      ) : courses.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-6">
-            <PlayCircle className="h-24 w-24 mx-auto text-gray-400" />
-          </div>
-          <h3 className="text-2xl font-bold mb-3 text-gray-900 tracking-tight">
-            Nenhum curso em progresso
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Comece um curso para vê-lo aqui
-          </p>
-          <button
-            onClick={() => router.push('/student/my-courses')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Explorar Cursos
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

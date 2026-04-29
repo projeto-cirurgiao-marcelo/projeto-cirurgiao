@@ -206,27 +206,29 @@ export default function LibraryPage() {
     : 0;
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-md border border-atlas-line bg-atlas-surface">
       {/* Sidebar de Conversas */}
       <div
         className={cn(
-          'flex flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50',
+          'flex flex-col border-r border-atlas-line bg-atlas-surface-2',
           'w-full md:w-80 md:flex',
           showSidebar ? 'flex' : 'hidden md:flex',
         )}
       >
         {/* Header da sidebar */}
-        <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-800">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-emerald-600" />
-            <h2 className="font-semibold text-gray-900 dark:text-white">Biblioteca IA</h2>
+        <div className="flex items-center justify-between border-b border-atlas-line p-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <BookOpen className="size-4 text-atlas-primary shrink-0" strokeWidth={1.5} />
+            <h2 className="font-serif text-[15px] font-medium tracking-[-0.005em] text-atlas-ink">Biblioteca IA</h2>
           </div>
           <button
+            type="button"
             onClick={createNewConversation}
-            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+            className="rounded-sm p-1.5 text-atlas-muted hover:bg-atlas-surface hover:text-atlas-ink transition-colors"
             title="Nova conversa"
+            aria-label="Nova conversa"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="size-4" strokeWidth={1.75} />
           </button>
         </div>
 
@@ -237,10 +239,10 @@ export default function LibraryPage() {
               <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
             </div>
           ) : conversations.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" />
+            <div className="py-8 text-center text-[12.5px] text-atlas-muted">
+              <MessageSquare className="mx-auto mb-2 size-7 text-atlas-muted-2" strokeWidth={1.25} />
               <p>Nenhuma conversa ainda</p>
-              <p className="mt-1 text-xs">Clique em + para começar</p>
+              <p className="mt-1 text-[11px] text-atlas-muted-2">Clique em + para começar</p>
             </div>
           ) : (
             conversations.map(conv => (
@@ -251,18 +253,20 @@ export default function LibraryPage() {
                 onClick={() => selectConversation(conv)}
                 onKeyDown={(e) => e.key === 'Enter' && selectConversation(conv)}
                 className={cn(
-                  'group mb-1 flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition',
+                  'group mb-1 flex w-full cursor-pointer items-center justify-between rounded-sm px-3 py-2 text-left text-[13px] transition-colors duration-150',
                   activeConversation?.id === conv.id
-                    ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-300'
-                    : 'text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800',
+                    ? 'bg-atlas-primary-soft text-atlas-primary-2 font-medium'
+                    : 'text-atlas-ink-2 hover:bg-atlas-surface',
                 )}
               >
                 <span className="truncate">{conv.title || 'Conversa sem título'}</span>
                 <button
+                  type="button"
                   onClick={(e) => deleteConversation(conv.id, e)}
-                  className="ml-2 hidden shrink-0 rounded p-1 text-gray-400 transition hover:bg-red-100 hover:text-red-600 group-hover:block dark:hover:bg-red-900/30"
+                  aria-label="Excluir conversa"
+                  className="ml-2 sm:hidden sm:group-hover:block shrink-0 rounded-sm p-1 text-atlas-muted hover:bg-atlas-surface hover:text-atlas-accent transition-colors"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="size-3.5" strokeWidth={1.5} />
                 </button>
               </div>
             ))
@@ -271,27 +275,27 @@ export default function LibraryPage() {
 
         {/* Cota de tokens */}
         {quota && (
-          <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-            <div className="mb-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>Cota diária</span>
+          <div className="border-t border-atlas-line p-4">
+            <div className="mb-1.5 flex items-center justify-between atlas-mono text-[10.5px] text-atlas-muted atlas-num">
+              <span className="atlas-caps">Cota diária</span>
               <span>
                 {quota.tokensUsed.toLocaleString()} / {quota.dailyLimit.toLocaleString()}
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+            <div className="h-1 overflow-hidden rounded-sm bg-atlas-line">
               <div
                 className={cn(
-                  'h-full rounded-full transition-all',
+                  'h-full rounded-sm transition-all',
                   quotaPercentage > 90
-                    ? 'bg-red-500'
+                    ? 'bg-atlas-accent'
                     : quotaPercentage > 70
-                      ? 'bg-amber-500'
-                      : 'bg-emerald-500',
+                      ? 'bg-atlas-warn'
+                      : 'bg-atlas-primary',
                 )}
                 style={{ width: `${Math.min(quotaPercentage, 100)}%` }}
               />
             </div>
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1.5 atlas-mono text-[10.5px] text-atlas-muted-2 atlas-num">
               {quota.tokensRemaining.toLocaleString()} tokens restantes
             </p>
           </div>
@@ -299,25 +303,27 @@ export default function LibraryPage() {
       </div>
 
       {/* Área principal do chat */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-w-0 bg-atlas-bg">
         {/* Header do chat */}
-        <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+        <div className="flex items-center gap-3 border-b border-atlas-line px-4 py-3 bg-atlas-surface">
           <button
+            type="button"
             onClick={() => setShowSidebar(true)}
-            className="md:hidden rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label="Abrir lista de conversas"
+            className="md:hidden rounded-sm p-1.5 text-atlas-muted hover:bg-atlas-surface-2 hover:text-atlas-ink transition-colors"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="size-4" strokeWidth={1.75} />
           </button>
-          <div className="flex-1">
-            <h3 className="font-medium text-gray-900 dark:text-white">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-serif text-[15px] font-medium tracking-[-0.005em] text-atlas-ink truncate">
               {activeConversation?.title || 'Nova conversa'}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Consulte os livros de Medicina Veterinária
+            <p className="atlas-mono text-[10.5px] text-atlas-muted tracking-[0.04em] uppercase mt-0.5">
+              Consulta aos livros · IA
             </p>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
-            <Sparkles className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 rounded-sm bg-atlas-primary-soft border border-atlas-primary/30 px-2.5 py-1 atlas-mono text-[10.5px] font-medium text-atlas-primary-2 tracking-[0.04em] uppercase">
+            <Sparkles className="size-3" strokeWidth={1.75} />
             IA
           </div>
         </div>
@@ -340,13 +346,13 @@ export default function LibraryPage() {
               ))}
               {isSending && (
                 <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-                    <BookOpen className="h-4 w-4 text-emerald-600" />
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-atlas-primary-soft border border-atlas-primary/30">
+                    <BookOpen className="size-4 text-atlas-primary" strokeWidth={1.5} />
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-gray-100 px-4 py-3 dark:bg-gray-800">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Consultando a biblioteca...
+                  <div className="rounded-md rounded-tl-sm bg-atlas-surface border border-atlas-line px-4 py-3">
+                    <div className="flex items-center gap-2 text-[13px] text-atlas-muted">
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Consultando a biblioteca…
                     </div>
                   </div>
                 </div>
@@ -357,7 +363,7 @@ export default function LibraryPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+        <div className="border-t border-atlas-line p-4 bg-atlas-surface">
           <div className="mx-auto max-w-3xl">
             <div className="flex gap-2">
               <textarea
@@ -365,25 +371,27 @@ export default function LibraryPage() {
                 value={inputMessage}
                 onChange={e => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Pergunte sobre medicina veterinária..."
+                placeholder="Pergunte sobre medicina veterinária…"
                 rows={1}
-                className="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-emerald-500"
+                className="flex-1 resize-none rounded-md border border-atlas-line bg-atlas-bg px-4 py-3 text-[13px] text-atlas-ink outline-none transition-colors placeholder:text-atlas-muted-2 focus:border-atlas-ink-2"
                 disabled={isSending || (quota?.tokensRemaining === 0)}
               />
               <button
+                type="button"
                 onClick={() => sendMessage()}
                 disabled={!inputMessage.trim() || isSending || (quota?.tokensRemaining === 0)}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Enviar mensagem"
+                className="flex size-11 shrink-0 items-center justify-center rounded-md bg-atlas-primary text-white transition-colors hover:bg-atlas-primary-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <Send className="h-5 w-5" />
+                  <Send className="size-4" strokeWidth={1.75} />
                 )}
               </button>
             </div>
             {quota?.tokensRemaining === 0 && (
-              <p className="mt-2 text-xs text-red-500">
+              <p className="mt-2 text-[12px] text-atlas-accent">
                 Cota diária esgotada. Tente novamente amanhã.
               </p>
             )}
@@ -407,28 +415,30 @@ function WelcomeScreen({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-4">
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30">
-        <BookOpen className="h-8 w-8 text-emerald-600" />
+      <div className="mb-5 flex size-12 items-center justify-center rounded-md bg-atlas-primary-soft border border-atlas-primary/30">
+        <BookOpen className="size-6 text-atlas-primary" strokeWidth={1.5} />
       </div>
-      <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
+      <h2 className="mb-2 font-serif text-[22px] font-medium tracking-[-0.01em] text-atlas-ink">
         Biblioteca IA
       </h2>
-      <p className="mb-8 max-w-md text-center text-sm text-gray-500 dark:text-gray-400">
-        Consulte os livros-texto de Medicina Veterinária usando inteligência artificial.
-        Faça perguntas e receba respostas fundamentadas com citações das fontes.
+      <p className="mb-7 max-w-md text-center text-[13.5px] leading-[1.55] text-atlas-muted">
+        Consulte os livros-texto de Medicina Veterinária usando inteligência
+        artificial. Faça perguntas e receba respostas fundamentadas com citações
+        das fontes.
       </p>
 
       {suggestions.length > 0 && (
         <div className="w-full max-w-lg">
-          <p className="mb-3 text-center text-xs font-medium uppercase tracking-wider text-gray-400">
+          <p className="mb-3 text-center atlas-caps text-atlas-muted-2">
             Sugestões de perguntas
           </p>
           <div className="grid gap-2">
             {suggestions.map((suggestion, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => onSuggestionClick(suggestion)}
-                className="rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-gray-700 dark:text-gray-300 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/10"
+                className="rounded-md border border-atlas-line bg-atlas-surface px-4 py-3 text-left text-[13px] text-atlas-ink-2 transition-colors duration-150 hover:border-atlas-ink-2 hover:bg-atlas-surface-2"
               >
                 {suggestion}
               </button>
@@ -454,16 +464,16 @@ function MessageBubble({
       {/* Avatar */}
       <div
         className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+          'flex size-8 shrink-0 items-center justify-center rounded-full border',
           isUser
-            ? 'bg-blue-100 dark:bg-blue-900/30'
-            : 'bg-emerald-100 dark:bg-emerald-900/30',
+            ? 'bg-atlas-primary text-white border-atlas-primary'
+            : 'bg-atlas-primary-soft border-atlas-primary/30',
         )}
       >
         {isUser ? (
-          <span className="text-xs font-medium text-blue-600">Eu</span>
+          <span className="atlas-mono text-[10.5px] font-semibold tracking-tight">Eu</span>
         ) : (
-          <BookOpen className="h-4 w-4 text-emerald-600" />
+          <BookOpen className="size-4 text-atlas-primary" strokeWidth={1.5} />
         )}
       </div>
 
@@ -471,10 +481,10 @@ function MessageBubble({
       <div className={cn('max-w-[85%] space-y-2', isUser && 'items-end')}>
         <div
           className={cn(
-            'rounded-2xl px-4 py-3 text-sm',
+            'rounded-md px-4 py-3 text-[13.5px] leading-[1.55]',
             isUser
-              ? 'rounded-tr-sm bg-blue-600 text-white'
-              : 'rounded-tl-sm bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+              ? 'rounded-tr-sm bg-atlas-primary text-white'
+              : 'rounded-tl-sm bg-atlas-surface border border-atlas-line text-atlas-ink-2',
           )}
         >
           {isUser ? (
@@ -498,24 +508,28 @@ function MessageBubble({
         {!isUser && !message.id.startsWith('temp-') && (
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => onFeedback(message.id, 'helpful')}
               className={cn(
-                'rounded-lg p-1.5 text-gray-400 transition hover:text-emerald-600',
-                message.feedback === 'helpful' && 'text-emerald-600',
+                'rounded-sm p-1.5 text-atlas-muted-2 hover:text-atlas-success transition-colors',
+                message.feedback === 'helpful' && 'text-atlas-success',
               )}
               title="Resposta útil"
+              aria-label="Marcar resposta como útil"
             >
-              <ThumbsUp className="h-3.5 w-3.5" />
+              <ThumbsUp className="size-3.5" strokeWidth={1.5} />
             </button>
             <button
+              type="button"
               onClick={() => onFeedback(message.id, 'not_helpful')}
               className={cn(
-                'rounded-lg p-1.5 text-gray-400 transition hover:text-red-500',
-                message.feedback === 'not_helpful' && 'text-red-500',
+                'rounded-sm p-1.5 text-atlas-muted-2 hover:text-atlas-accent transition-colors',
+                message.feedback === 'not_helpful' && 'text-atlas-accent',
               )}
               title="Resposta não útil"
+              aria-label="Marcar resposta como não útil"
             >
-              <ThumbsDown className="h-3.5 w-3.5" />
+              <ThumbsDown className="size-3.5" strokeWidth={1.5} />
             </button>
           </div>
         )}
@@ -528,28 +542,30 @@ function SourcesList({ sources }: { sources: LibrarySource[] }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
+    <div className="rounded-md border border-atlas-line bg-atlas-surface-2 p-3">
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400"
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 atlas-mono text-[10.5px] font-medium text-atlas-muted tracking-[0.04em] uppercase atlas-num"
       >
-        <Info className="h-3.5 w-3.5" />
+        <Info className="size-3" strokeWidth={1.75} />
         {sources.length} fonte{sources.length > 1 ? 's' : ''} consultada{sources.length > 1 ? 's' : ''}
-        <span className="ml-auto text-gray-400">{expanded ? '▲' : '▼'}</span>
+        <span className="ml-auto text-atlas-muted-2">{expanded ? '▲' : '▼'}</span>
       </button>
       {expanded && (
         <div className="mt-2 space-y-2">
           {sources.map((source, i) => (
             <div
               key={i}
-              className="rounded-lg bg-white p-2.5 text-xs dark:bg-gray-800"
+              className="rounded-sm bg-atlas-surface border border-atlas-line p-2.5 text-[12px]"
             >
-              <p className="font-medium text-gray-700 dark:text-gray-300">
-                📚 {source.documentTitle}
-                {source.chapter && ` - ${source.chapter}`}
+              <p className="font-medium text-atlas-ink-2">
+                {source.documentTitle}
+                {source.chapter && ` · ${source.chapter}`}
                 {source.pageStart && ` (p. ${source.pageStart}${source.pageEnd && source.pageEnd !== source.pageStart ? `-${source.pageEnd}` : ''})`}
               </p>
-              <p className="mt-1 text-gray-500 dark:text-gray-400 line-clamp-2">
+              <p className="mt-1 text-atlas-muted line-clamp-2 text-[11.5px] leading-[1.5]">
                 {source.snippet}
               </p>
             </div>

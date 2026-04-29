@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -13,23 +12,28 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
-  Sparkles,
+  AtlasButton,
+  AtlasSynthesisCard,
+  AtlasSynthesisCardEmpty,
+  AtlasSynthesisCardSkeleton,
+} from '@/components/atlas';
+import {
   FileText,
   Download,
   Pencil,
   Trash2,
   Loader2,
-  Lightbulb,
   Eye,
   Save,
   X,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { atlasToast } from '@/components/atlas';
 import { logger } from '@/lib/logger';
 import {
   summariesService,
   VideoSummary,
-  SummariesListResponse,
 } from '@/lib/api/summaries.service';
 
 interface VideoSummariesProps {
@@ -48,10 +52,11 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
 
-  // Carregar resumos ao montar
   useEffect(() => {
     loadSummaries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
   const loadSummaries = async () => {
@@ -70,32 +75,40 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
 
   const handleGenerateSummary = async () => {
     if (!hasTranscript) {
-      toast.error('Este vídeo ainda não possui transcrição. Aguarde a geração da legenda.');
+      atlasToast.error('Sem transcrição', {
+        description:
+          'Aguarde a geração da legenda do vídeo para criar resumos com IA.',
+      });
       return;
     }
 
     if (remainingGenerations <= 0) {
-      toast.error('Você já atingiu o limite de resumos para este vídeo.');
+      atlasToast.error('Limite atingido', {
+        description:
+          'Você atingiu o limite de resumos para este vídeo.',
+      });
       return;
     }
 
     try {
       setIsGenerating(true);
-      toast.info('Gerando resumo com IA... Isso pode levar alguns segundos.');
-      
+      const loadingId = atlasToast.loading('Gerando síntese com IA…', {
+        description: 'Isso pode levar alguns segundos.',
+      });
+
       const newSummary = await summariesService.generateSummary(videoId);
-      
+
       setSummaries((prev) => [...prev, newSummary]);
       setRemainingGenerations(newSummary.remainingGenerations);
-      
-      toast.success('Resumo gerado com sucesso!');
-      
-      // Abrir o resumo gerado
-      setSelectedSummary(newSummary);
-      setIsViewModalOpen(true);
+
+      atlasToast.dismiss(loadingId);
+      // Sem success toast — síntese aparece imediato no card (feedback inline silencioso, nível 0)
     } catch (error: any) {
       logger.error('Erro ao gerar resumo:', error);
-      toast.error(error.response?.data?.message || 'Erro ao gerar resumo');
+      atlasToast.error('Falha ao gerar síntese', {
+        description:
+          error.response?.data?.message ?? 'Tente novamente em alguns segundos.',
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -123,18 +136,18 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
       const updated = await summariesService.updateSummary(
         videoId,
         selectedSummary.id,
-        editContent
+        editContent,
       );
-      
+
       setSummaries((prev) =>
-        prev.map((s) => (s.id === updated.id ? updated : s))
+        prev.map((s) => (s.id === updated.id ? updated : s)),
       );
       setSelectedSummary(updated);
       setIsEditMode(false);
-      toast.success('Resumo atualizado com sucesso!');
+      // Sem toast — modal já mostra conteúdo atualizado (feedback inline)
     } catch (error) {
       logger.error('Erro ao salvar resumo:', error);
-      toast.error('Erro ao salvar alterações');
+      atlasToast.error('Falha ao salvar alterações');
     } finally {
       setIsSaving(false);
     }
@@ -143,10 +156,10 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
   const handleDownload = async (summary: VideoSummary) => {
     try {
       await summariesService.downloadSummary(videoId, summary.id);
-      toast.success('Download iniciado!');
+      // Sem toast — browser já indica download
     } catch (error) {
       logger.error('Erro ao baixar resumo:', error);
-      toast.error('Erro ao baixar resumo');
+      atlasToast.error('Falha ao baixar arquivo');
     }
   };
 
@@ -157,15 +170,15 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
       await summariesService.deleteSummary(videoId, summary.id);
       setSummaries((prev) => prev.filter((s) => s.id !== summary.id));
       setRemainingGenerations((prev) => prev + 1);
-      toast.success('Resumo excluído com sucesso!');
-      
+      // Sem toast — item desapareceu da lista (feedback inline)
+
       if (selectedSummary?.id === summary.id) {
         setIsViewModalOpen(false);
         setSelectedSummary(null);
       }
     } catch (error) {
       logger.error('Erro ao excluir resumo:', error);
-      toast.error('Erro ao excluir resumo');
+      atlasToast.error('Falha ao excluir resumo');
     }
   };
 
@@ -180,141 +193,159 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
   };
 
   if (isLoading) {
+    return <AtlasSynthesisCardSkeleton />;
+  }
+
+  // Sem síntese ainda
+  if (summaries.length === 0) {
+    const blocked = !hasTranscript || remainingGenerations <= 0;
+    let disabledReason: string | undefined;
+    if (!hasTranscript) {
+      disabledReason =
+        'Este vídeo ainda não possui transcrição. Aguarde a geração da legenda para criar resumos.';
+    } else if (remainingGenerations <= 0) {
+      disabledReason = `Você já atingiu o limite de ${maxAllowed} resumos para este vídeo.`;
+    }
+
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <AtlasSynthesisCardEmpty
+        onGenerate={handleGenerateSummary}
+        generating={isGenerating}
+        disabled={blocked}
+        disabledReason={disabledReason}
+        hint={
+          !blocked
+            ? `${remainingGenerations} disponíveis · IA aplica suas anotações`
+            : undefined
+        }
+      />
     );
   }
 
-  return (
-    <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-purple-500" />
-            Resumos com IA
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Info sobre limite */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Seus resumos personalizados</span>
-            <span className="font-medium">
-              {summaries.length}/{maxAllowed} usados
-            </span>
-          </div>
+  // Tem ao menos uma síntese — exibe a mais recente
+  const latest = summaries[summaries.length - 1];
+  const previousVersions = summaries.slice(0, -1);
+  const usageLabel = `${summaries.length} / ${maxAllowed} usados`;
+  const updatedLabel = `Atualizado · ${formatDate(latest.createdAt)}`;
+  const paragraphs = latest.content
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
-          {/* Lista de resumos existentes */}
-          {summaries.length > 0 && (
-            <div className="space-y-2">
-              {summaries.map((summary) => (
-                <div
-                  key={summary.id}
-                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+  return (
+    <div className="space-y-3">
+      <AtlasSynthesisCard
+        usageLabel={usageLabel}
+        updatedLabel={updatedLabel}
+        onExport={() => handleDownload(latest)}
+        onRegenerate={
+          remainingGenerations > 0 && hasTranscript
+            ? handleGenerateSummary
+            : undefined
+        }
+        busy={isGenerating}
+        extraActions={
+          <AtlasButton
+            variant="ghost"
+            size="sm"
+            onClick={() => handleViewSummary(latest)}
+          >
+            <Eye strokeWidth={1.5} />
+            Editar
+          </AtlasButton>
+        }
+      >
+        {paragraphs.length > 0 ? (
+          paragraphs.map((para, i) => (
+            <p key={i} className="whitespace-pre-line">
+              {para}
+            </p>
+          ))
+        ) : (
+          <p className="whitespace-pre-line">{latest.content}</p>
+        )}
+      </AtlasSynthesisCard>
+
+      {previousVersions.length > 0 && (
+        <div className="rounded-md border border-atlas-line bg-atlas-surface overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowVersions((v) => !v)}
+            className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-atlas-surface-2 transition-colors"
+          >
+            <span className="atlas-caps text-atlas-muted">
+              {previousVersions.length} versão{previousVersions.length > 1 ? 'ões' : ''} anterior{previousVersions.length > 1 ? 'es' : ''}
+            </span>
+            {showVersions ? (
+              <ChevronUp className="size-3.5 text-atlas-muted" strokeWidth={1.75} />
+            ) : (
+              <ChevronDown className="size-3.5 text-atlas-muted" strokeWidth={1.75} />
+            )}
+          </button>
+          {showVersions && (
+            <ul className="border-t border-atlas-line divide-y divide-atlas-line">
+              {previousVersions.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between px-5 py-3 hover:bg-atlas-surface-2 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        Resumo #{summary.version}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(summary.createdAt)}
-                      </p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText
+                      className="size-3.5 text-atlas-muted-2 shrink-0"
+                      strokeWidth={1.5}
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[13px] text-atlas-ink">
+                        Resumo #{s.version}
+                      </div>
+                      <div className="atlas-mono text-[10.5px] text-atlas-muted">
+                        {formatDate(s.createdAt)}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
+                  <div className="flex items-center gap-1 shrink-0">
+                    <AtlasButton
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleViewSummary(summary)}
+                      size="icon-sm"
+                      onClick={() => handleViewSummary(s)}
                       title="Visualizar"
                     >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
+                      <Eye strokeWidth={1.5} />
+                    </AtlasButton>
+                    <AtlasButton
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDownload(summary)}
+                      size="icon-sm"
+                      onClick={() => handleDownload(s)}
                       title="Baixar .md"
                     >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
+                      <Download strokeWidth={1.5} />
+                    </AtlasButton>
+                    <AtlasButton
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(summary)}
+                      size="icon-sm"
+                      onClick={() => handleDelete(s)}
                       title="Excluir"
+                      className="text-atlas-accent hover:text-atlas-accent"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Trash2 strokeWidth={1.5} />
+                    </AtlasButton>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
+        </div>
+      )}
 
-          {/* Botão de gerar */}
-          <Button
-            onClick={handleGenerateSummary}
-            disabled={isGenerating || remainingGenerations <= 0 || !hasTranscript}
-            className="w-full"
-            variant={remainingGenerations > 0 ? 'default' : 'secondary'}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Gerando resumo...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Gerar Novo Resumo com IA
-                {remainingGenerations > 0 && (
-                  <span className="ml-2 text-xs opacity-70">
-                    ({remainingGenerations} restantes)
-                  </span>
-                )}
-              </>
-            )}
-          </Button>
-
-          {/* Dica */}
-          {!hasTranscript ? (
-            <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 p-3 text-sm text-yellow-600 dark:text-yellow-400">
-              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <p>
-                Este vídeo ainda não possui transcrição. Aguarde a geração da legenda
-                para poder criar resumos personalizados.
-              </p>
-            </div>
-          ) : summaries.length === 0 ? (
-            <div className="flex items-start gap-2 rounded-lg bg-blue-500/10 p-3 text-sm text-blue-600 dark:text-blue-400">
-              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <p>
-                Dica: Adicione anotações durante a aula para resumos mais
-                personalizados! Suas anotações serão integradas ao resumo.
-              </p>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {/* Modal de visualização/edição */}
+      {/* Modal de visualização/edição — mantido shadcn (out of scope) */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2 font-serif font-medium">
+              <FileText className="h-5 w-5" strokeWidth={1.5} />
               Resumo #{selectedSummary?.version}
               {isEditMode && (
-                <span className="text-sm font-normal text-muted-foreground">
+                <span className="text-sm font-normal text-atlas-muted">
                   (Editando)
                 </span>
               )}
@@ -326,15 +357,12 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="w-full h-full min-h-[400px] p-4 font-mono text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full h-full min-h-[400px] p-4 font-mono text-sm border border-atlas-line rounded-md resize-none focus:outline-none focus:border-atlas-ink-2"
                 placeholder="Conteúdo do resumo em Markdown..."
               />
             ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                {/* Renderização simples do Markdown */}
-                <div className="whitespace-pre-wrap font-sans">
-                  {selectedSummary?.content}
-                </div>
+              <div className="font-serif text-[14.5px] leading-[1.65] text-atlas-ink-2 whitespace-pre-wrap">
+                {selectedSummary?.content}
               </div>
             )}
           </ScrollArea>
@@ -345,36 +373,49 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
             <div className="flex gap-2">
               {isEditMode ? (
                 <>
-                  <Button
+                  <AtlasButton
                     variant="outline"
+                    size="md"
                     onClick={() => setIsEditMode(false)}
                     disabled={isSaving}
                   >
-                    <X className="mr-2 h-4 w-4" />
+                    <X strokeWidth={1.5} />
                     Cancelar
-                  </Button>
-                  <Button onClick={handleSaveEdit} disabled={isSaving}>
+                  </AtlasButton>
+                  <AtlasButton
+                    variant="primary"
+                    size="md"
+                    onClick={handleSaveEdit}
+                    disabled={isSaving}
+                  >
                     {isSaving ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="size-3.5 animate-spin" />
                     ) : (
-                      <Save className="mr-2 h-4 w-4" />
+                      <Save strokeWidth={1.5} />
                     )}
                     Salvar
-                  </Button>
+                  </AtlasButton>
                 </>
               ) : (
                 <>
-                  <Button variant="outline" onClick={handleEditSummary}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar
-                  </Button>
-                  <Button
+                  <AtlasButton
                     variant="outline"
-                    onClick={() => selectedSummary && handleDownload(selectedSummary)}
+                    size="md"
+                    onClick={handleEditSummary}
                   >
-                    <Download className="mr-2 h-4 w-4" />
+                    <Pencil strokeWidth={1.5} />
+                    Editar
+                  </AtlasButton>
+                  <AtlasButton
+                    variant="outline"
+                    size="md"
+                    onClick={() =>
+                      selectedSummary && handleDownload(selectedSummary)
+                    }
+                  >
+                    <Download strokeWidth={1.5} />
                     Baixar .md
-                  </Button>
+                  </AtlasButton>
                 </>
               )}
             </div>
@@ -384,6 +425,6 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

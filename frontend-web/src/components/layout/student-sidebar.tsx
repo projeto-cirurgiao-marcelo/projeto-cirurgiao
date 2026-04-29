@@ -1,250 +1,252 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
-  Home,
-  BookOpen,
-  PlayCircle,
   Award,
-  User,
-  Settings,
-  GraduationCap,
-  Menu,
+  ChevronDown,
   Library,
-  Clock,
+  LogOut,
+  Menu,
   MessageSquare,
-  Trophy,
+  PlayCircle,
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
+  Trophy,
+  User,
   X,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+  AtlasRail,
+  AtlasRailUser,
+  type RailSection,
+} from '@/components/atlas';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAvatarStore } from '@/lib/stores/avatar-store';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
-interface NavItem {
-  title: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-const navItems: NavItem[] = [
+const SECTIONS: RailSection[] = [
   {
-    title: 'Meus Cursos',
-    href: '/student/my-courses',
-    icon: Home,
+    label: 'Biblioteca',
+    items: [
+      {
+        label: 'Meus cursos',
+        href: '/student/my-courses',
+        icon: Library,
+      },
+      {
+        label: 'Explorar',
+        href: '/student/courses',
+        icon: PlayCircle,
+        matchPrefix: '/student/courses',
+      },
+      {
+        label: 'Em progresso',
+        href: '/student/in-progress',
+        icon: PlayCircle,
+      },
+      {
+        label: 'Concluídos',
+        href: '/student/completed',
+        icon: Award,
+      },
+    ],
   },
   {
-    title: 'Explorar Cursos',
-    href: '/student/courses',
-    icon: Library,
-  },
-  {
-    title: 'Em Progresso',
-    href: '/student/in-progress',
-    icon: PlayCircle,
-  },
-  {
-    title: 'Concluídos',
-    href: '/student/completed',
-    icon: Award,
-  },
-  {
-    title: 'Biblioteca IA',
-    href: '/student/library',
-    icon: Sparkles,
-  },
-  {
-    title: 'Fórum',
-    href: '/student/forum',
-    icon: MessageSquare,
-  },
-  {
-    title: 'Conquistas',
-    href: '/student/gamification',
-    icon: Trophy,
+    label: 'Estudo',
+    items: [
+      {
+        label: 'Biblioteca IA',
+        href: '/student/library',
+        icon: Sparkles,
+      },
+      {
+        label: 'Fórum',
+        href: '/student/forum',
+        icon: MessageSquare,
+      },
+      {
+        label: 'Conquistas',
+        href: '/student/gamification',
+        icon: Trophy,
+      },
+    ],
   },
 ];
 
-// Componente de navegação reutilizável
-function SidebarNav({
-  onItemClick,
-  isCollapsed = false,
-}: {
-  onItemClick?: () => void;
-  isCollapsed?: boolean;
-}) {
-  const pathname = usePathname();
+function getInitials(name?: string | null): string {
+  if (!name) return 'E';
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase() || 'E';
+}
+
+function StudentRailFooter({ collapsed }: { collapsed: boolean }) {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const photoUrl = useAvatarStore((s) => s.photoUrl);
+  const [open, setOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
-    <nav className="flex-1 space-y-1 p-4">
-      {navItems.map((item, index) => {
-        const Icon = item.icon;
-        const isActive =
-          pathname === item.href ||
-          (pathname.startsWith(item.href + '/') &&
-            !(
-              item.href === '/student/courses' &&
-              pathname.includes('/student/courses/')
-            ));
-
-        return (
-          <Link
-            key={`${item.href}-${index}`}
-            href={item.href}
-            onClick={onItemClick}
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200',
-              isActive
-                ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-l-4 border-blue-600 shadow-sm'
-                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800',
-              isCollapsed && 'justify-center px-2',
-            )}
-            title={isCollapsed ? item.title : undefined}
-          >
-            <Icon
-              className={cn(
-                'h-5 w-5 flex-shrink-0',
-                isActive
-                  ? 'text-blue-600'
-                  : 'text-gray-500 dark:text-gray-400',
-              )}
-            />
-            {!isCollapsed && <span>{item.title}</span>}
-          </Link>
-        );
-      })}
-    </nav>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <div>
+          <AtlasRailUser
+            initials={getInitials(user?.name)}
+            name={user?.name ?? 'Estudante'}
+            role={user?.role === 'ADMIN' ? 'Administrador' : 'Estudante'}
+            photoUrl={photoUrl ?? undefined}
+            collapsed={collapsed}
+            trailing={
+              <ChevronDown
+                className="size-3.5 text-atlas-muted shrink-0"
+                strokeWidth={1.5}
+              />
+            }
+          />
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled>
+          <span className="text-xs truncate">{user?.email}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push('/student/profile')}>
+          <User className="size-4 mr-2" strokeWidth={1.5} />
+          Meu perfil
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="text-atlas-accent"
+        >
+          <LogOut className="size-4 mr-2" strokeWidth={1.5} />
+          Sair
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-// Logo reutilizável
-function SidebarLogo({ isCollapsed = false }: { isCollapsed?: boolean }) {
+export function DesktopSidebar() {
+  const { isCollapsed, toggleSidebar } = useSidebarStore();
   return (
-    <Link
-      href="/student/my-courses"
+    <div
       className={cn(
-        'flex items-center gap-2 transition-opacity hover:opacity-80',
-        isCollapsed && 'justify-center',
+        'hidden md:block fixed left-0 top-0 z-40 h-screen',
       )}
     >
-      {isCollapsed ? (
-        <img
-          src="/icone-logo.png"
-          alt="Logo"
-          className="h-8 w-8 object-contain"
-        />
-      ) : (
-        <img
-          src="/logoblack.webp"
-          alt="Cirurgião Academy"
-          className="h-10 w-auto object-contain"
-        />
-      )}
-    </Link>
+      <AtlasRail
+        brandHref="/student/my-courses"
+        sections={SECTIONS}
+        collapsed={isCollapsed}
+        onToggle={toggleSidebar}
+        footer={<StudentRailFooter collapsed={isCollapsed} />}
+      />
+    </div>
   );
 }
 
-// Sidebar Mobile (drawer com CSS transitions - sem framer-motion)
+// Rotas com header contextual próprio em mobile — burger button some pra dar lugar à mini-bar
+const BURGER_HIDDEN_ON_MOBILE = /^\/student\/courses\/[^/]+\/watch\/[^/]+/;
+
 export function MobileSidebar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const burgerHiddenOnMobile = BURGER_HIDDEN_ON_MOBILE.test(pathname ?? '');
+
+  // Fecha drawer automaticamente se rota mudou pra uma rota com burger escondido
+  // (ex: usuário abriu drawer e clicou em link que vai pra watch route)
+  useEffect(() => {
+    if (burgerHiddenOnMobile) setOpen(false);
+  }, [burgerHiddenOnMobile]);
 
   return (
     <>
-      {/* Hamburger / Close button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden fixed left-4 top-4 z-50 bg-white dark:bg-gray-900 shadow-md border border-gray-200 dark:border-gray-700"
+      <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? 'Fechar menu' : 'Abrir menu'}
+        aria-expanded={open}
+        className={cn(
+          'md:hidden fixed left-3 top-3 z-50 size-9 rounded-md border border-atlas-line bg-atlas-surface text-atlas-ink-2 flex items-center justify-center hover:border-atlas-ink-2 hover:text-atlas-ink transition-colors',
+          burgerHiddenOnMobile && 'hidden',
+        )}
       >
-        <div
-          className="transition-transform duration-200"
-          style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </div>
-      </Button>
+        <span className="relative size-5 inline-block">
+          <Menu
+            className={cn(
+              'absolute inset-0 size-5 transition-all duration-200',
+              open
+                ? 'opacity-0 rotate-90 scale-75'
+                : 'opacity-100 rotate-0 scale-100',
+            )}
+            strokeWidth={1.75}
+          />
+          <X
+            className={cn(
+              'absolute inset-0 size-5 transition-all duration-200',
+              open
+                ? 'opacity-100 rotate-0 scale-100'
+                : 'opacity-0 -rotate-90 scale-75',
+            )}
+            strokeWidth={1.75}
+          />
+        </span>
+      </button>
 
-      {/* Overlay */}
       <div
-        className={`fixed inset-0 z-40 bg-black/50 md:hidden transition-opacity duration-250 ${
-          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={cn(
+          'fixed inset-0 z-40 md:hidden',
+          'bg-black/50 backdrop-blur-[2px]',
+          'transition-opacity duration-300 ease-[cubic-bezier(.2,.7,.2,1)]',
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        )}
         onClick={() => setOpen(false)}
         aria-hidden
       />
 
-      {/* Drawer */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-60 border-r-2 border-gray-200 bg-white dark:bg-gray-900 shadow-xl md:hidden flex flex-col transition-transform duration-300 ease-out ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 md:hidden flex',
+          'transition-transform duration-300 ease-[cubic-bezier(.2,.7,.2,1)]',
+          'will-change-transform',
+          open ? 'translate-x-0' : '-translate-x-full',
+        )}
+        aria-hidden={!open}
       >
-        {/* Header com logo icone */}
-        <div className="flex h-16 items-center border-b-2 border-gray-200 px-4">
-          <SidebarLogo isCollapsed />
-        </div>
-
-        {/* Navigation */}
-        <SidebarNav onItemClick={() => setOpen(false)} />
-      </aside>
+        <AtlasRail
+          brandHref="/student/my-courses"
+          sections={SECTIONS}
+          collapsed={false}
+          onToggle={() => setOpen(false)}
+          onItemClick={() => setOpen(false)}
+          footer={<StudentRailFooter collapsed={false} />}
+        />
+      </div>
     </>
   );
 }
 
-// Sidebar Desktop (Fixa com collapse)
-export function DesktopSidebar() {
-  const { isCollapsed, toggleSidebar } = useSidebarStore();
-
-  return (
-    <aside
-      className={cn(
-        'hidden md:block fixed left-0 top-0 z-40 h-screen border-r-2 border-gray-200 bg-white dark:bg-gray-900 transition-all duration-300',
-        isCollapsed ? 'w-20' : 'w-60',
-      )}
-    >
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b-2 border-gray-200 px-4">
-        <SidebarLogo isCollapsed={isCollapsed} />
-
-        {/* Toggle Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className={cn(
-            'h-8 w-8 rounded-full hover:bg-gray-100 transition-all',
-            isCollapsed && 'mx-auto',
-          )}
-          title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-
-      {/* Navigation */}
-      <SidebarNav isCollapsed={isCollapsed} />
-    </aside>
-  );
-}
-
-// Componente principal que combina ambos
 export function StudentSidebar() {
   return (
     <>
-      {/* Sidebar Desktop - visível apenas em md+ */}
       <DesktopSidebar />
-
-      {/* Sidebar Mobile - visível apenas em < md */}
       <MobileSidebar />
     </>
   );

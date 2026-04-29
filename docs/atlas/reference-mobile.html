@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projeto Cirurgião — Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAFAF7;
+  --surface: #FFFFFF;
+  --surface-2: #F4F2ED;
+  --ink: #121212;
+  --ink-2: #2B2B2B;
+  --muted: #6B6B66;
+  --muted-2: #9A9892;
+  --line: #E6E3DC;
+  --line-strong: #D4D0C6;
+  --primary: #1E3A34;
+  --primary-2: #0F2420;
+  --primary-soft: #E8EDEB;
+  --accent: #8B2635;
+  --warn: #B8741C;
+  --radius: 6px;
+  --radius-sm: 3px;
+  --ease: cubic-bezier(.2,.7,.2,1);
+  --font-sans: 'Inter Tight', -apple-system, system-ui, sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  background: #EDEAE2;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+body {
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(30, 58, 52, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(139, 38, 53, 0.04) 0%, transparent 50%);
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.serif { font-family: var(--font-serif); }
+.caps { text-transform: uppercase; letter-spacing: 0.12em; font-size: 9.5px; font-weight: 500; }
+
+/* ========================================= */
+/* LAB PAGE                                   */
+/* ========================================= */
+.lab {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
+}
+.lab-head { margin-bottom: 48px; }
+.lab-head .caps { color: var(--muted); margin-bottom: 6px; }
+.lab-head h1 {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin-bottom: 8px;
+}
+.lab-head h1 em { font-style: italic; color: var(--muted); font-weight: 400; }
+.lab-head p { color: var(--muted); max-width: 640px; font-size: 14px; line-height: 1.6; }
+
+.phones {
+  display: flex;
+  gap: 60px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.phone-wrap { flex-shrink: 0; }
+.phone-caption {
+  margin-top: 18px;
+  text-align: center;
+  width: 390px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.phone-caption strong {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+  letter-spacing: -0.005em;
+}
+
+/* Device frame */
+.device {
+  width: 390px;
+  height: 820px;
+  background: #0a0a0a;
+  border-radius: 52px;
+  padding: 10px;
+  box-shadow:
+    0 40px 80px rgba(15, 36, 32, 0.18),
+    0 15px 30px rgba(0,0,0,0.1),
+    inset 0 0 0 1px rgba(255,255,255,0.06);
+  position: relative;
+}
+.device::before {
+  content: '';
+  position: absolute;
+  top: 20px; left: 50%; transform: translateX(-50%);
+  width: 110px; height: 30px;
+  background: #0a0a0a;
+  border-radius: 18px;
+  z-index: 20;
+}
+.device-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 42px;
+  overflow: hidden;
+  background: var(--bg);
+  position: relative;
+  display: flex; flex-direction: column;
+}
+
+/* Status bar */
+.status-bar {
+  height: 44px;
+  padding: 14px 28px 0;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 14px; font-weight: 600;
+  color: var(--ink);
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
+}
+.status-right { display: flex; gap: 6px; align-items: center; }
+
+/* Screen scroll */
+.screen {
+  flex: 1;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.screen-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.screen-scroll::-webkit-scrollbar { display: none; }
+
+/* ========================================= */
+/* MOBILE HEADER                              */
+/* ========================================= */
+.m-admin {
+  background: var(--ink);
+  color: #fff;
+  padding: 7px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.m-admin .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); margin-right: 6px; }
+.m-admin-ind { display: flex; align-items: center; }
+
+.m-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.m-header-back {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink);
+  border-radius: 50%;
+  margin-left: -8px;
+}
+.m-header-back:hover { background: var(--surface-2); }
+.m-header-back svg { width: 18px; height: 18px; stroke-width: 1.75; }
+.m-header-title { flex: 1; min-width: 0; }
+.m-header-title .caps { color: var(--muted); margin-bottom: 2px; }
+.m-header-title strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.m-header-action {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  border-radius: 50%;
+}
+.m-header-action:hover { background: var(--surface-2); }
+.m-header-action svg { width: 18px; height: 18px; stroke-width: 1.5; }
+
+/* ========================================= */
+/* PLAYER (mobile)                            */
+/* ========================================= */
+.m-player {
+  aspect-ratio: 16/9;
+  background: #0A0A0A;
+  position: relative;
+  overflow: hidden;
+}
+.m-player-scene {
+  position: absolute; inset: 0;
+  background: linear-gradient(140deg, #1a1f1d 0%, #0a0a0a 70%);
+}
+.m-player-scene::before {
+  content: '';
+  position: absolute;
+  left: 8%; top: 18%;
+  width: 40%; height: 70%;
+  background: linear-gradient(160deg, #3a3a3a 0%, #1a1a1a 80%);
+  border-radius: 50% 45% 48% 52% / 55% 50% 50% 45%;
+  opacity: 0.55;
+  filter: blur(1px);
+}
+.m-slide {
+  position: absolute;
+  right: 5%; top: 14%;
+  width: 48%; height: 72%;
+  background: #F5F2EA;
+  border-radius: 2px;
+  padding: 10px 12px;
+  font-family: var(--font-serif);
+  color: #2a2a2a;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  font-size: 8px;
+}
+.m-slide strong { display: block; font-size: 10px; font-weight: 500; margin-bottom: 4px; }
+.m-slide-anatomy {
+  position: absolute; right: 12px; bottom: 12px;
+  width: 50%; height: 55%;
+  background: radial-gradient(ellipse at 40% 45%, rgba(139,38,53,0.15) 0%, transparent 60%), #EFEAE0;
+  border-radius: 2px;
+}
+.m-player-caption {
+  position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,10,10,0.8);
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 10px;
+  max-width: 86%;
+  text-align: center;
+  border-radius: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.m-player-controls {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 0 10px 8px;
+}
+.m-timeline {
+  height: 3px;
+  background: rgba(255,255,255,0.22);
+  border-radius: 2px;
+  position: relative;
+  margin-bottom: 6px;
+}
+.m-timeline-fill { position: absolute; left: 0; top: 0; height: 100%; width: 18%; background: #fff; border-radius: 2px; }
+.m-timeline-chapters { position: absolute; left: 0; right: 0; top: 0; height: 100%; display: flex; pointer-events: none; }
+.m-timeline-chapters div { height: 100%; border-right: 1px solid rgba(250,250,247,0.32); }
+.m-timeline-chapters div:last-child { border: none; }
+.m-timeline-pin {
+  position: absolute; top: 50%; transform: translate(-50%,-50%);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--warn);
+  border: 1.5px solid #0A0A0A;
+}
+.m-player-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 2px 0;
+}
+.m-player-row-l, .m-player-row-r { display: flex; align-items: center; gap: 4px; }
+.m-pbtn {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  border-radius: 3px;
+}
+.m-pbtn svg { width: 14px; height: 14px; }
+.m-pbtn.primary { background: #fff; color: #0A0A0A; width: 32px; height: 32px; border-radius: 50%; }
+.m-time { font-family: var(--font-mono); color: #fff; font-size: 10.5px; opacity: 0.85; letter-spacing: 0.02em; padding: 0 4px; }
+.m-time .total { opacity: 0.55; }
+.m-player-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 10px 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: linear-gradient(180deg, rgba(0,0,0,0.5), transparent);
+  z-index: 2;
+}
+.m-chip {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  backdrop-filter: blur(8px);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+
+/* ========================================= */
+/* LESSON BODY (mobile)                       */
+/* ========================================= */
+.m-body { padding: 16px 16px 100px; }
+
+.m-lesson-head { margin-bottom: 14px; }
+.m-lesson-num {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted-2);
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.m-lesson-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.22;
+}
+.m-lesson-sub {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.m-stats {
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  margin: 14px 0 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+  overflow-x: auto;
+}
+.m-stats::-webkit-scrollbar { display: none; }
+.m-stats .stat {
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.m-stats .stat svg { width: 12px; height: 12px; stroke-width: 1.75; flex-shrink: 0; }
+.m-stats .stat strong { color: var(--ink); font-weight: 500; }
+
+/* Tabs */
+.m-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 18px -16px 16px;
+  padding: 0 16px 2px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.m-tabs::-webkit-scrollbar { display: none; }
+.m-tab {
+  padding: 10px 2px 11px;
+  margin-right: 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  font-weight: 500;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.m-tab.active { color: var(--ink); border-bottom-color: var(--primary); }
+.m-tab .count { font-family: var(--font-mono); font-size: 10px; color: var(--muted-2); }
+.m-tab.active .count { color: var(--primary); }
+
+/* Notes */
+.m-section-title {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 0 0 10px;
+}
+.m-section-title h3 {
+  font-family: var(--font-serif);
+  font-size: 14px; font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.m-add-note {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px;
+  color: var(--primary);
+  font-weight: 500;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+}
+.m-add-note svg { width: 11px; height: 11px; stroke-width: 2; }
+.m-add-note .mono { font-size: 10.5px; color: var(--warn); }
+
+.m-note {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 10px;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+  align-items: baseline;
+}
+.m-note:first-of-type { border-top: none; }
+.m-note-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--warn); font-weight: 500; }
+.m-note-body { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.m-note-body em { color: var(--muted); font-style: normal; font-size: 10.5px; display: block; margin-top: 3px; font-family: var(--font-mono); letter-spacing: 0.03em; }
+
+/* AI synthesis card */
+.m-synth {
+  margin-top: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 14px 12px;
+}
+.m-synth-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.m-synth-head h4 {
+  font-family: var(--font-serif);
+  font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 7px;
+}
+.m-synth-head h4 svg { width: 12px; height: 12px; color: var(--primary); }
+.m-synth-usage { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); }
+.m-synth-body {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.m-synth-body p { margin-bottom: 8px; }
+.m-synth-body p:last-child { margin-bottom: 0; }
+.m-synth-body .key { background: linear-gradient(180deg, transparent 60%, rgba(184, 116, 28, 0.2) 60%); padding: 0 2px; }
+
+/* ========================================= */
+/* STICKY LESSON ACTIONS                      */
+/* ========================================= */
+.m-sticky-actions {
+  position: absolute;
+  bottom: 58px; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding: 10px 14px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+.m-sticky-btn {
+  flex: 1;
+  padding: 11px 10px;
+  font-size: 13px; font-weight: 500;
+  border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.m-sticky-btn svg { width: 13px; height: 13px; stroke-width: 1.75; }
+.m-sticky-btn.icon-only { flex: 0 0 44px; padding: 11px; }
+.m-sticky-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); flex: 1.5; }
+
+/* ========================================= */
+/* TAB BAR                                    */
+/* ========================================= */
+.m-tabbar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line);
+  display: flex;
+  padding: 6px 8px 22px;
+  z-index: 10;
+}
+.m-tabbar-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 5px 2px 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.m-tabbar-item svg { width: 20px; height: 20px; stroke-width: 1.5; }
+.m-tabbar-item.active { color: var(--primary); }
+.m-tabbar-item.active svg { stroke-width: 1.9; }
+.m-tabbar-item span { font-weight: 500; letter-spacing: 0.01em; }
+
+.home-indicator {
+  position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+  width: 130px; height: 4px;
+  background: var(--ink);
+  border-radius: 2px;
+  opacity: 0.92;
+  z-index: 20;
+}
+
+/* ========================================= */
+/* BOTTOM SHEET (Module contents)             */
+/* ========================================= */
+.sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(10,10,10,0.45);
+  z-index: 30;
+  backdrop-filter: blur(2px);
+}
+.sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 78%;
+  background: var(--bg);
+  border-radius: 18px 18px 0 0;
+  z-index: 31;
+  display: flex; flex-direction: column;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+}
+.sheet-handle {
+  width: 42px; height: 4px;
+  background: var(--line-strong);
+  border-radius: 2px;
+  margin: 10px auto 8px;
+  flex-shrink: 0;
+}
+.sheet-head {
+  padding: 8px 20px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.sheet-head .caps { color: var(--muted); margin-bottom: 4px; }
+.sheet-title {
+  font-family: var(--font-serif);
+  font-size: 17px; font-weight: 500;
+  letter-spacing: -0.005em;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.sheet-title .mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.sheet-progress {
+  height: 2px; background: var(--line);
+  margin-top: 10px;
+  border-radius: 1px;
+  position: relative; overflow: hidden;
+}
+.sheet-progress-fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  width: 20%; background: var(--primary);
+}
+
+.sheet-stages {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 12px 20px 10px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.sheet-stages::-webkit-scrollbar { display: none; }
+.sheet-stage {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.sheet-stage .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--line-strong); }
+.sheet-stage.done { color: var(--ink); }
+.sheet-stage.done .dot { background: var(--primary); }
+.sheet-stage.current { color: var(--primary-2); border-color: var(--warn); background: rgba(184, 116, 28, 0.05); }
+.sheet-stage.current .dot { background: var(--warn); box-shadow: 0 0 0 2px rgba(184,116,28,.18); }
+
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px 28px;
+}
+.sheet-body::-webkit-scrollbar { display: none; }
+
+.sheet-lesson {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 10px;
+  border-radius: 4px;
+  position: relative;
+  border-bottom: 1px solid var(--line);
+}
+.sheet-lesson:last-child { border-bottom: none; }
+.sheet-lesson.active { background: var(--primary-soft); border-bottom-color: transparent; }
+.sheet-lesson.active::before {
+  content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: var(--primary); border-radius: 1px;
+}
+.sheet-lesson-idx { font-family: var(--font-mono); font-size: 11px; color: var(--muted-2); text-align: center; }
+.sheet-lesson.done .sheet-lesson-idx { color: var(--primary); }
+.sheet-lesson.active .sheet-lesson-idx { color: var(--primary-2); font-weight: 600; }
+.sheet-lesson-label { font-size: 13px; color: var(--ink-2); line-height: 1.35; }
+.sheet-lesson.done .sheet-lesson-label { color: var(--muted); }
+.sheet-lesson.active .sheet-lesson-label { color: var(--primary-2); font-weight: 500; }
+.sheet-lesson-dur { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted-2); }
+.sheet-lesson-icon {
+  width: 14px; height: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sheet-lesson-icon svg { width: 12px; height: 12px; }
+.sheet-lesson.done .sheet-lesson-icon { color: var(--primary); }
+.sheet-lesson.active .sheet-lesson-icon { color: var(--warn); }
+
+.sheet-assess {
+  margin: 14px 4px 0;
+  padding: 14px;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+.sheet-assess .caps { color: var(--muted); margin-bottom: 3px; }
+.sheet-assess h5 {
+  font-family: var(--font-serif);
+  font-size: 14px; font-weight: 500;
+  margin-bottom: 4px;
+}
+.sheet-assess p { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
+.sheet-assess-btn {
+  width: 100%;
+  background: var(--primary); color: #fff;
+  padding: 10px;
+  border-radius: 3px;
+  font-size: 12.5px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.sheet-assess-btn svg { width: 12px; height: 12px; stroke-width: 1.75; }
+
+/* ========================================= */
+/* HOME / COURSES LIST                        */
+/* ========================================= */
+.m-home-header {
+  padding: 18px 18px 20px;
+  background: var(--bg);
+}
+.m-home-header .caps { color: var(--muted); margin-bottom: 6px; }
+.m-home-header h1 {
+  font-family: var(--font-serif);
+  font-size: 26px; font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+.m-home-header h1 em { font-style: italic; color: var(--muted); font-weight: 400; }
+.m-home-sub {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 6px;
+}
+
+.m-search {
+  margin: 4px 18px 20px;
+  position: relative;
+}
+.m-search input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px 10px 34px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+}
+.m-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); }
+
+.m-continue {
+  margin: 0 18px 26px;
+  background: var(--primary);
+  border-radius: 8px;
+  padding: 16px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.m-continue::before {
+  content: '';
+  position: absolute;
+  right: -40px; top: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.m-continue-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; margin-bottom: 8px; font-weight: 500; }
+.m-continue-title {
+  font-family: var(--font-serif);
+  font-size: 17px; font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 12px;
+  max-width: 280px;
+}
+.m-continue-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+  font-family: var(--font-mono);
+  margin-bottom: 12px;
+}
+.m-continue-meta .dot { width: 3px; height: 3px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+.m-continue-bar {
+  height: 2px; background: rgba(255,255,255,0.15);
+  border-radius: 1px;
+  position: relative;
+  margin-bottom: 14px;
+}
+.m-continue-bar-fill { position: absolute; left: 0; top: 0; height: 100%; width: 20%; background: rgba(255,255,255,0.9); }
+.m-continue-action {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 12px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.m-continue-action svg { width: 12px; height: 12px; }
+
+.m-section-head {
+  padding: 0 18px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.m-section-head h2 {
+  font-family: var(--font-serif);
+  font-size: 15px; font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.m-section-head a { color: var(--muted); font-size: 11.5px; }
+
+.m-course-list { padding: 0 18px; }
+.m-course-card {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  align-items: center;
+}
+.m-course-card:first-child { border-top: none; padding-top: 6px; }
+.m-course-art {
+  width: 56px; height: 56px;
+  border-radius: 4px;
+  background: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+}
+.m-course-art.alt { background: var(--accent); }
+.m-course-art.alt2 { background: #3C6E4A; }
+.m-course-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+}
+.m-course-meta { min-width: 0; }
+.m-course-meta .caps { color: var(--muted); margin-bottom: 3px; }
+.m-course-meta h3 {
+  font-size: 13.5px; font-weight: 500; color: var(--ink);
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.m-course-bottom {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.m-course-bar {
+  flex: 1; max-width: 80px;
+  height: 2px; background: var(--line);
+  position: relative; border-radius: 1px;
+}
+.m-course-bar-fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--primary); border-radius: 1px; }
+
+</style>
+</head>
+<body>
+
+<div class="lab">
+  <div class="lab-head">
+    <div class="caps">Projeto Cirurgião · Responsivo</div>
+    <h1>Versão mobile <em>— padrões nativos</em></h1>
+    <p>A arquitetura 2-colunas do desktop colapsa em stack vertical com o menu lateral substituído por uma <strong>tab bar nativa</strong> e o conteúdo do módulo movido para um <strong>bottom sheet</strong> acionado por gesto. As ações da aula (anterior / concluir) viram uma barra sticky acima da tab bar, seguindo os padrões iOS/Android que o aluno já tem muscle memory.</p>
+  </div>
+
+  <div class="phones">
+
+    <!-- ================================== -->
+    <!-- PHONE 1 — LESSON VIEW              -->
+    <!-- ================================== -->
+    <div class="phone-wrap">
+      <div class="device">
+        <div class="device-screen">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-right">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 8h1.5v3H1V8zm3-2h1.5v5H4V6zm3-2h1.5v7H7V4zm3-2h1.5v9H10V2zm3-2h1.5v11H13V0z"/></svg>
+              <svg width="14" height="11" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1"><path d="M7 7.5c-.8 0-1.5.2-2 .7a.5.5 0 0 0 0 .7l1.7 1.7c.2.2.5.2.7 0L9 8.9a.5.5 0 0 0 0-.7c-.5-.5-1.2-.7-2-.7z" fill="currentColor" stroke="none"/><path d="M11 5c-1.1-1-2.5-1.5-4-1.5S4.1 4 3 5M13 3c-1.6-1.6-3.7-2.5-6-2.5S2.6 1.4 1 3"/></svg>
+              <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2.5" stroke="currentColor" fill="none"/><rect x="22" y="4" width="1" height="3" rx=".5" fill="currentColor"/><rect x="2.5" y="2.5" width="17" height="6" rx="1.5" fill="currentColor"/></svg>
+            </div>
+          </div>
+
+          <div class="screen">
+
+            <div class="m-admin">
+              <div class="m-admin-ind">
+                <span class="dot"></span>
+                Visualizando como estudante
+              </div>
+              <span>Sair</span>
+            </div>
+
+            <div class="m-header">
+              <button class="m-header-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div class="m-header-title">
+                <div class="caps">Módulo 01 · Técnica</div>
+                <strong>Toracocentese</strong>
+              </div>
+              <button class="m-header-action">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </button>
+              <button class="m-header-action">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+            </div>
+
+            <div class="screen-scroll">
+
+              <div class="m-player">
+                <div class="m-player-scene"></div>
+                <div class="m-slide">
+                  <strong>Toracocentese</strong>
+                  <div style="font-size: 8px; line-height: 1.5;">
+                    <div>Local</div>
+                    <div>4–7 EIC D</div>
+                    <div>6–8 EIC E</div>
+                  </div>
+                  <div class="m-slide-anatomy"></div>
+                </div>
+                <div class="m-player-top">
+                  <span class="m-chip">
+                    <span style="width:5px;height:5px;border-radius:50%;background:var(--warn);display:inline-block"></span>
+                    02/05
+                  </span>
+                  <div style="display:flex;gap:4px">
+                    <span class="m-chip">CC</span>
+                    <span class="m-chip mono">1.0×</span>
+                  </div>
+                </div>
+                <div class="m-player-caption">No tórax chamamos de toracocentese.</div>
+                <div class="m-player-controls">
+                  <div class="m-timeline">
+                    <div class="m-timeline-chapters">
+                      <div style="width:22%"></div><div style="width:28%"></div><div style="width:24%"></div><div style="width:26%"></div>
+                    </div>
+                    <div class="m-timeline-fill"></div>
+                    <div class="m-timeline-pin" style="left:8%"></div>
+                    <div class="m-timeline-pin" style="left:24%"></div>
+                    <div class="m-timeline-pin" style="left:62%"></div>
+                  </div>
+                  <div class="m-player-row">
+                    <div class="m-player-row-l">
+                      <button class="m-pbtn primary"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg></button>
+                      <button class="m-pbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg></button>
+                      <span class="m-time">1:25<span class="total"> / 7:57</span></span>
+                    </div>
+                    <div class="m-player-row-r">
+                      <button class="m-pbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/></svg></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="m-body">
+
+                <div class="m-lesson-head">
+                  <div class="m-lesson-num">Aula 02 · Técnica</div>
+                  <h2 class="m-lesson-title">Espaços intercostais e protocolo de drenagem</h2>
+                </div>
+
+                <div class="m-stats">
+                  <div class="stat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                    <span>Assistido <strong class="num">1:25</strong></span>
+                  </div>
+                  <div class="stat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4z"/></svg>
+                    <span>Notas <strong class="num">3</strong></span>
+                  </div>
+                  <div class="stat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span>Material <strong class="num">4</strong></span>
+                  </div>
+                </div>
+
+                <div class="m-tabs">
+                  <button class="m-tab active">Anotações <span class="count num">3</span></button>
+                  <button class="m-tab">Capítulos <span class="count num">4</span></button>
+                  <button class="m-tab">Transcrição</button>
+                  <button class="m-tab">Materiais <span class="count num">4</span></button>
+                </div>
+
+                <div class="m-section-title">
+                  <h3>Anotações ancoradas</h3>
+                  <button class="m-add-note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Em <span class="mono">1:25</span>
+                  </button>
+                </div>
+
+                <div class="m-note">
+                  <span class="m-note-time mono">0:38</span>
+                  <div class="m-note-body">
+                    Abdominocentese ≠ toracocentese — localização define a nomenclatura.
+                    <em>Cap · Definição</em>
+                  </div>
+                </div>
+                <div class="m-note">
+                  <span class="m-note-time mono">1:55</span>
+                  <div class="m-note-body">
+                    4–7 EIC direito, 6–8 EIC esquerdo. Ajustar conforme decúbito.
+                    <em>Cap · Anatomia</em>
+                  </div>
+                </div>
+                <div class="m-note">
+                  <span class="m-note-time mono">4:53</span>
+                  <div class="m-note-body">
+                    Sempre aspirar em vácuo contínuo antes de avançar a agulha.
+                    <em>Cap · Técnica</em>
+                  </div>
+                </div>
+
+                <div class="m-synth">
+                  <div class="m-synth-head">
+                    <h4>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7z"/></svg>
+                      Síntese da aula
+                    </h4>
+                    <span class="m-synth-usage mono">02 / 03</span>
+                  </div>
+                  <div class="m-synth-body">
+                    <p>A toracocentese é definida por <span class="key">localização anatômica</span> — no tórax, diferente da abdominocentese na cavidade abdominal.</p>
+                    <p>Os pontos variam entre 4º e 7º EIC direito e 6º e 8º EIC esquerdo, ajustando conforme decúbito e achados de POCUS.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="m-sticky-actions">
+              <button class="m-sticky-btn icon-only">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <button class="m-sticky-btn primary">
+                Marcar concluída
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="m-sticky-btn icon-only">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </button>
+            </div>
+
+            <nav class="m-tabbar">
+              <button class="m-tabbar-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V4.5A1.5 1.5 0 0 1 5.5 3H20v18H5.5A1.5 1.5 0 0 1 4 19.5Z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                <span>Cursos</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                <span>Em curso</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7z"/></svg>
+                <span>Atlas</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7z"/></svg>
+                <span>Fórum</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                <span>Perfil</span>
+              </button>
+            </nav>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+      <div class="phone-caption">
+        <strong>Aula · vista principal</strong>
+        Player → título → stats → abas → notas ancoradas → síntese IA. Barra sticky com ações da aula, tab bar nativa no rodapé.
+      </div>
+    </div>
+
+    <!-- ================================== -->
+    <!-- PHONE 2 — MODULE BOTTOM SHEET       -->
+    <!-- ================================== -->
+    <div class="phone-wrap">
+      <div class="device">
+        <div class="device-screen">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-right">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 8h1.5v3H1V8zm3-2h1.5v5H4V6zm3-2h1.5v7H7V4zm3-2h1.5v9H10V2zm3-2h1.5v11H13V0z"/></svg>
+              <svg width="14" height="11" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1"><path d="M7 7.5c-.8 0-1.5.2-2 .7a.5.5 0 0 0 0 .7l1.7 1.7c.2.2.5.2.7 0L9 8.9a.5.5 0 0 0 0-.7c-.5-.5-1.2-.7-2-.7z" fill="currentColor" stroke="none"/><path d="M11 5c-1.1-1-2.5-1.5-4-1.5S4.1 4 3 5M13 3c-1.6-1.6-3.7-2.5-6-2.5S2.6 1.4 1 3"/></svg>
+              <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2.5" stroke="currentColor" fill="none"/><rect x="22" y="4" width="1" height="3" rx=".5" fill="currentColor"/><rect x="2.5" y="2.5" width="17" height="6" rx="1.5" fill="currentColor"/></svg>
+            </div>
+          </div>
+
+          <div class="screen">
+            <!-- Behind: the lesson view, dimmed -->
+            <div class="m-admin">
+              <div class="m-admin-ind">
+                <span class="dot"></span>
+                Visualizando como estudante
+              </div>
+              <span>Sair</span>
+            </div>
+            <div class="m-header">
+              <button class="m-header-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div class="m-header-title">
+                <div class="caps">Módulo 01 · Técnica</div>
+                <strong>Toracocentese</strong>
+              </div>
+              <button class="m-header-action">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+            </div>
+            <div class="m-player" style="flex-shrink:0">
+              <div class="m-player-scene"></div>
+            </div>
+
+            <!-- Backdrop -->
+            <div class="sheet-backdrop"></div>
+
+            <!-- Bottom Sheet -->
+            <div class="sheet">
+              <div class="sheet-handle"></div>
+              <div class="sheet-head">
+                <div class="caps">Conteúdo do módulo</div>
+                <div class="sheet-title">
+                  <span class="serif">Técnicas de drenagem</span>
+                  <span class="mono">01/05</span>
+                </div>
+                <div class="sheet-progress"><div class="sheet-progress-fill"></div></div>
+              </div>
+
+              <div class="sheet-stages">
+                <div class="sheet-stage done"><span class="dot"></span>Fundamentos</div>
+                <div class="sheet-stage current"><span class="dot"></span>Técnica</div>
+                <div class="sheet-stage"><span class="dot"></span>Procedimento</div>
+                <div class="sheet-stage"><span class="dot"></span>Revisão</div>
+              </div>
+
+              <div class="sheet-body">
+                <div class="sheet-lesson done">
+                  <span class="sheet-lesson-idx num">01</span>
+                  <div class="sheet-lesson-label">Introdução à centese</div>
+                  <span class="sheet-lesson-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                </div>
+                <div class="sheet-lesson active">
+                  <span class="sheet-lesson-idx num">02</span>
+                  <div class="sheet-lesson-label">Toracocentese — espaços e protocolo</div>
+                  <span class="sheet-lesson-dur mono">7:57</span>
+                </div>
+                <div class="sheet-lesson">
+                  <span class="sheet-lesson-idx num">03</span>
+                  <div class="sheet-lesson-label">Cateterização uretral em cães</div>
+                  <span class="sheet-lesson-dur mono">12:04</span>
+                </div>
+                <div class="sheet-lesson">
+                  <span class="sheet-lesson-idx num">04</span>
+                  <div class="sheet-lesson-label">Proptose — tarsorrafia temporária</div>
+                  <span class="sheet-lesson-dur mono">9:22</span>
+                </div>
+                <div class="sheet-lesson">
+                  <span class="sheet-lesson-idx num">05</span>
+                  <div class="sheet-lesson-label">Abdominocentese guiada por US</div>
+                  <span class="sheet-lesson-dur mono">10:48</span>
+                </div>
+
+                <div class="sheet-assess">
+                  <div class="caps">Avaliação do módulo</div>
+                  <h5>Teste seu conhecimento</h5>
+                  <p>5 questões · ≥ 70% p/ aprovação</p>
+                  <button class="sheet-assess-btn">
+                    Iniciar avaliação
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+      <div class="phone-caption">
+        <strong>Módulo · bottom sheet</strong>
+        Sidebar do desktop vira sheet ativado por swipe-up ou pelo ícone no header. Drag handle + stages horizontais scrolláveis + lista editorial + avaliação no rodapé.
+      </div>
+    </div>
+
+    <!-- ================================== -->
+    <!-- PHONE 3 — HOME / COURSES            -->
+    <!-- ================================== -->
+    <div class="phone-wrap">
+      <div class="device">
+        <div class="device-screen">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-right">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 8h1.5v3H1V8zm3-2h1.5v5H4V6zm3-2h1.5v7H7V4zm3-2h1.5v9H10V2zm3-2h1.5v11H13V0z"/></svg>
+              <svg width="14" height="11" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1"><path d="M7 7.5c-.8 0-1.5.2-2 .7a.5.5 0 0 0 0 .7l1.7 1.7c.2.2.5.2.7 0L9 8.9a.5.5 0 0 0 0-.7c-.5-.5-1.2-.7-2-.7z" fill="currentColor" stroke="none"/><path d="M11 5c-1.1-1-2.5-1.5-4-1.5S4.1 4 3 5M13 3c-1.6-1.6-3.7-2.5-6-2.5S2.6 1.4 1 3"/></svg>
+              <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2.5" stroke="currentColor" fill="none"/><rect x="22" y="4" width="1" height="3" rx=".5" fill="currentColor"/><rect x="2.5" y="2.5" width="17" height="6" rx="1.5" fill="currentColor"/></svg>
+            </div>
+          </div>
+
+          <div class="screen">
+
+            <div class="screen-scroll">
+              <div class="m-home-header">
+                <div class="caps">Boa noite, Gustav</div>
+                <h1>Sua <em>biblioteca</em> cirúrgica</h1>
+                <div class="m-home-sub">3 cursos em andamento · 12 aulas pendentes</div>
+              </div>
+
+              <div class="m-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg>
+                <input placeholder="Buscar técnica, módulo, caso…" />
+              </div>
+
+              <div class="m-continue">
+                <div class="m-continue-label">Continue de onde parou</div>
+                <div class="m-continue-title serif">Toracocentese — espaços intercostais e protocolo</div>
+                <div class="m-continue-meta">
+                  <span>AULA 02/05</span>
+                  <span class="dot"></span>
+                  <span>1:25 / 7:57</span>
+                </div>
+                <div class="m-continue-bar"><div class="m-continue-bar-fill"></div></div>
+                <button class="m-continue-action">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+                  Retomar aula
+                </button>
+              </div>
+
+              <div class="m-section-head">
+                <h2>Meus cursos</h2>
+                <a>ver todos</a>
+              </div>
+
+              <div class="m-course-list">
+                <div class="m-course-card">
+                  <div class="m-course-art">Em</div>
+                  <div class="m-course-meta">
+                    <div class="caps">Procedimentos</div>
+                    <h3>Emergência e urgência</h3>
+                    <div class="m-course-bottom">
+                      <span>01/05</span>
+                      <div class="m-course-bar"><div class="m-course-bar-fill" style="width:20%"></div></div>
+                      <span>20%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="m-course-card">
+                  <div class="m-course-art alt">Su</div>
+                  <div class="m-course-meta">
+                    <div class="caps">Fundamentos</div>
+                    <h3>Suturas e técnicas básicas</h3>
+                    <div class="m-course-bottom">
+                      <span>05/08</span>
+                      <div class="m-course-bar"><div class="m-course-bar-fill" style="width:62%"></div></div>
+                      <span>62%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="m-course-card">
+                  <div class="m-course-art alt2">An</div>
+                  <div class="m-course-meta">
+                    <div class="caps">Clínico</div>
+                    <h3>Anestesia e monitoramento</h3>
+                    <div class="m-course-bottom">
+                      <span>00/12</span>
+                      <div class="m-course-bar"><div class="m-course-bar-fill" style="width:0%"></div></div>
+                      <span>novo</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="height: 32px"></div>
+
+              <div class="m-section-head">
+                <h2>Explorar</h2>
+                <a>catálogo</a>
+              </div>
+
+              <div class="m-course-list" style="padding-bottom: 40px;">
+                <div class="m-course-card">
+                  <div class="m-course-art">Or</div>
+                  <div class="m-course-meta">
+                    <div class="caps">Ortopedia</div>
+                    <h3>Fraturas de fêmur em felinos</h3>
+                    <div class="m-course-bottom">
+                      <span class="mono">18 aulas · 4h 12m</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <nav class="m-tabbar">
+              <button class="m-tabbar-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V4.5A1.5 1.5 0 0 1 5.5 3H20v18H5.5A1.5 1.5 0 0 1 4 19.5Z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                <span>Cursos</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                <span>Em curso</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7z"/></svg>
+                <span>Atlas</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7z"/></svg>
+                <span>Fórum</span>
+              </button>
+              <button class="m-tabbar-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                <span>Perfil</span>
+              </button>
+            </nav>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+      <div class="phone-caption">
+        <strong>Home · biblioteca pessoal</strong>
+        Saudação editorial, card hero de "Continue assistindo", depois Meus Cursos (lista com progresso) e Explorar. Sem carrosséis horizontais de capa — foco em progresso real.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

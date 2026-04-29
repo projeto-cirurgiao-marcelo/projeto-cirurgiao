@@ -1,5 +1,17 @@
 import Link from 'next/link';
-import { MessageSquare, ArrowRight, Users, Hash } from 'lucide-react';
+import {
+  ArrowRight,
+  Bone,
+  BookOpen,
+  Hash,
+  HeartPulse,
+  MessageSquare,
+  Moon,
+  Pill,
+  Siren,
+  Stethoscope,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ForumCategory } from '@/lib/types/forum.types';
 
@@ -7,62 +19,81 @@ interface CategoryCardProps {
   category: ForumCategory;
 }
 
-const categoryIcons: Record<string, string> = {
-  'cirurgia': '🔬',
-  'anatomia': '🦴',
-  'farmacologia': '💊',
-  'clinica': '🩺',
-  'anestesia': '😴',
-  'emergencia': '🚨',
-  'geral': '📚',
-};
+const CATEGORY_ICONS: Array<{ keys: string[]; icon: LucideIcon }> = [
+  { keys: ['cirurg'], icon: Stethoscope },
+  { keys: ['anatomi'], icon: Bone },
+  { keys: ['farma'], icon: Pill },
+  { keys: ['clinic'], icon: HeartPulse },
+  { keys: ['anestes'], icon: Moon },
+  { keys: ['emerg'], icon: Siren },
+  { keys: ['geral'], icon: BookOpen },
+];
 
-function getCategoryEmoji(name: string): string {
+function getCategoryIcon(name: string): LucideIcon {
   const lower = name.toLowerCase();
-  for (const [key, emoji] of Object.entries(categoryIcons)) {
-    if (lower.includes(key)) return emoji;
+  for (const entry of CATEGORY_ICONS) {
+    if (entry.keys.some((k) => lower.includes(k))) return entry.icon;
   }
-  return '💬';
+  return MessageSquare;
 }
 
 export function CategoryCard({ category }: CategoryCardProps) {
   const topicCount = category._count?.topics || 0;
-  const emoji = getCategoryEmoji(category.name);
+  const Icon = getCategoryIcon(category.name);
 
   return (
-    <Link href={`/student/forum/${category.id}`} className="group block">
-      <div className="relative bg-white rounded-xl border border-gray-200 p-5 h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-200">
-        {/* Top accent bar */}
-        <div className="absolute top-0 left-4 right-4 h-0.5 bg-gradient-to-r from-blue-400 to-emerald-400 rounded-b opacity-0 group-hover:opacity-100 transition-opacity" />
+    <Link
+      href={`/student/forum/${category.id}`}
+      className={cn(
+        'group block bg-atlas-surface border border-atlas-line rounded-md',
+        'transition-colors duration-150',
+        'hover:bg-atlas-surface-2',
+      )}
+    >
+      <div className="p-5 flex items-start gap-4">
+        {/* Icon */}
+        <div
+          className={cn(
+            'shrink-0 size-11 rounded-md flex items-center justify-center',
+            'bg-atlas-primary-soft border border-atlas-primary/30',
+          )}
+        >
+          <Icon
+            className="size-5 text-atlas-primary"
+            strokeWidth={1.5}
+            aria-hidden
+          />
+        </div>
 
-        <div className="flex items-start gap-4">
-          {/* Icon */}
-          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gray-50 group-hover:bg-blue-50 flex items-center justify-center text-2xl transition-colors">
-            {emoji}
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-serif text-[15px] font-medium tracking-[-0.005em] text-atlas-ink leading-[1.3]">
+              {category.name}
+            </h3>
+            <ArrowRight
+              className="size-3.5 text-atlas-muted-2 group-hover:text-atlas-primary group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5"
+              strokeWidth={1.75}
+            />
           </div>
 
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-bold text-gray-900 text-base group-hover:text-blue-700 transition-colors leading-tight">
-                {category.name}
-              </h3>
-              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-0.5" />
-            </div>
+          {category.description && (
+            <p className="text-[13px] text-atlas-muted mt-1.5 leading-[1.55] line-clamp-2">
+              {category.description}
+            </p>
+          )}
 
-            {category.description && (
-              <p className="text-sm text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
-                {category.description}
-              </p>
-            )}
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <Hash className="w-3.5 h-3.5 text-gray-400" />
-                <span className="font-semibold text-gray-700">{topicCount}</span>
-                {topicCount === 1 ? 'tópico' : 'tópicos'}
-              </div>
+          {/* Stats */}
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-atlas-line">
+            <div className="flex items-center gap-1.5 text-xs text-atlas-muted">
+              <Hash
+                className="size-3 text-atlas-muted-2"
+                strokeWidth={1.75}
+              />
+              <span className="atlas-mono atlas-num text-atlas-ink font-medium">
+                {topicCount}
+              </span>
+              {topicCount === 1 ? 'tópico' : 'tópicos'}
             </div>
           </div>
         </div>

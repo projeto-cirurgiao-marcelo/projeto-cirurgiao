@@ -1,141 +1,74 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ArrowLeft } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useRouter, usePathname } from 'next/navigation';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { useAvatarStore } from '@/lib/stores/avatar-store';
+  AtlasAdminStrip,
+  AtlasTopBar,
+} from '@/components/atlas';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { NotificationCenter } from '@/components/layout/notification-center';
-import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
+/**
+ * Rotas que possuem header contextual próprio em mobile (escondem topbar global em < md).
+ * Ex: /student/courses/[id]/watch/[videoId] usa AtlasLessonHeader compact.
+ */
+const MOBILE_HIDDEN_PATTERNS = [/^\/student\/courses\/[^/]+\/watch\/[^/]+/];
+
+function shouldHideOnMobile(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return MOBILE_HIDDEN_PATTERNS.some((re) => re.test(pathname));
+}
+
 export function StudentHeader() {
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-  const photoUrl = useAvatarStore((s) => s.photoUrl);
+  const router = useRouter();
+  const pathname = usePathname();
   const { isCollapsed } = useSidebarStore();
   const { isAdminViewingAsStudent, exitStudentView } = useViewModeStore();
-  const router = useRouter();
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
-  const handleLogout = async () => {
-    await logout();
-  };
+  const hiddenOnMobile = shouldHideOnMobile(pathname);
 
   const handleBackToAdmin = () => {
     exitStudentView();
     router.push('/admin');
   };
 
+  const offsetClass = isCollapsed
+    ? 'left-0 md:left-20'
+    : 'left-0 md:left-60';
+
   return (
     <>
-      {/* Banner "Voltar ao Admin" */}
       {isAdminViewingAsStudent && (
         <div
-          className={`fixed right-0 top-0 z-40 h-10 bg-amber-500 text-white flex items-center justify-center gap-2 text-sm font-medium transition-all duration-300 ${
-            isCollapsed ? 'left-0 md:left-16' : 'left-0 md:left-60'
-          }`}
+          className={cn(
+            'fixed top-0 right-0 z-40 transition-[left] duration-300',
+            offsetClass,
+          )}
         >
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-white hover:bg-amber-600 hover:text-white gap-1.5"
-            onClick={handleBackToAdmin}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao Admin
-          </Button>
-          <span className="text-amber-100 text-xs hidden sm:inline">
-            Visualizando como estudante
-          </span>
+          <AtlasAdminStrip onBack={handleBackToAdmin} />
         </div>
       )}
 
       <header
-        className={`fixed right-0 z-30 h-16 border-b border-[rgb(var(--border))] bg-white dark:bg-gray-900 transition-all duration-300 ${
-          isCollapsed ? 'left-0 md:left-16' : 'left-0 md:left-60'
-        } ${isAdminViewingAsStudent ? 'top-10' : 'top-0'}`}
+        className={cn(
+          'fixed right-0 z-30 transition-[top,left] duration-300',
+          offsetClass,
+          isAdminViewingAsStudent ? 'top-10' : 'top-0',
+          // Em rotas como /watch/[videoId], topbar global some em < md (header contextual assume)
+          hiddenOnMobile && 'hidden md:block',
+        )}
       >
-        <div className="flex h-full items-center justify-between px-4 md:px-6">
-          {/* Espaço para o botão hambúrguer em mobile */}
-          <div className="w-12 md:hidden" />
-
-          {/* Search Bar */}
-          <div className="relative hidden sm:block w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Buscar cursos, aulas..."
-              className="pl-10 bg-gray-50 dark:bg-gray-800 border-none"
-            />
-          </div>
-
-          {/* Título em mobile */}
-          <div className="sm:hidden flex-1 text-center">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              Meus Cursos
-            </span>
-          </div>
-
-          {/* Right Section */}
-          <div className="flex items-center gap-2 md:gap-4">
-            <Button variant="ghost" size="icon" className="sm:hidden">
-              <Search className="h-5 w-5" />
-            </Button>
-
-            {/* Notifications */}
-            <NotificationCenter />
-
-            {/* User Menu */}
-            <DropdownMenu modal={false} open={profileOpen} onOpenChange={setProfileOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 px-2">
-                  <div
-                    className="transition-transform duration-200"
-                    style={{ transform: profileOpen ? 'scale(1.1)' : 'scale(1)' }}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={photoUrl || undefined} alt={user?.name || ''} />
-                      <AvatarFallback className="bg-[rgb(var(--primary-500))] text-white text-xs">
-                        {user?.name?.charAt(0).toUpperCase() || 'E'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <span className="text-sm font-medium hidden lg:block">
-                    {user?.name || 'Estudante'}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <span className="text-sm truncate">{user?.email}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/student/profile')}>
-                  Meu Perfil
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/student/settings')}>
-                  Configurações
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                  Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+        <AtlasTopBar
+          breadcrumbs={[]}
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          searchPlaceholder="Buscar cursos, aulas..."
+          trailing={<NotificationCenter />}
+        />
       </header>
     </>
   );

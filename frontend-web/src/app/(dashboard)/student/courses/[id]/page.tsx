@@ -6,13 +6,55 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Play, CheckCircle2, BookOpen, Loader2 } from 'lucide-react';
+import {
+  AtlasButton,
+  AtlasEmptyState,
+  AtlasLoadingBar,
+  AtlasModuleCard,
+  AtlasPageHeader,
+  AtlasSkeletonCard,
+  AtlasStagesProgress,
+  AtlasStatsInline,
+  type AtlasCourseStatus,
+  type AtlasCourseThumbVariant,
+  type Stage,
+  type StageStatus,
+} from '@/components/atlas';
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckCircle2,
+  Play,
+  AlertCircle,
+} from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
-import { ModuleCard } from '@/components/student/module-card';
-
+import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+
+const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
+  'default',
+  'alt',
+  'alt2',
+  'alt3',
+  'alt4',
+];
+
+function pickThumbVariant(id: string): AtlasCourseThumbVariant {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  const idx = Math.abs(hash) % THUMB_VARIANTS.length;
+  return THUMB_VARIANTS[idx];
+}
+
+function formatTotalDuration(totalSeconds: number): string | undefined {
+  if (!totalSeconds || totalSeconds <= 0) return undefined;
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.round((totalSeconds % 3600) / 60);
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+}
+
 export default function CourseDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -21,45 +63,39 @@ export default function CourseDetailPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const { isAdminViewingAsStudent } = useViewModeStore();
+
   const [course, setCourse] = useState<Course | null>(null);
-  const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
+  const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Aguardar hidratação do Zustand antes de verificar autenticação
-    if (!hasHydrated) {
-      return;
-    }
-
+    if (!hasHydrated) return;
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-
     if (user?.role === 'ADMIN' && !isAdminViewingAsStudent) {
       router.push('/admin/courses');
       return;
     }
-
-    loadData();
+    void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, courseId, hasHydrated]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      // Carregar curso e progresso em paralelo
       const [courseData, progressData] = await Promise.all([
         coursesService.getById(courseId),
         progressService.getCourseProgress(courseId).catch(() => null),
       ]);
-      
       setCourse(courseData);
       setCourseProgress(progressData);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Erro ao carregar curso');
       logger.error(err);
     } finally {
@@ -67,43 +103,39 @@ export default function CourseDetailPage() {
     }
   };
 
-  // Verificar se um vídeo foi concluído
   const isVideoCompleted = (videoId: string): boolean => {
     if (!courseProgress) return false;
-    const videoProgress = courseProgress.videos.find(v => v.videoId === videoId);
+    const videoProgress = courseProgress.videos.find(
+      (v) => v.videoId === videoId,
+    );
     return videoProgress?.completed || false;
   };
 
-  // Verificar se um vídeo foi assistido (mas não necessariamente concluído)
   const isVideoWatched = (videoId: string): boolean => {
     if (!courseProgress) return false;
-    const videoProgress = courseProgress.videos.find(v => v.videoId === videoId);
+    const videoProgress = courseProgress.videos.find(
+      (v) => v.videoId === videoId,
+    );
     return videoProgress?.watched || false;
   };
 
   const getFirstVideo = () => {
     if (!course?.modules || course.modules.length === 0) return null;
-    
     const firstModule = course.modules[0];
     if (!firstModule.videos || firstModule.videos.length === 0) return null;
-    
     return firstModule.videos[0];
   };
 
   const getNextUnwatchedVideo = () => {
     if (!course?.modules) return null;
-    
     for (const module of course.modules) {
       if (!module.videos) continue;
-      
       for (const video of module.videos) {
         if (!isVideoCompleted(video.id)) {
           return video;
         }
       }
     }
-    
-    // Se todos foram concluídos, retorna o primeiro
     return getFirstVideo();
   };
 
@@ -121,172 +153,268 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handleVideoClick = (videoId: string) => {
-    router.push(`/student/courses/${course?.id}/watch/${videoId}`);
-  };
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return '--:--';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const handleBack = () => router.push('/student/my-courses');
 
   // Calcular progresso
-  const totalVideos = courseProgress?.totalVideos || 
-    course?.modules?.reduce((sum, m) => sum + (m.videos?.length || 0), 0) || 0;
+  const totalVideos =
+    courseProgress?.totalVideos ||
+    course?.modules?.reduce((sum, m) => sum + (m.videos?.length || 0), 0) ||
+    0;
   const completedVideos = courseProgress?.completedVideos || 0;
   const progress = courseProgress?.progressPercentage || 0;
-  const hasStarted = completedVideos > 0 || (courseProgress?.watchedVideos || 0) > 0;
+  const hasStarted =
+    completedVideos > 0 || (courseProgress?.watchedVideos || 0) > 0;
 
-  // Mostrar loading enquanto aguarda hidratação
+  const totalSeconds =
+    course?.modules?.reduce(
+      (sum, m) =>
+        sum +
+        (m.videos?.reduce(
+          (vsum, v) => vsum + (v.duration || 0),
+          0,
+        ) || 0),
+      0,
+    ) || 0;
+  const totalDuration = formatTotalDuration(totalSeconds);
+
+  // Stages derivados dos módulos (mesma lógica usada no watch page)
+  const stages: Stage[] = (course?.modules ?? []).map((mod, mi) => {
+    const total = mod.videos?.length ?? 0;
+    const done = mod.videos?.filter((v) => isVideoCompleted(v.id)).length ?? 0;
+    const watched =
+      mod.videos?.filter((v) => isVideoWatched(v.id)).length ?? 0;
+
+    let status: StageStatus = 'future';
+    let count = `${done} / ${total} pendente${total === 1 ? '' : 's'}`;
+
+    if (total > 0 && done === total) {
+      status = 'done';
+      count = `${done} / ${total} concluída${total === 1 ? '' : 's'}`;
+    } else if (watched > 0 || done > 0) {
+      status = 'current';
+      count = `${done} / ${total} em andamento`;
+    }
+
+    return {
+      num: mi + 1,
+      name: mod.title,
+      count,
+      status,
+    };
+  });
+
   if (!hasHydrated || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
+      <main className="min-h-screen bg-atlas-bg px-5 sm:px-7 py-7">
+        <AtlasLoadingBar className="mb-[18px]" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <AtlasSkeletonCard key={i} />
+          ))}
+        </div>
+      </main>
     );
   }
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="container mx-auto">
-          <Button variant="ghost" onClick={() => router.push('/student/my-courses')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <div className="text-center py-12">
-            <p className="text-red-600 font-semibold">{error || 'Curso não encontrado'}</p>
+      <main className="min-h-screen bg-atlas-bg px-5 sm:px-7 py-10">
+        <div className="max-w-3xl mx-auto">
+          <AtlasButton
+            variant="ghost"
+            size="sm"
+            onClick={handleBack}
+            className="mb-5"
+          >
+            <ArrowLeft strokeWidth={1.75} />
+            Voltar aos cursos
+          </AtlasButton>
+          <div className="bg-atlas-surface border border-dashed border-atlas-line rounded-md px-7 pt-14 pb-16 text-center">
+            <div className="size-12 mx-auto mb-[18px] text-atlas-accent flex items-center justify-center">
+              <AlertCircle className="size-12" strokeWidth={1.25} />
+            </div>
+            <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink mb-1.5">
+              {error ?? 'Curso não encontrado'}
+            </h2>
+            <p className="text-atlas-muted text-[13px] max-w-[420px] mx-auto mb-[18px] leading-[1.55]">
+              Verifique o link ou volte para a lista de cursos.
+            </p>
+            <AtlasButton variant="primary" size="md" onClick={handleBack}>
+              Voltar aos cursos
+            </AtlasButton>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
+  const ctaLabel = !hasStarted
+    ? 'Iniciar curso'
+    : progress === 100
+      ? 'Rever curso'
+      : 'Continuar assistindo';
+  const ctaIcon = progress === 100 ? CheckCircle2 : Play;
+  const ctaHandler = !hasStarted
+    ? handleStartCourse
+    : progress === 100
+      ? handleStartCourse
+      : handleContinueCourse;
+  const CtaIcon = ctaIcon;
+
+  const courseThumbUrl =
+    course.thumbnailHorizontal ||
+    course.thumbnailVertical ||
+    course.thumbnail ||
+    null;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header com progresso */}
-      <div className="border-b border-gray-200 bg-white shadow-sm">
-        <div className="container mx-auto px-6 py-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.push('/student/my-courses')} 
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar aos Cursos
-          </Button>
-          
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2 text-gray-900 tracking-tight">{course.title}</h1>
-              {course.description && (
-                <p className="text-gray-600 mb-4 text-lg">{course.description}</p>
-              )}
-              
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-1">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{course.modules?.length || 0} módulos</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Play className="h-4 w-4" />
-                  <span>{totalVideos} aulas</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:w-80">
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-gray-900">Seu Progresso</span>
-                  <span className="text-lg font-bold text-blue-600">{progress}%</span>
-                </div>
-                {/* Progress bar com gradiente */}
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
-                    style={{width: `${progress}%`}}
-                  />
-                </div>
-                <p className="text-xs text-gray-600 mb-4">
-                  {completedVideos} de {totalVideos} aulas concluídas
-                </p>
-                
-                {!hasStarted ? (
-                  <Button 
-                    className="w-full" 
-                    size="lg"
-                    onClick={handleStartCourse}
-                    disabled={totalVideos === 0}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Iniciar Curso
-                  </Button>
-                ) : progress === 100 ? (
-                  <Button 
-                    variant="success"
-                    className="w-full" 
-                    size="lg"
-                    onClick={handleStartCourse}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Curso Concluído - Rever
-                  </Button>
-                ) : (
-                  <Button 
-                    className="w-full" 
-                    size="lg"
-                    onClick={handleContinueCourse}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Continuar Assistindo
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
+    <>
+      {courseThumbUrl && (
+        <div
+          className={cn(
+            'relative w-full overflow-hidden border-b border-atlas-line bg-atlas-surface-2',
+            'aspect-[16/7] sm:aspect-[21/7] lg:aspect-[6/1]',
+          )}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={courseThumbUrl}
+            alt={course.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* Gradient sutil pra integração com bg do header */}
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-atlas-bg/40"
+          />
         </div>
-      </div>
+      )}
 
-      {/* Conteúdo do curso - Grid de Módulos */}
-      <div className="container mx-auto px-6 py-8">
-        <h2 className="text-3xl font-bold mb-6 text-gray-900 tracking-tight">Módulos do Curso</h2>
-        
+      <AtlasPageHeader
+        metaLabel="Curso · Conteúdo"
+        title={course.title}
+        actions={
+          <AtlasButton
+            variant="primary"
+            size="md"
+            onClick={ctaHandler}
+            disabled={totalVideos === 0}
+          >
+            <CtaIcon strokeWidth={1.75} />
+            {ctaLabel}
+          </AtlasButton>
+        }
+      >
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-1.5 text-xs text-atlas-muted hover:text-atlas-ink transition-colors mt-1 mb-2"
+        >
+          <ArrowLeft className="size-3.5" strokeWidth={1.75} />
+          Voltar aos cursos
+        </button>
+
+        {course.description && (
+          <p className="text-[13.5px] text-atlas-muted leading-[1.55] max-w-[640px] mt-2">
+            {course.description}
+          </p>
+        )}
+
+        <AtlasStatsInline
+          className="mt-4"
+          stats={[
+            {
+              value: String(course.modules?.length ?? 0),
+              label: 'Módulos',
+            },
+            {
+              value: String(totalVideos),
+              label: 'Aulas',
+            },
+            {
+              value: String(completedVideos),
+              total: totalVideos > 0 ? `/ ${totalVideos}` : undefined,
+              label: 'Aulas concluídas',
+            },
+            ...(totalDuration
+              ? [
+                  {
+                    value: totalDuration,
+                    format: 'mono' as const,
+                    label: 'Duração total',
+                  },
+                ]
+              : [
+                  {
+                    value: `${progress}%`,
+                    format: 'mono' as const,
+                    label: 'Progresso',
+                  },
+                ]),
+          ]}
+        />
+
+        {stages.length > 1 && <AtlasStagesProgress stages={stages} />}
+      </AtlasPageHeader>
+
+      <div className="px-5 sm:px-7 py-6">
+        <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink mb-[14px]">
+          Módulos do curso
+        </h2>
+
         {!course.modules || course.modules.length === 0 ? (
-          <div className="text-center py-12 border border-gray-200 rounded-lg bg-white shadow-sm">
-            <div className="p-6 bg-gray-100 rounded-2xl inline-block mb-4">
-              <BookOpen className="h-16 w-16 mx-auto text-gray-400" />
-            </div>
-            <p className="text-gray-600">
-              Este curso ainda não possui módulos cadastrados
-            </p>
-          </div>
+          <AtlasEmptyState
+            icon={BookOpen}
+            title="Nenhum módulo cadastrado"
+            description="Este curso ainda não possui módulos. Volte em breve."
+          />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
             {course.modules.map((module, moduleIndex) => {
               const moduleVideos = module.videos || [];
-              const moduleCompletedCount = moduleVideos.filter(v => isVideoCompleted(v.id)).length;
-              const moduleProgress = moduleVideos.length > 0 
-                ? Math.round((moduleCompletedCount / moduleVideos.length) * 100)
-                : 0;
+              const moduleCompleted = moduleVideos.filter((v) =>
+                isVideoCompleted(v.id),
+              ).length;
+              const moduleProgress =
+                moduleVideos.length > 0
+                  ? Math.round(
+                      (moduleCompleted / moduleVideos.length) * 100,
+                    )
+                  : 0;
+              const moduleWatched = moduleVideos.some((v) =>
+                isVideoWatched(v.id),
+              );
+              const status: AtlasCourseStatus =
+                moduleProgress === 100
+                  ? 'completed'
+                  : moduleWatched || moduleCompleted > 0
+                    ? 'in-progress'
+                    : 'new';
+              const thumbImageUrl =
+                module.thumbnailHorizontal ||
+                module.thumbnailVertical ||
+                module.thumbnail ||
+                undefined;
 
               return (
-                <ModuleCard
+                <AtlasModuleCard
                   key={module.id}
-                  module={module}
-                  courseId={course.id}
-                  moduleIndex={moduleIndex}
-                  completedVideos={moduleCompletedCount}
-                  totalVideos={moduleVideos.length}
-                  progressPercentage={moduleProgress}
+                  href={`/student/courses/${course.id}/modules/${module.id}`}
+                  moduleIndex={moduleIndex + 1}
+                  title={module.title}
+                  description={module.description}
+                  totalLessons={moduleVideos.length}
+                  completedLessons={moduleCompleted}
+                  progressPercent={moduleProgress}
+                  status={status}
+                  thumbVariant={pickThumbVariant(module.id)}
+                  thumbImageUrl={thumbImageUrl}
                 />
               );
             })}
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

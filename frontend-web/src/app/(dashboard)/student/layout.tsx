@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
@@ -11,7 +11,15 @@ import { StudentSidebar } from '@/components/layout/student-sidebar';
 import { StudentHeader } from '@/components/layout/student-header';
 import { GamificationProvider } from '@/components/gamification/GamificationProvider';
 import { ChatWidget } from '@/components/chatbot/chat-widget';
-import { Loader2 } from 'lucide-react';
+import { AtlasTabBar, type TabBarItem } from '@/components/atlas';
+import {
+  BookOpen,
+  PlayCircle,
+  Sparkles,
+  MessageSquare,
+  User,
+  Loader2,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { logger } from '@/lib/logger';
@@ -33,6 +41,46 @@ export default function StudentLayout({
   const { isCollapsed } = useSidebarStore();
   const { isAdminViewingAsStudent } = useViewModeStore();
   const setPhotoUrl = useAvatarStore((s) => s.setPhotoUrl);
+  const pathname = usePathname();
+  // Rotas com header contextual próprio em mobile (topbar global escondida em < md)
+  const headerHiddenOnMobile = /^\/student\/courses\/[^/]+\/watch\/[^/]+/.test(
+    pathname ?? '',
+  );
+  // Mesma rota também esconde tab bar global (bottom bar contextual da aula assume)
+  const tabBarHiddenOnMobile = headerHiddenOnMobile;
+
+  const TAB_BAR_ITEMS: TabBarItem[] = [
+    {
+      id: 'courses',
+      label: 'Cursos',
+      href: '/student/courses',
+      icon: BookOpen,
+    },
+    {
+      id: 'in-progress',
+      label: 'Em curso',
+      href: '/student/in-progress',
+      icon: PlayCircle,
+    },
+    {
+      id: 'library',
+      label: 'Atlas',
+      href: '/student/library',
+      icon: Sparkles,
+    },
+    {
+      id: 'forum',
+      label: 'Fórum',
+      href: '/student/forum',
+      icon: MessageSquare,
+    },
+    {
+      id: 'profile',
+      label: 'Perfil',
+      href: '/student/profile',
+      icon: User,
+    },
+  ];
 
   // Carregar foto do perfil uma vez ao montar
   useEffect(() => {
@@ -86,11 +134,26 @@ export default function StudentLayout({
             'p-4 md:p-6 lg:p-8 transition-all duration-300',
             'ml-0',
             isCollapsed ? 'md:ml-20' : 'md:ml-60',
-            isAdminViewingAsStudent ? 'mt-[104px]' : 'mt-16',
+            // Mobile: se topbar global escondida (watch route), conteúdo começa no topo
+            // Desktop (md+): topbar sempre visível, mantém offset
+            headerHiddenOnMobile
+              ? isAdminViewingAsStudent
+                ? 'mt-10 md:mt-[104px]'
+                : 'mt-0 md:mt-16'
+              : isAdminViewingAsStudent
+                ? 'mt-[104px]'
+                : 'mt-16',
           )}
         >
           {children}
         </main>
+
+        {/* Tab bar global mobile — substitui drawer hamburger.
+             Hidden em /watch/[videoId] onde AtlasStickyActions assume bottom. */}
+        <AtlasTabBar
+          items={TAB_BAR_ITEMS}
+          hidden={tabBarHiddenOnMobile}
+        />
 
         {/* Chatbot IA flutuante */}
         <ChatWidget />

@@ -8,7 +8,25 @@ import { coursesService } from '@/lib/api/courses.service';
 import { videosService } from '@/lib/api/videos.service';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock } from 'lucide-react';
+import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock, PlayCircle } from 'lucide-react';
+import {
+  AtlasButton,
+  AtlasLessonHeader,
+  AtlasLessonInfo,
+  AtlasLessonStats,
+  AtlasLoadingBar,
+  AtlasModuleSidebar,
+  AtlasPlayerWrapper,
+  AtlasSheet,
+  AtlasSheetContent,
+  AtlasStagesProgress,
+  AtlasStickyActions,
+  type LessonStatus,
+  type SidebarLesson,
+  type SidebarModule,
+  type Stage,
+  type StageStatus,
+} from '@/components/atlas';
 import { Course, Video as VideoType } from '@/lib/types/course.types';
 import { StreamDataResponse } from '@/lib/api/videos.service';
 import { VideoBreadcrumbs, VideoBreadcrumbsMobile } from '@/components/video-player/video-breadcrumbs';
@@ -56,6 +74,9 @@ export default function VideoPlayerPage() {
 
   // Blob URL das legendas quando o backend envia playback.captionsUrl separado
   const [captionsBlobUrl, setCaptionsBlobUrl] = useState<string | null>(null);
+
+  // Mobile bottom sheet de módulos
+  const [modulesSheetOpen, setModulesSheetOpen] = useState(false);
 
   const saveProgressOnExit = useCallback(async () => {
     const timeToSave = currentWatchTimeRef.current;
@@ -439,12 +460,12 @@ export default function VideoPlayerPage() {
 
   if (!hasHydrated || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Carregando vídeo...</p>
-        </div>
-      </div>
+      <main className="min-h-screen bg-atlas-bg px-7 py-7">
+        <AtlasLoadingBar />
+        <p className="atlas-mono text-[10.5px] text-atlas-muted mt-3 tracking-[0.04em] uppercase">
+          Carregando aula
+        </p>
+      </main>
     );
   }
 
@@ -457,90 +478,157 @@ export default function VideoPlayerPage() {
 
   if (error || !currentVideo || !hasValidStreamData) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="container mx-auto max-w-4xl">
-          <Button variant="ghost" onClick={handleBackToAllCourses} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar aos Cursos
-          </Button>
-          <div className="bg-white border-2 border-gray-200 rounded-lg p-12 text-center shadow-sm">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Erro ao carregar vídeo</h2>
-            <p className="text-gray-600 mb-6">{error || 'Vídeo não disponível'}</p>
-            <Button onClick={handleBackToAllCourses} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
-              Voltar aos Cursos
-            </Button>
+      <main className="min-h-screen bg-atlas-bg px-7 py-10">
+        <div className="max-w-3xl mx-auto">
+          <AtlasButton
+            variant="ghost"
+            size="sm"
+            onClick={handleBackToAllCourses}
+            className="mb-5"
+          >
+            <ArrowLeft strokeWidth={1.75} />
+            Voltar aos cursos
+          </AtlasButton>
+          <div className="bg-atlas-surface border border-dashed border-atlas-line rounded-md px-7 pt-14 pb-16 text-center">
+            <div className="size-12 mx-auto mb-[18px] text-atlas-accent flex items-center justify-center">
+              <AlertCircle className="size-12" strokeWidth={1.25} />
+            </div>
+            <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink mb-1.5">
+              Não foi possível carregar a aula
+            </h2>
+            <p className="text-atlas-muted text-[13px] max-w-[420px] mx-auto mb-[18px] leading-[1.55]">
+              {error || 'Vídeo não disponível.'}
+            </p>
+            <AtlasButton
+              variant="primary"
+              size="md"
+              onClick={handleBackToAllCourses}
+            >
+              Voltar aos cursos
+            </AtlasButton>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
+  const currentModule = course?.modules?.find(m =>
+    m.videos?.some(v => v.id === currentVideo.id),
+  );
+  const currentLessonIndex = (() => {
+    const all = getAllVideosInOrder();
+    return all.findIndex(v => v.id === currentVideo.id);
+  })();
+  const totalLessons = getAllVideosInOrder().length;
+
+  const sidebarModules: SidebarModule[] = (course?.modules ?? []).map((mod) => ({
+    id: mod.id,
+    title: mod.title,
+    lessons: (mod.videos ?? []).map((video): SidebarLesson => {
+      const isActive = video.id === currentVideo.id;
+      const status: LessonStatus = isActive
+        ? 'active'
+        : (() => {
+            const p = getVideoProgressStatus(video.id);
+            if (p.completed) return 'done';
+            if (p.watched) return 'watched';
+            return 'todo';
+          })();
+      const dur = video.duration
+        ? formatTime(video.duration)
+        : undefined;
+      return {
+        id: video.id,
+        title: video.title,
+        status,
+        duration: dur,
+      };
+    }),
+  }));
+
+  const handleLessonClick = (_moduleId: string, lessonId: string) => {
+    setModulesSheetOpen(false);
+    router.push(`/student/courses/${courseId}/watch/${lessonId}`);
+  };
+
+  const openModulesSheet = () => setModulesSheetOpen(true);
+
+  const stages: Stage[] = (course?.modules ?? []).map((mod, mi) => {
+    const totalVideos = mod.videos?.length ?? 0;
+    const doneVideos =
+      mod.videos?.filter((v) => getVideoProgressStatus(v.id).completed).length ?? 0;
+    const watchedVideos =
+      mod.videos?.filter((v) => getVideoProgressStatus(v.id).watched).length ?? 0;
+    const isCurrentModule = !!mod.videos?.some((v) => v.id === currentVideo.id);
+
+    let status: StageStatus = 'future';
+    let count = `${doneVideos} / ${totalVideos} bloqueada${totalVideos === 1 ? '' : 's'}`;
+
+    if (totalVideos > 0 && doneVideos === totalVideos) {
+      status = 'done';
+      count = `${doneVideos} / ${totalVideos} concluída${totalVideos === 1 ? '' : 's'}`;
+    } else if (isCurrentModule) {
+      status = 'current';
+      count = `${doneVideos} / ${totalVideos} em andamento`;
+    } else if (watchedVideos > 0) {
+      status = 'current';
+      count = `${doneVideos} / ${totalVideos} em andamento`;
+    } else {
+      count = `${doneVideos} / ${totalVideos} pendente${totalVideos === 1 ? '' : 's'}`;
+    }
+
+    return {
+      num: mi + 1,
+      name: mod.title,
+      count,
+      status,
+    };
+  });
+
+  const currentModuleIndex = course?.modules?.findIndex((m) =>
+    m.videos?.some((v) => v.id === currentVideo.id),
+  ) ?? -1;
+  const sidebarTitle = currentModule
+    ? `Módulo ${String(currentModuleIndex + 1).padStart(2, '0')} — ${currentModule.title}`
+    : (course?.title ?? 'Curso');
+
+  const moduleLessonsTotal = currentModule?.videos?.length ?? 0;
+  const moduleLessonsDone =
+    currentModule?.videos?.filter((v) => getVideoProgressStatus(v.id).completed).length ?? 0;
+  const modulePercent =
+    moduleLessonsTotal === 0
+      ? 0
+      : Math.round((moduleLessonsDone / moduleLessonsTotal) * 100);
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0 -m-4 md:-m-6 lg:-m-8">
-      {/* Header */}
-      <div className="border-b-2 border-gray-200 bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={handleBackToAllCourses} size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Voltar aos Cursos</span>
-              <span className="sm:hidden">Voltar</span>
-            </Button>
+    <main className="min-h-screen bg-atlas-bg pb-20 sm:pb-0 -m-4 md:-m-6 lg:-m-8">
+      <AtlasLessonHeader
+        metaLabel={`Curso · ${course?.title ?? ''}`}
+        title={course?.title ?? 'Curso'}
+        progressDone={
+          courseProgress
+            ? String(courseProgress.completedVideos).padStart(2, '0')
+            : undefined
+        }
+        progressTotal={
+          courseProgress
+            ? String(courseProgress.totalVideos).padStart(2, '0')
+            : undefined
+        }
+        progressPercent={courseProgress?.progressPercentage}
+        backLabel="Voltar aos cursos"
+        backLabelMobile="Voltar"
+        onBack={handleBackToAllCourses}
+      >
+        {stages.length > 1 && <AtlasStagesProgress stages={stages} />}
+      </AtlasLessonHeader>
 
-            <div className="flex items-center gap-4">
-              {courseProgress && (
-                <div className="hidden md:flex items-center gap-2 text-sm text-gray-600">
-                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-300"
-                      style={{ width: `${courseProgress.progressPercentage}%` }}
-                    />
-                  </div>
-                  <span className="font-medium">{courseProgress.progressPercentage}%</span>
-                </div>
-              )}
-
-              {course && (
-                <h1 className="text-sm font-semibold text-gray-900 hidden lg:block truncate max-w-[200px]">
-                  {course.title}
-                </h1>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Player e Info */}
-      <div className="container mx-auto px-4 py-4 sm:py-6 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Player Principal */}
-          <div className="lg:col-span-2">
-            {/* Breadcrumbs - Desktop */}
-            <div className="hidden sm:block mb-2">
-              {course && currentVideo && (
-                <VideoBreadcrumbs
-                  courseName={course.title}
-                  courseId={courseId}
-                  moduleName={course.modules?.find(m => m.videos?.some(v => v.id === currentVideo.id))?.title}
-                  videoName={currentVideo.title}
-                />
-              )}
-            </div>
-
-            {/* Breadcrumbs - Mobile */}
-            <div className="sm:hidden mb-2">
-              {course && currentVideo && (
-                <VideoBreadcrumbsMobile
-                  courseName={course.title}
-                  courseId={courseId}
-                  videoName={currentVideo.title}
-                />
-              )}
-            </div>
-
-            {/* Player Container */}
-            <div className="bg-black rounded-lg overflow-hidden border border-gray-800 mb-3 sm:mb-4" style={{ aspectRatio: '16/9' }}>
+      {/* Study area: 1fr + 320px sidebar flush */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 min-h-0">
+        {/* Player Principal */}
+        <section className="min-w-0 px-8 pt-6 pb-12">
+          {/* Player Container — wrapper Atlas */}
+          <AtlasPlayerWrapper className="mb-[18px]">
               {/*
                 Contrato `playback` (VideoPayload.playback):
                 - kind === 'hls'    → HlsVideoPlayer (R2 HLS). Suporta captions
@@ -608,78 +696,104 @@ export default function VideoPlayerPage() {
                   title={currentVideo.title}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                  <Loader2 className="h-12 w-12 animate-spin text-red-500" />
+                <div className="w-full h-full flex items-center justify-center bg-[#0A0A0A]">
+                  <Loader2 className="h-12 w-12 animate-spin text-atlas-primary" />
                 </div>
               )}
-            </div>
+            </AtlasPlayerWrapper>
 
-            {/* Info do Vídeo */}
-            <div className="mb-3 sm:mb-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-1 line-clamp-2">{currentVideo.title}</h2>
-                  {currentVideo.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2 sm:line-clamp-none hidden sm:block">{currentVideo.description}</p>
+            {/* Lesson head — meta + título + descrição + actions */}
+            <AtlasLessonInfo
+              lessonNum={
+                currentLessonIndex >= 0
+                  ? `Aula ${String(currentLessonIndex + 1).padStart(2, '0')} · ${currentModule?.title ?? 'Aulas'}`
+                  : undefined
+              }
+              title={currentVideo.title}
+              description={currentVideo.description ?? undefined}
+              inlineAction={
+                <VideoLikeButton videoId={videoId} size="sm" />
+              }
+              contextLine={
+                course?.title && currentLessonIndex >= 0 ? (
+                  <>
+                    {course.title}
+                    <span className="text-atlas-muted-2 mx-1.5">·</span>
+                    <span className="atlas-mono text-[11.5px]">
+                      aula {String(currentLessonIndex + 1).padStart(2, '0')} / {String(totalLessons).padStart(2, '0')}
+                    </span>
+                  </>
+                ) : undefined
+              }
+              actions={
+                /* Botões só em md+ — em mobile bottom bar contextual já cobre */
+                <div className="hidden sm:flex flex-wrap gap-2">
+                  {hasPreviousVideo && (
+                    <AtlasButton
+                      variant="outline"
+                      size="md"
+                      onClick={handlePreviousVideo}
+                    >
+                      <SkipBack strokeWidth={1.75} />
+                      Anterior
+                    </AtlasButton>
                   )}
+                  {hasNextVideo && !isCompleted ? (
+                    <AtlasButton
+                      variant="outline"
+                      size="md"
+                      onClick={handleNextVideo}
+                    >
+                      Próxima
+                      <SkipForward strokeWidth={1.75} />
+                    </AtlasButton>
+                  ) : null}
+                  <AtlasButton
+                    variant="primary"
+                    size="md"
+                    onClick={handleMarkAsComplete}
+                    disabled={savingProgress}
+                    className={
+                      isCompleted
+                        ? 'bg-atlas-success border-atlas-success hover:bg-atlas-success/90 hover:border-atlas-success/90'
+                        : ''
+                    }
+                  >
+                    {savingProgress ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : isCompleted ? (
+                      <CheckCircle strokeWidth={1.75} />
+                    ) : (
+                      <Circle strokeWidth={1.75} />
+                    )}
+                    {isCompleted ? 'Concluído' : 'Marcar concluída'}
+                  </AtlasButton>
                 </div>
+              }
+            />
 
-                <div className="flex-shrink-0">
-                  <VideoLikeButton videoId={videoId} size="default" />
-                </div>
-              </div>
-
-              {currentWatchTime > 0 ? (
-                <div className="flex items-center gap-2 mt-2 text-xs sm:text-sm text-gray-600">
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span>Tempo assistido: {formatTime(currentWatchTime)}</span>
-                </div>
-              ) : null}
-            </div>
-
-            {/* Botões de Ação - Desktop */}
-            <div className="hidden sm:flex flex-wrap items-center gap-3">
-              <Button onClick={handleBackToCourse} variant="outline">
-                <ListVideo className="h-4 w-4 mr-2" />
-                Voltar ao Curso
-              </Button>
-
-              {hasPreviousVideo && (
-                <Button onClick={handlePreviousVideo} variant="outline">
-                  <SkipBack className="h-4 w-4 mr-2" />
-                  Aula Anterior
-                </Button>
-              )}
-
-              {hasNextVideo && (
-                <Button
-                  onClick={handleNextVideo}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
-                >
-                  Próxima Aula
-                  <SkipForward className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-
-              <Button
-                onClick={handleMarkAsComplete}
-                disabled={savingProgress}
-                variant={isCompleted ? "default" : "outline"}
-                className={isCompleted
-                  ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
-                  : "border-2 border-gray-300 hover:border-gray-400"
-                }
-              >
-                {savingProgress ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : isCompleted ? (
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                ) : (
-                  <Circle className="h-4 w-4 mr-2" />
-                )}
-                {isCompleted ? 'Concluído' : 'Marcar como Concluído'}
-              </Button>
-            </div>
+            {/* Stats da aula — sem "Posição" (redundante com contextLine acima) */}
+            <AtlasLessonStats
+              className="mt-4 mb-6"
+              stats={[
+                ...(currentVideo.duration
+                  ? [
+                      {
+                        icon: PlayCircle,
+                        label: 'Duração',
+                        value: formatTime(currentVideo.duration),
+                        mono: true,
+                      } as const,
+                    ]
+                  : []),
+                {
+                  icon: Clock,
+                  label: 'Assistido',
+                  value: formatTime(currentWatchTime),
+                  mono: true,
+                },
+              ]}
+            />
 
             {/* Anotações - Desktop */}
             <div className="hidden sm:block mt-6">
@@ -703,90 +817,37 @@ export default function VideoPlayerPage() {
                 courseId={courseId}
               />
             </div>
-          </div>
 
-          {/* Sidebar - Lista de Aulas e Materiais (oculta em mobile) */}
-          <div className="lg:col-span-1 hidden lg:block space-y-4">
-            <div className="bg-white border-2 border-gray-200 rounded-lg p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Conteúdo do Curso</h3>
-                {courseProgress && (
-                  <span className="text-xs bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1 rounded-md font-semibold shadow-sm">
-                    {courseProgress.completedVideos}/{courseProgress.totalVideos}
-                  </span>
-                )}
+        </section>
+
+        {/* Sidebar flush right (oculta em mobile) */}
+        <aside className="hidden lg:flex flex-col min-h-0 self-stretch">
+          <AtlasModuleSidebar
+            flush
+            metaLabel="Conteúdo do módulo"
+            title={sidebarTitle}
+            progressPercent={modulePercent}
+            lessonsProgress={
+              moduleLessonsTotal > 0
+                ? `${String(moduleLessonsDone).padStart(2, '0')} / ${String(moduleLessonsTotal).padStart(2, '0')}`
+                : undefined
+            }
+            modules={sidebarModules}
+            activeLessonId={currentVideo.id}
+            onLessonClick={handleLessonClick}
+            footer={
+              <div className="px-5 pt-4 pb-5 flex flex-col gap-3">
+                <VideoMaterialsCarousel videoId={videoId} />
+                <QuizCard
+                  stats={quizStats || undefined}
+                  videoId={videoId}
+                  courseId={courseId}
+                />
               </div>
-
-              {!course?.modules || course.modules.length === 0 ? (
-                <p className="text-sm text-gray-600">Nenhum módulo disponível</p>
-              ) : (
-                <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
-                  {course.modules.map((module, moduleIndex) => (
-                    <div key={module.id} className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-xs font-bold text-white shadow-sm">
-                          {moduleIndex + 1}
-                        </div>
-                        <h4 className="text-sm font-semibold text-gray-900">{module.title}</h4>
-                      </div>
-
-                      {module.videos && module.videos.length > 0 && (
-                        <div className="ml-8 space-y-1">
-                          {module.videos.map((video, videoIndex) => {
-                            const isCurrentVideo = video.id === currentVideo.id;
-                            const progressStatus = getVideoProgressStatus(video.id);
-
-                            return (
-                              <button
-                                key={video.id}
-                                onClick={() => !isCurrentVideo && router.push(`/student/courses/${courseId}/watch/${video.id}`)}
-                                disabled={isCurrentVideo}
-                                className={`
-                                  w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 flex items-center gap-2
-                                  ${isCurrentVideo
-                                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-md'
-                                    : progressStatus.completed
-                                      ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
-                                      : progressStatus.watched
-                                        ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-                                        : 'text-gray-700 hover:bg-gray-100 border border-transparent hover:border-gray-200'
-                                  }
-                                `}
-                              >
-                                <span className="flex-shrink-0">
-                                  {isCurrentVideo ? (
-                                    <span className="w-4 h-4 flex items-center justify-center text-white">▶</span>
-                                  ) : progressStatus.completed ? (
-                                    <CheckCircle className="w-4 h-4 text-green-600" />
-                                  ) : progressStatus.watched ? (
-                                    <Clock className="w-4 h-4 text-amber-600" />
-                                  ) : (
-                                    <Circle className="w-4 h-4 text-gray-400" />
-                                  )}
-                                </span>
-                                <span className="truncate flex-1">
-                                  {videoIndex + 1}. {video.title}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <VideoMaterialsCarousel videoId={videoId} />
-
-            <QuizCard
-              stats={quizStats || undefined}
-              videoId={videoId}
-              courseId={courseId}
-            />
-          </div>
-        </div>
+            }
+            className="flex-1 min-h-0"
+          />
+        </aside>
       </div>
 
       {currentVideo && (
@@ -798,59 +859,58 @@ export default function VideoPlayerPage() {
         />
       )}
 
-      {/* Barra de Navegação Mobile - Fixa na parte inferior */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-lg z-50 safe-area-inset-bottom">
-        <div className="flex items-center justify-between px-2 py-2 gap-1">
-          <Button
-            onClick={handlePreviousVideo}
-            disabled={!hasPreviousVideo}
-            variant="ghost"
-            size="sm"
-            className={`flex-1 flex flex-col items-center gap-0.5 h-auto py-2 ${!hasPreviousVideo ? 'opacity-40' : ''}`}
-          >
-            <SkipBack className="h-5 w-5" />
-            <span className="text-[10px]">Anterior</span>
-          </Button>
+      <AtlasStickyActions
+        actions={[
+          {
+            id: 'prev',
+            icon: SkipBack,
+            label: 'Anterior',
+            onClick: handlePreviousVideo,
+            disabled: !hasPreviousVideo,
+          },
+          {
+            id: 'list',
+            icon: ListVideo,
+            label: 'Aulas',
+            onClick: openModulesSheet,
+          },
+          {
+            id: 'complete',
+            icon: savingProgress ? Loader2 : isCompleted ? CheckCircle : Circle,
+            label: isCompleted ? 'Concluído' : 'Concluir',
+            onClick: handleMarkAsComplete,
+            disabled: savingProgress,
+            tone: isCompleted ? 'success' : 'default',
+          },
+          {
+            id: 'next',
+            icon: SkipForward,
+            label: 'Próxima',
+            onClick: handleNextVideo,
+            disabled: !hasNextVideo,
+            tone: hasNextVideo ? 'primary' : 'default',
+          },
+        ]}
+      />
 
-          <Button
-            onClick={handleBackToCourse}
-            variant="ghost"
-            size="sm"
-            className="flex-1 flex flex-col items-center gap-0.5 h-auto py-2"
-          >
-            <ListVideo className="h-5 w-5" />
-            <span className="text-[10px]">Aulas</span>
-          </Button>
-
-          <Button
-            onClick={handleMarkAsComplete}
-            disabled={savingProgress}
-            variant="ghost"
-            size="sm"
-            className={`flex-1 flex flex-col items-center gap-0.5 h-auto py-2 ${isCompleted ? 'text-green-600' : ''}`}
-          >
-            {savingProgress ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : isCompleted ? (
-              <CheckCircle className="h-5 w-5" />
-            ) : (
-              <Circle className="h-5 w-5" />
-            )}
-            <span className="text-[10px]">{isCompleted ? 'Concluído' : 'Concluir'}</span>
-          </Button>
-
-          <Button
-            onClick={handleNextVideo}
-            disabled={!hasNextVideo}
-            variant="ghost"
-            size="sm"
-            className={`flex-1 flex flex-col items-center gap-0.5 h-auto py-2 ${hasNextVideo ? 'text-blue-600' : 'opacity-40'}`}
-          >
-            <SkipForward className="h-5 w-5" />
-            <span className="text-[10px]">Próxima</span>
-          </Button>
-        </div>
-      </div>
-    </div>
+      {/* Mobile bottom sheet de módulos (acionado pelo botão "Aulas" do AtlasStickyActions) */}
+      <AtlasSheet open={modulesSheetOpen} onOpenChange={setModulesSheetOpen}>
+        <AtlasSheetContent
+          metaLabel="Conteúdo do módulo"
+          title={sidebarTitle}
+          height="78vh"
+          className="lg:hidden"
+        >
+          <AtlasModuleSidebar
+            hideHeader
+            title={sidebarTitle}
+            modules={sidebarModules}
+            activeLessonId={currentVideo.id}
+            onLessonClick={handleLessonClick}
+            className="border-0 rounded-none h-full"
+          />
+        </AtlasSheetContent>
+      </AtlasSheet>
+    </main>
   );
 }
