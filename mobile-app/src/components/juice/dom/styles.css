@@ -1,0 +1,276 @@
+/* === Dr. Gelpi — Animação de Acerto === */
+/* Adaptado de Marcelo Portilho/Projeto Cirurgião — sem fontes externas (perf mobile WebView) */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: transparent;
+  color: #E8EEF7;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#root { min-height: 100vh; background: transparent; }
+
+/* === MODAL OVERLAY (gate das animações) === */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: transparent;
+}
+
+/* === DR. GELPI ANIMAÇÃO === */
+.gelpi-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 320px;
+  z-index: 11;
+  opacity: 0;
+  pointer-events: none;
+}
+.modal-overlay.show .gelpi-stage {
+  opacity: 1;
+  animation: gelpiEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes gelpiEnter {
+  0% { opacity: 0; transform: translate(-50%, -50%) translateY(40px) scale(0.6); }
+  60% { opacity: 1; transform: translate(-50%, -50%) translateY(-10px) scale(1.05); }
+  100% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+}
+
+.gelpi-root {
+  width: 100%; height: 100%;
+  position: relative;
+}
+
+/* Pulinhos de comemoração */
+.modal-overlay.show .gelpi-root .body-group {
+  animation: bodyBounce 0.7s 0.6s ease-out 2;
+  transform-origin: center bottom;
+}
+@keyframes bodyBounce {
+  0% { transform: translateY(0) scaleY(1); }
+  20% { transform: translateY(0) scaleY(0.9) scaleX(1.05); }
+  50% { transform: translateY(-30px) scaleY(1.05) scaleX(0.97); }
+  80% { transform: translateY(0) scaleY(0.95) scaleX(1.03); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+
+.modal-overlay.show .gelpi-root .head-group {
+  animation: headTilt 0.7s 0.6s ease-out 2;
+  transform-origin: 200px 220px;
+}
+@keyframes headTilt {
+  0% { transform: rotate(0); }
+  30% { transform: rotate(-4deg) translateY(-3px); }
+  70% { transform: rotate(3deg); }
+  100% { transform: rotate(0); }
+}
+
+.modal-overlay.show .gelpi-root .arm-right {
+  animation: thumbsUp 0.5s 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: 270px 270px;
+}
+@keyframes thumbsUp {
+  0% { transform: rotate(20deg) translateY(20px); }
+  60% { transform: rotate(-12deg) translateY(-5px); }
+  100% { transform: rotate(-5deg); }
+}
+
+.modal-overlay.show .gelpi-root .thumbs-up {
+  animation: thumbWiggle 0.4s 1.2s ease-in-out 3;
+  transform-origin: 290px 200px;
+}
+@keyframes thumbWiggle {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(8deg); }
+}
+
+.modal-overlay.show .brow-l { animation: browLift 0.6s 0.6s ease-out forwards; transform-origin: 175px 142px; }
+.modal-overlay.show .brow-r { animation: browLift 0.6s 0.6s ease-out forwards; transform-origin: 225px 142px; }
+@keyframes browLift {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-6px) scaleY(1.1); }
+  100% { transform: translateY(-3px); }
+}
+
+.modal-overlay.show .eye-white-l,
+.modal-overlay.show .eye-white-r {
+  animation: eyeShine 0.5s 0.7s ease-out;
+}
+@keyframes eyeShine {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.modal-overlay.show .cheek-l,
+.modal-overlay.show .cheek-r {
+  animation: cheekPulse 1s 0.8s ease-in-out infinite;
+}
+@keyframes cheekPulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.modal-overlay.show .mouth-group {
+  animation: mouthCheer 0.6s 0.6s ease-in-out infinite alternate;
+  transform-origin: 200px 222px;
+}
+@keyframes mouthCheer {
+  0% { transform: scaleY(0.7); }
+  100% { transform: scaleY(1.1); }
+}
+
+.modal-overlay.show .mustache {
+  animation: mustacheJiggle 0.3s 0.6s ease-in-out infinite alternate;
+  transform-origin: 200px 207px;
+}
+@keyframes mustacheJiggle {
+  0% { transform: scaleX(0.97) translateY(0); }
+  100% { transform: scaleX(1.03) translateY(1px); }
+}
+
+.modal-overlay.show .stethoscope {
+  animation: stethoSwing 0.7s 0.6s ease-in-out 2;
+  transform-origin: 200px 250px;
+}
+@keyframes stethoSwing {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-6deg); }
+}
+
+.modal-overlay.show .ground-shadow {
+  animation: shadowPulse 0.7s 0.6s ease-out 2;
+  transform-origin: center;
+}
+@keyframes shadowPulse {
+  0%, 100% { transform: scale(1); opacity: 0.18; }
+  50% { transform: scale(0.6); opacity: 0.08; }
+}
+
+/* === CONFETTI === */
+.confetti-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 12;
+}
+.confetti-piece {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  animation: confettiBurst 1.6s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+@keyframes confettiBurst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0);
+  }
+  10% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+  }
+}
+
+/* === XP POPS === */
+.xp-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13;
+}
+.xp-pop {
+  position: absolute;
+  top: 60%;
+  font-family: system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: #FFB020;
+  text-shadow:
+    -2px -2px 0 #fff, 2px -2px 0 #fff,
+    -2px 2px 0 #fff, 2px 2px 0 #fff,
+    0 4px 12px rgba(255, 176, 32, 0.6);
+  -webkit-text-stroke: 3px white;
+  paint-order: stroke fill;
+  opacity: 0;
+  transform: translateY(0);
+  animation: xpFloat 1.8s ease-out forwards;
+  white-space: nowrap;
+}
+@keyframes xpFloat {
+  0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+  20% { opacity: 1; transform: translateY(0) scale(1.2); }
+  35% { transform: translateY(-10px) scale(1); }
+  100% { opacity: 0; transform: translateY(-180px) scale(0.9); }
+}
+
+/* === SPARKLES === */
+.sparkle-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 11;
+}
+.sparkle {
+  position: absolute;
+  opacity: 0;
+  animation: sparkleTwinkle 1.4s ease-in-out forwards;
+  filter: drop-shadow(0 0 6px rgba(255, 217, 60, 0.8));
+}
+@keyframes sparkleTwinkle {
+  0% { opacity: 0; transform: scale(0) rotate(0); }
+  40% { opacity: 1; transform: scale(1.3) rotate(180deg); }
+  70% { opacity: 0.7; transform: scale(1) rotate(280deg); }
+  100% { opacity: 0; transform: scale(0.5) rotate(360deg); }
+}
+
+/* === HALO === */
+.halo-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+}
+.halo {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid;
+  opacity: 0;
+}
+.halo-1 {
+  width: 240px; height: 240px;
+  border-color: rgba(79, 168, 232, 0.6);
+  animation: haloRing 1.5s ease-out forwards;
+}
+.halo-2 {
+  width: 240px; height: 240px;
+  border-color: rgba(255, 217, 60, 0.7);
+  animation: haloRing 1.5s 0.2s ease-out forwards;
+}
+.halo-3 {
+  width: 240px; height: 240px;
+  border-color: rgba(30, 111, 217, 0.5);
+  animation: haloRing 1.5s 0.4s ease-out forwards;
+}
+@keyframes haloRing {
+  0% { transform: scale(0.4); opacity: 0; border-width: 4px; }
+  30% { opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; border-width: 1px; }
+}

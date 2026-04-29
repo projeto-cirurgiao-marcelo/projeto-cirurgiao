@@ -1,0 +1,192 @@
+/* === Animações da reação de ERRO === */
+
+/* Entrada suave — sem pulo, só desliza pra cima */
+.modal-overlay.show.error-mode .gelpi-stage {
+  animation: gelpiEnterSoft 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes gelpiEnterSoft {
+  0% { opacity: 0; transform: translate(-50%, -50%) translateY(30px) scale(0.85); }
+  100% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+}
+
+/* Cabeça inclinada com empatia */
+.modal-overlay.show.error-mode .head-group {
+  animation: headEmpathy 1.4s 0.4s ease-in-out forwards;
+  transform-origin: 200px 220px;
+}
+@keyframes headEmpathy {
+  0% { transform: rotate(0); }
+  40% { transform: rotate(-8deg) translateY(2px); }
+  100% { transform: rotate(-6deg) translateY(2px); }
+}
+
+/* Sobrancelhas preocupadas */
+.modal-overlay.show.error-mode .brow-l {
+  animation: browWorryL 0.5s 0.4s ease-out forwards;
+  transform-origin: 192px 142px;
+}
+.modal-overlay.show.error-mode .brow-r {
+  animation: browWorryR 0.5s 0.4s ease-out forwards;
+  transform-origin: 208px 142px;
+}
+@keyframes browWorryL {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(-8deg) translateY(-2px); }
+}
+@keyframes browWorryR {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(8deg) translateY(-2px); }
+}
+
+/* Olhos piscar empático */
+.modal-overlay.show.error-mode .eye-white-l,
+.modal-overlay.show.error-mode .eye-white-r {
+  animation: eyeBlinkSlow 2.5s 0.4s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes eyeBlinkSlow {
+  0%, 90%, 100% { transform: scaleY(1); }
+  93% { transform: scaleY(0.1); }
+}
+
+.modal-overlay.show.error-mode .iris-l { animation: irisDown 0.6s 0.4s ease-out forwards; }
+.modal-overlay.show.error-mode .iris-r { animation: irisDown 0.6s 0.4s ease-out forwards; }
+@keyframes irisDown {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(0, 2px); }
+}
+
+.modal-overlay.show.error-mode .mouth-group {
+  animation: mouthGentle 0.5s 0.4s ease-out forwards;
+  transform-origin: 200px 222px;
+}
+@keyframes mouthGentle {
+  0% { transform: scaleY(1) scaleX(1); }
+  100% { transform: scaleY(0.35) scaleX(0.8) translateY(2px); }
+}
+
+/* Mão no coração */
+.modal-overlay.show.error-mode .arm-left {
+  animation: handToHeart 0.7s 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: 130px 270px;
+}
+@keyframes handToHeart {
+  0% { transform: rotate(0) translate(0, 0); }
+  100% { transform: rotate(-35deg) translate(20px, -40px); }
+}
+
+.modal-overlay.show.error-mode .arm-right {
+  animation: armDownRight 0.6s 0.4s ease-out forwards;
+  transform-origin: 270px 270px;
+}
+@keyframes armDownRight {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(15deg) translateY(20px); }
+}
+
+.modal-overlay.show.error-mode .thumbs-up {
+  animation: thumbHide 0.3s 0.4s ease-out forwards;
+  transform-origin: 290px 200px;
+}
+@keyframes thumbHide {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.4) translateY(15px); opacity: 0.6; }
+}
+
+/* Corpo respira */
+.modal-overlay.show.error-mode .body-group {
+  animation: gentleBreath 3s 0.6s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+@keyframes gentleBreath {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-2px) scaleY(1.01); }
+}
+
+.modal-overlay.show.error-mode .cheek-l,
+.modal-overlay.show.error-mode .cheek-r {
+  opacity: 0.5;
+}
+
+/* === EFEITOS DE FUNDO ERRO === */
+
+/* Coração pulsando */
+.heart-pulse-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13;
+}
+.heart-icon {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-90px);
+  width: 36px;
+  height: 36px;
+  opacity: 0;
+  animation: heartShow 2s 0.9s ease-out forwards;
+  filter: drop-shadow(0 4px 12px rgba(231, 87, 87, 0.5));
+}
+@keyframes heartShow {
+  0% { opacity: 0; transform: translateX(-90px) scale(0.4); }
+  20% { opacity: 1; transform: translateX(-90px) scale(1.3); }
+  35% { transform: translateX(-90px) scale(1); }
+  60% { opacity: 1; transform: translateX(-90px) scale(1.15); }
+  80% { transform: translateX(-90px) scale(1); }
+  100% { opacity: 0.7; transform: translateX(-90px) scale(1); }
+}
+
+/* Ondas suaves */
+.calm-wave-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  z-index: 9;
+}
+.calm-wave {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 200, 130, 0.5);
+  opacity: 0;
+}
+.calm-wave-1 { animation: calmRipple 2.4s 0.6s ease-out infinite; }
+.calm-wave-2 { animation: calmRipple 2.4s 1.2s ease-out infinite; }
+.calm-wave-3 { animation: calmRipple 2.4s 1.8s ease-out infinite; }
+@keyframes calmRipple {
+  0% { transform: scale(0.5); opacity: 0; border-width: 3px; }
+  20% { opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0; border-width: 1px; }
+}
+
+/* Insight bubbles */
+.insight-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13;
+}
+.insight-pop {
+  position: absolute;
+  font-family: system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: white;
+  background: linear-gradient(135deg, #E89B5C, #C97A3D);
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  opacity: 0;
+  box-shadow: 0 4px 12px rgba(201, 122, 61, 0.4);
+  animation: insightFloat 2.4s ease-out forwards;
+}
+@keyframes insightFloat {
+  0% { opacity: 0; transform: translateY(20px) scale(0.7); }
+  20% { opacity: 1; transform: translateY(0) scale(1.05); }
+  35% { transform: translateY(-8px) scale(1); }
+  100% { opacity: 0; transform: translateY(-90px) scale(0.95); }
+}

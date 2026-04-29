@@ -32,7 +32,7 @@ import { ConfidenceRating, type ConfidenceLevel } from './ConfidenceRating';
 import { XpBurst } from '../juice/XpBurst';
 import { ConfettiSkia } from '../juice/ConfettiSkia';
 import { ScreenShake } from '../juice/ScreenShake';
-import { LottieFeedback, type LottieFeedbackKind } from '../juice/LottieFeedback';
+import { GelpiFeedback, type GelpiFeedbackKind } from '../juice/GelpiFeedback';
 
 export interface QuizPlayerProps {
   videoId: string;
@@ -58,7 +58,7 @@ type PlayStep = 'answering' | 'awaitingConfidence';
  *
  * Server is the source of truth for correctness. Per-question check via
  * `quizzesService.checkAnswer` (returns { isCorrect } without exposing the
- * gabarito). LottieFeedback (Dr. Gelpi) and juice (XpBurst / combo / shake)
+ * gabarito). GelpiFeedback (Dr. Gelpi DOM) and juice (XpBurst / combo / shake)
  * fire based on the real result. Final aggregate score still comes from
  * submit, but the per-question feedback now matches the truth.
  *
@@ -107,7 +107,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const [xpBurstValue, setXpBurstValue] = useState(0);
   const [confettiActive, setConfettiActive] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
-  const [lottieKind, setLottieKind] = useState<LottieFeedbackKind | null>(null);
+  const [lottieKind, setLottieKind] = useState<GelpiFeedbackKind | null>(null);
 
   // Result state
   const [result, setResult] = useState<QuizResultType | null>(null);
@@ -209,7 +209,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   /**
    * Tap on an option in the answering substate.
    * Calls server-side `checkAnswer` (returns only { isCorrect }, no gabarito)
-   * to drive LottieFeedback + juice. Falls back to optimistic-positive on
+   * to drive GelpiFeedback + juice. Falls back to optimistic-positive on
    * network failure so a backend hiccup doesn't punish the user.
    */
   const handleSelectOption = async (optionIndex: number) => {
@@ -220,29 +220,22 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     storeSelectAnswer(question.id, optionIndex);
 
     // Server-side correctness check (no gabarito exposure).
-    // DEV: random 50/50 pra testar ambas animações Lottie sem depender de
-    // acertar/errar de verdade. Remover bloco __DEV__ antes de release.
     let isCorrect = false;
-    if (__DEV__) {
-      isCorrect = Math.random() > 0.5;
-      logger.log('[QuizPlayer] DEV mode — random isCorrect:', isCorrect);
-    } else {
-      try {
-        const resp = await quizzesService.checkAnswer(
-          quiz.id,
-          question.id,
-          optionIndex,
-        );
-        isCorrect = resp.isCorrect;
-      } catch (err) {
-        logger.error(
-          '[QuizPlayer] checkAnswer failed; assuming correct optimistically',
-          err,
-        );
-        // Network failure: fall back to optimistic-positive (don't punish user
-        // for backend hiccups).
-        isCorrect = true;
-      }
+    try {
+      const resp = await quizzesService.checkAnswer(
+        quiz.id,
+        question.id,
+        optionIndex,
+      );
+      isCorrect = resp.isCorrect;
+    } catch (err) {
+      logger.error(
+        '[QuizPlayer] checkAnswer failed; assuming correct optimistically',
+        err,
+      );
+      // Network failure: fall back to optimistic-positive (don't punish user
+      // for backend hiccups).
+      isCorrect = true;
     }
 
     markCorrectness(question.id, isCorrect);
@@ -555,7 +548,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
             active={confettiActive}
             count={result?.score === 100 ? 120 : 60}
           />
-          <LottieFeedback
+          <GelpiFeedback
             kind={lottieKind}
             onDone={() => setLottieKind(null)}
           />

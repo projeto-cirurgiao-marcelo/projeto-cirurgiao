@@ -144,7 +144,7 @@ export const quizzesService = {
   /**
    * Verifica server-side se uma resposta está correta — retorna apenas boolean
    * (sem revelar o gabarito). Usado pra disparar feedback visual contextual
-   * (LottieFeedback correct/wrong) imediato.
+   * (GelpiFeedback correct/wrong) imediato.
    */
   async checkAnswer(
     quizId: string,
