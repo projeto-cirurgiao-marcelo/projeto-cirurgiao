@@ -2,7 +2,7 @@ import { DynamicModule, Global, Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from './queue.constants';
-import { buildBullRootOptions, isQueueEnabled } from './queue.config';
+import { buildBullRootOptions } from './queue.config';
 import { QueueService } from './queue.service';
 
 /**
@@ -12,14 +12,12 @@ import { QueueService } from './queue.service';
  * - `QUEUE_ENABLED=true`  → BullModule.forRootAsync + BullModule.registerQueue
  *                          for each named queue. QueueService enqueues
  *                          real BullMQ jobs.
- * - `QUEUE_ENABLED=false` (default) → BullModule is NOT registered.
- *   QueueService goes into synchronous mode: `enqueue()` runs the caller's
- *   fallback inline and returns the would-be job metadata, so callers
- *   still get a uniform 202-looking response without Redis.
+ * - `QUEUE_ENABLED=false` (default) → BullModule is NOT registered at all.
+ *   No Redis connection is attempted. QueueService goes into synchronous
+ *   mode: `enqueue()` runs the caller's fallback inline.
  *
- * This lets the code ship to prod before Cloud Memorystore is provisioned
- * — when Gustav sets QUEUE_ENABLED=true and configures Redis, the queue
- * activates without another deploy.
+ * Reads process.env directly (not ConfigService) so the decision is made
+ * at module-graph build time, before DI resolves.
  */
 @Global()
 @Module({})
@@ -27,43 +25,41 @@ export class QueueModule {
   private static readonly logger = new Logger(QueueModule.name);
 
   static forRoot(): DynamicModule {
-    // We don't have ConfigService at the decorator level, so we build
-    // the module graph conditionally inside an async factory.
+    const queueEnabled =
+      (process.env.QUEUE_ENABLED ?? 'false').toLowerCase() === 'true';
+
+    if (!queueEnabled) {
+      QueueModule.logger.log(
+        'QUEUE_ENABLED=false — BullMQ skipped entirely. QueueService runs inline.',
+      );
+    }
+
+    const bullImports = queueEnabled
+      ? [
+          BullModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => {
+              QueueModule.logger.log(
+                'QUEUE_ENABLED=true — initialising BullMQ connection.',
+              );
+              return buildBullRootOptions(configService);
+            },
+          }),
+          BullModule.registerQueue(
+            { name: QUEUE_NAMES.SUMMARY },
+            { name: QUEUE_NAMES.QUIZ },
+            { name: QUEUE_NAMES.PDF_INGEST },
+            { name: QUEUE_NAMES.CAPTIONS },
+          ),
+        ]
+      : [];
+
     return {
       module: QueueModule,
-      imports: [
-        ConfigModule,
-        // Register BullMQ only when the flag is on. If off, BullModule
-        // never touches Redis — handy for local runs without docker up.
-        BullModule.forRootAsync({
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: (configService: ConfigService) => {
-            if (!isQueueEnabled(configService)) {
-              QueueModule.logger.log(
-                'QUEUE_ENABLED=false — BullMQ root config skipped (no-op mode).',
-              );
-              // Return a config pointing at a TCP port that will never be
-              // reached. BullMQ lazy-connects only when someone enqueues,
-              // and QueueService.enqueue() will short-circuit before that
-              // when the flag is off.
-              return {
-                connection: { host: '127.0.0.1', port: 0 },
-              };
-            }
-            QueueModule.logger.log('QUEUE_ENABLED=true — initialising BullMQ connection.');
-            return buildBullRootOptions(configService);
-          },
-        }),
-        BullModule.registerQueue(
-          { name: QUEUE_NAMES.SUMMARY },
-          { name: QUEUE_NAMES.QUIZ },
-          { name: QUEUE_NAMES.PDF_INGEST },
-          { name: QUEUE_NAMES.CAPTIONS },
-        ),
-      ],
+      imports: [ConfigModule, ...bullImports],
       providers: [QueueService],
-      exports: [QueueService, BullModule],
+      exports: [QueueService, ...(queueEnabled ? [BullModule] : [])],
     };
   }
 }

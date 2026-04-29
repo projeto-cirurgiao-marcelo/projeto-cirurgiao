@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, JobsOptions } from 'bullmq';
@@ -28,17 +28,17 @@ export class QueueService {
 
   constructor(
     private readonly configService: ConfigService,
-    @InjectQueue(QUEUE_NAMES.SUMMARY) summaryQueue: Queue,
-    @InjectQueue(QUEUE_NAMES.QUIZ) quizQueue: Queue,
-    @InjectQueue(QUEUE_NAMES.PDF_INGEST) pdfIngestQueue: Queue,
-    @InjectQueue(QUEUE_NAMES.CAPTIONS) captionsQueue: Queue,
+    @Optional() @InjectQueue(QUEUE_NAMES.SUMMARY) summaryQueue?: Queue,
+    @Optional() @InjectQueue(QUEUE_NAMES.QUIZ) quizQueue?: Queue,
+    @Optional() @InjectQueue(QUEUE_NAMES.PDF_INGEST) pdfIngestQueue?: Queue,
+    @Optional() @InjectQueue(QUEUE_NAMES.CAPTIONS) captionsQueue?: Queue,
   ) {
     this.enabled = isQueueEnabled(this.configService);
     this.queues = {
-      [QUEUE_NAMES.SUMMARY]: summaryQueue,
-      [QUEUE_NAMES.QUIZ]: quizQueue,
-      [QUEUE_NAMES.PDF_INGEST]: pdfIngestQueue,
-      [QUEUE_NAMES.CAPTIONS]: captionsQueue,
+      [QUEUE_NAMES.SUMMARY]: summaryQueue!,
+      [QUEUE_NAMES.QUIZ]: quizQueue!,
+      [QUEUE_NAMES.PDF_INGEST]: pdfIngestQueue!,
+      [QUEUE_NAMES.CAPTIONS]: captionsQueue!,
     };
   }
 
