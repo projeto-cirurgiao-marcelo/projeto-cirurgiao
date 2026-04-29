@@ -5,8 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
-import { Colors as colors } from '../../constants/colors';
 
 export interface QuestionCardQuestion {
   id: string;
@@ -27,9 +27,12 @@ export interface QuestionCardProps {
   progress?: QuestionCardProgress;
 }
 
+const MONO_FAMILY = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+
 /**
- * Pure presentational question card.
- * Renders progress bar, question counter, question text and 4 (A/B/C/D-style) options.
+ * Pure presentational question card matching Marcelo claude.design styles.css.
+ * Eyebrow "PERGUNTA X / N", question h2, options A/B/C/D white cards with
+ * monospace badge box. Wrapping screen owns the linear-gradient background.
  */
 export function QuestionCard({
   question,
@@ -38,159 +41,115 @@ export function QuestionCard({
   disabled = false,
   progress,
 }: QuestionCardProps) {
-  const progressPct = progress
-    ? (progress.current / progress.total) * 100
-    : 0;
-
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.body} contentContainerStyle={styles.content}>
       {progress && (
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
-        </View>
+        <Text style={styles.eyebrow}>
+          PERGUNTA {String(progress.current).padStart(2, '0')} / {String(progress.total).padStart(2, '0')}
+        </Text>
       )}
 
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.content}
-      >
-        {progress && (
-          <View style={styles.questionHeader}>
-            <Text style={styles.questionCounter}>
-              Questao {progress.current} de {progress.total}
-            </Text>
-          </View>
-        )}
+      <Text style={styles.questionText}>{question.question}</Text>
 
-        <Text style={styles.questionText}>{question.question}</Text>
-
-        <View style={styles.optionsList}>
-          {question.options.map((option, index) => {
-            const isSelected = selectedAnswer === index;
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.optionButton,
-                  isSelected && styles.optionButtonSelected,
-                ]}
-                onPress={() => onSelect(index)}
-                disabled={disabled}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.optionCircle,
-                    isSelected && styles.optionCircleSelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.optionCircleText,
-                      isSelected && styles.optionCircleTextSelected,
-                    ]}
-                  >
-                    {String.fromCharCode(65 + index)}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.optionText,
-                    isSelected && styles.optionTextSelected,
-                  ]}
-                >
-                  {option}
+      <View style={styles.optionsList}>
+        {question.options.map((option, index) => {
+          const isSelected = selectedAnswer === index;
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.option, isSelected && styles.optionSelected]}
+              onPress={() => onSelect(index)}
+              disabled={disabled}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.badge, isSelected && styles.badgeSelected]}>
+                <Text style={[styles.badgeText, isSelected && styles.badgeTextSelected]}>
+                  {String.fromCharCode(65 + index)}
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </View>
+              </View>
+              <Text
+                style={[styles.optionText, isSelected && styles.optionTextSelected]}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 }
 
 export default QuestionCard;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  progressBar: {
-    height: 3,
-    backgroundColor: colors.border,
-  },
-  progressFill: {
-    height: 3,
-    backgroundColor: colors.accent,
-  },
-  body: {
-    flex: 1,
-  },
+  body: { flex: 1 },
   content: {
-    padding: 14,
+    padding: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
-  questionHeader: {
-    marginBottom: 12,
-  },
-  questionCounter: {
-    fontSize: 12,
+  eyebrow: {
+    fontSize: 11,
     fontWeight: '600',
-    color: colors.accent,
+    color: '#6F8AA8',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+    fontFamily: MONO_FAMILY,
   },
   questionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-    lineHeight: 22,
-    marginBottom: 16,
+    color: '#0B2845',
+    fontSize: 19,
+    fontWeight: '800',
+    lineHeight: 25,
+    marginBottom: 20,
   },
   optionsList: {
-    gap: 8,
-  },
-  optionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: colors.border,
     gap: 10,
   },
-  optionButtonSelected: {
-    borderColor: colors.accent,
-    backgroundColor: `${colors.accent}08`,
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderColor: '#E1EAF3',
+    borderWidth: 2,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
   },
-  optionCircle: {
+  optionSelected: {
+    borderColor: '#1E6FD9',
+    backgroundColor: '#F0F7FF',
+  },
+  badge: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#F0F5FB',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
+    justifyContent: 'center',
   },
-  optionCircleSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+  badgeSelected: {
+    backgroundColor: '#1E6FD9',
   },
-  optionCircleText: {
+  badgeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    fontWeight: '700',
+    color: '#6F8AA8',
+    fontFamily: MONO_FAMILY,
   },
-  optionCircleTextSelected: {
-    color: '#fff',
+  badgeTextSelected: {
+    color: 'white',
   },
   optionText: {
     flex: 1,
-    fontSize: 13,
-    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0B2845',
     lineHeight: 19,
   },
   optionTextSelected: {
-    fontWeight: '500',
+    fontWeight: '700',
   },
 });

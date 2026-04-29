@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { quizzesService } from '../../services/api/quizzes.service';
 import { logger } from '../../lib/logger';
 import { useAuthStore } from '../../stores/auth-store';
@@ -86,7 +87,8 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const storeAnswers = useQuizStore((s) => s.answers);
 
   // Accuracy parcial até a pergunta atual (corretas / respondidas com isCorrect set)
-  const accuracyPct = (() => {
+  // + total de corretas pra alimentar XP bar do header gamificado.
+  const { accuracyPct, correctCount } = (() => {
     let correct = 0;
     let answered = 0;
     for (const a of storeAnswers.values()) {
@@ -95,7 +97,10 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         if (a.isCorrect) correct += 1;
       }
     }
-    return answered === 0 ? 0 : (correct / answered) * 100;
+    return {
+      accuracyPct: answered === 0 ? 0 : (correct / answered) * 100,
+      correctCount: correct,
+    };
   })();
 
   const [phase, setPhase] = useState<Phase>('intro');
@@ -443,20 +448,42 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     if (!question || !question.options) return null;
     const isLast = currentQuestionIndex === quiz.questions.length - 1;
     const awaitingConfidence = playStep === 'awaitingConfidence';
+    const totalQuestions = quiz.questions.length;
+    const xpProgressPct = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
 
     return (
-      <View style={styles.fullscreenContainer}>
-        {/* Header */}
-        <View style={styles.fullscreenHeader}>
+      <LinearGradient
+        colors={['#F4FAFF', '#E1EFFC']}
+        style={styles.fullscreenContainer}
+      >
+        {/* Header gamificado: close X round + XP bar + streak pill */}
+        <View style={styles.gameHeader}>
           <TouchableOpacity
             onPress={handleCloseModal}
             style={styles.closeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close" size={22} color={colors.text} />
+            <Ionicons name="close" size={18} color="#6F8AA8" />
           </TouchableOpacity>
-          <Text style={styles.fullscreenHeaderTitle}>{quiz.title}</Text>
-          <View style={{ width: 32 }} />
+
+          <View style={styles.xpBarWrap}>
+            <LinearGradient
+              colors={['#1E6FD9', '#4FA8E8']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.xpBarFill, { width: `${xpProgressPct}%` }]}
+            />
+          </View>
+
+          <LinearGradient
+            colors={['#FF8B3D', '#FFB020']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.streakPill}
+          >
+            <Text style={styles.streakEmoji}>🔥</Text>
+            <Text style={styles.streakNumber}>{combo}</Text>
+          </LinearGradient>
         </View>
 
         <QuestionCard
@@ -470,7 +497,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
           disabled={submitting || awaitingConfidence}
           progress={{
             current: currentQuestionIndex + 1,
-            total: quiz.questions.length,
+            total: totalQuestions,
           }}
         />
 
@@ -490,7 +517,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
             </View>
           )}
         </View>
-      </View>
+      </LinearGradient>
     );
   };
 
@@ -498,18 +525,21 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
     if (!result) return null;
 
     return (
-      <View style={styles.fullscreenContainer}>
-        {/* Header */}
-        <View style={styles.fullscreenHeader}>
+      <LinearGradient
+        colors={['#F4FAFF', '#E1EFFC']}
+        style={styles.fullscreenContainer}
+      >
+        {/* Header simples no result phase */}
+        <View style={styles.gameHeader}>
           <TouchableOpacity
             onPress={handleCloseModal}
             style={styles.closeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close" size={22} color={colors.text} />
+            <Ionicons name="close" size={18} color="#6F8AA8" />
           </TouchableOpacity>
-          <Text style={styles.fullscreenHeaderTitle}>Resultado</Text>
-          <View style={{ width: 32 }} />
+          <Text style={styles.resultHeaderTitle}>Resultado</Text>
+          <View style={{ width: 34 }} />
         </View>
 
         <QuizResult
@@ -523,7 +553,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
           onRetryNewQuiz={handleRetryNewQuiz}
           onClose={handleCloseModal}
         />
-      </View>
+      </LinearGradient>
     );
   };
 
@@ -598,17 +628,15 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // Play footer (now hosts ConfidenceRating or hint)
+  // Play footer (hint / submitting only — ConfidenceRating moved into modal)
   playFooter: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    backgroundColor: colors.card,
+    backgroundColor: 'transparent',
   },
   hintText: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: '#6F8AA8',
     textAlign: 'center',
     paddingVertical: 16,
   },
@@ -621,41 +649,75 @@ const styles = StyleSheet.create({
   },
   submittingText: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: '#6F8AA8',
   },
 
-  // Fullscreen modal chrome
+  // Fullscreen modal chrome — gradient bg via LinearGradient wrap
   modalSafeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F4FAFF',
   },
   fullscreenContainer: {
     flex: 1,
-    backgroundColor: colors.background,
   },
-  fullscreenHeader: {
+
+  // Header gamificado conforme styles.css Marcelo
+  gameHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: colors.card,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.background,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(11, 40, 69, 0.06)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullscreenHeaderTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
+  xpBarWrap: {
     flex: 1,
+    height: 12,
+    backgroundColor: '#DDE7F0',
+    borderRadius: 999,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#C5D2E0',
+  },
+  xpBarFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  streakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    shadowColor: '#FF8B3D',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+    minWidth: 50,
+    justifyContent: 'center',
+  },
+  streakEmoji: {
+    fontSize: 14,
+  },
+  streakNumber: {
+    color: 'white',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  resultHeaderTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2845',
     textAlign: 'center',
   },
 });
