@@ -9,6 +9,28 @@ import {
   useState,
 } from 'react';
 import Hls from 'hls.js';
+import {
+  MediaController,
+  MediaControlBar,
+  MediaPlayButton,
+  MediaSeekBackwardButton,
+  MediaSeekForwardButton,
+  MediaTimeRange,
+  MediaTimeDisplay,
+  MediaMuteButton,
+  MediaVolumeRange,
+  MediaCaptionsButton,
+  MediaPlaybackRateButton,
+  MediaPipButton,
+  MediaFullscreenButton,
+  MediaLoadingIndicator,
+} from 'media-chrome/react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { logger } from '@/lib/logger';
 
 export interface HlsPlayerRef {
@@ -51,6 +73,9 @@ interface HlsVideoPlayerProps {
   externalCaptionsLabel?: string; // default 'Portugues'
 }
 
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const SEEK_SECONDS = 10;
+
 const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
   function HlsVideoPlayer(
     {
@@ -85,13 +110,9 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
     useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
 
-    // Quality levels state
+    // Quality levels state (popover custom — media-chrome nao expoe menu HLS)
     const [qualities, setQualities] = useState<QualityLevel[]>([]);
     const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = auto
-    const [showQualityMenu, setShowQualityMenu] = useState(false);
-    const [playbackRate, setPlaybackRate] = useState(1);
-    const [showRateMenu, setShowRateMenu] = useState(false);
-    const [subtitlesOn, setSubtitlesOn] = useState(true); // CC ligado por default
 
     // Expose imperative API
     useImperativeHandle(ref, () => ({
@@ -111,28 +132,6 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       if (hlsRef.current) {
         hlsRef.current.currentLevel = levelIndex; // -1 = auto
         setCurrentQuality(levelIndex);
-      }
-      setShowQualityMenu(false);
-    }, []);
-
-    // Change playback rate
-    const handleRateChange = useCallback((rate: number) => {
-      if (videoRef.current) {
-        videoRef.current.playbackRate = rate;
-        setPlaybackRate(rate);
-      }
-      setShowRateMenu(false);
-    }, []);
-
-    // Toggle subtitles
-    const handleToggleSubtitles = useCallback(() => {
-      const video = videoRef.current;
-      if (!video) return;
-      const track = video.textTracks[0];
-      if (track) {
-        const newState = track.mode === 'showing' ? 'hidden' : 'showing';
-        track.mode = newState;
-        setSubtitlesOn(newState === 'showing');
       }
     }, []);
 
@@ -257,24 +256,9 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Close menus when clicking outside (use mousedown to avoid React synthetic event conflict)
-    const controlsRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-      const handleClickOutside = (e: MouseEvent) => {
-        if (controlsRef.current && !controlsRef.current.contains(e.target as Node)) {
-          setShowQualityMenu(false);
-          setShowRateMenu(false);
-        }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
     const currentQualityLabel = currentQuality === -1
       ? 'Auto'
       : qualities.find(q => q.index === currentQuality)?.label ?? 'Auto';
-
-    const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
     // Resolve VTT URL:
     //   1) Se `externalCaptionsUrl` for passado pelo caller (contrato
@@ -304,11 +288,13 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     }, [derivedSubtitleUrl, externalCaptionsUrl]);
 
     return (
-      <div className={`relative w-full h-full bg-black ${className ?? ''}`}>
+      <MediaController
+        className={`relative w-full h-full bg-black ${className ?? ''}`}
+      >
         <video
+          slot="media"
           ref={videoRef}
           className="w-full h-full"
-          controls
           playsInline
           crossOrigin="anonymous"
         >
@@ -323,101 +309,67 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           )}
         </video>
 
-        {/* Custom controls overlay - Quality & Speed */}
-        <div
-          ref={controlsRef}
-          className="absolute top-2 right-2 flex items-center gap-1"
-          style={{ zIndex: 2147483647 }}
-        >
-          {/* CC Toggle */}
-          {hasSubtitles && (
-            <button
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                handleToggleSubtitles();
-              }}
-              className={`px-2 py-1 text-xs font-semibold rounded cursor-pointer select-none ${
-                subtitlesOn
-                  ? 'text-black bg-white hover:bg-white/90'
-                  : 'text-white bg-black/70 hover:bg-black/90'
-              }`}
-              title={subtitlesOn ? 'Desativar legendas' : 'Ativar legendas'}
-            >
-              CC
-            </button>
-          )}
+        <MediaLoadingIndicator
+          slot="centered-chrome"
+          noAutohide
+        />
 
-          {/* Playback Rate Selector */}
-          <div className="relative">
-            <button
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                setShowRateMenu(prev => !prev);
-                setShowQualityMenu(false);
-              }}
-              className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded cursor-pointer select-none"
-              title="Velocidade"
-            >
-              {playbackRate}x
-            </button>
-            {showRateMenu && (
-              <div className="absolute top-full right-0 mt-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[80px]">
-                {rates.map((rate) => (
-                  <button
-                    key={rate}
-                    onMouseDown={(e) => { e.stopPropagation(); handleRateChange(rate); }}
-                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
-                      playbackRate === rate ? 'bg-white/30 font-bold' : ''
-                    }`}
-                  >
-                    {rate}x
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Quality Selector */}
-          {qualities.length > 1 && (
-            <div className="relative">
-              <button
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setShowQualityMenu(prev => !prev);
-                  setShowRateMenu(false);
-                }}
-                className="px-2 py-1 text-xs font-semibold text-white bg-black/70 hover:bg-black/90 rounded cursor-pointer select-none"
-                title="Qualidade"
+        {/* Top-right chrome: custom HLS quality menu (media-chrome nao tem) */}
+        {qualities.length > 1 && (
+          <div
+            slot="top-chrome"
+            className="flex w-full items-start justify-end p-2"
+          >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="media-control-btn px-2 py-1 text-xs font-semibold cursor-pointer select-none"
+                  title="Qualidade"
+                >
+                  {currentQualityLabel}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="media-menu-surface min-w-[120px] border-0 bg-transparent p-0 shadow-none"
               >
-                {currentQualityLabel}
-              </button>
-              {showQualityMenu && (
-                <div className="absolute top-full right-0 mt-1 bg-black/90 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
-                  <button
-                    onMouseDown={(e) => { e.stopPropagation(); handleQualityChange(-1); }}
-                    className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
-                      currentQuality === -1 ? 'bg-white/30 font-bold' : ''
-                    }`}
+                <DropdownMenuItem
+                  onSelect={() => handleQualityChange(-1)}
+                  data-selected={currentQuality === -1}
+                  className="media-menu-item cursor-pointer px-3 py-1.5 text-xs focus:bg-transparent"
+                >
+                  Auto
+                </DropdownMenuItem>
+                {qualities.map((q) => (
+                  <DropdownMenuItem
+                    key={q.index}
+                    onSelect={() => handleQualityChange(q.index)}
+                    data-selected={currentQuality === q.index}
+                    className="media-menu-item cursor-pointer px-3 py-1.5 text-xs focus:bg-transparent"
                   >
-                    Auto
-                  </button>
-                  {qualities.map((q) => (
-                    <button
-                      key={q.index}
-                      onMouseDown={(e) => { e.stopPropagation(); handleQualityChange(q.index); }}
-                      className={`block w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/20 cursor-pointer ${
-                        currentQuality === q.index ? 'bg-white/30 font-bold' : ''
-                      }`}
-                    >
-                      {q.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+                    {q.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
+        <MediaControlBar>
+          <MediaPlayButton />
+          <MediaSeekBackwardButton seekOffset={SEEK_SECONDS} />
+          <MediaSeekForwardButton seekOffset={SEEK_SECONDS} />
+          <MediaTimeDisplay showDuration />
+          <MediaTimeRange />
+          <MediaPlaybackRateButton rates={PLAYBACK_RATES} />
+          <MediaMuteButton />
+          <MediaVolumeRange />
+          {hasSubtitles && <MediaCaptionsButton />}
+          <MediaPipButton />
+          <MediaFullscreenButton />
+        </MediaControlBar>
+      </MediaController>
     );
   }
 );
