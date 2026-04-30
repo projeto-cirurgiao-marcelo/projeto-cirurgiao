@@ -119,11 +119,12 @@ export default function AdminSettingsPage() {
     <>
       {/* Page Title */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Configuracoes
+        <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · CONFIGURAÇÕES</div>
+        <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">
+          Configurações
         </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Gerencie seu perfil e configuracoes da plataforma.
+        <p className="mt-1 text-[13px] text-atlas-muted">
+          Gerencie seu perfil e configurações da plataforma.
         </p>
       </div>
 
@@ -161,7 +162,7 @@ export default function AdminSettingsPage() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <p className="text-lg font-semibold text-atlas-ink dark:text-white">
                     {profileName}
                   </p>
                   <div className="flex items-center gap-2">
@@ -178,7 +179,7 @@ export default function AdminSettingsPage() {
               {/* Campos do perfil */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 mb-1.5">
                     Nome
                   </label>
                   <Input
@@ -186,16 +187,16 @@ export default function AdminSettingsPage() {
                     disabled
                     className="bg-gray-50 dark:bg-gray-800/50"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-atlas-muted-2 mt-1">
                     Gerenciado pelo sistema de autenticacao.
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 mb-1.5">
                     Email
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
                     <Input
                       value={profileEmail}
                       disabled
@@ -207,7 +208,7 @@ export default function AdminSettingsPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 mb-1.5">
                     Funcao
                   </label>
                   <Input
@@ -217,7 +218,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 mb-1.5">
                     Membro desde
                   </label>
                   <Input
@@ -237,13 +238,13 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* Info box */}
-              <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3 p-4 bg-atlas-primary-soft dark:bg-blue-950/30 rounded-lg border border-atlas-primary/30 dark:border-blue-800">
                 <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
                     Alteracao de dados
                   </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                  <p className="text-xs text-atlas-primary dark:text-blue-400 mt-0.5">
                     Para alterar nome, email ou senha, utilize as configuracoes do Firebase Authentication.
                   </p>
                 </div>
@@ -263,7 +264,7 @@ export default function AdminSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 mb-1.5">
                   Nome da plataforma
                 </label>
                 <Input
@@ -276,7 +277,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 mb-1.5">
                   Descricao
                 </label>
                 <textarea
@@ -286,7 +287,7 @@ export default function AdminSettingsPage() {
                   }
                   placeholder="Descricao breve da plataforma"
                   rows={3}
-                  className="w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition-all duration-200 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:bg-gray-900 dark:border-gray-700 dark:text-white resize-none"
+                  className="w-full rounded-md border-2 border-atlas-line bg-white px-3 py-2 text-sm text-atlas-ink shadow-sm transition-all duration-200 outline-none hover:border-atlas-line-strong focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:bg-gray-900 dark:border-gray-700 dark:text-white resize-none"
                 />
               </div>
 
@@ -355,7 +356,7 @@ export default function AdminSettingsPage() {
               ].map((item) => (
                 <label
                   key={item.key}
-                  className="flex items-start gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                  className="flex items-start gap-4 p-4 rounded-lg border border-atlas-line dark:border-gray-800 hover:bg-atlas-surface-2 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -366,13 +367,13 @@ export default function AdminSettingsPage() {
                         [item.key]: e.target.checked,
                       }))
                     }
-                    className="mt-1 h-4 w-4 rounded border-gray-300 text-[rgb(var(--primary-500))] focus:ring-[rgb(var(--primary-500))] cursor-pointer"
+                    className="mt-1 h-4 w-4 rounded border-atlas-line-strong text-[rgb(var(--primary-500))] focus:ring-[rgb(var(--primary-500))] cursor-pointer"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-atlas-ink dark:text-white">
                       {item.label}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 mt-0.5">
                       {item.description}
                     </p>
                   </div>

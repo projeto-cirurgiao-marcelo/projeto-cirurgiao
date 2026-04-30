@@ -37,7 +37,7 @@ const SECTIONS: RailSection[] = [
   {
     label: 'Operação',
     items: [
-      { label: 'Dashboard', href: '/admin', icon: Home, matchPrefix: '/admin' },
+      { label: 'Dashboard', href: '/admin', icon: Home, matchExact: true },
       { label: 'Cursos', href: '/admin/courses', icon: BookOpen },
       { label: 'Módulos', href: '/admin/modules', icon: Folders },
       { label: 'Vídeos', href: '/admin/videos', icon: Video },

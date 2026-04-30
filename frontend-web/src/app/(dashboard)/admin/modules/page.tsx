@@ -144,11 +144,12 @@ export default function AdminModulesPage() {
     <>
       {/* Page Title */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Modulos
+        <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · MÓDULOS</div>
+        <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">
+          Módulos
         </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Gerencie os modulos dos seus cursos. Selecione um curso para visualizar seus modulos.
+        <p className="mt-1 text-[13px] text-atlas-muted">
+          Gerencie os módulos dos seus cursos. Selecione um curso para visualizar seus módulos.
         </p>
       </div>
 
@@ -181,7 +182,7 @@ export default function AdminModulesPage() {
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             {/* Dropdown de Curso */}
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
               <select
                 value={selectedCourseId}
                 onChange={(e) => {
@@ -190,7 +191,7 @@ export default function AdminModulesPage() {
                   setDebouncedSearch('');
                 }}
                 disabled={loadingCourses}
-                className="h-10 pl-10 pr-8 rounded-md border-2 border-gray-200 bg-white text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white min-w-[240px]"
+                className="h-10 pl-10 pr-8 rounded-md border-2 border-atlas-line bg-white text-sm font-medium text-atlas-ink shadow-sm transition-all duration-200 outline-none hover:border-atlas-line-strong focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white min-w-[240px]"
               >
                 <option value="">
                   {loadingCourses ? 'Carregando cursos...' : 'Selecione um curso'}
@@ -206,7 +207,7 @@ export default function AdminModulesPage() {
             {/* Busca */}
             {selectedCourseId && (
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
                 <Input
                   placeholder="Buscar por nome do modulo..."
                   value={search}
@@ -222,11 +223,11 @@ export default function AdminModulesPage() {
           {!selectedCourseId ? (
             // Estado: nenhum curso selecionado
             <div className="text-center py-16">
-              <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-              <p className="text-gray-500 dark:text-gray-400 mb-1 font-medium text-lg">
+              <BookOpen className="h-16 w-16 mx-auto mb-4 text-atlas-muted-2 dark:text-atlas-ink-2" />
+              <p className="text-atlas-muted dark:text-atlas-muted-2 mb-1 font-medium text-lg">
                 Selecione um curso
               </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">
+              <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted">
                 Escolha um curso no filtro acima para visualizar e gerenciar seus modulos.
               </p>
             </div>
@@ -249,13 +250,13 @@ export default function AdminModulesPage() {
           ) : filteredModules.length === 0 ? (
             // Estado: vazio
             <div className="text-center py-12">
-              <Layers className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500 dark:text-gray-400 mb-1 font-medium">
+              <Layers className="h-12 w-12 mx-auto mb-4 text-atlas-muted-2" />
+              <p className="text-atlas-muted dark:text-atlas-muted-2 mb-1 font-medium">
                 {debouncedSearch
                   ? 'Nenhum modulo encontrado'
                   : 'Este curso nao possui modulos'}
               </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
+              <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted mb-4">
                 {debouncedSearch
                   ? 'Tente ajustar os termos da busca.'
                   : 'Comece criando o primeiro modulo para este curso.'}
@@ -295,7 +296,7 @@ export default function AdminModulesPage() {
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <ImageIcon className="h-5 w-5 text-gray-400" />
+                            <ImageIcon className="h-5 w-5 text-atlas-muted-2" />
                           )}
                         </div>
                       </TableCell>
@@ -303,11 +304,11 @@ export default function AdminModulesPage() {
                       {/* Titulo + Descricao */}
                       <TableCell>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          <p className="text-sm font-semibold text-atlas-ink dark:text-white truncate">
                             {mod.title}
                           </p>
                           {mod.description && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[300px]">
+                            <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate max-w-[300px]">
                               {mod.description}
                             </p>
                           )}
@@ -317,8 +318,8 @@ export default function AdminModulesPage() {
                       {/* Videos count */}
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <Video className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          <Video className="h-4 w-4 text-atlas-muted-2" />
+                          <span className="text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2">
                             {mod._count?.videos ?? mod.videos?.length ?? 0}
                           </span>
                         </div>
@@ -356,7 +357,7 @@ export default function AdminModulesPage() {
                           }}
                           className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
-                          <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                          <MoreHorizontal className="h-4 w-4 text-atlas-muted" />
                         </button>
                       </TableCell>
                     </TableRow>
@@ -372,7 +373,7 @@ export default function AdminModulesPage() {
                     onClick={() => setOpenMenuId(null)}
                   />
                   <div
-                    className="fixed w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+                    className="fixed w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-atlas-line dark:border-gray-700 py-1 z-50"
                     style={{ top: menuPos.top, left: menuPos.left }}
                   >
                     <button
@@ -381,7 +382,7 @@ export default function AdminModulesPage() {
                         setOpenMenuId(null);
                         router.push(`/admin/courses/${selectedCourseId}/modules/${id}/edit`);
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-atlas-ink-2 dark:text-atlas-muted-2 hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors"
                     >
                       <Edit className="h-4 w-4" />
                       Editar
@@ -392,7 +393,7 @@ export default function AdminModulesPage() {
                         setOpenMenuId(null);
                         setConfirmDeleteId(id);
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                       Excluir
@@ -412,11 +413,11 @@ export default function AdminModulesPage() {
             className="fixed inset-0 bg-black/50"
             onClick={() => setConfirmDeleteId(null)}
           />
-          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-atlas-line dark:border-gray-700 p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-atlas-ink dark:text-white mb-2">
               Confirmar exclusao
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm text-atlas-ink-2 dark:text-atlas-muted-2 mb-6">
               Tem certeza que deseja excluir o modulo{' '}
               <strong>{modules.find((m) => m.id === confirmDeleteId)?.title}</strong>?
               Esta acao nao pode ser desfeita e todos os videos do modulo serao removidos.
@@ -424,7 +425,7 @@ export default function AdminModulesPage() {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancelar
               </button>

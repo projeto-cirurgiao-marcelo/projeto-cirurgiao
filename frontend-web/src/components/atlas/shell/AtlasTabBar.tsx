@@ -15,6 +15,9 @@ export interface TabBarItem {
   icon: LucideIcon;
   /** Override do match — quando ausente, exact match ou prefix com "/" */
   matchPrefix?: string;
+  /** Força matching exato (`pathname === href`). Evita rotas raiz casarem
+   *  com toda subrota via startsWith. */
+  matchExact?: boolean;
 }
 
 interface AtlasTabBarProps {
@@ -57,10 +60,11 @@ export function AtlasTabBar({
       {items.map((item) => {
         const Icon = item.icon;
         const matchHref = item.matchPrefix ?? item.href;
-        const isActive =
-          pathname === item.href ||
-          pathname === matchHref ||
-          pathname.startsWith(matchHref + "/");
+        const isActive = item.matchExact
+          ? pathname === item.href
+          : pathname === item.href ||
+            pathname === matchHref ||
+            pathname.startsWith(matchHref + "/");
         return (
           <Link
             key={item.id}

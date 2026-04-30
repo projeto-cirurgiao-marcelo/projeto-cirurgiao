@@ -143,11 +143,11 @@ export default function StudentDetailPage() {
   if (error || !student) {
     return (
       <div className="text-center py-24">
-        <UserIcon className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <UserIcon className="h-16 w-16 mx-auto mb-4 text-atlas-muted-2 dark:text-atlas-ink-2" />
+        <h2 className="text-xl font-semibold text-atlas-ink dark:text-white mb-2">
           {error || 'Aluno nao encontrado'}
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-sm text-atlas-muted dark:text-atlas-muted-2 mb-6">
           Nao foi possivel carregar os detalhes do aluno.
         </p>
         <button
@@ -167,12 +167,13 @@ export default function StudentDetailPage() {
       <div className="mb-8">
         <button
           onClick={() => router.push('/admin/students')}
-          className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
+          className="inline-flex items-center gap-2 text-sm text-atlas-ink-2 dark:text-atlas-muted-2 hover:text-atlas-ink dark:hover:text-white transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar para Alunos
         </button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · ALUNO</div>
+        <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink dark:text-white">
           Detalhes do Aluno
         </h1>
       </div>
@@ -191,7 +192,7 @@ export default function StudentDetailPage() {
             {/* Info Principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-atlas-ink dark:text-white">
                   {student.name}
                 </h2>
                 <Badge variant={student.isActive ? 'success' : 'destructive'}>
@@ -199,7 +200,7 @@ export default function StudentDetailPage() {
                 </Badge>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-atlas-ink-2 dark:text-atlas-muted-2">
                 <span className="flex items-center gap-1.5">
                   <Mail className="h-4 w-4" />
                   {student.email}
@@ -217,42 +218,42 @@ export default function StudentDetailPage() {
           </div>
 
           {/* KPIs do Aluno */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-            <div className="text-center p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30">
-              <BookOpen className="h-6 w-6 mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-atlas-line dark:border-gray-800">
+            <div className="text-center p-4 rounded-xl bg-atlas-primary-soft dark:bg-blue-950/30">
+              <BookOpen className="h-6 w-6 mx-auto mb-2 text-atlas-primary dark:text-blue-400" />
+              <p className="text-2xl font-bold text-atlas-ink dark:text-white">
                 {student.enrollmentCount}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 mt-0.5">
                 Cursos Matriculados
               </p>
             </div>
             <div className="text-center p-4 rounded-xl bg-green-50 dark:bg-green-950/30">
               <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-600 dark:text-green-400" />
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-atlas-ink dark:text-white">
                 {student.averageProgress}%
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 mt-0.5">
                 Progresso Medio
               </p>
             </div>
             <div className="text-center p-4 rounded-xl bg-purple-50 dark:bg-purple-950/30">
               <Trophy className="h-6 w-6 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-atlas-ink dark:text-white">
                 {student.quizAverageScore !== null
                   ? `${student.quizAverageScore}%`
                   : '-'}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 mt-0.5">
                 Media nos Quizzes
               </p>
             </div>
             <div className="text-center p-4 rounded-xl bg-orange-50 dark:bg-orange-950/30">
               <Activity className="h-6 w-6 mx-auto mb-2 text-orange-600 dark:text-orange-400" />
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-atlas-ink dark:text-white">
                 {student.totalQuizAttempts}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 mt-0.5">
                 Quizzes Realizados
               </p>
             </div>
@@ -278,11 +279,11 @@ export default function StudentDetailPage() {
           <CardContent>
             {student.enrollments.length === 0 ? (
               <div className="text-center py-12">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                <p className="text-gray-500 dark:text-gray-400 font-medium">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-atlas-muted-2 dark:text-atlas-ink-2" />
+                <p className="text-atlas-muted dark:text-atlas-muted-2 font-medium">
                   Nenhuma matricula encontrada
                 </p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted mt-1">
                   O aluno ainda nao se matriculou em nenhum curso.
                 </p>
               </div>
@@ -291,15 +292,15 @@ export default function StudentDetailPage() {
                 {student.enrollments.map((enrollment) => (
                   <div
                     key={enrollment.id}
-                    className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+                    className="p-4 rounded-xl border border-atlas-line dark:border-gray-800 hover:border-atlas-line-strong dark:hover:border-gray-700 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                        <h4 className="font-semibold text-atlas-ink dark:text-white truncate">
                           {enrollment.courseTitle}
                         </h4>
                         {enrollment.courseDescription && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                          <p className="text-sm text-atlas-muted dark:text-atlas-muted-2 mt-0.5 line-clamp-2">
                             {enrollment.courseDescription}
                           </p>
                         )}
@@ -335,13 +336,13 @@ export default function StudentDetailPage() {
                           }}
                         />
                       </div>
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 w-12 text-right">
+                      <span className="text-sm font-bold text-atlas-ink-2 dark:text-atlas-muted-2 w-12 text-right">
                         {Math.round(enrollment.progress)}%
                       </span>
                     </div>
 
                     {/* Metadados */}
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-atlas-muted dark:text-atlas-muted-2">
                       <span className="flex items-center gap-1">
                         <Layers className="h-3.5 w-3.5" />
                         {enrollment.courseModules} modulo{enrollment.courseModules !== 1 ? 's' : ''}
@@ -387,11 +388,11 @@ export default function StudentDetailPage() {
           <CardContent>
             {student.recentQuizzes.length === 0 ? (
               <div className="text-center py-12">
-                <FileQuestion className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                <p className="text-gray-500 dark:text-gray-400 font-medium">
+                <FileQuestion className="h-12 w-12 mx-auto mb-4 text-atlas-muted-2 dark:text-atlas-ink-2" />
+                <p className="text-atlas-muted dark:text-atlas-muted-2 font-medium">
                   Nenhum quiz realizado
                 </p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted mt-1">
                   O aluno ainda nao respondeu nenhum quiz.
                 </p>
               </div>
@@ -400,15 +401,15 @@ export default function StudentDetailPage() {
                 {student.recentQuizzes.map((quiz) => (
                   <div
                     key={quiz.id}
-                    className="p-3 rounded-lg border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    className="p-3 rounded-lg border border-atlas-line dark:border-gray-800 hover:bg-atlas-surface-2 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        <p className="text-sm font-medium text-atlas-ink dark:text-white truncate">
                           {quiz.quizTitle}
                         </p>
                         {quiz.videoTitle && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate">
                             {quiz.moduleTitle
                               ? `${quiz.moduleTitle} > ${quiz.videoTitle}`
                               : quiz.videoTitle}
@@ -421,7 +422,7 @@ export default function StudentDetailPage() {
                         {quiz.percentage}%
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-atlas-muted-2 dark:text-atlas-muted">
                       <span>
                         {quiz.correctCount}/{quiz.totalQuestions} acertos
                       </span>
