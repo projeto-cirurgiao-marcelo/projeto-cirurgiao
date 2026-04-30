@@ -51,9 +51,9 @@ const formatDuration = (seconds: number | null): string => {
 
 const uploadStatusConfig: Record<VideoUploadStatus, { label: string; className: string }> = {
   READY: { label: 'Pronto', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
-  PROCESSING: { label: 'Processando', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse' },
-  UPLOADING: { label: 'Enviando', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse' },
-  PENDING: { label: 'Pendente', className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400' },
+  PROCESSING: { label: 'Processando', className: 'bg-atlas-primary-soft text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse' },
+  UPLOADING: { label: 'Enviando', className: 'bg-atlas-primary-soft text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse' },
+  PENDING: { label: 'Pendente', className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-atlas-muted-2' },
   ERROR: { label: 'Erro', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
 };
 
@@ -216,11 +216,12 @@ export default function AdminVideosPage() {
     <>
       {/* Page Title */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Videos
+        <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · VÍDEOS</div>
+        <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">
+          Vídeos
         </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Gerencie os videos da plataforma. Selecione um curso e modulo para visualizar os videos.
+        <p className="mt-1 text-[13px] text-atlas-muted">
+          Gerencie os vídeos da plataforma. Selecione um curso e módulo para visualizar.
         </p>
       </div>
 
@@ -246,7 +247,7 @@ export default function AdminVideosPage() {
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             {/* Dropdown de Curso */}
             <div className="relative">
-              <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
               <select
                 value={selectedCourseId}
                 onChange={(e) => {
@@ -258,7 +259,7 @@ export default function AdminVideosPage() {
                   setStatusFilter('all');
                 }}
                 disabled={loadingCourses}
-                className="h-10 pl-10 pr-8 rounded-md border-2 border-gray-200 bg-white text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white min-w-[200px]"
+                className="h-10 pl-10 pr-8 rounded-md border-2 border-atlas-line bg-white text-sm font-medium text-atlas-ink shadow-sm transition-all duration-200 outline-none hover:border-atlas-line-strong focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white min-w-[200px]"
               >
                 <option value="">
                   {loadingCourses ? 'Carregando cursos...' : 'Selecione um curso'}
@@ -273,7 +274,7 @@ export default function AdminVideosPage() {
 
             {/* Dropdown de Modulo */}
             <div className="relative">
-              <Layers className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Layers className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
               <select
                 value={selectedModuleId}
                 onChange={(e) => {
@@ -283,7 +284,7 @@ export default function AdminVideosPage() {
                   setStatusFilter('all');
                 }}
                 disabled={!selectedCourseId || loadingModules}
-                className="h-10 pl-10 pr-8 rounded-md border-2 border-gray-200 bg-white text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white min-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-10 pl-10 pr-8 rounded-md border-2 border-atlas-line bg-white text-sm font-medium text-atlas-ink shadow-sm transition-all duration-200 outline-none hover:border-atlas-line-strong focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white min-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">
                   {!selectedCourseId
@@ -305,7 +306,7 @@ export default function AdminVideosPage() {
               <>
                 {/* Busca */}
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
                   <Input
                     placeholder="Buscar por titulo..."
                     value={search}
@@ -316,11 +317,11 @@ export default function AdminVideosPage() {
 
                 {/* Status Filter */}
                 <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as 'all' | 'published' | 'draft')}
-                    className="h-10 pl-10 pr-8 rounded-md border-2 border-gray-200 bg-white text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                    className="h-10 pl-10 pr-8 rounded-md border-2 border-atlas-line bg-white text-sm font-medium text-atlas-ink shadow-sm transition-all duration-200 outline-none hover:border-atlas-line-strong focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white"
                   >
                     <option value="all">Todos</option>
                     <option value="published">Publicados</option>
@@ -338,21 +339,21 @@ export default function AdminVideosPage() {
             <div className="text-center py-16">
               {!selectedCourseId ? (
                 <>
-                  <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                  <p className="text-gray-500 dark:text-gray-400 mb-1 font-medium text-lg">
+                  <BookOpen className="h-16 w-16 mx-auto mb-4 text-atlas-muted-2 dark:text-atlas-ink-2" />
+                  <p className="text-atlas-muted dark:text-atlas-muted-2 mb-1 font-medium text-lg">
                     Selecione um curso
                   </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                  <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted">
                     Escolha um curso para visualizar seus modulos e videos.
                   </p>
                 </>
               ) : (
                 <>
-                  <Layers className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                  <p className="text-gray-500 dark:text-gray-400 mb-1 font-medium text-lg">
+                  <Layers className="h-16 w-16 mx-auto mb-4 text-atlas-muted-2 dark:text-atlas-ink-2" />
+                  <p className="text-atlas-muted dark:text-atlas-muted-2 mb-1 font-medium text-lg">
                     Selecione um modulo
                   </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                  <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted">
                     Escolha um modulo para visualizar e gerenciar seus videos.
                   </p>
                 </>
@@ -374,13 +375,13 @@ export default function AdminVideosPage() {
             </div>
           ) : filteredVideos.length === 0 ? (
             <div className="text-center py-12">
-              <Play className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500 dark:text-gray-400 mb-1 font-medium">
+              <Play className="h-12 w-12 mx-auto mb-4 text-atlas-muted-2" />
+              <p className="text-atlas-muted dark:text-atlas-muted-2 mb-1 font-medium">
                 {debouncedSearch || statusFilter !== 'all'
                   ? 'Nenhum video encontrado'
                   : 'Este modulo nao possui videos'}
               </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">
+              <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted">
                 {debouncedSearch || statusFilter !== 'all'
                   ? 'Tente ajustar os filtros de busca.'
                   : 'Os videos aparecem aqui quando adicionados ao modulo.'}
@@ -414,7 +415,7 @@ export default function AdminVideosPage() {
                                 className="h-full w-full object-cover"
                               />
                             ) : (
-                              <Play className="h-5 w-5 text-gray-400" />
+                              <Play className="h-5 w-5 text-atlas-muted-2" />
                             )}
                           </div>
                         </TableCell>
@@ -422,11 +423,11 @@ export default function AdminVideosPage() {
                         {/* Titulo + Descricao */}
                         <TableCell>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                            <p className="text-sm font-semibold text-atlas-ink dark:text-white truncate">
                               {video.title}
                             </p>
                             {video.description && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[280px]">
+                              <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate max-w-[280px]">
                                 {video.description}
                               </p>
                             )}
@@ -436,8 +437,8 @@ export default function AdminVideosPage() {
                         {/* Duracao */}
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5 text-gray-400" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">
+                            <Clock className="h-3.5 w-3.5 text-atlas-muted-2" />
+                            <span className="text-sm text-atlas-ink-2 dark:text-atlas-muted-2 font-mono">
                               {formatDuration(video.duration)}
                             </span>
                           </div>
@@ -482,7 +483,7 @@ export default function AdminVideosPage() {
                             }}
                             className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                           >
-                            <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                            <MoreHorizontal className="h-4 w-4 text-atlas-muted" />
                           </button>
                         </TableCell>
                       </TableRow>
@@ -499,7 +500,7 @@ export default function AdminVideosPage() {
                     onClick={() => setOpenMenuId(null)}
                   />
                   <div
-                    className="fixed w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+                    className="fixed w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-atlas-line dark:border-gray-700 py-1 z-50"
                     style={{ top: menuPos.top, left: menuPos.left }}
                   >
                     <button
@@ -508,7 +509,7 @@ export default function AdminVideosPage() {
                         setOpenMenuId(null);
                         router.push(`/admin/modules/${selectedModuleId}/videos/${id}/edit`);
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-atlas-ink-2 dark:text-atlas-muted-2 hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors"
                     >
                       <Edit className="h-4 w-4" />
                       Editar
@@ -520,7 +521,7 @@ export default function AdminVideosPage() {
                         if (vid) handleTogglePublish(vid);
                       }}
                       disabled={togglingId === openMenuId}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
                     >
                       {videos.find((v) => v.id === openMenuId)?.isPublished ? (
                         <>
@@ -540,7 +541,7 @@ export default function AdminVideosPage() {
                         setOpenMenuId(null);
                         setConfirmDeleteId(id);
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                       Excluir
@@ -560,11 +561,11 @@ export default function AdminVideosPage() {
             className="fixed inset-0 bg-black/50"
             onClick={() => setConfirmDeleteId(null)}
           />
-          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-atlas-line dark:border-gray-700 p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-atlas-ink dark:text-white mb-2">
               Confirmar exclusao
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm text-atlas-ink-2 dark:text-atlas-muted-2 mb-6">
               Tem certeza que deseja excluir o video{' '}
               <strong>{videos.find((v) => v.id === confirmDeleteId)?.title}</strong>?
               Esta acao nao pode ser desfeita.
@@ -572,7 +573,7 @@ export default function AdminVideosPage() {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancelar
               </button>

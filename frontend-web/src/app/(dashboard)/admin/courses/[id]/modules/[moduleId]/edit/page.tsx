@@ -646,8 +646,8 @@ function VideoUploadDialog({
               </div>
 
               {/* Info box */}
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
+              <div className="p-3 bg-atlas-primary-soft dark:bg-blue-950/20 border border-atlas-primary/30 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-atlas-primary-2 dark:text-blue-300">
                   <strong>ℹ️ Sobre Embed:</strong> O vídeo pode ser exibido através do player original do Youtube, Vimeo ou Cloudflare.
                 </p>
               </div>
@@ -1019,7 +1019,7 @@ export default function EditModulePage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
+    <div className="w-full py-8 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Button
@@ -1030,8 +1030,9 @@ export default function EditModulePage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Editar Módulo</h1>
-          <p className="text-gray-600 mt-2">
+          <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · MÓDULO</div>
+          <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">Editar Módulo</h1>
+          <p className="text-[13px] text-atlas-muted mt-1">
             Atualize as informações e gerencie os vídeos do módulo
           </p>
         </div>
@@ -1197,9 +1198,18 @@ export default function EditModulePage() {
                 Gerencie os vídeos deste módulo. Arraste para reordenar.
               </CardDescription>
             </div>
-            <Button onClick={() => setIsUploadDialogOpen(true)}>
+            {/*
+              Botão "Adicionar Vídeo" oculto: o fluxo de criação aqui
+              dependia de upload Cloudflare Stream / embed. O cadastro
+              passou a viver em /admin/modules/:moduleId/videos (R2 HLS).
+              Pra adicionar vídeo, acesse via "Gerenciar vídeos" no curso.
+            */}
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/admin/modules/${moduleId}/videos`)}
+            >
               <Plus className="mr-2 h-4 w-4" />
-              Adicionar Vídeo
+              Gerenciar vídeos
             </Button>
           </div>
         </CardHeader>
@@ -1213,11 +1223,15 @@ export default function EditModulePage() {
               <VideoIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhum vídeo ainda</h3>
               <p className="text-muted-foreground mb-4">
-                Adicione vídeos para começar a construir seu módulo.
+                Use a tela <strong>Gerenciar vídeos</strong> para registrar
+                o primeiro master playlist R2 HLS deste módulo.
               </p>
-              <Button onClick={() => setIsUploadDialogOpen(true)}>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/admin/modules/${moduleId}/videos`)}
+              >
                 <Plus className="mr-2 h-4 w-4" />
-                Adicionar Primeiro Vídeo
+                Ir para Gerenciar vídeos
               </Button>
             </div>
           ) : (
@@ -1272,7 +1286,7 @@ export default function EditModulePage() {
           <div className="space-y-6 py-4 min-w-0">
             {/* Informações Básicas */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Informações Básicas</h3>
+              <h3 className="text-sm font-semibold text-atlas-ink-2 border-b pb-2">Informações Básicas</h3>
 
               {/* Título com IA */}
               <div className="space-y-2">
@@ -1316,7 +1330,7 @@ export default function EditModulePage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1"
+                        className="h-7 text-xs text-atlas-primary hover:text-atlas-primary-2 hover:bg-atlas-primary-soft gap-1"
                         onClick={async () => {
                           if (!editingVideo?.title?.trim()) return;
                           try {
@@ -1407,13 +1421,13 @@ export default function EditModulePage() {
             {/* Fonte do Vídeo (Cloudflare / URL) */}
             {editingVideo && (
               <div className="space-y-4 border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Fonte do Vídeo</h3>
+                <h3 className="text-sm font-semibold text-atlas-ink-2 border-b pb-2">Fonte do Vídeo</h3>
 
                 {/* Status atual */}
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">Fonte atual:</span>
                   {editingVideo.cloudflareId ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-700">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-atlas-primary-soft text-atlas-primary-2">
                       Cloudflare Stream
                     </span>
                   ) : editingVideo.videoSource === 'youtube' ? (
@@ -1425,7 +1439,7 @@ export default function EditModulePage() {
                       Vimeo
                     </span>
                   ) : editingVideo.externalUrl ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-atlas-ink-2">
                       URL Externa
                     </span>
                   ) : (

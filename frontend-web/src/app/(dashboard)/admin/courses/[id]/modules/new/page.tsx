@@ -85,8 +85,9 @@ export default function NewModulePage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Novo Módulo</h1>
-          <p className="text-muted-foreground">
+          <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · MÓDULOS</div>
+          <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">Novo Módulo</h1>
+          <p className="text-[13px] text-atlas-muted mt-1">
             Adicione um novo módulo ao curso
           </p>
         </div>

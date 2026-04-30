@@ -181,10 +181,11 @@ export default function AdminStudentsPage() {
     <>
       {/* Page Title */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · ALUNOS</div>
+        <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">
           Alunos
         </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-1 text-[13px] text-atlas-muted">
           Gerencie sua base de alunos e acompanhe o progresso de cada um.
         </p>
       </div>
@@ -235,7 +236,7 @@ export default function AdminStudentsPage() {
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             {/* Busca */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
               <Input
                 placeholder="Buscar por nome ou email..."
                 value={search}
@@ -246,13 +247,13 @@ export default function AdminStudentsPage() {
 
             {/* Status Filter */}
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
               <select
                 value={statusFilter}
                 onChange={(e) =>
                   setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')
                 }
-                className="h-10 pl-10 pr-8 rounded-md border-2 border-gray-200 bg-white text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                className="h-10 pl-10 pr-8 rounded-md border-2 border-atlas-line bg-white text-sm font-medium text-atlas-ink shadow-sm transition-all duration-200 outline-none hover:border-atlas-line-strong focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white"
               >
                 <option value="all">Todos</option>
                 <option value="active">Ativos</option>
@@ -262,13 +263,13 @@ export default function AdminStudentsPage() {
 
             {/* Sort */}
             <div className="relative">
-              <BarChart3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <BarChart3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-atlas-muted-2" />
               <select
                 value={sortBy}
                 onChange={(e) =>
                   setSortBy(e.target.value as 'recent' | 'name' | 'progress')
                 }
-                className="h-10 pl-10 pr-8 rounded-md border-2 border-gray-200 bg-white text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                className="h-10 pl-10 pr-8 rounded-md border-2 border-atlas-line bg-white text-sm font-medium text-atlas-ink shadow-sm transition-all duration-200 outline-none hover:border-atlas-line-strong focus:border-blue-500 focus:ring-4 focus:ring-blue-100 appearance-none cursor-pointer dark:bg-gray-900 dark:border-gray-700 dark:text-white"
               >
                 <option value="recent">Mais Recente</option>
                 <option value="name">Nome A-Z</option>
@@ -295,11 +296,11 @@ export default function AdminStudentsPage() {
             </div>
           ) : students.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500 dark:text-gray-400 mb-1 font-medium">
+              <Users className="h-12 w-12 mx-auto mb-4 text-atlas-muted-2" />
+              <p className="text-atlas-muted dark:text-atlas-muted-2 mb-1 font-medium">
                 Nenhum aluno encontrado
               </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">
+              <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted">
                 {search || statusFilter !== 'all'
                   ? 'Tente ajustar os filtros de busca.'
                   : 'Os alunos aparecem aqui quando se matriculam na plataforma.'}
@@ -330,10 +331,10 @@ export default function AdminStudentsPage() {
                             </span>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                            <p className="text-sm font-semibold text-atlas-ink dark:text-white truncate">
                               {student.name}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate">
                               {student.email}
                             </p>
                           </div>
@@ -343,8 +344,8 @@ export default function AdminStudentsPage() {
                       {/* Cursos Matriculados */}
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <BookOpen className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          <BookOpen className="h-4 w-4 text-atlas-muted-2" />
+                          <span className="text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2">
                             {student.enrollmentCount}
                           </span>
                         </div>
@@ -367,7 +368,7 @@ export default function AdminStudentsPage() {
                               }}
                             />
                           </div>
-                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 w-10 text-right">
+                          <span className="text-xs font-semibold text-atlas-ink-2 dark:text-atlas-muted-2 w-10 text-right">
                             {Math.round(student.averageProgress)}%
                           </span>
                         </div>
@@ -375,7 +376,7 @@ export default function AdminStudentsPage() {
 
                       {/* Ultimo Acesso */}
                       <TableCell>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-sm text-atlas-ink-2 dark:text-atlas-muted-2">
                           {formatRelativeDate(student.lastAccessAt)}
                         </span>
                       </TableCell>
@@ -414,7 +415,7 @@ export default function AdminStudentsPage() {
                           }}
                           className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
-                          <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                          <MoreHorizontal className="h-4 w-4 text-atlas-muted" />
                         </button>
                       </TableCell>
                     </TableRow>
@@ -430,7 +431,7 @@ export default function AdminStudentsPage() {
                     onClick={() => setOpenMenuId(null)}
                   />
                   <div
-                    className="fixed w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+                    className="fixed w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-atlas-line dark:border-gray-700 py-1 z-50"
                     style={{ top: menuPos.top, left: menuPos.left }}
                   >
                     <button
@@ -439,7 +440,7 @@ export default function AdminStudentsPage() {
                         setOpenMenuId(null);
                         router.push(`/admin/students/${id}`);
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-atlas-ink-2 dark:text-atlas-muted-2 hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors"
                     >
                       <Eye className="h-4 w-4" />
                       Ver Detalhes
@@ -451,7 +452,7 @@ export default function AdminStudentsPage() {
                         if (s) handleToggleStatus(s);
                       }}
                       disabled={togglingId === openMenuId}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
                     >
                       {students.find((s) => s.id === openMenuId)?.isActive ? (
                         <>
@@ -475,8 +476,8 @@ export default function AdminStudentsPage() {
 
               {/* Paginacao */}
               {pagination && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-atlas-line dark:border-gray-800">
+                  <p className="text-sm text-atlas-ink-2 dark:text-atlas-muted-2">
                     Mostrando{' '}
                     <span className="font-semibold">
                       {(pagination.page - 1) * pagination.limit + 1}
@@ -496,7 +497,7 @@ export default function AdminStudentsPage() {
                     <button
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 bg-white dark:bg-gray-900 border border-atlas-line-strong dark:border-gray-700 rounded-md hover:bg-atlas-surface-2 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Anterior
@@ -519,14 +520,14 @@ export default function AdminStudentsPage() {
                         .map((page, idx, arr) => (
                           <span key={page} className="flex items-center">
                             {idx > 0 && arr[idx - 1] !== page - 1 && (
-                              <span className="px-1 text-gray-400">...</span>
+                              <span className="px-1 text-atlas-muted-2">...</span>
                             )}
                             <button
                               onClick={() => setCurrentPage(page)}
                               className={`min-w-[32px] h-8 px-2 text-sm font-medium rounded-md transition-colors ${
                                 page === currentPage
                                   ? 'bg-[rgb(var(--primary-500))] text-white'
-                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                  : 'text-atlas-ink-2 dark:text-atlas-muted-2 hover:bg-gray-100 dark:hover:bg-gray-800'
                               }`}
                             >
                               {page}
@@ -542,7 +543,7 @@ export default function AdminStudentsPage() {
                         )
                       }
                       disabled={currentPage === pagination.totalPages}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-atlas-ink-2 dark:text-atlas-muted-2 bg-white dark:bg-gray-900 border border-atlas-line-strong dark:border-gray-700 rounded-md hover:bg-atlas-surface-2 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Próximo
                       <ChevronRight className="h-4 w-4" />
@@ -573,8 +574,8 @@ export default function AdminStudentsPage() {
               </div>
             ) : recentStudents.length === 0 ? (
               <div className="text-center py-8">
-                <Users className="h-10 w-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                <p className="text-sm text-gray-400 dark:text-gray-500">
+                <Users className="h-10 w-10 mx-auto mb-3 text-atlas-muted-2 dark:text-atlas-ink-2" />
+                <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted">
                   Nenhum aluno cadastrado ainda
                 </p>
               </div>
@@ -583,7 +584,7 @@ export default function AdminStudentsPage() {
                 {recentStudents.map((student) => (
                   <div
                     key={student.id}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-atlas-surface-2 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     <div className="h-9 w-9 rounded-full bg-[rgb(var(--primary-500)/0.1)] flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold text-[rgb(var(--primary-500))]">
@@ -591,14 +592,14 @@ export default function AdminStudentsPage() {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      <p className="text-sm font-semibold text-atlas-ink dark:text-white truncate">
                         {student.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate">
                         {student.email}
                       </p>
                     </div>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                    <span className="text-xs text-atlas-muted-2 dark:text-atlas-muted shrink-0">
                       {formatDate(student.createdAt)}
                     </span>
                   </div>
@@ -624,8 +625,8 @@ export default function AdminStudentsPage() {
               </div>
             ) : topCourses.length === 0 ? (
               <div className="text-center py-8">
-                <BookOpen className="h-10 w-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                <p className="text-sm text-gray-400 dark:text-gray-500">
+                <BookOpen className="h-10 w-10 mx-auto mb-3 text-atlas-muted-2 dark:text-atlas-ink-2" />
+                <p className="text-sm text-atlas-muted-2 dark:text-atlas-muted">
                   Nenhum curso com matrículas ainda
                 </p>
               </div>
@@ -641,12 +642,12 @@ export default function AdminStudentsPage() {
                   return (
                     <div key={course.courseId}>
                       <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate pr-4">
+                        <p className="text-sm font-medium text-atlas-ink dark:text-white truncate pr-4">
                           {course.title}
                         </p>
-                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400 shrink-0">
+                        <span className="text-sm font-semibold text-atlas-ink-2 dark:text-atlas-muted-2 shrink-0">
                           {course.enrollmentCount}{' '}
-                          <span className="text-xs font-normal text-gray-400">
+                          <span className="text-xs font-normal text-atlas-muted-2">
                             {course.enrollmentCount === 1
                               ? 'aluno'
                               : 'alunos'}

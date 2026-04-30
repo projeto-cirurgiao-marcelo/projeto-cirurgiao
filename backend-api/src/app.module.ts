@@ -30,6 +30,7 @@ import { ProfileModule } from './modules/profile/profile.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { AiLibraryModule } from './modules/ai-library/ai-library.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
     GamificationModule,
     AiLibraryModule,
     JobsModule,
+    AdminDashboardModule,
   ],
   providers: [
     {

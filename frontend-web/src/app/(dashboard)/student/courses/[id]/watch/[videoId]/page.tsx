@@ -445,7 +445,15 @@ export default function VideoPlayerPage() {
   const handleHlsReady = useCallback((duration: number) => {
     logger.log('[HlsPlayer] Ready, duration:', duration);
     playerDurationRef.current = duration;
-  }, []);
+
+    if (
+      duration > 0 &&
+      currentVideo &&
+      (!currentVideo.duration || currentVideo.duration === 0)
+    ) {
+      void videosService.updateDuration(currentVideo.id, duration);
+    }
+  }, [currentVideo]);
 
   const handleBackToAllCourses = () => {
     router.push('/student/my-courses');

@@ -37,6 +37,10 @@ WORKDIR /app
 # Install OpenSSL for Prisma + fonts for Sharp SVG text rendering
 RUN apt-get update -y && apt-get install -y openssl ca-certificates fontconfig fonts-dejavu-core fonts-liberation && rm -rf /var/lib/apt/lists/* && fc-cache -fv
 
+# Install Anton Regular (Google Fonts, OFL) for AI thumbnail overlay text
+COPY assets/fonts/Anton-Regular.ttf /usr/share/fonts/truetype/anton/Anton-Regular.ttf
+RUN fc-cache -fv
+
 # Copy package files and install production dependencies only
 COPY package*.json ./
 COPY prisma ./prisma/

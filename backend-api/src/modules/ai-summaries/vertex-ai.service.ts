@@ -212,7 +212,7 @@ Descrição original: "${text}"`,
    */
   async generateDescription(title: string, context?: string): Promise<string> {
     const prompt = `Você é um especialista em Medicina Veterinária criando conteúdo educacional.
-Gere uma descrição concisa (2-3 frases) para uma aula/vídeo com o título abaixo.
+Gere uma descrição para uma aula/vídeo com o título abaixo.
 A descrição deve ser informativa, profissional e atrativa para estudantes de veterinária.
 Responda APENAS com a descrição, sem explicações adicionais.
 ${context ? `\nContexto do curso/módulo: ${context}` : ''}
@@ -228,7 +228,7 @@ Título da aula: "${title}"`;
           },
         ],
         generationConfig: {
-          maxOutputTokens: 512,
+          maxOutputTokens: 1024,
           temperature: 0.7,
           topP: 0.9,
         },

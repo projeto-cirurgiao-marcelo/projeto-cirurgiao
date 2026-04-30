@@ -47,7 +47,7 @@ export default function AdminLayout({
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-[rgb(var(--primary-500))] mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Carregando...</p>
+          <p className="text-atlas-ink-2 dark:text-atlas-muted-2">Carregando...</p>
         </div>
       </div>
     );

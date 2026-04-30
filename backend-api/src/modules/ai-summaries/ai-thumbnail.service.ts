@@ -66,8 +66,12 @@ export class AiThumbnailService {
       }).png().toBuffer();
 
       // 2. Criar texto usando Pango (built-in do libvips - funciona em Linux)
+      // Fonte: Anton Regular (Google Fonts, OFL). Instalada via Dockerfile
+      // COPY + fc-cache. Em dev local (Windows/macOS), instale a fonte
+      // manualmente do arquivo backend-api/assets/fonts/Anton-Regular.ttf
+      // ou o fallback "Sans Bold" (DejaVu/Liberation) será usado.
       const fontSize = displayText.length > 30 ? 60 : displayText.length > 20 ? 72 : 96;
-      const pangoMarkup = `<span foreground="white" font_desc="Sans Bold ${fontSize}">${this.escapeXml(displayText)}</span>`;
+      const pangoMarkup = `<span foreground="white" font_desc="Anton ${fontSize}">${this.escapeXml(displayText)}</span>`;
 
       const textImage = await sharp({
         text: {

@@ -183,6 +183,23 @@ export const videosService = {
   },
 
   /**
+   * Reportar duração lida pelo player. Backend só grava se a row
+   * estiver com duration=0 — chamadas posteriores viram no-op no
+   * servidor mesmo. Usado como fallback automático pra vídeos
+   * cadastrados sem duração (R2 HLS legado, Stream antigo, etc).
+   */
+  async updateDuration(videoId: string, duration: number): Promise<void> {
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    try {
+      await apiClient.patch(`/videos/${videoId}/duration`, {
+        duration: Math.round(duration),
+      });
+    } catch (err) {
+      logger.warn('[videos.updateDuration] falha (não crítico):', err);
+    }
+  },
+
+  /**
    * Reordenar vídeos de um módulo
    */
   async reorder(moduleId: string, data: ReorderVideosDto): Promise<Video[]> {
