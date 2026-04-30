@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Upload, Eye, EyeOff, X, FileVideo, RefreshCw, AlertCircle, CheckCircle2, Clock, Link2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Upload, Eye, EyeOff, X, FileVideo, RefreshCw, AlertCircle, CheckCircle2, Clock, Link2, Sparkles, Wand2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Hls from 'hls.js';
 import type { DropResult } from '@hello-pangea/dnd';
+import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
+import { VideoMaterialsManager } from '@/components/admin/video-materials-manager';
+import { VideoCaptionsManager } from '@/components/admin/video-captions-manager';
+import { VideoQuizManager } from '@/components/admin/video-quiz-manager';
+import { aiTextService } from '@/lib/api/ai-text.service';
 
 const DragDropContext = dynamic(
   () => import('@hello-pangea/dnd').then((mod) => mod.DragDropContext),
@@ -44,7 +50,7 @@ function UploadStatusBadge({ status, progress }: { status: VideoUploadStatus; pr
       );
     case 'UPLOADING':
       return (
-        <Badge variant="secondary" className="gap-1 bg-blue-100 text-blue-800">
+        <Badge variant="secondary" className="gap-1 bg-atlas-primary-soft text-blue-800">
           <Loader2 className="h-3 w-3 animate-spin" />
           Enviando {progress}%
         </Badge>
@@ -103,6 +109,22 @@ export default function ModuleVideosPage() {
   const [r2Duration, setR2Duration] = useState('');
   const [r2CaptionsEmbedded, setR2CaptionsEmbedded] = useState(true);
   const [r2ThumbnailUrl, setR2ThumbnailUrl] = useState('');
+
+  // Status do auto-detect de duração (parsing do master playlist via hls.js)
+  const [r2DurationStatus, setR2DurationStatus] = useState<
+    'idle' | 'loading' | 'ok' | 'error'
+  >('idle');
+  const [r2DurationManual, setR2DurationManual] = useState(false);
+  const r2ProbeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const r2ProbeHlsRef = useRef<Hls | null>(null);
+
+  // Após criar o vídeo R2 HLS, o modal entra em "modo edição" com
+  // Materiais / Legendas / Quiz apontando pro vídeo recém-criado.
+  // Reuso direto dos managers do fluxo "Editar Detalhes do Vídeo".
+  const [createdR2Video, setCreatedR2Video] = useState<Video | null>(null);
+  const [r2AiBusy, setR2AiBusy] = useState<
+    'idle' | 'title' | 'description' | 'thumbnail'
+  >('idle');
 
   // Carregar dados do módulo
   useEffect(() => {
@@ -428,7 +450,112 @@ export default function ModuleVideosPage() {
     setR2Duration('');
     setR2CaptionsEmbedded(true);
     setR2ThumbnailUrl('');
+    setR2DurationStatus('idle');
+    setR2DurationManual(false);
+    setCreatedR2Video(null);
+    setR2AiBusy('idle');
   };
+
+  // Auto-detect duration from master playlist when admin pastes a
+  // valid .m3u8 URL. Mirrors the Cloudflare auto-fill flow so the
+  // operator never needs to compute it manually. Falls back to a
+  // manual input if probing fails (CORS, 404, malformed manifest).
+  useEffect(() => {
+    if (uploadMode !== 'r2_hls') return;
+    if (r2DurationManual) return;
+
+    const url = r2HlsUrl.trim();
+    if (!url) {
+      setR2Duration('');
+      setR2DurationStatus('idle');
+      return;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      setR2DurationStatus('idle');
+      return;
+    }
+    if (
+      (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') ||
+      !parsed.pathname.endsWith('.m3u8')
+    ) {
+      setR2DurationStatus('idle');
+      return;
+    }
+
+    let cancelled = false;
+    setR2DurationStatus('loading');
+    setR2Duration('');
+
+    const cleanup = () => {
+      if (r2ProbeHlsRef.current) {
+        try { r2ProbeHlsRef.current.destroy(); } catch { /* noop */ }
+        r2ProbeHlsRef.current = null;
+      }
+      if (r2ProbeVideoRef.current) {
+        try { r2ProbeVideoRef.current.removeAttribute('src'); } catch { /* noop */ }
+        r2ProbeVideoRef.current = null;
+      }
+    };
+
+    const debounce = window.setTimeout(() => {
+      if (cancelled) return;
+
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.crossOrigin = 'anonymous';
+      r2ProbeVideoRef.current = video;
+
+      const finish = (durationSec: number | null) => {
+        if (cancelled) return;
+        if (durationSec && Number.isFinite(durationSec) && durationSec > 0) {
+          setR2Duration(String(Math.round(durationSec)));
+          setR2DurationStatus('ok');
+        } else {
+          setR2DurationStatus('error');
+        }
+        cleanup();
+      };
+
+      const handleLoadedMetadata = () => {
+        finish(video.duration);
+      };
+      const handleError = () => {
+        logger.warn('[R2 HLS probe] erro ao carregar manifest:', url);
+        finish(null);
+      };
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+      video.addEventListener('error', handleError, { once: true });
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({ enableWorker: false });
+        r2ProbeHlsRef.current = hls;
+        hls.on(Hls.Events.ERROR, (_evt, data) => {
+          if (data?.fatal) {
+            logger.warn('[R2 HLS probe] fatal hls error:', data.type, data.details);
+            finish(null);
+          }
+        });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+      } else {
+        finish(null);
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(debounce);
+      cleanup();
+    };
+  }, [r2HlsUrl, uploadMode, r2DurationManual]);
 
   // Handler: criar video registrando um master playlist HLS ja existente
   // em R2. Backend nao processa — so grava o row com uploadStatus=READY.
@@ -477,7 +604,7 @@ export default function ModuleVideosPage() {
       setIsUploading(true);
       setUploadPhase('uploading');
 
-      await videosService.createFromR2Hls(moduleId, {
+      const created = await videosService.createFromR2Hls(moduleId, {
         hlsUrl: trimmedUrl,
         duration: Math.round(durationNum),
         captionsEmbedded: r2CaptionsEmbedded,
@@ -487,18 +614,15 @@ export default function ModuleVideosPage() {
       });
 
       setUploadPhase('done');
+      setCreatedR2Video(created);
+      setIsUploading(false);
       toast({
         title: 'Vídeo registrado!',
-        description: 'Master playlist HLS vinculado com sucesso. Publique quando quiser.',
+        description: 'Agora adicione materiais, legendas e quiz.',
       });
 
-      setTimeout(() => {
-        setIsUploadModalOpen(false);
-        setUploadPhase('idle');
-        setIsUploading(false);
-      }, 1200);
-
       await loadVideos();
+      return;
     } catch (error: unknown) {
       logger.error('[R2 HLS] falha ao registrar video:', error);
       const msg =
@@ -593,7 +717,7 @@ export default function ModuleVideosPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
+    <div className="w-full py-8 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -605,8 +729,9 @@ export default function ModuleVideosPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Vídeos do Módulo</h1>
-            <p className="text-muted-foreground">
+            <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · VÍDEOS</div>
+            <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">Vídeos do Módulo</h1>
+            <p className="text-[13px] text-atlas-muted mt-1">
               {module.title}
             </p>
           </div>
@@ -752,11 +877,19 @@ export default function ModuleVideosPage() {
                                     size="icon"
                                     onClick={() => handleTogglePublish(video.id)}
                                     title={video.isPublished ? 'Despublicar' : 'Publicar'}
+                                    className={
+                                      video.isPublished
+                                        ? 'group hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400'
+                                        : undefined
+                                    }
                                   >
                                     {video.isPublished ? (
-                                      <EyeOff className="h-4 w-4" />
+                                      <>
+                                        <Eye className="h-4 w-4 group-hover:hidden" />
+                                        <EyeOff className="h-4 w-4 hidden group-hover:block" />
+                                      </>
                                     ) : (
-                                      <Eye className="h-4 w-4" />
+                                      <EyeOff className="h-4 w-4" />
                                     )}
                                   </Button>
                                   <Button
@@ -793,16 +926,21 @@ export default function ModuleVideosPage() {
 
       {/* Modal de Upload */}
       <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-white">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white">
           <DialogHeader>
-            <DialogTitle>Adicionar Vídeo</DialogTitle>
+            <DialogTitle>
+              {createdR2Video ? 'Finalize o conteúdo do vídeo' : 'Adicionar Vídeo'}
+            </DialogTitle>
             <DialogDescription>
-              Adicione um vídeo ao módulo. Você pode fazer upload de um arquivo ou inserir uma URL externa.
+              {createdR2Video
+                ? 'O vídeo foi registrado. Adicione materiais, legendas e quiz.'
+                : 'Adicione um vídeo ao módulo. Você pode fazer upload de um arquivo ou inserir uma URL externa.'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Toggle entre Upload, URL e R2 HLS */}
+            {/* Toggle entre Upload, URL e R2 HLS — escondido após criação */}
+            {!createdR2Video && (
             <div className="flex gap-2 p-1 bg-muted rounded-lg">
               <Button
                 variant={uploadMode === 'file' ? 'default' : 'ghost'}
@@ -843,6 +981,7 @@ export default function ModuleVideosPage() {
                 R2 HLS
               </Button>
             </div>
+            )}
 
             {/* Modo: Upload de Arquivo */}
             {uploadMode === 'file' && (
@@ -1057,9 +1196,9 @@ export default function ModuleVideosPage() {
             )}
 
             {/* Modo: Importar de R2 HLS (pipeline externo ja processou) */}
-            {uploadMode === 'r2_hls' && (
+            {uploadMode === 'r2_hls' && !createdR2Video && (
               <>
-                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-900">
+                <div className="p-3 rounded-lg bg-atlas-primary-soft border border-atlas-primary/30 text-sm text-blue-900">
                   Use esta opção para registrar um <strong>master playlist
                   .m3u8</strong> que já saiu do pipeline externo (FFmpeg +
                   Whisper em R2). O backend não processa nada — só grava
@@ -1081,46 +1220,125 @@ export default function ModuleVideosPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Duração (segundos) *
-                    </label>
+                {/* Duração: campo compacto em linha própria */}
+                <div className="space-y-2 max-w-[220px]">
+                  <label className="text-sm font-medium">
+                    Duração (segundos) *
+                  </label>
+                  <div className="relative">
                     <Input
                       type="number"
                       min={1}
                       step={1}
                       value={r2Duration}
-                      onChange={(e) => setR2Duration(e.target.value)}
-                      placeholder="900"
-                      disabled={isUploading}
+                      onChange={(e) => {
+                        setR2DurationManual(true);
+                        setR2Duration(e.target.value);
+                        setR2DurationStatus('idle');
+                      }}
+                      placeholder={
+                        r2DurationStatus === 'loading'
+                          ? 'Detectando...'
+                          : '900'
+                      }
+                      disabled={isUploading || r2DurationStatus === 'loading'}
+                      readOnly={r2DurationStatus === 'loading'}
+                      className={
+                        r2DurationStatus === 'ok' && !r2DurationManual
+                          ? 'pr-9'
+                          : undefined
+                      }
                     />
+                    {r2DurationStatus === 'loading' && (
+                      <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    {r2DurationStatus === 'ok' && !r2DurationManual && (
+                      <CheckCircle2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Thumbnail (URL opcional)
-                    </label>
-                    <Input
-                      value={r2ThumbnailUrl}
-                      onChange={(e) => setR2ThumbnailUrl(e.target.value)}
-                      placeholder="https://cdn.example.com/.../thumb.jpg"
-                      disabled={isUploading}
-                    />
+                  {r2DurationStatus === 'loading' && (
+                    <p className="text-xs text-muted-foreground">
+                      Lendo metadata do master playlist...
+                    </p>
+                  )}
+                  {r2DurationStatus === 'ok' && !r2DurationManual && (
+                    <p className="text-xs text-green-700">
+                      Detectado automaticamente. Edite se precisar.
+                    </p>
+                  )}
+                  {r2DurationStatus === 'error' && (
+                    <p className="text-xs text-amber-700">
+                      Não foi possível ler do manifest (CORS ou rede).
+                      Informe manualmente.
+                    </p>
+                  )}
+                </div>
+
+                {/* Thumbnail: bloco maior em linha própria */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Thumbnail (opcional)</label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                      disabled={
+                        !videoTitle.trim() ||
+                        isUploading ||
+                        r2AiBusy !== 'idle'
+                      }
+                      onClick={async () => {
+                        if (!videoTitle.trim()) return;
+                        try {
+                          setR2AiBusy('thumbnail');
+                          toast({ title: 'IA', description: 'Gerando thumbnail...' });
+                          const url = await aiTextService.generateThumbnail(
+                            videoTitle.trim(),
+                            { overlayText: videoTitle.trim(), style: 'surgical' },
+                          );
+                          setR2ThumbnailUrl(url);
+                          toast({ title: 'Pronto', description: 'Thumbnail gerada e enviada ao R2' });
+                        } catch (err) {
+                          logger.error('[IA thumbnail]', err);
+                          toast({
+                            title: 'Erro',
+                            description: 'Não foi possível gerar a thumbnail',
+                            variant: 'destructive',
+                          });
+                        } finally {
+                          setR2AiBusy('idle');
+                        }
+                      }}
+                    >
+                      {r2AiBusy === 'thumbnail' ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      Gerar com IA
+                    </Button>
                   </div>
+                  <ThumbnailUpload
+                    value={r2ThumbnailUrl}
+                    onChange={(url) => setR2ThumbnailUrl(url)}
+                    aspectRatio="horizontal"
+                    label="Thumbnail"
+                  />
                 </div>
 
                 <div className="flex items-start gap-2 pt-1">
                   <input
                     id="r2-captions-embedded"
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-gray-300"
+                    className="mt-1 h-4 w-4 rounded border-atlas-line-strong"
                     checked={r2CaptionsEmbedded}
                     onChange={(e) => setR2CaptionsEmbedded(e.target.checked)}
                     disabled={isUploading}
                   />
                   <label
                     htmlFor="r2-captions-embedded"
-                    className="text-sm text-gray-700 select-none"
+                    className="text-sm text-atlas-ink-2 select-none"
                   >
                     Legendas embutidas no master playlist (SUBTITLES group).
                     Desmarque apenas se o pipeline não gerou legendas.
@@ -1128,7 +1346,50 @@ export default function ModuleVideosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Título do Vídeo *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Título do Vídeo *</label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                      disabled={
+                        !videoTitle.trim() ||
+                        isUploading ||
+                        r2AiBusy !== 'idle'
+                      }
+                      onClick={async () => {
+                        if (!videoTitle.trim()) return;
+                        try {
+                          setR2AiBusy('title');
+                          toast({ title: 'IA', description: 'Melhorando título...' });
+                          const improved = await aiTextService.improveText(
+                            videoTitle.trim(),
+                            'title',
+                            module?.title,
+                          );
+                          setVideoTitle(improved);
+                          toast({ title: 'Pronto', description: 'Título melhorado pela IA' });
+                        } catch (err) {
+                          logger.error('[IA title]', err);
+                          toast({
+                            title: 'Erro',
+                            description: 'Não foi possível melhorar o título',
+                            variant: 'destructive',
+                          });
+                        } finally {
+                          setR2AiBusy('idle');
+                        }
+                      }}
+                    >
+                      {r2AiBusy === 'title' ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      Melhorar com IA
+                    </Button>
+                  </div>
                   <Input
                     value={videoTitle}
                     onChange={(e) => setVideoTitle(e.target.value)}
@@ -1138,7 +1399,88 @@ export default function ModuleVideosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Descrição (Opcional)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Descrição (Opcional)</label>
+                    <div className="flex gap-1">
+                      {!videoDescription.trim() && videoTitle.trim() && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          className="h-7 text-xs text-atlas-primary hover:text-atlas-primary-2 hover:bg-atlas-primary-soft gap-1"
+                          disabled={isUploading || r2AiBusy !== 'idle'}
+                          onClick={async () => {
+                            if (!videoTitle.trim()) return;
+                            try {
+                              setR2AiBusy('description');
+                              toast({ title: 'IA', description: 'Gerando descrição...' });
+                              const desc = await aiTextService.generateDescription(
+                                videoTitle.trim(),
+                                module?.title,
+                              );
+                              setVideoDescription(desc);
+                              toast({ title: 'Pronto', description: 'Descrição gerada pela IA' });
+                            } catch (err) {
+                              logger.error('[IA description gen]', err);
+                              toast({
+                                title: 'Erro',
+                                description: 'Não foi possível gerar a descrição',
+                                variant: 'destructive',
+                              });
+                            } finally {
+                              setR2AiBusy('idle');
+                            }
+                          }}
+                        >
+                          {r2AiBusy === 'description' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Wand2 className="h-3 w-3" />
+                          )}
+                          Gerar com IA
+                        </Button>
+                      )}
+                      {videoDescription.trim() && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                          disabled={isUploading || r2AiBusy !== 'idle'}
+                          onClick={async () => {
+                            if (!videoDescription.trim()) return;
+                            try {
+                              setR2AiBusy('description');
+                              toast({ title: 'IA', description: 'Melhorando descrição...' });
+                              const improved = await aiTextService.improveText(
+                                videoDescription.trim(),
+                                'description',
+                                module?.title,
+                              );
+                              setVideoDescription(improved);
+                              toast({ title: 'Pronto', description: 'Descrição melhorada pela IA' });
+                            } catch (err) {
+                              logger.error('[IA description improve]', err);
+                              toast({
+                                title: 'Erro',
+                                description: 'Não foi possível melhorar a descrição',
+                                variant: 'destructive',
+                              });
+                            } finally {
+                              setR2AiBusy('idle');
+                            }
+                          }}
+                        >
+                          {r2AiBusy === 'description' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3 w-3" />
+                          )}
+                          Melhorar com IA
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                   <Textarea
                     value={videoDescription}
                     onChange={(e) => setVideoDescription(e.target.value)}
@@ -1179,6 +1521,50 @@ export default function ModuleVideosPage() {
                   </Button>
                 </div>
               </>
+            )}
+
+            {/* Pós-criação: managers ricos (materiais, legendas, quiz) */}
+            {createdR2Video && (
+              <div className="space-y-6 py-2 min-w-0">
+                <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-900 flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Vídeo <strong>{createdR2Video.title}</strong> registrado.
+                    Adicione conteúdo complementar abaixo. As alterações são
+                    salvas em cada seção.
+                  </span>
+                </div>
+
+                <div className="border-t pt-4">
+                  <VideoMaterialsManager videoId={createdR2Video.id} />
+                </div>
+
+                <div className="border-t pt-4">
+                  <VideoCaptionsManager
+                    videoId={createdR2Video.id}
+                    videoStatus={createdR2Video.uploadStatus || 'READY'}
+                    cloudflareId={createdR2Video.cloudflareId}
+                    hlsUrl={(createdR2Video as any).hlsUrl}
+                    externalUrl={createdR2Video.externalUrl}
+                  />
+                </div>
+
+                <div className="border-t pt-4">
+                  <VideoQuizManager videoId={createdR2Video.id} />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => {
+                      setIsUploadModalOpen(false);
+                      void loadVideos();
+                    }}
+                  >
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Concluir
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </DialogContent>
