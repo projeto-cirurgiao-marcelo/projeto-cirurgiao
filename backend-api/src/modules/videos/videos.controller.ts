@@ -23,6 +23,7 @@ import { ModulesService } from '../modules/modules.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
+import { UpdateVideoDurationDto } from './dto/update-video-duration.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -315,6 +316,22 @@ export class VideosController {
     const video = await this.videosService.findOne(id);
     await this.checkInstructorPermission(video.moduleId, req.user.sub, req.user.role);
     return this.videosService.syncWithCloudflare(id);
+  }
+
+  /**
+   * Atualiza a duração reportada pelo player. Idempotente: só
+   * grava quando o registro está com duration=0 (service decide).
+   * Aberto a qualquer usuário autenticado — serve como fallback
+   * universal pra vídeos R2 HLS, Stream legado e embeds, sem
+   * exigir que o pipeline externo preencha o campo no cadastro.
+   */
+  @Patch('videos/:id/duration')
+  async updateDuration(
+    @Param('id') id: string,
+    @Body() dto: UpdateVideoDurationDto,
+  ) {
+    await this.videosService.updateDurationFromPlayer(id, dto.duration);
+    return { ok: true };
   }
 
   /**
