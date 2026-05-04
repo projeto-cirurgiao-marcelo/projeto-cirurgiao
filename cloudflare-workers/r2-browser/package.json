@@ -1,0 +1,22 @@
+{
+  "name": "r2-browser-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker — R2 bucket browser with folder-name search index for s3-projeto-cirurgiao",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "kv:create": "wrangler kv:namespace create INDEX_KV",
+    "secret:cdn": "wrangler secret put CDN_BASE_URL",
+    "reindex": "wrangler tail --format=pretty",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260501.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.95.0"
+  }
+}

@@ -1,0 +1,44 @@
+name = "r2-browser"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# R2 binding — read-only intent (Worker code never writes)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "s3-projeto-cirurgiao"
+# Dev usa mesmo bucket (read-only, sem risco). Wrangler 3 exige preview separado;
+# se quiser isolar dev, criar bucket vazio com `wrangler r2 bucket create s3-projeto-cirurgiao-dev`
+preview_bucket_name = "s3-projeto-cirurgiao"
+
+# KV cache for folder index
+# Create with: wrangler kv:namespace create INDEX_KV
+# Then paste id below
+[[kv_namespaces]]
+binding = "INDEX_KV"
+id = "c0b74ae71ec34d268f38eae21a377e18"
+preview_id = "5de3e8c554d74ff6aa0fba114d41d861"
+
+
+# Cron — rebuild folder index every hour
+[triggers]
+crons = ["0 * * * *"]
+
+# [vars]
+# ALLOWED_ORIGINS = "https://app.projetocirurgiao.app,http://localhost:3000"
+# BACKEND_API_URL = "https://api.projetocirurgiao.app/api/v1"
+[vars]
+ALLOWED_ORIGINS = "https://app.projetocirurgiao.app,https://projetocirurgiao.app,https://www.projetocirurgiao.app,http://localhost:3001,http://localhost:3000"
+BACKEND_API_URL = "https://api.projetocirurgiao.app/api/v1"
+# Bucket subtree to scan. Empty string = whole bucket (slow on big buckets).
+# Use "videos/" to scan only the videos subtree.
+INDEX_PREFIX = "videos/"
+# Secrets — set via:
+#   wrangler secret put CDN_BASE_URL
+# Do NOT commit secret values.
+
+[observability]
+enabled = true
+
+[build]
+command = ""
