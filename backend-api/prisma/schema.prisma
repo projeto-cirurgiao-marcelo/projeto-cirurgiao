@@ -1,73 +1,52 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // Prisma needs a shadow DB with pgvector to diff migrations that touch
-  // vector(768) columns. Optional in environments without pgvector.
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  INSTRUCTOR
-  STUDENT
-}
-
-enum VideoUploadStatus {
-  PENDING
-  UPLOADING
-  PROCESSING
-  READY
-  ERROR
-}
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(STUDENT)
-  isActive  Boolean  @default(true)
-  deletedAt DateTime? // soft-delete marker — see shared/audit
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  refreshTokens     RefreshToken[]
-  coursesInstructor Course[]           @relation("InstructorCourses")
-  enrollments       Enrollment[]
-  progress          Progress[]
-  videoLikes        VideoLike[]
-  videoNotes        VideoNote[]
-  videoSummaries    VideoSummary[]
-  forumTopics       ForumTopic[]
-  forumReplies      ForumReply[]
-  forumTopicVotes   ForumTopicVote[]
-  forumReplyVotes   ForumReplyVote[]
-  forumReports      ForumReport[]
-  quizAttempts      QuizAttempt[]
-  chatConversations ChatConversation[] // Conversas do chatbot
-  profile           UserProfile?
-
-  // Biblioteca IA
-  libraryConversations LibraryConversation[]
-  tokenUsageDaily      TokenUsageDaily[]
-
-  // Gamificacao
-  xpLogs                 XpLog[]
-  userBadges             UserBadge[]
-  userStreak             UserStreak?
+  id                     String                  @id @default(uuid())
+  email                  String                  @unique
+  password               String
+  name                   String
+  role                   Role                    @default(STUDENT)
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  deletedAt              DateTime?
+  audioPreference        AudioPref               @default(AUTO)
+  timezone               String                  @default("America/Sao_Paulo")
+  auditLogs              AuditLog[]
+  chatConversations      ChatConversation[]
+  coursesInstructor      Course[]                @relation("InstructorCourses")
+  enrollments            Enrollment[]
+  forumReplies           ForumReply[]
+  forumReplyVotes        ForumReplyVote[]
+  forumReports           ForumReport[]
+  forumTopicVotes        ForumTopicVote[]
+  forumTopics            ForumTopic[]
   gamificationChallenges GamificationChallenge[]
   gamificationEvents     GamificationEvent[]
-
-  // Audit
-  auditLogs AuditLog[]
+  libraryConversations   LibraryConversation[]
+  question_bank_items    question_bank_items[]
+  quizAttempts           QuizAttempt[]
+  refreshTokens          RefreshToken[]
+  tokenUsageDaily        TokenUsageDaily[]
+  userBadges             UserBadge[]
+  user_mastery           user_mastery[]
+  profile                UserProfile?
+  userStreak             UserStreak?
+  video_bookmarks        video_bookmarks[]
+  videoLikes             VideoLike[]
+  videoNotes             VideoNote[]
+  progress               Progress[]
+  videoSummaries         VideoSummary[]
+  xpLogs                 XpLog[]
 
   @@index([deletedAt])
   @@map("users")
@@ -76,16 +55,16 @@ model User {
 model UserProfile {
   id                  String   @id @default(uuid())
   userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id])
   photoUrl            String?
   profession          String?
   specializations     String[]
   state               String?
   city                String?
-  bio                 String?  @db.Text
+  bio                 String?
   onboardingCompleted Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id])
 
   @@map("user_profiles")
 }
@@ -97,31 +76,29 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
   isRevoked Boolean  @default(false)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
 
 model Course {
-  id                  String   @id @default(uuid())
+  id                  String       @id @default(uuid())
   title               String
-  slug                String   @unique
-  description         String?  @db.Text
-  thumbnail           String?  // Deprecated - use thumbnailHorizontal
-  thumbnailVertical   String?  // Thumbnail para exibição vertical (9:16)
-  thumbnailHorizontal String?  // Thumbnail para exibição horizontal (16:9)
+  slug                String       @unique
+  description         String?
+  thumbnail           String?
   instructorId        String
-  isPublished         Boolean  @default(false)
-  price               Decimal  @default(0) @db.Decimal(10, 2)
-  deletedAt           DateTime? // soft-delete marker
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  instructor  User         @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
-  modules     Module[]
-  enrollments Enrollment[]
-  forumTopics ForumTopic[]
+  isPublished         Boolean      @default(false)
+  price               Decimal      @default(0) @db.Decimal(10, 2)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  thumbnailVertical   String?
+  thumbnailHorizontal String?
+  deletedAt           DateTime?
+  instructor          User         @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
+  enrollments         Enrollment[]
+  forumTopics         ForumTopic[]
+  modules             Module[]
 
   @@index([instructorId])
   @@index([slug])
@@ -131,20 +108,19 @@ model Course {
 }
 
 model Module {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   title               String
-  description         String?  @db.Text
-  thumbnail           String?  // Deprecated - use thumbnailHorizontal
-  thumbnailVertical   String?  // Thumbnail para exibição vertical (9:16)
-  thumbnailHorizontal String?  // Thumbnail para exibição horizontal (16:9)
+  description         String?
   order               Int
   courseId            String
-  deletedAt           DateTime? // soft-delete marker
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  videos Video[]
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  thumbnail           String?
+  thumbnailVertical   String?
+  thumbnailHorizontal String?
+  deletedAt           DateTime?
+  course              Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  videos              Video[]
 
   @@unique([courseId, order])
   @@index([courseId])
@@ -155,7 +131,7 @@ model Module {
 model Video {
   id              String            @id @default(uuid())
   title           String
-  description     String?           @db.Text
+  description     String?
   cloudflareId    String?           @unique
   cloudflareUrl   String?
   thumbnailUrl    String?
@@ -163,26 +139,26 @@ model Video {
   moduleId        String
   order           Int
   isPublished     Boolean           @default(false)
-  uploadStatus    VideoUploadStatus @default(PENDING)
-  uploadProgress  Int               @default(0)
-  uploadError     String?
-  tempFilePath    String?
-  externalUrl     String?           // URL de embed (YouTube, Vimeo, etc)
-  hlsUrl          String?           // URL do playlist HLS (.m3u8) no R2 CDN
-  videoSource     String            @default("cloudflare") // "cloudflare" | "youtube" | "vimeo" | "external" | "r2_hls"
-  deletedAt       DateTime?         // soft-delete marker
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
-
-  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  progress    Progress[]
-  likes       VideoLike[]
-  notes       VideoNote[]
-  transcript  VideoTranscript?
-  materials   VideoMaterial[]
-  summaries   VideoSummary[]
-  forumTopics ForumTopic[]
-  quizzes     Quiz[]
+  tempFilePath    String?
+  uploadError     String?
+  uploadProgress  Int               @default(0)
+  uploadStatus    VideoUploadStatus @default(PENDING)
+  externalUrl     String?
+  videoSource     String            @default("cloudflare")
+  hlsUrl          String?
+  deletedAt       DateTime?
+  forumTopics     ForumTopic[]
+  quizzes         Quiz[]
+  video_bookmarks video_bookmarks[]
+  likes           VideoLike[]
+  materials       VideoMaterial[]
+  notes           VideoNote[]
+  progress        Progress[]
+  summaries       VideoSummary[]
+  transcript      VideoTranscript?
+  module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@unique([moduleId, order])
   @@index([moduleId])
@@ -199,9 +175,8 @@ model Enrollment {
   completedAt  DateTime?
   progress     Int       @default(0)
   lastAccessAt DateTime  @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -210,19 +185,18 @@ model Enrollment {
 }
 
 model Progress {
-  id           String    @id @default(uuid())
-  userId       String
-  videoId      String
-  watched      Boolean   @default(false)
-  watchedAt    DateTime?
-  watchTime    Int       @default(0) // tempo assistido em segundos
-  completed    Boolean   @default(false)
-  completedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  userId      String
+  videoId     String
+  watched     Boolean   @default(false)
+  watchedAt   DateTime?
+  watchTime   Int       @default(0)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video       Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@unique([userId, videoId])
   @@index([userId])
@@ -230,19 +204,13 @@ model Progress {
   @@map("video_progress")
 }
 
-// ============================================
-// NOVAS FEATURES DO PLAYER DE VÍDEO
-// ============================================
-
-// Sistema de Curtidas (Likes)
 model VideoLike {
   id        String   @id @default(uuid())
   videoId   String
   userId    String
   createdAt DateTime @default(now())
-
-  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@unique([videoId, userId])
   @@index([videoId])
@@ -250,112 +218,91 @@ model VideoLike {
   @@map("video_likes")
 }
 
-// Sistema de Notas do Estudante
 model VideoNote {
   id        String   @id @default(uuid())
   videoId   String
   userId    String
-  content   String   @db.Text
-  timestamp Int?     // Segundos do vídeo (opcional)
+  content   String
+  timestamp Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([videoId, userId])
   @@index([videoId])
   @@map("video_notes")
 }
 
-// Sistema de Transcrição
 model VideoTranscript {
   id        String   @id @default(uuid())
   videoId   String   @unique
   language  String   @default("pt-BR")
-  segments  Json     // Array de { startTime, endTime, text }
-  fullText  String?  @db.Text
+  segments  Json
+  fullText  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@map("video_transcripts")
 }
 
-// Tipo de Material
-enum MaterialType {
-  PDF
-  LINK
-  ARTICLE
-  VIDEO
-  IMAGE
-}
-
-// Material Relacionado à Aula
 model VideoMaterial {
   id          String       @id @default(uuid())
   videoId     String
   title       String
   description String?
   type        MaterialType @default(LINK)
-  url         String       // URL do arquivo ou link externo
-  fileSize    Int?         // Tamanho em bytes (para downloads)
+  url         String
+  fileSize    Int?
   order       Int          @default(0)
   createdAt   DateTime     @default(now())
-
-  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video       Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([videoId])
   @@map("video_materials")
 }
 
-// ============================================
-// FÓRUM DE DISCUSSÃO
-// ============================================
-
-// Categoria de tópicos do fórum
 model ForumCategory {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
   description String?
-  icon        String?  // Ícone lucide-react
-  color       String?  // Cor hex para UI
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  topics ForumTopic[]
+  icon        String?
+  color       String?
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  topics      ForumTopic[]
 
   @@map("forum_categories")
 }
 
-// Tópico/Pergunta do fórum
 model ForumTopic {
-  id             String   @id @default(uuid())
-  title          String
-  content        String   @db.Text
-  authorId       String
-  categoryId     String
-  courseId       String?
-  videoId        String?
-  isPinned       Boolean  @default(false)
-  isClosed       Boolean  @default(false)
-  isSolved       Boolean  @default(false)
-  views          Int      @default(0)
-  upvotes        Int      @default(0)
-  downvotes      Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  lastActivityAt DateTime @default(now())
-
-  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  category ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  course   Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  video    Video?        @relation(fields: [videoId], references: [id], onDelete: SetNull)
-  replies  ForumReply[]
-  votes    ForumTopicVote[]
-  reports  ForumReport[]
+  id                String           @id @default(uuid())
+  title             String
+  content           String
+  authorId          String
+  categoryId        String
+  courseId          String?
+  videoId           String?
+  isPinned          Boolean          @default(false)
+  isClosed          Boolean          @default(false)
+  isSolved          Boolean          @default(false)
+  views             Int              @default(0)
+  upvotes           Int              @default(0)
+  downvotes         Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  lastActivityAt    DateTime         @default(now())
+  videoTimestamp    Int?
+  videoThumbnailUrl String?
+  replies           ForumReply[]
+  reports           ForumReport[]
+  votes             ForumTopicVote[]
+  author            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category          ForumCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  course            Course?          @relation(fields: [courseId], references: [id])
+  video             Video?           @relation(fields: [videoId], references: [id])
 
   @@index([categoryId])
   @@index([courseId])
@@ -366,25 +313,23 @@ model ForumTopic {
   @@map("forum_topics")
 }
 
-// Resposta a um tópico do fórum
 model ForumReply {
-  id            String   @id @default(uuid())
-  content       String   @db.Text
+  id            String           @id @default(uuid())
+  content       String
   topicId       String
   authorId      String
   parentReplyId String?
-  isSolution    Boolean  @default(false)
-  isEdited      Boolean  @default(false)
-  upvotes       Int      @default(0)
-  downvotes     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  topic        ForumTopic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parentReply  ForumReply?  @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: Cascade)
-  childReplies ForumReply[] @relation("ReplyToReply")
-  votes        ForumReplyVote[]
+  isSolution    Boolean          @default(false)
+  isEdited      Boolean          @default(false)
+  upvotes       Int              @default(0)
+  downvotes     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  author        User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentReply   ForumReply?      @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: Cascade)
+  childReplies  ForumReply[]     @relation("ReplyToReply")
+  topic         ForumTopic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  votes         ForumReplyVote[]
 
   @@index([topicId])
   @@index([authorId])
@@ -393,96 +338,65 @@ model ForumReply {
   @@map("forum_replies")
 }
 
-// Votos em tópicos do fórum
 model ForumTopicVote {
-  id        String   @id @default(uuid())
-  value     Int      // 1 (upvote) ou -1 (downvote)
+  id        String     @id @default(uuid())
+  value     Int
   topicId   String
   userId    String
-  createdAt DateTime @default(now())
-
-  topic ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  topic     ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([topicId, userId])
   @@map("forum_topic_votes")
 }
 
-// Votos em respostas do fórum
 model ForumReplyVote {
-  id        String   @id @default(uuid())
-  value     Int      // 1 (upvote) ou -1 (downvote)
+  id        String     @id @default(uuid())
+  value     Int
   replyId   String
   userId    String
-  createdAt DateTime @default(now())
-
-  reply ForumReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  reply     ForumReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([replyId, userId])
   @@map("forum_reply_votes")
 }
 
-// ============================================
-// DENÚNCIAS DE TÓPICOS DO FÓRUM
-// ============================================
-
-enum ReportReason {
-  SPAM
-  INAPPROPRIATE
-  OFFENSIVE
-  OFF_TOPIC
-  OTHER
-}
-
-enum ReportStatus {
-  PENDING
-  REVIEWED
-  RESOLVED
-  DISMISSED
-}
-
-// Denúncia de um tópico do fórum
 model ForumReport {
   id          String       @id @default(uuid())
   topicId     String
   reporterId  String
   reason      ReportReason
-  description String?      @db.Text
+  description String?
   status      ReportStatus @default(PENDING)
   resolvedAt  DateTime?
   resolvedBy  String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  reporter    User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  topic       ForumTopic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  topic    ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  reporter User       @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-
-  @@unique([topicId, reporterId]) // Um usuário só pode denunciar um tópico uma vez
+  @@unique([topicId, reporterId])
   @@index([topicId])
   @@index([reporterId])
   @@index([status])
   @@map("forum_reports")
 }
 
-// ============================================
-// RESUMOS COM IA (AI SUMMARIES)
-// ============================================
-
-// Resumo gerado por IA para cada vídeo/aluno
 model VideoSummary {
-  id               String   @id @default(uuid())
-  videoId          String
-  userId           String
-  content          String   @db.Text    // Resumo em Markdown
-  version          Int      @default(1) // 1, 2 ou 3 (máximo 3 por vídeo/aluno)
-  generationCount  Int      @default(1) // Contador de gerações (não diminui ao deletar)
-  tokenCount       Int?                 // Tokens usados na geração
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  videoId         String
+  userId          String
+  content         String
+  version         Int      @default(1)
+  tokenCount      Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  generationCount Int      @default(1)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@unique([videoId, userId, version])
   @@index([videoId])
@@ -490,91 +404,78 @@ model VideoSummary {
   @@map("video_summaries")
 }
 
-// ============================================
-// QUIZ GAMIFICADO
-// ============================================
-
-// Enum para dificuldade do quiz
-enum QuizDifficulty {
-  EASY
-  MEDIUM
-  HARD
-}
-
-// Quiz gerado para um vídeo
 model Quiz {
   id           String         @id @default(uuid())
   videoId      String
   title        String
-  description  String?        @db.Text
+  description  String?
   difficulty   QuizDifficulty @default(MEDIUM)
-  timeLimit    Int?           // Tempo limite em segundos (opcional)
-  passingScore Int            @default(70) // Pontuação mínima para passar (%)
+  timeLimit    Int?
+  passingScore Int            @default(70)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
-
-  video     Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  questions QuizQuestion[]
-  attempts  QuizAttempt[]
+  attempts     QuizAttempt[]
+  questions    QuizQuestion[]
+  video        Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([videoId])
   @@map("quizzes")
 }
 
-// Questão do quiz
 model QuizQuestion {
-  id            String   @id @default(uuid())
+  id            String       @id @default(uuid())
   quizId        String
-  question      String   @db.Text
-  options       Json     // Array de strings: ["Opção A", "Opção B", "Opção C", "Opção D"]
-  correctAnswer Int      // Índice da resposta correta (0-3)
-  explanation   String?  @db.Text // Explicação da resposta correta
-  order         Int      // Ordem da questão no quiz
-  points        Int      @default(10) // Pontos por acertar
-  createdAt     DateTime @default(now())
-
-  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  answers QuizAnswer[]
+  question      String
+  options       Json
+  correctAnswer Int
+  explanation   String?
+  order         Int
+  points        Int          @default(10)
+  createdAt     DateTime     @default(now())
+  answers       QuizAnswer[]
+  quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@unique([quizId, order])
   @@index([quizId])
   @@map("quiz_questions")
 }
 
-// Tentativa de quiz do aluno
 model QuizAttempt {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   quizId         String
   userId         String
-  score          Int      // Pontuação obtida (0-100)
-  correctCount   Int      // Número de acertos
-  totalQuestions Int      // Total de questões
-  timeSpent      Int?     // Tempo gasto em segundos
-  passed         Boolean  @default(false) // Se passou ou não
-  completedAt    DateTime @default(now())
-
-  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  answers QuizAnswer[]
+  score          Int
+  correctCount   Int
+  totalQuestions Int
+  timeSpent      Int?
+  passed         Boolean      @default(false)
+  completedAt    DateTime     @default(now())
+  comboMax       Int          @default(0)
+  specialtyId    String?
+  answers        QuizAnswer[]
+  quiz           Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  specialties    specialties? @relation(fields: [specialtyId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([quizId])
   @@index([userId])
   @@index([completedAt])
+  @@index([specialtyId])
   @@map("quiz_attempts")
 }
 
-// Resposta do aluno para uma questão
 model QuizAnswer {
-  id         String   @id @default(uuid())
+  id         String           @id @default(uuid())
   attemptId  String
   questionId String
-  answer     Int      // Índice da resposta escolhida (0-3)
+  answer     Int
   isCorrect  Boolean
-  timeSpent  Int?     // Tempo gasto nesta questão (segundos)
-  createdAt  DateTime @default(now())
-
-  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  timeSpent  Int?
+  createdAt  DateTime         @default(now())
+  confidence ConfidenceLevel?
+  xpAwarded  Int?
+  attempt    QuizAttempt      @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question   QuizQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
   @@index([attemptId])
@@ -582,22 +483,16 @@ model QuizAnswer {
   @@map("quiz_answers")
 }
 
-// ============================================
-// CHATBOT COM IA (RAG - Retrieval Augmented Generation)
-// ============================================
-
-// Conversa do chatbot
 model ChatConversation {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   userId    String
-  videoId   String?  // Contexto do vídeo atual (opcional)
-  courseId  String?  // Contexto do curso (opcional)
-  title     String?  // Título gerado automaticamente
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages ChatMessage[]
+  videoId   String?
+  courseId  String?
+  title     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
 
   @@index([userId])
   @@index([videoId])
@@ -606,178 +501,138 @@ model ChatConversation {
   @@map("chat_conversations")
 }
 
-// Mensagem do chatbot
 model ChatMessage {
-  id             String   @id @default(uuid())
+  id             String           @id @default(uuid())
   conversationId String
-  role           String   // "user" | "assistant"
-  content        String   @db.Text
-  sources        Json?    // [{videoId, videoTitle, timestamp, text}] - Referências às transcrições
-  tokenCount     Int?     // Tokens usados na geração (para respostas do assistant)
-  feedback       String?  // "helpful" | "not_helpful" | null
-  createdAt      DateTime @default(now())
-
-  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  sources        Json?
+  tokenCount     Int?
+  feedback       String?
+  createdAt      DateTime         @default(now())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([createdAt])
   @@map("chat_messages")
 }
 
-// Cache de embeddings das transcrições (para busca semântica)
 model TranscriptEmbedding {
-  id          String                       @id @default(uuid())
-  videoId     String
-  chunkIndex  Int                          // Índice do chunk dentro do vídeo
-  chunkText   String                       @db.Text // Texto do chunk
-  startTime   Float                        // Timestamp inicial em segundos
-  endTime     Float                        // Timestamp final em segundos
-  embedding   Unsupported("vector(768)")?  // pgvector — text-embedding-004 (768 dims)
-  isIndexed   Boolean                      @default(false)
-  createdAt   DateTime                     @default(now())
-  updatedAt   DateTime                     @updatedAt
+  id         String                 @id @default(uuid())
+  videoId    String
+  chunkIndex Int
+  chunkText  String
+  startTime  Float
+  endTime    Float
+  isIndexed  Boolean                @default(false)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  embedding  Unsupported("vector")?
 
   @@unique([videoId, chunkIndex])
   @@index([videoId])
   @@index([isIndexed])
+  @@index([embedding], map: "transcript_embeddings_embedding_hnsw_idx")
   @@map("transcript_embeddings")
 }
 
-// ============================================
-// BIBLIOTECA IA (RAG - Livros de Veterinária)
-// ============================================
-
-// Status de processamento do documento
-enum DocumentProcessingStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  ERROR
-}
-
-// Documento da base de conhecimento (livro)
 model KnowledgeDocument {
-  id          String                   @id @default(uuid())
-  title       String
-  fileName    String
-  gcsPath     String                   // Caminho no Google Cloud Storage
-  language    String                   @default("pt-BR") // "pt-BR" | "en"
-  totalPages  Int                      @default(0)
-  totalChunks Int                      @default(0)
-  status      DocumentProcessingStatus @default(PENDING)
+  id           String                   @id @default(uuid())
+  title        String
+  fileName     String
+  gcsPath      String
+  language     String                   @default("pt-BR")
+  totalPages   Int                      @default(0)
+  totalChunks  Int                      @default(0)
+  status       DocumentProcessingStatus @default(PENDING)
   errorMessage String?
-  processedAt DateTime?
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-
-  chunks KnowledgeChunk[]
+  processedAt  DateTime?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  chunks       KnowledgeChunk[]
 
   @@index([status])
   @@map("knowledge_documents")
 }
 
-// Chunk de texto com embedding vetorial
 model KnowledgeChunk {
-  id         String @id @default(uuid())
-  documentId String
-  chunkIndex Int
-  content    String @db.Text        // Conteúdo ORIGINAL (idioma do documento)
-  contentPt  String? @db.Text      // Conteúdo em PORTUGUÊS (traduzido se EN, copiado se PT)
-  chapter    String?               // Capítulo/seção do livro (idioma original)
-  chapterPt  String?               // Capítulo traduzido para português
-  pageStart  Int?                  // Página inicial
-  pageEnd    Int?                  // Página final
-  language   String @default("pt-BR")
-  embedding  Unsupported("vector(768)")? // pgvector — text-embedding-004 (768 dims), based on contentPt
-  isIndexed  Boolean @default(false)
-  isTranslated Boolean @default(false) // Flag: tradução/cópia para contentPt foi feita
-  createdAt  DateTime @default(now())
-
-  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id           String                 @id @default(uuid())
+  documentId   String
+  chunkIndex   Int
+  content      String
+  chapter      String?
+  pageStart    Int?
+  pageEnd      Int?
+  language     String                 @default("pt-BR")
+  embedding    Unsupported("vector")?
+  isIndexed    Boolean                @default(false)
+  createdAt    DateTime               @default(now())
+  contentPt    String?
+  chapterPt    String?
+  isTranslated Boolean                @default(false)
+  document     KnowledgeDocument      @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@unique([documentId, chunkIndex])
   @@index([documentId])
   @@index([isIndexed])
+  @@index([embedding], map: "knowledge_chunks_embedding_hnsw_idx")
   @@map("knowledge_chunks")
 }
 
-// Conversa da Biblioteca IA (separada do chatbot de aulas)
 model LibraryConversation {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   userId    String
   title     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages LibraryMessage[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  LibraryMessage[]
 
   @@index([userId])
   @@index([createdAt])
   @@map("library_conversations")
 }
 
-// Mensagem da Biblioteca IA
 model LibraryMessage {
-  id             String   @id @default(uuid())
+  id             String              @id @default(uuid())
   conversationId String
-  role           String   // "user" | "assistant"
-  content        String   @db.Text
-  sources        Json?    // [{documentTitle, chapter, pageStart, pageEnd, snippet}]
-  tokenCount     Int?     // Tokens consumidos
-  feedback       String?  // "helpful" | "not_helpful"
-  createdAt      DateTime @default(now())
-
-  conversation LibraryConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  sources        Json?
+  tokenCount     Int?
+  feedback       String?
+  createdAt      DateTime            @default(now())
+  conversation   LibraryConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([createdAt])
   @@map("library_messages")
 }
 
-// Controle de cota diária de tokens por aluno
 model TokenUsageDaily {
   id         String   @id @default(uuid())
   userId     String
-  date       String   // "YYYY-MM-DD"
+  date       String
   tokensUsed Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId, date])
   @@map("token_usage_daily")
 }
 
-// ============================================
-// GAMIFICACAO
-// ============================================
-
-enum ChallengePeriod {
-  DAILY
-  WEEKLY
-  SPECIAL
-}
-
-enum GamificationChallengeDifficulty {
-  EASY
-  MEDIUM
-  HARD
-}
-
-// Log de XP (append-only)
 model XpLog {
-  id          String   @id @default(uuid())
-  userId      String
-  action      String   // e.g. "video_complete", "quiz_pass", "forum_topic"
-  xp          Int
-  description String?
-  referenceId String?  // ID da entidade que gerou o XP (videoId, quizId, etc)
-  createdAt   DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(uuid())
+  userId              String
+  action              String
+  xp                  Int
+  description         String?
+  referenceId         String?
+  createdAt           DateTime @default(now())
+  multiplierBreakdown Json?
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
@@ -786,39 +641,35 @@ model XpLog {
   @@map("xp_logs")
 }
 
-// Badges desbloqueados pelo usuario
 model UserBadge {
   id         String   @id @default(uuid())
   userId     String
   badgeSlug  String
   unlockedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badgeSlug])
   @@index([userId])
   @@map("user_badges")
 }
 
-// Streak de dias consecutivos (1 por usuario)
 model UserStreak {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  currentStreak    Int      @default(0)
-  longestStreak    Int      @default(0)
-  lastActiveDate   String?  // "YYYY-MM-DD" para evitar problemas de timezone
-  freezesAvailable Int      @default(1)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  currentStreak        Int      @default(0)
+  longestStreak        Int      @default(0)
+  lastActiveDate       String?
+  freezesAvailable     Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  weekendFreezeEnabled Boolean  @default(true)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_streaks")
 }
 
-// Desafios de gamificacao
 model GamificationChallenge {
-  id          String                        @id @default(uuid())
+  id          String                          @id @default(uuid())
   userId      String
   type        ChallengePeriod
   templateKey String
@@ -831,9 +682,8 @@ model GamificationChallenge {
   expiresAt   DateTime
   completedAt DateTime?
   claimedAt   DateTime?
-  createdAt   DateTime                      @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime                        @default(now())
+  user        User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, type, expiresAt])
@@ -841,27 +691,21 @@ model GamificationChallenge {
   @@map("gamification_challenges")
 }
 
-// Eventos de gamificacao para polling do frontend
 model GamificationEvent {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  type      String   // "xp_earned", "level_up", "badge_unlocked", etc.
+  type      String
   data      Json
   seen      Boolean   @default(false)
-  readAt    DateTime?
   createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, seen, createdAt])
   @@index([userId, createdAt])
   @@index([userId, readAt, createdAt])
   @@map("gamification_events")
 }
-
-// ============================================
-// AUDIT LOG
-// ============================================
 
 /// Single-table audit trail for destructive and privilege-changing
 /// operations. Producer is `AuditService.record()` in src/shared/audit/.
@@ -885,11 +729,195 @@ model AuditLog {
   /// reason strings, request metadata). Never put credentials here.
   metadata   Json?
   createdAt  DateTime @default(now())
-
-  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actor      User?    @relation(fields: [actorId], references: [id])
 
   @@index([actorId, createdAt])
   @@index([entityType, entityId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+model question_bank_items {
+  id            String      @id
+  specialtyId   String
+  question      String
+  options       Json
+  correctAnswer Int
+  explanation   String
+  difficulty    Difficulty  @default(MEDIUM)
+  active        Boolean     @default(true)
+  createdById   String
+  approvedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  users         User        @relation(fields: [createdById], references: [id])
+  specialties   specialties @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@index([specialtyId, active])
+}
+
+model specialties {
+  id                  String                @id
+  slug                String                @unique
+  name                String
+  description         String?
+  icon                String?
+  displayOrder        Int                   @default(0)
+  active              Boolean               @default(true)
+  difficulty          Difficulty            @default(MEDIUM)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  question_bank_items question_bank_items[]
+  quiz_attempts       QuizAttempt[]
+  user_mastery        user_mastery[]
+}
+
+model user_mastery {
+  id            String      @id
+  userId        String
+  specialtyId   String
+  score         Float       @default(0)
+  totalAttempts Int         @default(0)
+  totalCorrect  Int         @default(0)
+  lastReviewAt  DateTime?
+  lastDecayAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  specialties   specialties @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  users         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, specialtyId])
+  @@index([specialtyId])
+  @@index([userId])
+}
+
+model video_bookmarks {
+  id           String   @id
+  videoId      String
+  userId       String
+  timestamp    Int
+  label        String?
+  thumbnailUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  users        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videos       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([userId, videoId])
+  @@index([videoId])
+}
+
+model xp_rules {
+  id             String   @id
+  key            String   @unique
+  description    String
+  baseXp         Int      @default(0)
+  multiplierJson Json
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+}
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+enum VideoUploadStatus {
+  PENDING
+  UPLOADING
+  PROCESSING
+  READY
+  ERROR
+}
+
+enum MaterialType {
+  PDF
+  LINK
+  ARTICLE
+  VIDEO
+  IMAGE
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE
+  OFFENSIVE
+  OFF_TOPIC
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum QuizDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum DocumentProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  ERROR
+}
+
+enum ChallengePeriod {
+  DAILY
+  WEEKLY
+  SPECIAL
+}
+
+enum GamificationChallengeDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum AudioPref {
+  AUTO
+  ALWAYS
+  NEVER
+}
+
+enum ConfidenceLevel {
+  GUESSED
+  THOUGHT_KNEW
+  KNEW
+  MASTERED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+/// Pipeline status for videos uploaded to R2 inbox/ and processed by the
+/// Cloud Run GPU worker (FFmpeg encode + Whisper subtitles). Worker reports
+/// completion to the backend via POST /api/v1/jobs/video-processed which
+/// upserts a row here. The admin panel reads from this table.
+model VideoProcessingJob {
+  id             String    @id @default(uuid())
+  sourceKey      String    @unique
+  destinationKey String?
+  status         String    @default("pending")
+  profiles       String[]  @default([])
+  durationSec    Float?
+  filesUploaded  Int?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@map("video_processing_jobs")
 }
