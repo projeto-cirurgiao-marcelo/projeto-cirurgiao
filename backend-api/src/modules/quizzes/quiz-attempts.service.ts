@@ -35,6 +35,19 @@ export class QuizAttemptsService {
   ): Promise<QuizResult> {
     this.logger.log(`User ${userId} submitting quiz ${quizId}`);
 
+    // 0. Bloquear refazer o mesmo quiz (anti-XP-farming).
+    // Cada quiz é gerado dinamicamente pela IA — fluxo correto é "Gerar Novo Quiz"
+    // se o user quiser tentar de novo.
+    const previousAttempt = await this.prisma.quizAttempt.findFirst({
+      where: { quizId, userId },
+      select: { id: true },
+    });
+    if (previousAttempt) {
+      throw new BadRequestException(
+        'Este quiz já foi respondido. Gere um novo quiz pra continuar praticando.',
+      );
+    }
+
     // 1. Buscar quiz com respostas corretas
     const quiz = await this.quizzesService.getQuizWithAnswers(quizId);
 
@@ -149,7 +162,7 @@ export class QuizAttemptsService {
             userId,
             'quiz_question',
             xp.total,
-            `Acerto questão ${correctedAnswer.questionId.slice(0, 8)}`,
+            'Resposta correta',
             `${attempt.id}:${correctedAnswer.questionId}`,
           );
         }

@@ -20,6 +20,11 @@ const DIFFICULTY_CONFIG: Record<string, { label: string; color: string; bg: stri
 export interface QuizIntroProps {
   quiz: Quiz | null;
   stats: QuizStats | null;
+  /**
+   * Tentativas no quiz atual (por quiz_id). Se > 0, oculta 'Iniciar Quiz'
+   * pra evitar XP farming refazendo o mesmo quiz com gabarito conhecido.
+   */
+  currentQuizAttempts: number;
   isAdmin: boolean;
   generating: boolean;
   /** Optional status label shown next to the spinner during async generation. */
@@ -38,6 +43,7 @@ export interface QuizIntroProps {
 export function QuizIntro({
   quiz,
   stats,
+  currentQuizAttempts,
   isAdmin,
   generating,
   generationStatus,
@@ -45,6 +51,7 @@ export function QuizIntro({
   onStart,
   onRetryNewQuiz,
 }: QuizIntroProps) {
+  const alreadyAttempted = currentQuizAttempts > 0;
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {!quiz ? (
@@ -146,35 +153,55 @@ export function QuizIntro({
             </View>
           )}
 
-          <TouchableOpacity
-            style={[styles.startButton, generating && styles.buttonDisabled]}
-            onPress={onStart}
-            disabled={generating}
-            activeOpacity={0.8}
-          >
-            {generating ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={styles.buttonText}>
-                  {generationStatus ?? 'Gerando…'}
+          {alreadyAttempted ? (
+            <>
+              <View style={styles.lockedNotice}>
+                <Ionicons name="lock-closed" size={14} color={colors.textMuted} />
+                <Text style={styles.lockedNoticeText}>
+                  Você já fez este quiz. Gere um novo pra continuar ganhando XP.
                 </Text>
               </View>
-            ) : (
-              <>
-                <Ionicons name="play" size={16} color="#fff" />
-                <Text style={styles.buttonText}>Iniciar Quiz</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          {stats && stats.totalAttempts > 0 && (
+              <TouchableOpacity
+                style={[styles.startButton, generating && styles.buttonDisabled]}
+                onPress={onRetryNewQuiz}
+                disabled={generating}
+                activeOpacity={0.8}
+              >
+                {generating ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.buttonText}>
+                      {generationStatus ?? 'Gerando…'}
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Ionicons name="sparkles" size={16} color="#fff" />
+                    <Text style={styles.buttonText}>Gerar Novo Quiz</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
             <TouchableOpacity
-              style={[styles.regenerateButton, generating && styles.buttonDisabled]}
-              onPress={onRetryNewQuiz}
+              style={[styles.startButton, generating && styles.buttonDisabled]}
+              onPress={onStart}
               disabled={generating}
               activeOpacity={0.8}
             >
-              <Ionicons name="sparkles" size={14} color={colors.accent} />
-              <Text style={styles.regenerateButtonText}>Gerar Novo Quiz</Text>
+              {generating ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={styles.buttonText}>
+                    {generationStatus ?? 'Gerando…'}
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <Ionicons name="play" size={16} color="#fff" />
+                  <Text style={styles.buttonText}>Iniciar Quiz</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -341,6 +368,23 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 13,
     fontWeight: '600',
+  },
+  lockedNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: 10,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  lockedNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 16,
   },
 
   // Shared

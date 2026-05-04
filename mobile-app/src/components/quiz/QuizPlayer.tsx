@@ -107,6 +107,8 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const [playStep, setPlayStep] = useState<PlayStep>('answering');
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [stats, setStats] = useState<QuizStats | null>(null);
+  /** Tentativas no quiz atual (por quiz_id). Se > 0, bloquear refazer pra evitar XP farming. */
+  const [currentQuizAttempts, setCurrentQuizAttempts] = useState(0);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<string | null>(null);
@@ -156,11 +158,16 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         const quizData = await quizzesService.getById(quizzes[0].id);
         setQuiz(quizData);
 
-        const quizStats = await quizzesService.getVideoStats(videoId);
-        setStats(quizStats);
+        const [videoStats, perQuizStats] = await Promise.all([
+          quizzesService.getVideoStats(videoId),
+          quizzesService.getStats(quizData.id),
+        ]);
+        setStats(videoStats);
+        setCurrentQuizAttempts(perQuizStats?.totalAttempts ?? 0);
       } else {
         setQuiz(null);
         setStats(null);
+        setCurrentQuizAttempts(0);
       }
     } catch (err) {
       logger.error('Erro ao carregar quiz:', err);
@@ -195,6 +202,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       );
       setQuiz(newQuiz);
       setStats(null);
+      setCurrentQuizAttempts(0);
       setGenerationStatus(null);
     } catch (error) {
       logger.error('Erro ao gerar quiz:', error);
@@ -328,7 +336,8 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
           setTimeout(() => setConfettiActive(false), 3000);
         }
 
-        // Refresh stats
+        // Refresh stats — incrementa contador local pra travar reattempt
+        setCurrentQuizAttempts((prev) => prev + 1);
         const newStats = await quizzesService.getVideoStats(videoId);
         setStats(newStats);
       } catch (error) {
@@ -403,6 +412,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         (status) => setGenerationStatus(mapJobStatusToLabel(status)),
       );
       setQuiz(newQuiz);
+      setCurrentQuizAttempts(0);
       // Refresh stats (cumulativo per video — quiz é regenerado a cada Novo Quiz)
       if (newQuiz) {
         const newStats = await quizzesService.getVideoStats(videoId);
@@ -564,6 +574,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         <QuizIntro
           quiz={quiz}
           stats={stats}
+          currentQuizAttempts={currentQuizAttempts}
           isAdmin={isAdmin}
           generating={generating}
           generationStatus={generationStatus}
