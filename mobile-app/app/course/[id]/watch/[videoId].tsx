@@ -375,8 +375,7 @@ export default function WatchVideoScreen() {
             );
           })()}
 
-          {/* Info compacta abaixo do player — oculta em landscape pra player ocupar tudo */}
-          {!isLandscape && (
+          {/* Info compacta abaixo do player */}
           <View style={styles.videoInfo}>
             <View style={styles.videoMetaRow}>
               {video.duration ? (
@@ -401,20 +400,17 @@ export default function WatchVideoScreen() {
               )}
             </View>
           </View>
-          )}
 
-          {/* Barra de ações — oculta em landscape */}
-          {!isLandscape && (
-            <VideoActionBar
-              videoId={videoId || ''}
-              isCompleted={isCompleted}
-              onCompletedChange={handleCompletedChange}
-              onPrevious={handleNavigatePrevious}
-              onNext={handleNavigateNext}
-              hasPrevious={!!previousVideo}
-              hasNext={!!nextVideo}
-            />
-          )}
+          {/* Barra de ações */}
+          <VideoActionBar
+            videoId={videoId || ''}
+            isCompleted={isCompleted}
+            onCompletedChange={handleCompletedChange}
+            onPrevious={handleNavigatePrevious}
+            onNext={handleNavigateNext}
+            hasPrevious={!!previousVideo}
+            hasNext={!!nextVideo}
+          />
         </>
       )}
 
@@ -436,30 +432,26 @@ export default function WatchVideoScreen() {
         </View>
       )}
 
-      {/* Botao expandir/recolher — oculto em landscape */}
-      {!isLandscape && (
-        <TouchableOpacity
-          style={styles.expandToggle}
-          onPress={() => setIsTabsExpanded(!isTabsExpanded)}
-          activeOpacity={0.7}
-          hitSlop={{ top: 4, bottom: 4 }}
-        >
-          <View style={styles.expandToggleHandle} />
-          <Ionicons
-            name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
-            size={16}
-            color={colors.textMuted}
-          />
-        </TouchableOpacity>
-      )}
-
-      {/* Tabs de conteúdo — ocultas em landscape pra player ocupar tela inteira */}
-      {!isLandscape && (
-        <CustomTabView
-          routes={TAB_ROUTES}
-          renderScene={renderScene}
+      {/* Botao expandir/recolher */}
+      <TouchableOpacity
+        style={styles.expandToggle}
+        onPress={() => setIsTabsExpanded(!isTabsExpanded)}
+        activeOpacity={0.7}
+        hitSlop={{ top: 4, bottom: 4 }}
+      >
+        <View style={styles.expandToggleHandle} />
+        <Ionicons
+          name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
+          size={16}
+          color={colors.textMuted}
         />
-      )}
+      </TouchableOpacity>
+
+      {/* Tabs de conteúdo */}
+      <CustomTabView
+        routes={TAB_ROUTES}
+        renderScene={renderScene}
+      />
 
       {/* FAB IA expandível */}
       <ExpandableFAB
