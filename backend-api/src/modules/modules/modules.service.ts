@@ -89,13 +89,14 @@ export class ModulesService {
       },
       include: {
         videos: {
+          where: { deletedAt: null },
           orderBy: {
             order: 'asc',
           },
         },
         _count: {
           select: {
-            videos: true,
+            videos: { where: { deletedAt: null } },
           },
         },
       },
@@ -120,13 +121,14 @@ export class ModulesService {
           },
         },
         videos: {
+          where: { deletedAt: null },
           orderBy: {
             order: 'asc',
           },
         },
         _count: {
           select: {
-            videos: true,
+            videos: { where: { deletedAt: null } },
           },
         },
       },
@@ -169,6 +171,7 @@ export class ModulesService {
         data: updateModuleDto,
         include: {
           videos: {
+            where: { deletedAt: null },
             orderBy: {
               order: 'asc',
             },
@@ -345,6 +348,7 @@ export class ModulesService {
         data: updateData,
         include: {
           videos: {
+            where: { deletedAt: null },
             orderBy: {
               order: 'asc',
             },
