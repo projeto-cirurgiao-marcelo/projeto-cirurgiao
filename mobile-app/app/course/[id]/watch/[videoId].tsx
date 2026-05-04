@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import VideoPlayer, { VideoPlayerRef } from '../../../../src/components/video/VideoPlayer';
 import { VideoLessonsList } from '../../../../src/components/video/VideoLessonsList';
 import { VideoSummaries } from '../../../../src/components/video/VideoSummaries';
@@ -67,8 +68,21 @@ export default function WatchVideoScreen() {
     };
   }, [videoId, allCourseVideos]);
 
-  // App e portrait-only (app.json). Rotacao pra landscape e responsabilidade
-  // exclusiva do VideoPlayer ao entrar em fullscreen (via lockAsync).
+  // App e portrait-only (app.json), MAS na watch page liberamos rotacao
+  // pra que o VideoPlayer detecte landscape do device e entre em fullscreen
+  // automaticamente. No unmount voltamos a portrait pra o resto do app
+  // continuar travado.
+  useEffect(() => {
+    ScreenOrientation.unlockAsync().catch((err) => {
+      logger.warn('[WatchVideo] Falha ao liberar rotação:', err);
+    });
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(
+        (err) => logger.warn('[WatchVideo] Falha ao re-travar portrait no unmount:', err),
+      );
+    };
+  }, []);
+
   useEffect(() => {
     loadVideoData();
   }, [videoId]);
@@ -311,6 +325,7 @@ export default function WatchVideoScreen() {
                   ref={playerRef}
                   video={video}
                   streamUrl={playbackUrl}
+                  playbackKind={kind}
                   onEnded={handleVideoEnded}
                   onProgressUpdate={handleProgressUpdate}
                   initialPosition={initialPosition}

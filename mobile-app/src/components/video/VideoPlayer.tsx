@@ -15,6 +15,13 @@ import { logger } from '../../lib/logger';
 interface VideoPlayerProps {
   video: Video;
   streamUrl: string;
+  /**
+   * Tipo de playback do contrato unificado backend (`video.playback.kind`).
+   * Quando 'hls', força contentType:'hls' independente da extensão da URL —
+   * resolve casos onde URL externa .m3u8 chega sem extensão evidente
+   * (query string, redirect, etc). Fallback é detecção por regex .m3u8.
+   */
+  playbackKind?: 'hls' | 'iframe' | 'none';
   onEnded?: () => void;
   onProgressUpdate?: (currentTime: number, duration: number) => void;
   autoPlay?: boolean;
@@ -57,7 +64,7 @@ function formatTime(seconds: number): string {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
-  { video, streamUrl, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0 },
+  { video, streamUrl, playbackKind, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0 },
   ref
 ) {
   const videoViewRef = useRef<VideoView>(null);
@@ -84,13 +91,16 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   const [showOverlay, setShowOverlay] = useState(true);
   const overlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Source com contentType explícito para HLS
+  // Source com contentType explícito para HLS.
+  // Prioridade: contrato backend playbackKind > regex .m3u8 (fallback defensivo
+  // pra URLs antigas que ainda não passam pelo contrato unificado).
   const videoSource = useMemo(() => {
-    if (streamUrl?.includes('.m3u8')) {
+    const isHls = playbackKind === 'hls' || streamUrl?.includes('.m3u8');
+    if (isHls) {
       return { uri: streamUrl, contentType: 'hls' as const };
     }
     return streamUrl;
-  }, [streamUrl]);
+  }, [streamUrl, playbackKind]);
 
   const player = useVideoPlayer(videoSource, (player) => {
     player.loop = false;
@@ -430,11 +440,34 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     };
   }, [saveProgress]);
 
-  // Fullscreen gerenciado via lockAsync no botao (ver TouchableOpacity expand).
-  // App e portrait-only globalmente (app.json), entao nao escutamos rotacao de device.
-  // Cleanup: ao desmontar em fullscreen, devolve portrait pra nao prender o app em landscape.
+  // Auto-fullscreen quando o device gira pra landscape.
+  // App e portrait-only globalmente (app.json), MAS a watch page chama
+  // ScreenOrientation.unlockAsync() no mount, liberando rotacao temporariamente.
+  // Aqui escutamos o orientation change real do device — quando vira pra
+  // landscape (LEFT/RIGHT) e nao estamos em fullscreen ainda, dispara
+  // enterFullscreen pra cobrir tela inteira sem o user precisar tocar no
+  // botao expand. Ao voltar pra portrait, sai do fullscreen automatico.
   useEffect(() => {
+    const subscription = ScreenOrientation.addOrientationChangeListener((evt) => {
+      const o = evt.orientationInfo.orientation;
+      const isLandscape =
+        o === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
+        o === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
+      const isPortrait =
+        o === ScreenOrientation.Orientation.PORTRAIT_UP ||
+        o === ScreenOrientation.Orientation.PORTRAIT_DOWN;
+
+      if (isLandscape && !isFullscreenRef.current) {
+        videoViewRef.current?.enterFullscreen();
+      } else if (isPortrait && isFullscreenRef.current) {
+        videoViewRef.current?.exitFullscreen();
+      }
+    });
     return () => {
+      ScreenOrientation.removeOrientationChangeListener(subscription);
+      // Cleanup: ao desmontar em fullscreen, devolve portrait pra nao prender
+      // o app em landscape (a watch page tambem trava portrait no unmount,
+      // double-safety).
       if (isFullscreenRef.current) {
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {
           // ignore: best-effort cleanup
