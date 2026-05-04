@@ -81,6 +81,40 @@ Seed idempotente:
 - 8 specialties: Cardiologia, Ortopedia, Partes Moles, Oftalmologia, Neurologia, Anestesia, Diagnóstico por Imagem, Reprodução
 - 1 row `XpRule.quiz_question` com fórmula completa em JSON
 
+
+
+[
+  {
+    "AllowedOrigins": [
+      "https://inquisitive-zuccutto-52f2eb.netlify.app",
+      "https://projetocirurgiao.app",
+      "https://www.projetocirurgiao.app",
+      "http://localhost:3001",
+      "http://localhost:5500",
+      "http://localhost:3002",
+      "http://localhost:8787",
+      "https://hlsjs.video-dev.org/demo/",
+      "https://projeto-cirurgiao-git-release-271637-marcelo-portilhos-projects.vercel.app"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "HEAD",
+      "PUT",
+      "POST",
+      "DELETE"
+    ],
+    "AllowedHeaders": [
+      "*"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
+    "MaxAgeSeconds": 86400
+  }
+]
+
+
+
 Analytics:
 - `posthog-node` SDK instalado + env vars
 - `AnalyticsService` tipado wrapping PostHog (no-op se `ANALYTICS_ENABLED!=true`)
