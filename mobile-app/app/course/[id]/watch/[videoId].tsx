@@ -47,6 +47,13 @@ export default function WatchVideoScreen() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isTabsExpanded, setIsTabsExpanded] = useState(false);
+  /**
+   * Esconde header (back + título) quando device está em landscape ou
+   * fullscreen — antes o header continuava visível recortando parte do
+   * vídeo na rotação. Atualizado via addOrientationChangeListener no
+   * mesmo unlockAsync useEffect abaixo.
+   */
+  const [isLandscape, setIsLandscape] = useState(false);
 
   const modalChatType = useChatStore((s) => s.modalChatType);
   const closeChat = useChatStore((s) => s.closeChat);
@@ -76,7 +83,18 @@ export default function WatchVideoScreen() {
     ScreenOrientation.unlockAsync().catch((err) => {
       logger.warn('[WatchVideo] Falha ao liberar rotação:', err);
     });
+
+    // Sincroniza estado isLandscape pra esconder header quando device gira.
+    const orientationSub = ScreenOrientation.addOrientationChangeListener((evt) => {
+      const o = evt.orientationInfo.orientation;
+      const landscape =
+        o === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
+        o === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
+      setIsLandscape(landscape);
+    });
+
     return () => {
+      ScreenOrientation.removeOrientationChangeListener(orientationSub);
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(
         (err) => logger.warn('[WatchVideo] Falha ao re-travar portrait no unmount:', err),
       );
@@ -284,9 +302,10 @@ export default function WatchVideoScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {!isTabsExpanded && (
+      {!isTabsExpanded && !isLandscape && (
         <>
-          {/* Header compacto sobre fundo escuro */}
+          {/* Header compacto sobre fundo escuro.
+              Oculto em landscape: vídeo ocupa tela inteira sem header recortando frame. */}
           <View style={styles.header}>
             <TouchableOpacity
               onPress={handleBack}
@@ -356,7 +375,8 @@ export default function WatchVideoScreen() {
             );
           })()}
 
-          {/* Info compacta abaixo do player */}
+          {/* Info compacta abaixo do player — oculta em landscape pra player ocupar tudo */}
+          {!isLandscape && (
           <View style={styles.videoInfo}>
             <View style={styles.videoMetaRow}>
               {video.duration ? (
@@ -381,22 +401,25 @@ export default function WatchVideoScreen() {
               )}
             </View>
           </View>
+          )}
 
-          {/* Barra de ações */}
-          <VideoActionBar
-            videoId={videoId || ''}
-            isCompleted={isCompleted}
-            onCompletedChange={handleCompletedChange}
-            onPrevious={handleNavigatePrevious}
-            onNext={handleNavigateNext}
-            hasPrevious={!!previousVideo}
-            hasNext={!!nextVideo}
-          />
+          {/* Barra de ações — oculta em landscape */}
+          {!isLandscape && (
+            <VideoActionBar
+              videoId={videoId || ''}
+              isCompleted={isCompleted}
+              onCompletedChange={handleCompletedChange}
+              onPrevious={handleNavigatePrevious}
+              onNext={handleNavigateNext}
+              hasPrevious={!!previousVideo}
+              hasNext={!!nextVideo}
+            />
+          )}
         </>
       )}
 
-      {/* Header compacto quando expandido */}
-      {isTabsExpanded && (
+      {/* Header compacto quando expandido — oculto em landscape */}
+      {isTabsExpanded && !isLandscape && (
         <View style={styles.expandedHeader}>
           <TouchableOpacity
             onPress={handleBack}
@@ -413,26 +436,30 @@ export default function WatchVideoScreen() {
         </View>
       )}
 
-      {/* Botao expandir/recolher */}
-      <TouchableOpacity
-        style={styles.expandToggle}
-        onPress={() => setIsTabsExpanded(!isTabsExpanded)}
-        activeOpacity={0.7}
-        hitSlop={{ top: 4, bottom: 4 }}
-      >
-        <View style={styles.expandToggleHandle} />
-        <Ionicons
-          name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
-          size={16}
-          color={colors.textMuted}
-        />
-      </TouchableOpacity>
+      {/* Botao expandir/recolher — oculto em landscape */}
+      {!isLandscape && (
+        <TouchableOpacity
+          style={styles.expandToggle}
+          onPress={() => setIsTabsExpanded(!isTabsExpanded)}
+          activeOpacity={0.7}
+          hitSlop={{ top: 4, bottom: 4 }}
+        >
+          <View style={styles.expandToggleHandle} />
+          <Ionicons
+            name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
+            size={16}
+            color={colors.textMuted}
+          />
+        </TouchableOpacity>
+      )}
 
-      {/* Tabs de conteúdo */}
-      <CustomTabView
-        routes={TAB_ROUTES}
-        renderScene={renderScene}
-      />
+      {/* Tabs de conteúdo — ocultas em landscape pra player ocupar tela inteira */}
+      {!isLandscape && (
+        <CustomTabView
+          routes={TAB_ROUTES}
+          renderScene={renderScene}
+        />
+      )}
 
       {/* FAB IA expandível */}
       <ExpandableFAB
