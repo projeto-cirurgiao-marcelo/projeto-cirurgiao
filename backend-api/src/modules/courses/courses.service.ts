@@ -57,6 +57,7 @@ export class CoursesService {
             },
           },
           modules: {
+            where: { deletedAt: null },
             orderBy: {
               order: 'asc',
             },
@@ -93,11 +94,13 @@ export class CoursesService {
           },
         },
         modules: {
+          where: { deletedAt: null },
           orderBy: {
             order: 'asc',
           },
           include: {
             videos: {
+              where: { deletedAt: null },
               orderBy: {
                 order: 'asc',
               },
@@ -107,7 +110,7 @@ export class CoursesService {
         _count: {
           select: {
             enrollments: true,
-            modules: true,
+            modules: { where: { deletedAt: null } },
           },
         },
       },
@@ -128,11 +131,13 @@ export class CoursesService {
       },
       include: {
         modules: {
+          where: { deletedAt: null },
           orderBy: {
             order: 'asc',
           },
           include: {
             videos: {
+              where: { deletedAt: null },
               orderBy: {
                 order: 'asc',
               },
@@ -142,7 +147,7 @@ export class CoursesService {
         _count: {
           select: {
             enrollments: true,
-            modules: true,
+            modules: { where: { deletedAt: null } },
           },
         },
       },
@@ -167,11 +172,13 @@ export class CoursesService {
           },
         },
         modules: {
+          where: { deletedAt: null },
           orderBy: {
             order: 'asc',
           },
           include: {
             videos: {
+              where: { deletedAt: null },
               orderBy: {
                 order: 'asc',
               },
@@ -210,11 +217,13 @@ export class CoursesService {
           },
         },
         modules: {
+          where: { deletedAt: null },
           orderBy: {
             order: 'asc',
           },
           include: {
             videos: {
+              where: { deletedAt: null },
               orderBy: {
                 order: 'asc',
               },
@@ -279,6 +288,7 @@ export class CoursesService {
             },
           },
           modules: {
+            where: { deletedAt: null },
             orderBy: {
               order: 'asc',
             },
@@ -443,6 +453,7 @@ export class CoursesService {
             },
           },
           modules: {
+            where: { deletedAt: null },
             orderBy: {
               order: 'asc',
             },

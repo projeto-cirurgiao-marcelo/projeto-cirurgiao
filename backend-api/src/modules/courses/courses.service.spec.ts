@@ -134,6 +134,17 @@ describe('CoursesService', () => {
       expect(where.deletedAt).toBeNull();
       expect(where.isPublished).toBeUndefined();
     });
+
+    it('hides soft-deleted modules + nested videos in includes (regression: student route leaked deleted lessons)', async () => {
+      prisma.course.findMany.mockResolvedValue([]);
+
+      await service.findAll();
+
+      const include = prisma.course.findMany.mock.calls[0][0]!.include as any;
+      expect(include.modules.where.deletedAt).toBeNull();
+      expect(include.modules.include.videos.where.deletedAt).toBeNull();
+      expect(include._count.select.modules.where.deletedAt).toBeNull();
+    });
   });
 
   // ============================================
