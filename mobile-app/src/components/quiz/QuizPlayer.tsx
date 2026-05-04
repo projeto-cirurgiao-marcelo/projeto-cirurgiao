@@ -156,7 +156,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         const quizData = await quizzesService.getById(quizzes[0].id);
         setQuiz(quizData);
 
-        const quizStats = await quizzesService.getStats(quizData.id);
+        const quizStats = await quizzesService.getVideoStats(videoId);
         setStats(quizStats);
       } else {
         setQuiz(null);
@@ -329,7 +329,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         }
 
         // Refresh stats
-        const newStats = await quizzesService.getStats(currentQuiz.id);
+        const newStats = await quizzesService.getVideoStats(videoId);
         setStats(newStats);
       } catch (error) {
         logger.error('Erro ao enviar quiz:', error);
@@ -403,9 +403,9 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         (status) => setGenerationStatus(mapJobStatusToLabel(status)),
       );
       setQuiz(newQuiz);
-      // Refresh stats (mantém histórico de tentativas anteriores)
+      // Refresh stats (cumulativo per video — quiz é regenerado a cada Novo Quiz)
       if (newQuiz) {
-        const newStats = await quizzesService.getStats(newQuiz.id);
+        const newStats = await quizzesService.getVideoStats(videoId);
         setStats(newStats);
       }
       setGenerationStatus(null);

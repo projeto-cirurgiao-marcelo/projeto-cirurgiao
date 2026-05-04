@@ -1,4 +1,5 @@
 import { PrismaClient, Difficulty } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 
 const prisma = new PrismaClient();
 
@@ -40,24 +41,42 @@ const XP_RULE_DEFAULT = {
 async function main() {
   console.log('Seeding specialties...');
   for (const s of SPECIALTIES) {
-    await prisma.specialty.upsert({
+    await prisma.specialties.upsert({
       where: { slug: s.slug },
-      update: { name: s.name, icon: s.icon, difficulty: s.difficulty, displayOrder: s.displayOrder, active: true },
-      create: { ...s, description: null, active: true },
+      update: {
+        name: s.name,
+        icon: s.icon,
+        difficulty: s.difficulty,
+        displayOrder: s.displayOrder,
+        active: true,
+        updatedAt: new Date(),
+      },
+      create: {
+        id: randomUUID(),
+        ...s,
+        description: null,
+        active: true,
+        updatedAt: new Date(),
+      },
     });
     console.log(`  ✓ ${s.slug}`);
   }
 
   console.log('Seeding default XP rule...');
-  await prisma.xpRule.upsert({
+  await prisma.xp_rules.upsert({
     where: { key: XP_RULE_DEFAULT.key },
     update: {
       description: XP_RULE_DEFAULT.description,
       baseXp: XP_RULE_DEFAULT.baseXp,
       multiplierJson: XP_RULE_DEFAULT.multiplierJson,
       active: XP_RULE_DEFAULT.active,
+      updatedAt: new Date(),
     },
-    create: XP_RULE_DEFAULT,
+    create: {
+      id: randomUUID(),
+      ...XP_RULE_DEFAULT,
+      updatedAt: new Date(),
+    },
   });
   console.log(`  ✓ ${XP_RULE_DEFAULT.key}`);
 

@@ -181,6 +181,23 @@ export const quizzesService = {
       return null;
     }
   },
+
+  /**
+   * Estatísticas agregadas de TODOS os quizzes de um vídeo (cumulativo).
+   * Usado pra mostrar "tentativas" reais — quiz é regenerado por IA a cada
+   * "Novo Quiz" (quiz_id diferente), então per-quiz stats sempre reseta.
+   */
+  async getVideoStats(videoId: string): Promise<QuizStats | null> {
+    try {
+      const response = await apiClient.get<QuizStats>(
+        `/videos/${videoId}/quiz-stats`
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('[quizzesService] Erro ao obter stats do vídeo:', error);
+      return null;
+    }
+  },
 };
 
 export default quizzesService;
