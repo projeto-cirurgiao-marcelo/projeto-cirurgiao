@@ -1,5 +1,7 @@
 export type QuizDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
+export type ConfidenceLevel = 'GUESSED' | 'THOUGHT_KNEW' | 'KNEW' | 'MASTERED';
+
 export interface Quiz {
   id: string;
   videoId: string;
@@ -34,6 +36,7 @@ export interface QuizAnswerDto {
   questionId: string;
   answer: number;
   timeSpent?: number;
+  confidence?: ConfidenceLevel;
 }
 
 export interface SubmitQuizDto {
@@ -55,6 +58,8 @@ export interface QuizResultAnswer {
   correctAnswer: number;
   isCorrect: boolean;
   explanation: string;
+  confidence?: ConfidenceLevel | null;
+  xpAwarded?: number | null;
 }
 
 export interface QuizAttempt {

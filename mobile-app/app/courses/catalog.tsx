@@ -23,6 +23,7 @@ import { CatalogCourseCard } from '../../src/components/course/CatalogCourseCard
 import { Colors as colors } from '../../src/constants/colors';
 import type { Course } from '../../src/types/course.types';
 import type { EnrolledCourse } from '../../src/types/student.types';
+import { getCourseProgressPercent } from '../../src/lib/course-progress';
 
 type AnyCourse = Course | EnrolledCourse;
 type FilterType = 'all' | 'in-progress' | 'popular';
@@ -47,7 +48,7 @@ function isEnrolled(course: AnyCourse): course is EnrolledCourse {
 
 function getProgress(course: AnyCourse): number {
   if (!isEnrolled(course)) return -1;
-  return course.progress?.percentage ?? course.progress?.progressPercentage ?? course.enrollment?.progress ?? 0;
+  return getCourseProgressPercent(course);
 }
 
 export default function CatalogScreen() {

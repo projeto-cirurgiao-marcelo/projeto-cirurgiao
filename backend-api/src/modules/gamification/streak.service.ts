@@ -1,11 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { AnalyticsService } from '../../shared/analytics/analytics.service';
+import { AnalyticsEvents } from '../../shared/analytics/analytics.events';
 
 @Injectable()
 export class StreakService {
   private readonly logger = new Logger(StreakService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private analytics: AnalyticsService,
+  ) {}
 
   async recordActivity(userId: string): Promise<void> {
     const today = this.getTodayString();
@@ -21,6 +26,11 @@ export class StreakService {
           longestStreak: 1,
           lastActiveDate: today,
         },
+      });
+
+      // Analytics: primeira atividade conta como streak incrementado para 1
+      this.analytics.capture(userId, AnalyticsEvents.STREAK_INCREMENTED, {
+        newStreak: 1,
       });
       return;
     }
@@ -43,6 +53,11 @@ export class StreakService {
           longestStreak: newLongest,
           lastActiveDate: today,
         },
+      });
+
+      // Analytics: streak incrementado (best-effort)
+      this.analytics.capture(userId, AnalyticsEvents.STREAK_INCREMENTED, {
+        newStreak: newCurrent,
       });
 
       this.logger.log(`User ${userId} streak: ${newCurrent} days`);

@@ -27,6 +27,7 @@ import {
   Shadows,
 } from '../../constants/colors';
 import { EnrolledCourse, Course } from '../../types';
+import { getCourseProgressPercent } from '../../lib/course-progress';
 
 interface CourseCardHomeProps {
   course: EnrolledCourse | Course;
@@ -36,7 +37,7 @@ interface CourseCardHomeProps {
 export function CourseCardHome({ course, onPress }: CourseCardHomeProps) {
   const isEnrolled = 'enrollment' in course;
   const enrolledCourse = isEnrolled ? (course as EnrolledCourse) : null;
-  const progress = enrolledCourse?.progress.percentage ?? 0;
+  const progress = enrolledCourse ? getCourseProgressPercent(enrolledCourse) : 0;
   const totalVideos = enrolledCourse?.progress.totalVideos ?? 0;
 
   const handlePress = () => {

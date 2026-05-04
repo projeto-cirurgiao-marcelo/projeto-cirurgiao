@@ -20,12 +20,17 @@ export const aiTextService = {
 
   async generateThumbnail(
     title: string,
-    options?: { overlayText?: string; style?: 'medical' | 'surgical' | 'anatomy' | 'clinical' }
+    options?: {
+      overlayText?: string;
+      style?: 'medical' | 'surgical' | 'anatomy' | 'clinical';
+      aspectRatio?: 'horizontal' | 'vertical';
+    }
   ): Promise<string> {
     const response = await apiClient.post<{ url: string; title: string }>('/ai/generate-thumbnail', {
       title,
       overlayText: options?.overlayText,
       style: options?.style || 'medical',
+      aspectRatio: options?.aspectRatio,
     });
     return response.data.url;
   },

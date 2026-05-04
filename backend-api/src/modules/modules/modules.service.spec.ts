@@ -62,6 +62,17 @@ describe('ModulesService', () => {
       expect(where.courseId).toBe('course-1');
       expect(where.deletedAt).toBeNull();
     });
+
+    it('hides soft-deleted videos in nested include + _count (regression: course edit page leaked deleted videos)', async () => {
+      prisma.course.findUnique.mockResolvedValue({ id: 'course-1' } as any);
+      prisma.module.findMany.mockResolvedValue([]);
+
+      await service.findAll('course-1');
+
+      const include = prisma.module.findMany.mock.calls[0][0]!.include as any;
+      expect(include.videos.where.deletedAt).toBeNull();
+      expect(include._count.select.videos.where.deletedAt).toBeNull();
+    });
   });
 
   describe('findOne', () => {

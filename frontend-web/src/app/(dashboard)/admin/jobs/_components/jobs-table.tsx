@@ -1,0 +1,202 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import {
+  type VideoProcessingJob,
+  listVideoJobs,
+} from '@/lib/api/video-jobs.service';
+import { cn } from '@/lib/utils';
+
+const POLL_MS = 10000;
+
+function statusColor(status: VideoProcessingJob['status']): string {
+  switch (status) {
+    case 'completed':
+      return 'text-green-700 bg-green-50 dark:text-green-300 dark:bg-green-950/30';
+    case 'failed':
+      return 'text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-950/30';
+    case 'processing':
+      return 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/30';
+    default:
+      return 'text-atlas-muted-2 bg-atlas-surface-2';
+  }
+}
+
+function StatusIcon({ status }: { status: VideoProcessingJob['status'] }) {
+  if (status === 'completed') return <CheckCircle2 className="h-4 w-4" />;
+  if (status === 'failed') return <AlertCircle className="h-4 w-4" />;
+  if (status === 'processing')
+    return <Loader2 className="h-4 w-4 animate-spin" />;
+  return <Clock className="h-4 w-4" />;
+}
+
+function relative(iso: string | null): string {
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '—';
+  const diff = Date.now() - t;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'há instantes';
+  if (m < 60) return `há ${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
+}
+
+export function JobsTable() {
+  const [jobs, setJobs] = useState<VideoProcessingJob[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const seenCompletions = useRef<Set<string>>(new Set());
+  const initialLoad = useRef(true);
+
+  const fetchJobs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const next = await listVideoJobs(50);
+      // Detect newly completed jobs since last poll, fire toast.
+      if (!initialLoad.current) {
+        for (const j of next) {
+          if (
+            (j.status === 'completed' || j.status === 'failed') &&
+            !seenCompletions.current.has(j.id)
+          ) {
+            seenCompletions.current.add(j.id);
+            if (j.status === 'completed') {
+              toast.success('Vídeo processado', { description: j.sourceKey });
+            } else {
+              toast.error('Falha no processamento', {
+                description: j.sourceKey,
+              });
+            }
+          }
+        }
+      } else {
+        // Seed seen set on first load so we don't toast historical jobs
+        for (const j of next) {
+          if (j.status === 'completed' || j.status === 'failed') {
+            seenCompletions.current.add(j.id);
+          }
+        }
+        initialLoad.current = false;
+      }
+      setJobs(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao carregar jobs');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchJobs();
+    const interval = setInterval(fetchJobs, POLL_MS);
+    return () => clearInterval(interval);
+  }, [fetchJobs]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-atlas-muted-2">
+          {jobs.length} jobs · atualiza a cada {POLL_MS / 1000}s
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchJobs}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          Atualizar
+        </Button>
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-atlas-line bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-lg border border-atlas-line bg-atlas-surface">
+        <table className="w-full text-sm">
+          <thead className="bg-atlas-surface-2/40 text-xs uppercase tracking-wide text-atlas-muted-2">
+            <tr>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Source</th>
+              <th className="px-3 py-2 text-left">Destino</th>
+              <th className="px-3 py-2 text-left">Qualidades</th>
+              <th className="px-3 py-2 text-right">Duração</th>
+              <th className="px-3 py-2 text-right">Quando</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-atlas-line">
+            {jobs.length === 0 && !loading && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-3 py-8 text-center text-atlas-muted-2"
+                >
+                  Nenhum job registrado.
+                </td>
+              </tr>
+            )}
+            {jobs.map((j) => (
+              <tr key={j.id} className="hover:bg-atlas-surface-2/30">
+                <td className="px-3 py-2">
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium uppercase',
+                      statusColor(j.status),
+                    )}
+                  >
+                    <StatusIcon status={j.status} />
+                    {j.status}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="font-mono text-[11px] text-atlas-ink dark:text-atlas-ink-2">
+                    {j.sourceKey}
+                  </div>
+                  {j.errorMessage && (
+                    <div className="mt-0.5 text-[11px] text-red-600">
+                      {j.errorMessage}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-2 font-mono text-[11px] text-atlas-muted-2">
+                  {j.destinationKey ?? '—'}
+                </td>
+                <td className="px-3 py-2 text-[11px] text-atlas-muted-2">
+                  {j.profiles.length > 0 ? j.profiles.join(', ') : '—'}
+                </td>
+                <td className="px-3 py-2 text-right text-[11px] text-atlas-muted-2">
+                  {j.durationSec
+                    ? `${(j.durationSec / 60).toFixed(1)}min`
+                    : '—'}
+                </td>
+                <td className="px-3 py-2 text-right text-[11px] text-atlas-muted-2">
+                  {relative(j.completedAt ?? j.createdAt)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

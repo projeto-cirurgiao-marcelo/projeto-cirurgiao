@@ -1,6 +1,10 @@
 # compiled output
 /dist
 /node_modules
+# Ruflo
+.claude-flow/
+.swarm/
+claude-flow.config.json
 
 # Logs
 logs

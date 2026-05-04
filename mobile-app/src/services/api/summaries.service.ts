@@ -33,6 +33,29 @@ export interface GenerateSummaryResponse extends VideoSummary {
   remainingGenerations: number;
 }
 
+interface JobDescriptor {
+  jobId: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  resultRef?: string;
+  error?: string;
+}
+
+const JOB_POLL_INTERVAL_MS = 1500;
+const JOB_POLL_TIMEOUT_MS = 90_000;
+
+async function pollJobUntilComplete(jobId: string): Promise<JobDescriptor> {
+  const start = Date.now();
+  while (Date.now() - start < JOB_POLL_TIMEOUT_MS) {
+    const { data } = await apiClient.get<JobDescriptor>(`/jobs/${jobId}`);
+    if (data.status === 'completed') return data;
+    if (data.status === 'failed') {
+      throw new Error(data.error || 'Job de geração de resumo falhou');
+    }
+    await new Promise((r) => setTimeout(r, JOB_POLL_INTERVAL_MS));
+  }
+  throw new Error('Timeout aguardando geração do resumo');
+}
+
 export const summariesService = {
   /**
    * Listar todos os resumos do usuário para um vídeo
@@ -67,17 +90,37 @@ export const summariesService = {
   },
 
   /**
-   * Gerar um novo resumo com IA
+   * Gerar um novo resumo com IA.
+   * Backend usa BullMQ async (sempre 202 + jobId). Em modo síncrono retorna
+   * inline-completed; em modo async precisa polling. Após resolver job,
+   * busca summary completo via GET /videos/:videoId/summaries/:summaryId.
    */
   async generateSummary(
     videoId: string,
     additionalInstructions?: string
   ): Promise<GenerateSummaryResponse> {
-    const response = await apiClient.post<GenerateSummaryResponse>(
+    const response = await apiClient.post<GenerateSummaryResponse | JobDescriptor>(
       `/videos/${videoId}/summaries/generate`,
       { additionalInstructions }
     );
-    return response.data;
+    const payload = response.data as any;
+
+    if (payload && 'jobId' in payload) {
+      let job = payload as JobDescriptor;
+      if (job.status !== 'completed' && job.status !== 'failed') {
+        job = await pollJobUntilComplete(job.jobId);
+      }
+      if (job.status === 'failed' || !job.resultRef) {
+        throw new Error(job.error || 'Resumo nao foi gerado (sem resultRef)');
+      }
+      const { data: summary } = await apiClient.get<VideoSummary>(
+        `/videos/${videoId}/summaries/${job.resultRef}`
+      );
+      const remaining = await this.getRemainingGenerations(videoId);
+      return { ...summary, remainingGenerations: remaining.remaining };
+    }
+
+    return payload as GenerateSummaryResponse;
   },
 
   /**

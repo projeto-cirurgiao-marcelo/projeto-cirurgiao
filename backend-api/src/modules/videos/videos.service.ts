@@ -123,6 +123,17 @@ export class VideosService {
         if (!playbackUrl) {
           return { kind: 'none', playbackUrl: null, poster };
         }
+        // External HLS (.m3u8) must use HLS player, not iframe — browsers
+        // can't execute manifests inside iframes. External pipeline publishes
+        // master playlist with SUBTITLES group attached.
+        if (/\.m3u8(\?|$)/i.test(playbackUrl)) {
+          return {
+            kind: 'hls',
+            playbackUrl,
+            captionsEmbedded: true,
+            poster,
+          };
+        }
         return {
           kind: 'iframe',
           playbackUrl,

@@ -7,6 +7,7 @@ import { XpService } from './xp.service';
 import { BadgesService } from './badges.service';
 import { StreakService } from './streak.service';
 import { ChallengesService } from './challenges.service';
+import { XpCalculatorService } from './xp-calculator.service';
 
 @Module({
   imports: [PrismaModule, FirebaseModule],
@@ -17,7 +18,8 @@ import { ChallengesService } from './challenges.service';
     BadgesService,
     StreakService,
     ChallengesService,
+    XpCalculatorService,
   ],
-  exports: [GamificationService, XpService],
+  exports: [GamificationService, XpService, XpCalculatorService],
 })
 export class GamificationModule {}

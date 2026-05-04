@@ -18,6 +18,11 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Ruflo
+.claude-flow/
+.swarm/
+claude-flow.config.json
+
 # Metro
 .metro-health-check*
 

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors as colors } from '../../constants/colors';
 import type { Course } from '../../types/course.types';
 import type { EnrolledCourse } from '../../types/student.types';
+import { getCourseProgressPercent } from '../../lib/course-progress';
 
 type AnyCourse = Course | EnrolledCourse;
 
@@ -13,10 +14,7 @@ function isEnrolled(course: AnyCourse): course is EnrolledCourse {
 
 function getProgress(course: AnyCourse): number {
   if (!isEnrolled(course)) return -1;
-  return course.progress?.percentage
-    ?? course.progress?.progressPercentage
-    ?? course.enrollment?.progress
-    ?? 0;
+  return getCourseProgressPercent(course);
 }
 
 function estimateDuration(course: AnyCourse): string {

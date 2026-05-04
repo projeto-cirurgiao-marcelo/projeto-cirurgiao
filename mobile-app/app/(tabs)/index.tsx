@@ -28,6 +28,7 @@ import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ProgressCardSkeleton, CourseCardSkeleton } from '../../src/components/ui/Skeleton';
 import { EnrolledCourse, Course } from '../../src/types';
 import { CourseCardHome } from '../../src/components/course/CourseCardHome';
+import { getCourseProgressPercent } from '../../src/lib/course-progress';
 import useAuthStore from '../../src/stores/auth-store';
 import { useGamificationStore } from '../../src/stores/gamification-store';
 import {
@@ -100,9 +101,9 @@ export default function HomeScreen() {
     loadData();
   }, [loadData]);
 
-  // Cursos em andamento (progresso < 100%)
+  // Cursos em andamento (progresso < 100%, usa weightedPercentage quando disponível)
   const inProgressCourses = useMemo(
-    () => enrolledCourses.filter((c) => (c.progress.percentage ?? c.progress.progressPercentage ?? 0) < 100),
+    () => enrolledCourses.filter((c) => getCourseProgressPercent(c) < 100),
     [enrolledCourses]
   );
 
@@ -481,7 +482,7 @@ export default function HomeScreen() {
 /* para seção "Em Andamento"                     */
 /* ============================================ */
 function ProgressCard({ course }: { course: EnrolledCourse }) {
-  const progress = course.progress.percentage ?? course.progress.progressPercentage ?? 0;
+  const progress = getCourseProgressPercent(course);
   const completedVideos = course.progress.completedVideos ?? 0;
   const totalVideos = course.progress.totalVideos ?? 0;
   const thumbnail =

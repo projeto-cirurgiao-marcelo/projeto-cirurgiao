@@ -29,8 +29,12 @@ export interface CourseProgress {
   watchedVideos: number;
   completedVideos?: number;
   totalWatchTime?: number;
+  /** % por aulas concluídas inteiras (binário). Backward-compat. */
   progressPercentage?: number;
+  /** % por aulas concluídas inteiras (alias de progressPercentage no payload enrolled-courses). */
   percentage?: number;
+  /** % ponderado por watchTime / soma das durações. Mais granular. */
+  weightedPercentage?: number;
   videos?: VideoProgressItem[];
   lastWatchedVideo?: {
     id: string;

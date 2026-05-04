@@ -48,6 +48,11 @@ class GenerateThumbnailDto {
   @IsIn(['medical', 'surgical', 'anatomy', 'clinical'])
   @IsOptional()
   style?: 'medical' | 'surgical' | 'anatomy' | 'clinical';
+
+  @IsString()
+  @IsIn(['horizontal', 'vertical'])
+  @IsOptional()
+  aspectRatio?: 'horizontal' | 'vertical';
 }
 
 @ApiTags('AI Text Assist')
@@ -89,6 +94,7 @@ export class AiTextAssistController {
       title: dto.title,
       overlayText: dto.overlayText,
       style: dto.style || 'medical',
+      aspectRatio: dto.aspectRatio,
     });
 
     // 2. Determinar extensão pelo mimeType

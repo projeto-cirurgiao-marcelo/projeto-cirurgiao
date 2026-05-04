@@ -5,6 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { USER_THROTTLE_TRACKER } from './shared/throttler/user-throttler.guard';
 import { UserThrottlerModule } from './shared/throttler/user-throttler.module';
 import { QueueModule } from './shared/queue/queue.module';
+import { AnalyticsModule } from './shared/analytics/analytics.module';
 import { AuditModule } from './shared/audit/audit.module';
 import { PrismaModule } from './shared/prisma/prisma.module';
 import { TokenCleanupService } from './shared/tasks/token-cleanup.service';
@@ -67,6 +68,7 @@ import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.
     }),
     UserThrottlerModule,
     QueueModule.forRoot(),
+    AnalyticsModule,
     AuditModule,
     PrismaModule,
     FirebaseModule, // Firebase Admin SDK

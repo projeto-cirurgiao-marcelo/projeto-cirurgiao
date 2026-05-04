@@ -5,6 +5,8 @@ import {
   ACTION_TO_BADGES,
   BadgeDefinition,
 } from './constants/badge-catalog';
+import { AnalyticsService } from '../../shared/analytics/analytics.service';
+import { AnalyticsEvents } from '../../shared/analytics/analytics.events';
 
 export interface BadgeWithProgress {
   slug: string;
@@ -29,7 +31,10 @@ export interface UnlockedBadge {
 export class BadgesService {
   private readonly logger = new Logger(BadgesService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private analytics: AnalyticsService,
+  ) {}
 
   async getBadgesForUser(userId: string) {
     // Busca badges ja desbloqueados
@@ -122,6 +127,11 @@ export class BadgesService {
         // Desbloqueia badge
         await this.prisma.userBadge.create({
           data: { userId, badgeSlug: slug },
+        });
+
+        // Analytics: badge desbloqueado (best-effort)
+        this.analytics.capture(userId, AnalyticsEvents.BADGE_UNLOCKED, {
+          badgeSlug: def.slug,
         });
 
         newlyUnlocked.push({

@@ -9,6 +9,7 @@ import {
   Loader2, ArrowLeft, Save, Plus, GripVertical, Pencil, Trash2,
   Video as VideoIcon, ChevronDown, ChevronUp, Eye, EyeOff,
   FolderOpen, FolderClosed, FileVideo, MoveRight, ChevronRight,
+  Sparkles, Wand2,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { DropResult } from '@hello-pangea/dnd';
@@ -31,8 +32,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { coursesService, modulesService, videosService } from '@/lib/api';
+import { aiTextService } from '@/lib/api/ai-text.service';
 import type { Course, Module, Video } from '@/lib/types/course.types';
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
+import { logger } from '@/lib/logger';
 
 const DragDropContext = dynamic(
   () => import('@hello-pangea/dnd').then((mod) => mod.DragDropContext),
@@ -73,6 +76,7 @@ export default function EditCoursePage() {
   const [moveVideoDialog, setMoveVideoDialog] = useState<{ video: Video; currentModuleId: string } | null>(null);
   const [moveTargetModuleId, setMoveTargetModuleId] = useState<string>('');
   const [isMoving, setIsMoving] = useState(false);
+  const [aiBusy, setAiBusy] = useState<'idle' | 'title' | 'description' | 'thumbnail-h' | 'thumbnail-v'>('idle');
 
   const [isCourseInfoCollapsed, setIsCourseInfoCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -365,11 +369,111 @@ export default function EditCoursePage() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField control={form.control} name="title" render={({ field }) => (
-                  <FormItem><FormLabel>Título do Curso</FormLabel><FormControl><Input placeholder="Ex: Curso Completo de React" {...field} /></FormControl><FormDescription>O título principal do seu curso</FormDescription><FormMessage /></FormItem>
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Título do Curso</FormLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                        disabled={!field.value?.trim() || isSaving || aiBusy !== 'idle'}
+                        onClick={async () => {
+                          const current = field.value?.trim();
+                          if (!current) return;
+                          try {
+                            setAiBusy('title');
+                            toast({ title: 'IA', description: 'Melhorando título...' });
+                            const improved = await aiTextService.improveText(current, 'title');
+                            form.setValue('title', improved, { shouldDirty: true, shouldValidate: true });
+                            toast({ title: 'Pronto', description: 'Título melhorado pela IA' });
+                          } catch (err) {
+                            logger.error('[IA course title]', err);
+                            toast({ title: 'Erro', description: 'Não foi possível melhorar o título', variant: 'destructive' });
+                          } finally {
+                            setAiBusy('idle');
+                          }
+                        }}
+                      >
+                        {aiBusy === 'title' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        Melhorar com IA
+                      </Button>
+                    </div>
+                    <FormControl><Input placeholder="Ex: Curso Completo de React" {...field} /></FormControl>
+                    <FormDescription>O título principal do seu curso</FormDescription>
+                    <FormMessage />
+                  </FormItem>
                 )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel>Descrição</FormLabel><FormControl><Textarea placeholder="Descreva o conteúdo do curso..." className="min-h-[120px]" {...field} /></FormControl><FormDescription>Uma descrição detalhada do que os alunos aprenderão</FormDescription><FormMessage /></FormItem>
-                )} />
+                <FormField control={form.control} name="description" render={({ field }) => {
+                  const titleValue = form.watch('title')?.trim() ?? '';
+                  const descriptionValue = field.value?.trim() ?? '';
+                  return (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Descrição</FormLabel>
+                        <div className="flex gap-1">
+                          {!descriptionValue && titleValue && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-atlas-primary hover:text-atlas-primary-2 hover:bg-atlas-primary-soft gap-1"
+                              disabled={isSaving || aiBusy !== 'idle'}
+                              onClick={async () => {
+                                if (!titleValue) return;
+                                try {
+                                  setAiBusy('description');
+                                  toast({ title: 'IA', description: 'Gerando descrição...' });
+                                  const desc = await aiTextService.generateDescription(titleValue);
+                                  form.setValue('description', desc, { shouldDirty: true, shouldValidate: true });
+                                  toast({ title: 'Pronto', description: 'Descrição gerada pela IA' });
+                                } catch (err) {
+                                  logger.error('[IA course description gen]', err);
+                                  toast({ title: 'Erro', description: 'Não foi possível gerar a descrição', variant: 'destructive' });
+                                } finally {
+                                  setAiBusy('idle');
+                                }
+                              }}
+                            >
+                              {aiBusy === 'description' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                              Gerar com IA
+                            </Button>
+                          )}
+                          {descriptionValue && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                              disabled={isSaving || aiBusy !== 'idle'}
+                              onClick={async () => {
+                                if (!descriptionValue) return;
+                                try {
+                                  setAiBusy('description');
+                                  toast({ title: 'IA', description: 'Melhorando descrição...' });
+                                  const improved = await aiTextService.improveText(descriptionValue, 'description', titleValue);
+                                  form.setValue('description', improved, { shouldDirty: true, shouldValidate: true });
+                                  toast({ title: 'Pronto', description: 'Descrição melhorada pela IA' });
+                                } catch (err) {
+                                  logger.error('[IA course description improve]', err);
+                                  toast({ title: 'Erro', description: 'Não foi possível melhorar a descrição', variant: 'destructive' });
+                                } finally {
+                                  setAiBusy('idle');
+                                }
+                              }}
+                            >
+                              {aiBusy === 'description' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                              Melhorar com IA
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <FormControl><Textarea placeholder="Descreva o conteúdo do curso..." className="min-h-[120px]" {...field} /></FormControl>
+                      <FormDescription>Uma descrição detalhada do que os alunos aprenderão</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }} />
                 <FormField control={form.control} name="price" render={({ field }) => (
                   <FormItem><FormLabel>Preço (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="99.90" {...field} /></FormControl><FormDescription>Valor do curso em reais</FormDescription><FormMessage /></FormItem>
                 )} />
@@ -381,10 +485,76 @@ export default function EditCoursePage() {
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <FormField control={form.control} name="thumbnailHorizontal" render={({ field }) => (
-                      <FormItem><FormLabel>Thumbnail Horizontal (16:9)</FormLabel><FormControl><ThumbnailUpload value={field.value} onChange={field.onChange} aspectRatio="horizontal" label="Thumbnail horizontal" /></FormControl><FormDescription>Imagem para exibição em desktop e tablet</FormDescription><FormMessage /></FormItem>
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Thumbnail Horizontal (16:9)</FormLabel>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                            disabled={!form.watch('title')?.trim() || isSaving || aiBusy !== 'idle'}
+                            onClick={async () => {
+                              const title = form.watch('title')?.trim();
+                              if (!title) return;
+                              try {
+                                setAiBusy('thumbnail-h');
+                                toast({ title: 'IA', description: 'Gerando thumbnail horizontal... Isso pode levar alguns segundos.' });
+                                const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical' });
+                                form.setValue('thumbnailHorizontal', url, { shouldDirty: true, shouldValidate: true });
+                                toast({ title: 'Pronto', description: 'Thumbnail horizontal gerada e enviada ao R2' });
+                              } catch (err) {
+                                logger.error('[IA course thumbnail-h]', err);
+                                toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail horizontal', variant: 'destructive' });
+                              } finally {
+                                setAiBusy('idle');
+                              }
+                            }}
+                          >
+                            {aiBusy === 'thumbnail-h' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                            Gerar com IA
+                          </Button>
+                        </div>
+                        <FormControl><ThumbnailUpload value={field.value} onChange={field.onChange} aspectRatio="horizontal" label="Thumbnail horizontal" /></FormControl>
+                        <FormDescription>Imagem para exibição em desktop e tablet</FormDescription>
+                        <FormMessage />
+                      </FormItem>
                     )} />
                     <FormField control={form.control} name="thumbnailVertical" render={({ field }) => (
-                      <FormItem><FormLabel>Thumbnail Vertical (9:16) - Opcional</FormLabel><FormControl><ThumbnailUpload value={field.value} onChange={field.onChange} aspectRatio="vertical" label="Thumbnail vertical" /></FormControl><FormDescription>Imagem para exibição em dispositivos móveis</FormDescription><FormMessage /></FormItem>
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Thumbnail Vertical (9:16) - Opcional</FormLabel>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                            disabled={!form.watch('title')?.trim() || isSaving || aiBusy !== 'idle'}
+                            onClick={async () => {
+                              const title = form.watch('title')?.trim();
+                              if (!title) return;
+                              try {
+                                setAiBusy('thumbnail-v');
+                                toast({ title: 'IA', description: 'Gerando thumbnail vertical... Isso pode levar alguns segundos.' });
+                                const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical', aspectRatio: 'vertical' });
+                                form.setValue('thumbnailVertical', url, { shouldDirty: true, shouldValidate: true });
+                                toast({ title: 'Pronto', description: 'Thumbnail vertical gerada e enviada ao R2' });
+                              } catch (err) {
+                                logger.error('[IA course thumbnail-v]', err);
+                                toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail vertical', variant: 'destructive' });
+                              } finally {
+                                setAiBusy('idle');
+                              }
+                            }}
+                          >
+                            {aiBusy === 'thumbnail-v' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                            Gerar com IA
+                          </Button>
+                        </div>
+                        <FormControl><ThumbnailUpload value={field.value} onChange={field.onChange} aspectRatio="vertical" label="Thumbnail vertical" /></FormControl>
+                        <FormDescription>Imagem para exibição em dispositivos móveis</FormDescription>
+                        <FormMessage />
+                      </FormItem>
                     )} />
                   </div>
                 </div>

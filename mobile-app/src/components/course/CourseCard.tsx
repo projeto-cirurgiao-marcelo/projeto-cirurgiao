@@ -28,6 +28,7 @@ import {
 } from '../../constants/colors';
 import { EnrolledCourse, Course } from '../../types';
 import { CircularProgress } from '../ui/CircularProgress';
+import { getCourseProgressPercent } from '../../lib/course-progress';
 
 type CardVariant = 'progress' | 'carousel' | 'grid';
 
@@ -45,9 +46,7 @@ export function CourseCard({
   onPress,
 }: CourseCardProps) {
   const isEnrolled = 'enrollment' in course;
-  const progress = isEnrolled
-    ? ((course as EnrolledCourse).progress.percentage ?? (course as EnrolledCourse).progress.progressPercentage ?? 0)
-    : 0;
+  const progress = isEnrolled ? getCourseProgressPercent(course as EnrolledCourse) : 0;
   const enrolledCourse = isEnrolled ? (course as EnrolledCourse) : null;
 
   const handlePress = () => {

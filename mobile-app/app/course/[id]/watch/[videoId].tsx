@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import VideoPlayer, { VideoPlayerRef } from '../../../../src/components/video/VideoPlayer';
 import { VideoLessonsList } from '../../../../src/components/video/VideoLessonsList';
 import { VideoSummaries } from '../../../../src/components/video/VideoSummaries';
@@ -46,6 +47,13 @@ export default function WatchVideoScreen() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isTabsExpanded, setIsTabsExpanded] = useState(false);
+  /**
+   * Esconde header (back + título) quando device está em landscape ou
+   * fullscreen — antes o header continuava visível recortando parte do
+   * vídeo na rotação. Atualizado via addOrientationChangeListener no
+   * mesmo unlockAsync useEffect abaixo.
+   */
+  const [isLandscape, setIsLandscape] = useState(false);
 
   const modalChatType = useChatStore((s) => s.modalChatType);
   const closeChat = useChatStore((s) => s.closeChat);
@@ -67,8 +75,32 @@ export default function WatchVideoScreen() {
     };
   }, [videoId, allCourseVideos]);
 
-  // App e portrait-only (app.json). Rotacao pra landscape e responsabilidade
-  // exclusiva do VideoPlayer ao entrar em fullscreen (via lockAsync).
+  // App e portrait-only (app.json), MAS na watch page liberamos rotacao
+  // pra que o VideoPlayer detecte landscape do device e entre em fullscreen
+  // automaticamente. No unmount voltamos a portrait pra o resto do app
+  // continuar travado.
+  useEffect(() => {
+    ScreenOrientation.unlockAsync().catch((err) => {
+      logger.warn('[WatchVideo] Falha ao liberar rotação:', err);
+    });
+
+    // Sincroniza estado isLandscape pra esconder header quando device gira.
+    const orientationSub = ScreenOrientation.addOrientationChangeListener((evt) => {
+      const o = evt.orientationInfo.orientation;
+      const landscape =
+        o === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
+        o === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
+      setIsLandscape(landscape);
+    });
+
+    return () => {
+      ScreenOrientation.removeOrientationChangeListener(orientationSub);
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(
+        (err) => logger.warn('[WatchVideo] Falha ao re-travar portrait no unmount:', err),
+      );
+    };
+  }, []);
+
   useEffect(() => {
     loadVideoData();
   }, [videoId]);
@@ -269,79 +301,80 @@ export default function WatchVideoScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {!isTabsExpanded && (
-        <>
-          {/* Header compacto sobre fundo escuro */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={handleBack}
-              style={styles.headerBackButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle} numberOfLines={1}>
-                {video.title}
+    <SafeAreaView style={styles.container} edges={isLandscape ? [] : ['top']}>
+      {/* Header compacto sobre fundo escuro — oculto em landscape ou tabs expandidos */}
+      {!isTabsExpanded && !isLandscape && (
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={handleBack}
+            style={styles.headerBackButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {video.title}
+            </Text>
+            {totalVideos > 0 && (
+              <Text style={styles.headerSubtitle}>
+                Aula {currentIndex + 1} de {totalVideos}
               </Text>
-              {totalVideos > 0 && (
-                <Text style={styles.headerSubtitle}>
-                  Aula {currentIndex + 1} de {totalVideos}
-                </Text>
-              )}
-            </View>
+            )}
           </View>
+        </View>
+      )}
 
-          {/* Player de video: switcha por playback.kind (contrato unificado).
-              - 'hls' + URL -> VideoPlayer HLS nativo (r2_hls ou cloudflare).
-              - 'iframe' -> fallback "Em breve no app mobile"; aluno pode abrir
-                no web (YouTube/Vimeo/external). EmbedPlayer com WebView e
-                sprint seguinte (TECH-DEBT).
-              - 'none' ou playback ausente -> VideoUnavailable. */}
-          {(() => {
-            const playback = video.playback;
-            const kind = playback?.kind;
-            const playbackUrl = playback?.playbackUrl ?? null;
+      {/* Player wrapper — SEMPRE presente na árvore (não desmonta ao girar,
+          evita pausar). Layout portrait fixo. Em landscape, fullscreen
+          nativo do expo-video (enterFullscreen) cobre toda a tela respeitando
+          contentFit:contain — sem JS overlay pra evitar conflito de scaling
+          que causava zoom/crop. */}
+      {(() => {
+        const playback = video.playback;
+        const kind = playback?.kind;
+        const playbackUrl = playback?.playbackUrl ?? null;
 
-            if (kind === 'hls' && playbackUrl) {
-              return (
-                <VideoPlayer
-                  ref={playerRef}
-                  video={video}
-                  streamUrl={playbackUrl}
-                  onEnded={handleVideoEnded}
-                  onProgressUpdate={handleProgressUpdate}
-                  initialPosition={initialPosition}
-                />
-              );
-            }
-            if (kind === 'iframe' && playbackUrl) {
-              return (
-                <View style={styles.unavailableContainer}>
-                  <Ionicons name="open-outline" size={32} color={colors.textMuted} />
-                  <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
-                  <Text style={styles.unavailableSubtitle}>
-                    Este vídeo usa um player externo ({video.videoSource}).{'\n'}
-                    Por enquanto, acesse pelo navegador em projetocirurgiao.app.
-                  </Text>
-                </View>
-              );
-            }
-            // kind === 'none' ou playback ausente (payload antiga sem contrato).
-            return (
-              <View style={styles.unavailableContainer}>
-                <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
-                <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
-                <Text style={styles.unavailableSubtitle}>
-                  Este vídeo ainda não está pronto para reprodução.
-                </Text>
-              </View>
-            );
-          })()}
+        if (kind === 'hls' && playbackUrl) {
+          return (
+            <VideoPlayer
+              ref={playerRef}
+              video={video}
+              streamUrl={playbackUrl}
+              playbackKind={kind}
+              onEnded={handleVideoEnded}
+              onProgressUpdate={handleProgressUpdate}
+              initialPosition={initialPosition}
+            />
+          );
+        }
+        if (kind === 'iframe' && playbackUrl) {
+          return (
+            <View style={styles.unavailableContainer}>
+              <Ionicons name="open-outline" size={32} color={colors.textMuted} />
+              <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
+              <Text style={styles.unavailableSubtitle}>
+                Este vídeo usa um player externo ({video.videoSource}).{'\n'}
+                Por enquanto, acesse pelo navegador em projetocirurgiao.app.
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <View style={styles.unavailableContainer}>
+            <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
+            <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
+            <Text style={styles.unavailableSubtitle}>
+              Este vídeo ainda não está pronto para reprodução.
+            </Text>
+          </View>
+        );
+      })()}
 
-          {/* Info compacta abaixo do player */}
+      {/* Info + ActionBar — só portrait, fora-tabs */}
+      {!isTabsExpanded && !isLandscape && (
+        <>
           <View style={styles.videoInfo}>
             <View style={styles.videoMetaRow}>
               {video.duration ? (
@@ -380,8 +413,8 @@ export default function WatchVideoScreen() {
         </>
       )}
 
-      {/* Header compacto quando expandido */}
-      {isTabsExpanded && (
+      {/* Header compacto quando expandido — oculto em landscape */}
+      {isTabsExpanded && !isLandscape && (
         <View style={styles.expandedHeader}>
           <TouchableOpacity
             onPress={handleBack}
@@ -398,26 +431,30 @@ export default function WatchVideoScreen() {
         </View>
       )}
 
-      {/* Botao expandir/recolher */}
-      <TouchableOpacity
-        style={styles.expandToggle}
-        onPress={() => setIsTabsExpanded(!isTabsExpanded)}
-        activeOpacity={0.7}
-        hitSlop={{ top: 4, bottom: 4 }}
-      >
-        <View style={styles.expandToggleHandle} />
-        <Ionicons
-          name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
-          size={16}
-          color={colors.textMuted}
-        />
-      </TouchableOpacity>
+      {/* Botao expandir/recolher — só portrait */}
+      {!isLandscape && (
+        <TouchableOpacity
+          style={styles.expandToggle}
+          onPress={() => setIsTabsExpanded(!isTabsExpanded)}
+          activeOpacity={0.7}
+          hitSlop={{ top: 4, bottom: 4 }}
+        >
+          <View style={styles.expandToggleHandle} />
+          <Ionicons
+            name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
+            size={16}
+            color={colors.textMuted}
+          />
+        </TouchableOpacity>
+      )}
 
-      {/* Tabs de conteúdo */}
-      <CustomTabView
-        routes={TAB_ROUTES}
-        renderScene={renderScene}
-      />
+      {/* Tabs de conteúdo — só portrait */}
+      {!isLandscape && (
+        <CustomTabView
+          routes={TAB_ROUTES}
+          renderScene={renderScene}
+        />
+      )}
 
       {/* FAB IA expandível */}
       <ExpandableFAB
@@ -443,6 +480,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  landscapeContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  /**
+   * Wrapper absoluto que cobre toda a tela em landscape. Player + filhos
+   * ficam por cima do header/tabs/actionbar (que continuam montados pra
+   * preservar state mas ficam atrás). Player nunca remonta ao girar →
+   * vídeo não pausa.
+   */
+  landscapePlayerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+    backgroundColor: '#000',
   },
   loadingContainer: {
     flex: 1,
