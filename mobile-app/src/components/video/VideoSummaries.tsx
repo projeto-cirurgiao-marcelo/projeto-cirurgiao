@@ -40,12 +40,18 @@ export function VideoSummaries({ videoId }: VideoSummariesProps) {
         summariesService.getRemainingGenerations(videoId),
       ]);
 
-      setSummaries(summariesData.summaries || []);
+      const validSummaries = (summariesData.summaries || []).filter((s) => {
+        if (!s.id) {
+          logger.warn('[VideoSummaries] resumo sem id descartado:', s);
+          return false;
+        }
+        return true;
+      });
+      setSummaries(validSummaries);
       setRemaining(remainingData);
 
-      // Seleciona o primeiro resumo se existir
-      if (summariesData.summaries && summariesData.summaries.length > 0) {
-        setSelectedSummary(summariesData.summaries[0]);
+      if (validSummaries.length > 0) {
+        setSelectedSummary(validSummaries[0]);
       }
     } catch (err) {
       logger.error('Erro ao carregar resumos:', err);
@@ -66,6 +72,11 @@ export function VideoSummaries({ videoId }: VideoSummariesProps) {
     try {
       setGenerating(true);
       const newSummary = await summariesService.generateSummary(videoId);
+      if (!newSummary?.id) {
+        logger.error('[VideoSummaries] backend retornou resumo sem id:', newSummary);
+        Alert.alert('Erro', 'Resposta inválida do servidor.');
+        return;
+      }
       setSummaries((prev) => [newSummary, ...prev]);
       setSelectedSummary(newSummary);
       setRemaining((prev) =>
@@ -146,7 +157,7 @@ export function VideoSummaries({ videoId }: VideoSummariesProps) {
           <Text style={styles.sectionTitle}>Seus Resumos</Text>
           {summaries.map((summary, index) => (
             <TouchableOpacity
-              key={summary.id}
+              key={summary.id ?? `summary-fallback-${index}`}
               style={[
                 styles.summaryItem,
                 selectedSummary?.id === summary.id && styles.summaryItemSelected,
