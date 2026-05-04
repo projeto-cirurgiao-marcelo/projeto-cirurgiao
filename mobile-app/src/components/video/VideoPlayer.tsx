@@ -22,6 +22,12 @@ interface VideoPlayerProps {
    * (query string, redirect, etc). Fallback é detecção por regex .m3u8.
    */
   playbackKind?: 'hls' | 'iframe' | 'none';
+  /**
+   * Quando true, troca aspectRatio:16/9 por flex:1 — player ocupa todo
+   * espaço disponível ao invés de manter proporção fixa. Usado pelo watch
+   * page em landscape pra ter player ocupando tela inteira sem chrome.
+   */
+  fillContainer?: boolean;
   onEnded?: () => void;
   onProgressUpdate?: (currentTime: number, duration: number) => void;
   autoPlay?: boolean;
@@ -64,7 +70,7 @@ function formatTime(seconds: number): string {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
-  { video, streamUrl, playbackKind, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0 },
+  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0 },
   ref
 ) {
   const videoViewRef = useRef<VideoView>(null);
@@ -519,9 +525,9 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   }
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, fillContainer && styles.wrapperFill]}>
       {/* Player */}
-      <View style={styles.container}>
+      <View style={[styles.container, fillContainer && styles.containerFill]}>
         <VideoView
           ref={videoViewRef}
           style={styles.video}
@@ -760,11 +766,20 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
   },
+  wrapperFill: {
+    flex: 1,
+    height: '100%',
+  },
   container: {
     width: '100%',
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
     position: 'relative',
+  },
+  containerFill: {
+    flex: 1,
+    aspectRatio: undefined,
+    height: '100%',
   },
   video: {
     width: '100%',

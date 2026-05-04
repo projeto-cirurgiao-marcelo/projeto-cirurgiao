@@ -300,6 +300,26 @@ export default function WatchVideoScreen() {
     );
   }
 
+  // Landscape: layout dedicado com APENAS o player ocupando flex:1 sem chrome.
+  // Evita race condition do enterFullscreen nativo + vídeo recortado por
+  // header/tabs no layout portrait original.
+  if (isLandscape && video.playback?.kind === 'hls' && video.playback.playbackUrl) {
+    return (
+      <View style={styles.landscapeContainer}>
+        <VideoPlayer
+          ref={playerRef}
+          video={video}
+          streamUrl={video.playback.playbackUrl}
+          playbackKind={video.playback.kind}
+          fillContainer
+          onEnded={handleVideoEnded}
+          onProgressUpdate={handleProgressUpdate}
+          initialPosition={initialPosition}
+        />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {!isTabsExpanded && !isLandscape && (
@@ -477,6 +497,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  landscapeContainer: {
+    flex: 1,
+    backgroundColor: '#000',
   },
   loadingContainer: {
     flex: 1,
