@@ -447,12 +447,12 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   }, [saveProgress]);
 
   // Auto-fullscreen quando o device gira pra landscape.
-  // App e portrait-only globalmente (app.json), MAS a watch page chama
-  // ScreenOrientation.unlockAsync() no mount, liberando rotacao temporariamente.
-  // Aqui escutamos o orientation change real do device — quando vira pra
-  // landscape (LEFT/RIGHT) e nao estamos em fullscreen ainda, dispara
-  // enterFullscreen pra cobrir tela inteira sem o user precisar tocar no
-  // botao expand. Ao voltar pra portrait, sai do fullscreen automatico.
+  // Replica EXATAMENTE o comportamento do botão fullscreen (requestFullscreen):
+  // chama enterFullscreen() do VideoView que reparenta a view pro overlay
+  // nativo do iOS/Android (AVPlayerViewController / ExoPlayer fullscreen) —
+  // aí o contentFit nativo (aspect-fit/contain) toma conta e respeita o
+  // aspect ratio do vídeo. Sem JS overlay misturado evita crop/zoom.
+  // Sair fullscreen ao voltar pra portrait (mesmo flow do botão X nativo).
   useEffect(() => {
     const subscription = ScreenOrientation.addOrientationChangeListener((evt) => {
       const o = evt.orientationInfo.orientation;
@@ -471,9 +471,6 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     });
     return () => {
       ScreenOrientation.removeOrientationChangeListener(subscription);
-      // Cleanup: ao desmontar em fullscreen, devolve portrait pra nao prender
-      // o app em landscape (a watch page tambem trava portrait no unmount,
-      // double-safety).
       if (isFullscreenRef.current) {
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {
           // ignore: best-effort cleanup
@@ -532,6 +529,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
           ref={videoViewRef}
           style={styles.video}
           player={player}
+          contentFit="contain"
           allowsPictureInPicture
           startsPictureInPictureAutomatically
           nativeControls={isFullscreen}

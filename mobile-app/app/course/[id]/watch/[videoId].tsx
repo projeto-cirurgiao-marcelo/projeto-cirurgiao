@@ -326,52 +326,51 @@ export default function WatchVideoScreen() {
         </View>
       )}
 
-      {/* Player wrapper — SEMPRE presente na árvore (não desmonta ao girar
-          orientação, evita pausar o vídeo). Em landscape, View vira overlay
-          absoluto cobrindo tudo (zIndex acima dos demais). */}
-      <View style={isLandscape ? styles.landscapePlayerWrapper : undefined}>
-        {(() => {
-          const playback = video.playback;
-          const kind = playback?.kind;
-          const playbackUrl = playback?.playbackUrl ?? null;
+      {/* Player wrapper — SEMPRE presente na árvore (não desmonta ao girar,
+          evita pausar). Layout portrait fixo. Em landscape, fullscreen
+          nativo do expo-video (enterFullscreen) cobre toda a tela respeitando
+          contentFit:contain — sem JS overlay pra evitar conflito de scaling
+          que causava zoom/crop. */}
+      {(() => {
+        const playback = video.playback;
+        const kind = playback?.kind;
+        const playbackUrl = playback?.playbackUrl ?? null;
 
-          if (kind === 'hls' && playbackUrl) {
-            return (
-              <VideoPlayer
-                ref={playerRef}
-                video={video}
-                streamUrl={playbackUrl}
-                playbackKind={kind}
-                fillContainer={isLandscape}
-                onEnded={handleVideoEnded}
-                onProgressUpdate={handleProgressUpdate}
-                initialPosition={initialPosition}
-              />
-            );
-          }
-          if (kind === 'iframe' && playbackUrl) {
-            return (
-              <View style={styles.unavailableContainer}>
-                <Ionicons name="open-outline" size={32} color={colors.textMuted} />
-                <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
-                <Text style={styles.unavailableSubtitle}>
-                  Este vídeo usa um player externo ({video.videoSource}).{'\n'}
-                  Por enquanto, acesse pelo navegador em projetocirurgiao.app.
-                </Text>
-              </View>
-            );
-          }
+        if (kind === 'hls' && playbackUrl) {
+          return (
+            <VideoPlayer
+              ref={playerRef}
+              video={video}
+              streamUrl={playbackUrl}
+              playbackKind={kind}
+              onEnded={handleVideoEnded}
+              onProgressUpdate={handleProgressUpdate}
+              initialPosition={initialPosition}
+            />
+          );
+        }
+        if (kind === 'iframe' && playbackUrl) {
           return (
             <View style={styles.unavailableContainer}>
-              <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
-              <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
+              <Ionicons name="open-outline" size={32} color={colors.textMuted} />
+              <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
               <Text style={styles.unavailableSubtitle}>
-                Este vídeo ainda não está pronto para reprodução.
+                Este vídeo usa um player externo ({video.videoSource}).{'\n'}
+                Por enquanto, acesse pelo navegador em projetocirurgiao.app.
               </Text>
             </View>
           );
-        })()}
-      </View>
+        }
+        return (
+          <View style={styles.unavailableContainer}>
+            <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
+            <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
+            <Text style={styles.unavailableSubtitle}>
+              Este vídeo ainda não está pronto para reprodução.
+            </Text>
+          </View>
+        );
+      })()}
 
       {/* Info + ActionBar — só portrait, fora-tabs */}
       {!isTabsExpanded && !isLandscape && (
