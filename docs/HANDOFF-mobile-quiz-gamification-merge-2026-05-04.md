@@ -251,3 +251,138 @@ git branch -d feat/quiz-gamification-foundation
 ```
 
 Validar primeiro: quiz fluxo completo + rotação fullscreen + summaries gerar. Se OK, push + cleanup.
+
+---
+
+## Adendo — sessão estendida pós-handoff (mesmo dia, 2026-05-04)
+
+### 4. Investigação player mobile (sem código)
+
+Confirmado: mobile usa **expo-video nativo** (`useVideoPlayer` + `VideoView`) — engine HLS via AVFoundation (iOS) / ExoPlayer (Android). Não tem hls.js no mobile (web sim). ABR (Adaptive Bitrate) automático nativo lê master playlist + variants R2 (720p/1080p/2160p) escolhendo melhor por bandwidth/CPU. Mesmo backend, mesmo R2, mesma master playlist do web — diferença é só engine + UI controls.
+
+### 5. Tracking de progresso — entendimento + fix granular
+
+**Modelo backend antes:**
+
+```ts
+progressPercentage = round((completedVideos / totalVideos) * 100)
+```
+
+Binário per-vídeo. Mobile marca `completed` aos 95% (`COMPLETION_THRESHOLD`). Web só ao `ended` real ou via botão manual.
+
+**Bug do user:** curso com 1 vídeo único, 50% assistido → 0% no curso (não bate threshold). E "2 aulas" exibido num módulo com só 1 aula real (1 soft-deletada vazando no count).
+
+**Fix (commit `0131901`):**
+
+| Backend | Mobile |
+|---|---|
+| `getCourseProgress` + `getEnrolledCourses`: filtra `deletedAt:null` em modules + videos nested includes (igual fix `794fa2f` em outras rotas) | Novo helper `src/lib/course-progress.ts` `getCourseProgressPercent(course)` centraliza fallback |
+| Novo campo `weightedPercentage`: `sum(min(watchTime, duration)) / sum(duration)` capado em 100 | 8 call sites atualizados (CourseCardHome, CourseCard, CatalogCourseCard, InProgressCourseCard, app/(tabs)/index ProgressCard + filter, app/courses/in-progress, app/courses/catalog, app/course/[id]/index) |
+| Cap em `min(watchTime, videoDuration)` evita scrubbing inflar | Backward-compat: weightedPercentage > percentage > progressPercentage > enrollment.progress > 0 |
+| `progressPercentage` (binário) mantido pra backward-compat | Tipo `CourseProgress` ganhou `weightedPercentage?: number` |
+
+**Resultado:** 1 vídeo 50% assistido → ~50%. "2 aulas" → "1 aula" (filtra soft-deleted).
+
+### 6. Cloudflare Named Tunnel setup (dev.cerne.social)
+
+Quick tunnel `cloudflared --url` falhou com erro 1101 (lado CF, transient). User configurou named tunnel persistente:
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create dev          # ID: ca721e8a-8d7e-4a76-970a-e52c29dbe4be
+cloudflared tunnel route dns dev dev.cerne.social
+cloudflared tunnel run --url http://localhost:3000 dev
+```
+
+Credenciais em `C:\Users\Pichau\.cloudflared\ca721e8a-8d7e-4a76-970a-e52c29dbe4be.json` + `cert.pem`.
+
+**Pendência sugerida:** criar `~/.cloudflared/config.yml` pra ingress persistente (sem precisar `--url` flag toda vez):
+
+```yaml
+tunnel: ca721e8a-8d7e-4a76-970a-e52c29dbe4be
+credentials-file: C:\Users\Pichau\.cloudflared\ca721e8a-8d7e-4a76-970a-e52c29dbe4be.json
+ingress:
+  - hostname: dev.cerne.social
+    service: http://localhost:3000
+  - service: http_status:404
+```
+
+Pode adicionar mais hostnames depois (ex: `r2-browser.cerne.social → localhost:8787` pro Worker dev).
+
+### 7. App cold start lento (não-resolvido, débito)
+
+User confirmou: 3 primeiras tentativas de abrir app dão timeout, 4ª/5ª funciona. Provável bundle gigante pós-merge (Lottie + Skia + Reanimated + Expo DOM Components + 42 packages novos). Warm-up custoso. Não bloqueante mas vale investigar timeout do Expo dev client (default ~30s).
+
+### 8. Bugs de quiz/player corrigidos nesta extensão
+
+1. **Toast XP vazava UUID** (`Acerto questão 9df1061e`) → trocado pra `'Resposta correta'` (commit `7faa76b` na sessão original, listado).
+2. **Botão "Novo Quiz" travava cíclico** após primeira tentativa (gerava quiz órfão sem permitir play) → 2 botões separados (`bc578d2`).
+3. **Anti-XP-farming** server-side `submitQuiz` rejeita reattempt + UI esconde "Iniciar Quiz" quando já jogado, oferece só "Gerar Novo Quiz" (`7faa76b`).
+4. **Player pausava ao girar** → return único refatorado, player nunca remonta (`fb388bd`).
+5. **Player com zoom/crop em landscape** → removido JS overlay landscape, confia 100% no enterFullscreen nativo + `contentFit="contain"` explícito (`f6e9831`).
+6. **Header recortando vídeo em landscape** → state `isLandscape` rastreado via orientation listener, header escondido (`b0c538c` parcial + `b48398e` revert dos hides excessivos que causaram tela branca).
+
+### 9. ReferenceError `getCourseProgressPercent` (resolvido via reset)
+
+User reportou erro runtime. Causado provavelmente por Metro cache stale. Resetou backend (e provavelmente Metro), erro sumiu. Imports todos corretos via grep verification.
+
+---
+
+## Estado branch atual (final)
+
+```
+0131901 feat(progress): % ponderado por watchTime + filtra modules/videos soft-deleted
+b08684e docs(handoff): registra progresso sessão 2026-05-04
+f6e9831 fix(mobile): remove JS overlay landscape, confia no fullscreen nativo
+fb388bd fix(mobile): preserva player montado ao girar — não pausa video
+f09ffeb fix(mobile): layout dedicado pra landscape — só player flex:1 sem chrome
+b48398e revert(mobile): mantém só header hide em landscape, restaura demais elementos
+b0c538c fix(mobile): esconde header e UI da watch em landscape
+848562b feat(mobile): playbackKind explícito + auto-fullscreen rotation no watch
+7faa76b fix(quiz): toast XP genérico + trava refazer mesmo quiz (anti-XP farming)
+bc578d2 fix(mobile): separa Iniciar Quiz e Gerar Novo Quiz em botões distintos
+068fc9d fix: corrige seed gamification + counter de tentativas no QuizPlayer
+045ad55 fix(api): use xp_rules snake_case prisma client property
+bec706e feat(quiz): integrate gamification foundation (XP, combos, badges, streaks, lottie)
+b2b63a6 docs(handoff): final session summary quiz gamification 2026-04-25 (worktree)
+fb6dc09 fix(mobile): handle BullMQ async contract em quiz + summaries
+ed54268 fix(mobile): defensive guards em VideoSummaries pra resumos sem id
+9710410 chore(mobile): bump expo 54.0.33 -> 54.0.34
+```
+
+`feat/admin-dashboard-atlas-reskin` está **77+ commits ahead origin**. Push pendente.
+
+## Pré-deploy checklist
+
+Antes de push + deploy:
+
+- [ ] Smoke E2E quiz: gerar → answer → ver XP/Lottie → trava reattempt → gerar novo
+- [ ] Smoke E2E summaries: gerar → ver inline (não polling visível)
+- [ ] Smoke player: assistir vídeo → girar landscape (fullscreen nativo + contentFit OK) → girar de volta (sem pausa, mesmo timestamp)
+- [ ] Smoke progresso: assistir 50% de vídeo → ver % na home (deve ser ~50%, não 0%)
+- [ ] Smoke contagem: módulo com 1 aula real exibe "1 aula", não "2"
+- [ ] Backend `npm run build` ✅ (já validado 16s webpack OK)
+- [ ] Mobile `npx tsc --noEmit` ✅ (3 erros pré-existentes em `src/tw/*` débito conhecido)
+- [ ] Backend healthy: `curl http://localhost:3000/api/v1/health` (ou similar)
+- [ ] Cloudflare tunnel testado: `https://dev.cerne.social/...` retorna 200 do backend
+
+Se OK:
+
+```bash
+git push origin feat/admin-dashboard-atlas-reskin
+git worktree remove .worktrees/quiz-gamification-foundation
+git branch -d feat/quiz-gamification-foundation
+```
+
+Atualizar `CLAUDE.md` removendo `quiz-gamification-foundation` da seção worktrees pendentes.
+
+## Pendências débito (atualizado)
+
+- **App cold start lento** (3 tentativas até abrir) — investigar bundle size + Expo dev client timeout
+- **Quizzes órfãos no DB** — cleanup automático >24h sem attempts (script futuro)
+- **EXPO_OFFLINE=1** workaround temporário SDK 54 (remover ao subir SDK 55)
+- **Vulnerabilities npm** mobile 21 / backend 47 (Pré-release Fase 1)
+- **Web não tem completion threshold automático** — só marca em `ended` ou botão manual. Discrepância silenciosa com mobile (95%). Considerar alinhar.
+- **Cloudflare config.yml** persistente recomendado pra evitar `--url` flag toda vez
+- **CLAUDE.md update:** worktree quiz-gamification mergeada, atualizar referências
+
