@@ -10,6 +10,11 @@
 !.yarn/releases
 !.yarn/versions
 
+# Ruflo
+.claude-flow/
+.swarm/
+claude-flow.config.json
+
 # testing
 /coverage
 

@@ -270,3 +270,8 @@ smoke-*.html
 # Local Claude Code worktree state (full repo clones for parallel agents)
 .claude/worktrees/
 .claude/.agents/
+
+# Ruflo
+.claude-flow/
+.swarm/
+claude-flow.config.json
