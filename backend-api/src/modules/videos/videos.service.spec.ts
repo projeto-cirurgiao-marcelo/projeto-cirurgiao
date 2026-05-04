@@ -126,6 +126,35 @@ describe('VideosService', () => {
       },
     );
 
+    it('external with .m3u8 URL: kind=hls, captionsEmbedded=true (external pipeline publishes embedded SUBTITLES group)', () => {
+      const video = makeVideo({
+        videoSource: 'external',
+        externalUrl: 'https://pub-42ef583694d949bca7c5c104422f55c7.r2.dev/videos/cardio/aula1/playlist.m3u8',
+        thumbnailUrl: 'https://cdn.example/thumb.jpg',
+      });
+
+      const urls = service.buildPlaybackUrls(video);
+
+      expect(urls.kind).toBe('hls');
+      expect(urls.playbackUrl).toBe(video.externalUrl);
+      expect(urls.captionsEmbedded).toBe(true);
+      expect(urls.captionsUrl).toBeUndefined();
+      expect(urls.poster).toBe(video.thumbnailUrl);
+    });
+
+    it('external with .m3u8?<query> URL (e.g. ImageKit transform): kind=hls', () => {
+      const video = makeVideo({
+        videoSource: 'external',
+        externalUrl: 'https://cdn.projetocirurgiao.app/video.mp4_p.mp4/ik-master.m3u8?tr=sr-360_480_720_1080',
+      });
+
+      const urls = service.buildPlaybackUrls(video);
+
+      expect(urls.kind).toBe('hls');
+      expect(urls.playbackUrl).toBe(video.externalUrl);
+      expect(urls.captionsEmbedded).toBe(true);
+    });
+
     it('iframe sources without externalUrl fall back to kind=none', () => {
       const video = makeVideo({
         videoSource: 'youtube',
