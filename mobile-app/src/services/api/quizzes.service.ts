@@ -9,13 +9,50 @@ import type {
   QuizStats,
 } from '../../types/quiz.types';
 
+interface JobDescriptor {
+  jobId: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  resultRef?: string;
+  error?: string;
+}
+
+const JOB_POLL_INTERVAL_MS = 1500;
+const JOB_POLL_TIMEOUT_MS = 90_000;
+
+async function pollJobUntilComplete(jobId: string): Promise<JobDescriptor> {
+  const start = Date.now();
+  while (Date.now() - start < JOB_POLL_TIMEOUT_MS) {
+    const { data } = await apiClient.get<JobDescriptor>(`/jobs/${jobId}`);
+    if (data.status === 'completed') return data;
+    if (data.status === 'failed') {
+      throw new Error(data.error || 'Job de geração de quiz falhou');
+    }
+    await new Promise((r) => setTimeout(r, JOB_POLL_INTERVAL_MS));
+  }
+  throw new Error('Timeout aguardando geração do quiz');
+}
+
 export const quizzesService = {
   async generateQuiz(videoId: string, dto?: GenerateQuizDto): Promise<Quiz> {
-    const response = await apiClient.post<Quiz>(
+    const response = await apiClient.post<Quiz | JobDescriptor>(
       `/videos/${videoId}/quizzes/generate`,
       dto || {}
     );
-    return response.data;
+    const payload = response.data as any;
+
+    if (payload && 'jobId' in payload) {
+      let job = payload as JobDescriptor;
+      if (job.status !== 'completed' && job.status !== 'failed') {
+        job = await pollJobUntilComplete(job.jobId);
+      }
+      if (job.status === 'failed' || !job.resultRef) {
+        throw new Error(job.error || 'Quiz nao foi gerado (sem resultRef)');
+      }
+      const { data: quiz } = await apiClient.get<Quiz>(`/quizzes/${job.resultRef}`);
+      return quiz;
+    }
+
+    return payload as Quiz;
   },
 
   async listByVideo(videoId: string): Promise<Quiz[]> {

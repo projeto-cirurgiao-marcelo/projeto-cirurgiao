@@ -67,12 +67,17 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
       setLoading(true);
       const quizzes = await quizzesService.listByVideo(videoId);
 
-      if (quizzes.length > 0) {
+      if (Array.isArray(quizzes) && quizzes.length > 0 && quizzes[0]?.id) {
         const quizData = await quizzesService.getById(quizzes[0].id);
-        setQuiz(quizData);
-
-        const quizStats = await quizzesService.getStats(quizData.id);
-        setStats(quizStats);
+        if (quizData?.questions && Array.isArray(quizData.questions)) {
+          setQuiz(quizData);
+          const quizStats = await quizzesService.getStats(quizData.id);
+          setStats(quizStats);
+        } else {
+          logger.warn('[VideoQuiz] getById retornou quiz sem questions:', quizData);
+          setQuiz(null);
+          setStats(null);
+        }
       } else {
         setQuiz(null);
         setStats(null);
@@ -88,6 +93,17 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
     try {
       setGenerating(true);
       const newQuiz = await quizzesService.generateQuiz(videoId);
+      logger.info('[VideoQuiz] generateQuiz response shape:', {
+        hasQuiz: !!newQuiz,
+        hasQuestions: Array.isArray(newQuiz?.questions),
+        questionCount: newQuiz?.questions?.length,
+        keys: newQuiz ? Object.keys(newQuiz) : [],
+      });
+      if (!newQuiz?.questions || !Array.isArray(newQuiz.questions)) {
+        logger.error('[VideoQuiz] backend retornou quiz sem questions array:', newQuiz);
+        Alert.alert('Erro', 'Resposta inválida do servidor (quiz sem questões).');
+        return;
+      }
       setQuiz(newQuiz);
       setStats(null);
     } catch (error) {
@@ -113,9 +129,10 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
   };
 
   const handleNextQuestion = () => {
-    if (!quiz || selectedOption === null) return;
+    if (!quiz?.questions?.length || selectedOption === null) return;
 
     const question = quiz.questions[currentQuestionIndex];
+    if (!question) return;
     const timeSpent = Math.floor((Date.now() - questionStartRef.current) / 1000);
 
     const newAnswers = new Map(answers);
@@ -182,9 +199,13 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
       setCurrentQuestionIndex(0);
       setSelectedOption(null);
       const newQuiz = await quizzesService.generateQuiz(videoId);
+      if (!newQuiz?.questions || !Array.isArray(newQuiz.questions)) {
+        logger.error('[VideoQuiz] retry: backend retornou quiz sem questions:', newQuiz);
+        Alert.alert('Erro', 'Resposta inválida do servidor (quiz sem questões).');
+        return;
+      }
       setQuiz(newQuiz);
-      // Refresh stats (mantém histórico de tentativas anteriores)
-      if (newQuiz) {
+      if (newQuiz?.id) {
         const newStats = await quizzesService.getStats(newQuiz.id);
         setStats(newStats);
       }
@@ -220,8 +241,9 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
   };
 
   const renderPlayPhase = () => {
-    if (!quiz) return null;
+    if (!quiz?.questions?.length) return null;
     const question = quiz.questions[currentQuestionIndex];
+    if (!question) return null;
     const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
     const isLast = currentQuestionIndex === quiz.questions.length - 1;
 
@@ -261,7 +283,7 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
 
           {/* Options */}
           <View style={styles.optionsList}>
-            {question.options.map((option, index) => {
+            {(question.options ?? []).map((option, index) => {
               const isSelected = selectedOption === index;
               return (
                 <TouchableOpacity
@@ -389,7 +411,7 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
 
           {/* Answers review */}
           <Text style={styles.reviewTitle}>Revisao das questoes</Text>
-          {result.answers.map((answer, index) => {
+          {(result.answers ?? []).map((answer, index) => {
             const question = quiz?.questions.find((q) => q.id === answer.questionId);
             return (
               <View
@@ -517,7 +539,7 @@ export function VideoQuiz({ videoId }: VideoQuizProps) {
                 })()}
                 <View style={styles.introBadge}>
                   <Ionicons name="help-circle-outline" size={12} color={colors.textSecondary} />
-                  <Text style={styles.introBadgeText}>{quiz.questions.length} questoes</Text>
+                  <Text style={styles.introBadgeText}>{quiz.questions?.length ?? 0} questoes</Text>
                 </View>
                 {quiz.timeLimit && (
                   <View style={styles.introBadge}>
