@@ -6,7 +6,9 @@ import {
   BookOpen,
   ChevronDown,
   Folders,
+  HardDrive,
   Home,
+  ListChecks,
   LogOut,
   Menu,
   Settings,
@@ -41,6 +43,8 @@ const SECTIONS: RailSection[] = [
       { label: 'Cursos', href: '/admin/courses', icon: BookOpen },
       { label: 'Módulos', href: '/admin/modules', icon: Folders },
       { label: 'Vídeos', href: '/admin/videos', icon: Video },
+      { label: 'R2 Browser', href: '/admin/r2-browser', icon: HardDrive },
+      { label: 'Jobs', href: '/admin/jobs', icon: ListChecks },
     ],
   },
   {
