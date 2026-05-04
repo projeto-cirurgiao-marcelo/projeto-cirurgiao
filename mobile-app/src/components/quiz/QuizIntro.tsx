@@ -148,7 +148,7 @@ export function QuizIntro({
 
           <TouchableOpacity
             style={[styles.startButton, generating && styles.buttonDisabled]}
-            onPress={stats && stats.totalAttempts > 0 ? onRetryNewQuiz : onStart}
+            onPress={onStart}
             disabled={generating}
             activeOpacity={0.8}
           >
@@ -161,17 +161,22 @@ export function QuizIntro({
               </View>
             ) : (
               <>
-                <Ionicons
-                  name={stats && stats.totalAttempts > 0 ? 'sparkles' : 'play'}
-                  size={16}
-                  color="#fff"
-                />
-                <Text style={styles.buttonText}>
-                  {stats && stats.totalAttempts > 0 ? 'Novo Quiz' : 'Iniciar Quiz'}
-                </Text>
+                <Ionicons name="play" size={16} color="#fff" />
+                <Text style={styles.buttonText}>Iniciar Quiz</Text>
               </>
             )}
           </TouchableOpacity>
+          {stats && stats.totalAttempts > 0 && (
+            <TouchableOpacity
+              style={[styles.regenerateButton, generating && styles.buttonDisabled]}
+              onPress={onRetryNewQuiz}
+              disabled={generating}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="sparkles" size={14} color={colors.accent} />
+              <Text style={styles.regenerateButtonText}>Gerar Novo Quiz</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </ScrollView>
@@ -319,6 +324,23 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     gap: 6,
+  },
+  regenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+    marginTop: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.accent,
+  },
+  regenerateButtonText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   // Shared
