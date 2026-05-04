@@ -36,7 +36,7 @@ export class XpCalculatorService {
 
   private async loadRule(): Promise<MultiplierJson> {
     if (this.cache && Date.now() - this.cacheLoadedAt < this.CACHE_TTL_MS) return this.cache;
-    const rule = await this.prisma.xpRule.findUnique({ where: { key: 'quiz_question' } });
+    const rule = await this.prisma.xp_rules.findUnique({ where: { key: 'quiz_question' } });
     if (!rule || !rule.active) {
       throw new Error('XpRule "quiz_question" not active or missing');
     }
