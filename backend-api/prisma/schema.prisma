@@ -10,26 +10,27 @@ datasource db {
 }
 
 model User {
-  id                     String                  @id @default(uuid())
-  email                  String                  @unique
-  password               String
-  name                   String
-  role                   Role                    @default(STUDENT)
-  isActive               Boolean                 @default(true)
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  deletedAt              DateTime?
-  audioPreference        AudioPref               @default(AUTO)
-  timezone               String                  @default("America/Sao_Paulo")
-  auditLogs              AuditLog[]
-  chatConversations      ChatConversation[]
-  coursesInstructor      Course[]                @relation("InstructorCourses")
-  enrollments            Enrollment[]
-  forumReplies           ForumReply[]
-  forumReplyVotes        ForumReplyVote[]
-  forumReports           ForumReport[]
-  forumTopicVotes        ForumTopicVote[]
-  forumTopics            ForumTopic[]
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  name            String
+  role            Role      @default(STUDENT)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  audioPreference AudioPref @default(AUTO)
+  timezone        String    @default("America/Sao_Paulo")
+
+  auditLogs         AuditLog[]
+  chatConversations ChatConversation[]
+  coursesInstructor Course[]           @relation("InstructorCourses")
+  enrollments       Enrollment[]
+  forumReplies      ForumReply[]
+  forumReplyVotes   ForumReplyVote[]
+  forumReports      ForumReport[]
+  forumTopicVotes   ForumTopicVote[]
+  forumTopics       ForumTopic[]
   gamificationChallenges GamificationChallenge[]
   gamificationEvents     GamificationEvent[]
   libraryConversations   LibraryConversation[]

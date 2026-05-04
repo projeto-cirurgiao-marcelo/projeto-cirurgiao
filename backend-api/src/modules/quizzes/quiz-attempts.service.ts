@@ -6,9 +6,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
+import { XpCalculatorService } from '../gamification/xp-calculator.service';
 import { QuizzesService } from './quizzes.service';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { QuizResult } from './interfaces/quiz.interface';
+import { AnalyticsService } from '../../shared/analytics/analytics.service';
+import { AnalyticsEvents } from '../../shared/analytics/analytics.events';
 
 @Injectable()
 export class QuizAttemptsService {
@@ -18,6 +21,8 @@ export class QuizAttemptsService {
     private prisma: PrismaService,
     private quizzesService: QuizzesService,
     private gamificationService: GamificationService,
+    private xpCalculator: XpCalculatorService,
+    private analytics: AnalyticsService,
   ) {}
 
   /**
@@ -101,6 +106,65 @@ export class QuizAttemptsService {
 
     this.logger.log(`Quiz attempt ${attempt.id} saved`);
 
+    // === Sprint 1: per-question XP via XpCalculator (variable: base × combo × confidence) ===
+    let comboMaxObserved = 0;
+    try {
+      let comboRunning = await this.xpCalculator.getCurrentCombo(userId);
+      for (const correctedAnswer of correctedAnswers) {
+        const userAnswerInput = dto.answers.find(
+          (a) => a.questionId === correctedAnswer.questionId,
+        );
+        const question = quiz.questions.find(
+          (q: any) => q.id === correctedAnswer.questionId,
+        );
+        // QuizQuestion does not yet have `difficulty` field; fall back to MEDIUM if absent.
+        // TODO Sprint 2: add Difficulty to QuizQuestion.
+        const difficulty: any = (question && (question as any).difficulty) ?? 'MEDIUM';
+
+        const xp = await this.xpCalculator.calculate({
+          difficulty,
+          comboBefore: comboRunning,
+          confidence: userAnswerInput?.confidence ?? null,
+          isCorrect: correctedAnswer.isCorrect,
+        });
+        comboRunning = correctedAnswer.isCorrect ? comboRunning + 1 : 0;
+        comboMaxObserved = Math.max(comboMaxObserved, comboRunning);
+
+        // Persist confidence + xpAwarded on the existing QuizAnswer row
+        const answerRow = (attempt as any).answers.find(
+          (a: any) => a.questionId === correctedAnswer.questionId,
+        );
+        if (answerRow) {
+          await this.prisma.quizAnswer.update({
+            where: { id: answerRow.id },
+            data: {
+              confidence: userAnswerInput?.confidence ?? null,
+              xpAwarded: xp.total,
+            },
+          });
+        }
+
+        if (xp.total > 0) {
+          await this.gamificationService.processAction(
+            userId,
+            'quiz_question',
+            xp.total,
+            `Acerto questão ${correctedAnswer.questionId.slice(0, 8)}`,
+            `${attempt.id}:${correctedAnswer.questionId}`,
+          );
+        }
+      }
+
+      // Persist comboMax on the attempt
+      await this.prisma.quizAttempt.update({
+        where: { id: attempt.id },
+        data: { comboMax: comboMaxObserved },
+      });
+    } catch (err) {
+      this.logger.warn('Per-question XP calculation failed', err);
+    }
+    // === end Sprint 1 per-question XP ===
+
     // Gamificação: conceder XP por quiz
     // Buscar tentativas anteriores por VÍDEO (não por quiz), pois cada tentativa gera um quiz novo
     try {
@@ -127,7 +191,7 @@ export class QuizAttemptsService {
           'quiz_pass',
           xp,
           `Passou no quiz (${score}%)`,
-          videoId,
+          attempt.id,
         );
         if (score === 100) {
           await this.gamificationService.processAction(
@@ -135,7 +199,7 @@ export class QuizAttemptsService {
             'quiz_perfect',
             75,
             'Nota máxima no quiz',
-            `${videoId}_perfect`,
+            `${attempt.id}_perfect`,
           );
         }
       }
@@ -149,13 +213,23 @@ export class QuizAttemptsService {
             'quiz_improvement',
             10,
             `Melhorou nota: ${previousBest}% → ${score}%`,
-            `${videoId}_improvement`,
+            `${attempt.id}_improvement`,
           );
         }
       }
     } catch (err) {
       this.logger.warn('Gamification quiz processAction failed', err);
     }
+
+    // Analytics: registra conclusao de quiz (best-effort, no-op safe)
+    this.analytics.capture(userId, AnalyticsEvents.QUIZ_COMPLETED, {
+      quizId: attempt.quizId,
+      score: attempt.score,
+      passed: attempt.passed,
+      timeSpent: attempt.timeSpent ?? 0,
+      correctCount: attempt.correctCount,
+      totalQuestions: attempt.totalQuestions,
+    });
 
     // 6. Retornar resultado
     return {

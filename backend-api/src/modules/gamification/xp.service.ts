@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { getLevelForXp, getLevelProgress } from './constants/levels';
 import { XP_REWARDS } from './constants/xp-rewards';
+import { AnalyticsService } from '../../shared/analytics/analytics.service';
+import { AnalyticsEvents } from '../../shared/analytics/analytics.events';
 
 export interface AwardXpResult {
   xpAwarded: number;
@@ -13,7 +15,10 @@ export interface AwardXpResult {
 export class XpService {
   private readonly logger = new Logger(XpService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private analytics: AnalyticsService,
+  ) {}
 
   async awardXp(
     userId: string,
@@ -44,6 +49,13 @@ export class XpService {
       data: { userId, action, xp, description, referenceId },
     });
 
+    // Analytics: XP concedido (best-effort)
+    this.analytics.capture(userId, AnalyticsEvents.XP_AWARDED, {
+      action,
+      xp,
+      referenceId,
+    });
+
     const newTotalXp = oldTotalXp + xp;
     const newLevel = getLevelForXp(newTotalXp);
 
@@ -65,6 +77,12 @@ export class XpService {
             action,
           },
         },
+      });
+
+      // Analytics: level up (best-effort)
+      this.analytics.capture(userId, AnalyticsEvents.LEVEL_UP, {
+        newLevel: newLevel.level,
+        newTitle: newLevel.title,
       });
 
       this.logger.log(

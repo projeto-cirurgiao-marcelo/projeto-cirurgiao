@@ -14,6 +14,7 @@ import { QuizzesService } from './quizzes.service';
 import { QuizAttemptsService } from './quiz-attempts.service';
 import { GenerateQuizDto } from './dto/generate-quiz.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
+import { CheckAnswerDto } from './dto/check-answer.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { UserThrottlerGuard } from '../../shared/throttler/user-throttler.guard';
 import { QueueService } from '../../shared/queue/queue.service';
@@ -76,6 +77,19 @@ export class QuizzesController {
   @Get('quizzes/:quizId')
   async getQuiz(@Param('quizId') quizId: string) {
     return this.quizzesService.getQuiz(quizId);
+  }
+
+  /**
+   * Verifica se uma resposta está correta sem revelar o gabarito.
+   * POST /api/v1/quizzes/:quizId/check-answer
+   */
+  @Post('quizzes/:quizId/check-answer')
+  @HttpCode(HttpStatus.OK)
+  async checkAnswer(
+    @Param('quizId') quizId: string,
+    @Body() dto: CheckAnswerDto,
+  ) {
+    return this.quizzesService.checkAnswer(quizId, dto.questionId, dto.answer);
   }
 
   /**

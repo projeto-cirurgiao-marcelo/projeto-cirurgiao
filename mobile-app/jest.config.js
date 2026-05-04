@@ -5,9 +5,7 @@ module.exports = {
   // jest-expo preset ja traz um transformIgnorePatterns que cobre os pacotes
   // RN/Expo. Nao sobrescrevemos — o default dele e robusto em Windows/Linux.
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  testMatch: [
-    '<rootDir>/__tests__/**/*.test.(ts|tsx)',
-  ],
+  testRegex: '__tests__[\\\\/].*\\.(test|spec)\\.(ts|tsx)$',
   testPathIgnorePatterns: [
     '/node_modules/',
     '/android/',
