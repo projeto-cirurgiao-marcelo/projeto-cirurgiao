@@ -7,6 +7,7 @@ interface GenerateThumbnailParams {
   title: string;
   overlayText?: string;
   style?: string; // mantido para compatibilidade, ignorado
+  aspectRatio?: 'horizontal' | 'vertical';
 }
 
 @Injectable()
@@ -46,18 +47,19 @@ export class AiThumbnailService {
    * Gera thumbnail com Sharp: background fixo + titulo sobreposto
    */
   async generateThumbnail(params: GenerateThumbnailParams): Promise<{ buffer: Buffer; mimeType: string }> {
-    const { title, overlayText } = params;
+    const { title, overlayText, aspectRatio } = params;
     const displayText = overlayText || title;
+    const isVertical = aspectRatio === 'vertical';
 
-    this.logger.log(`Generating thumbnail for: "${displayText}"`);
+    this.logger.log(`Generating thumbnail for: "${displayText}" (${isVertical ? 'vertical 9:16' : 'horizontal 16:9'})`);
 
     if (!this.backgroundBuffer) {
       throw new Error('Background image not loaded');
     }
 
-    // Dimensoes do thumbnail (16:9)
-    const width = 1280;
-    const height = 720;
+    // Horizontal default: 1280x720 (16:9). Vertical: 720x1280 (9:16).
+    const width = isVertical ? 720 : 1280;
+    const height = isVertical ? 1280 : 720;
 
     try {
       // 1. Criar overlay escuro usando sharp puro (sem SVG)
@@ -70,14 +72,21 @@ export class AiThumbnailService {
       // COPY + fc-cache. Em dev local (Windows/macOS), instale a fonte
       // manualmente do arquivo backend-api/assets/fonts/Anton-Regular.ttf
       // ou o fallback "Sans Bold" (DejaVu/Liberation) será usado.
-      const fontSize = displayText.length > 30 ? 60 : displayText.length > 20 ? 72 : 96;
+      // Vertical tem largura ~56% da horizontal, então reduz fontSize
+      // proporcional pra evitar overflow lateral mesmo com wrap do Pango.
+      const fontSize = isVertical
+        ? (displayText.length > 30 ? 44 : displayText.length > 20 ? 56 : 72)
+        : (displayText.length > 30 ? 60 : displayText.length > 20 ? 72 : 96);
       const pangoMarkup = `<span foreground="white" font_desc="Anton ${fontSize}">${this.escapeXml(displayText)}</span>`;
+
+      // Margem lateral menor em vertical (60px vs 100px) pra aproveitar espaço útil
+      const sideMargin = isVertical ? 60 : 100;
 
       const textImage = await sharp({
         text: {
           text: pangoMarkup,
           rgba: true,
-          width: width - 100, // margem lateral
+          width: width - sideMargin,
           align: 'centre',
         },
       }).png().toBuffer();

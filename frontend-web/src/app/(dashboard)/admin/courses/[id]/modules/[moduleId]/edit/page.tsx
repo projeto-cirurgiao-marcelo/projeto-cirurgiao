@@ -1283,7 +1283,7 @@ export default function EditModulePage() {
                           try {
                             setAiBusy('thumbnail-v');
                             toast({ title: 'IA', description: 'Gerando thumbnail vertical... Isso pode levar alguns segundos.' });
-                            const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical' });
+                            const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical', aspectRatio: 'vertical' });
                             await modulesService.update(moduleId, { thumbnailVertical: url } as any);
                             setModule(prev => prev ? { ...prev, thumbnailVertical: url } : null);
                             toast({ title: 'Pronto', description: 'Thumbnail vertical gerada e enviada ao R2' });
