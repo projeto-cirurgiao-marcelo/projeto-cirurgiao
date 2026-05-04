@@ -752,6 +752,7 @@ export default function EditModulePage() {
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [deleteConfirmVideo, setDeleteConfirmVideo] = useState<Video | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [aiBusy, setAiBusy] = useState<'idle' | 'title' | 'description' | 'thumbnail-h' | 'thumbnail-v'>('idle');
   
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleFormSchema),
@@ -1054,7 +1055,39 @@ export default function EditModulePage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Título do Módulo</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Título do Módulo</FormLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                        disabled={!field.value?.trim() || isSubmitting || aiBusy !== 'idle'}
+                        onClick={async () => {
+                          const current = field.value?.trim();
+                          if (!current) return;
+                          try {
+                            setAiBusy('title');
+                            toast({ title: 'IA', description: 'Melhorando título...' });
+                            const improved = await aiTextService.improveText(current, 'title');
+                            form.setValue('title', improved, { shouldDirty: true, shouldValidate: true });
+                            toast({ title: 'Pronto', description: 'Título melhorado pela IA' });
+                          } catch (err) {
+                            logger.error('[IA module title]', err);
+                            toast({ title: 'Erro', description: 'Não foi possível melhorar o título', variant: 'destructive' });
+                          } finally {
+                            setAiBusy('idle');
+                          }
+                        }}
+                      >
+                        {aiBusy === 'title' ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        Melhorar com IA
+                      </Button>
+                    </div>
                     <FormControl>
                       <Input placeholder="Ex: Introdução à Cirurgia" {...field} />
                     </FormControl>
@@ -1069,22 +1102,92 @@ export default function EditModulePage() {
               <FormField
                 control={form.control}
                 name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição (Opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Descreva o conteúdo do módulo..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Uma breve descrição do que será abordado neste módulo
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const titleValue = form.watch('title')?.trim() ?? '';
+                  const descriptionValue = field.value?.trim() ?? '';
+                  return (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Descrição (Opcional)</FormLabel>
+                        <div className="flex gap-1">
+                          {!descriptionValue && titleValue && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-atlas-primary hover:text-atlas-primary-2 hover:bg-atlas-primary-soft gap-1"
+                              disabled={isSubmitting || aiBusy !== 'idle'}
+                              onClick={async () => {
+                                if (!titleValue) return;
+                                try {
+                                  setAiBusy('description');
+                                  toast({ title: 'IA', description: 'Gerando descrição...' });
+                                  const desc = await aiTextService.generateDescription(titleValue);
+                                  form.setValue('description', desc, { shouldDirty: true, shouldValidate: true });
+                                  toast({ title: 'Pronto', description: 'Descrição gerada pela IA' });
+                                } catch (err) {
+                                  logger.error('[IA module description gen]', err);
+                                  toast({ title: 'Erro', description: 'Não foi possível gerar a descrição', variant: 'destructive' });
+                                } finally {
+                                  setAiBusy('idle');
+                                }
+                              }}
+                            >
+                              {aiBusy === 'description' ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Wand2 className="h-3 w-3" />
+                              )}
+                              Gerar com IA
+                            </Button>
+                          )}
+                          {descriptionValue && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1"
+                              disabled={isSubmitting || aiBusy !== 'idle'}
+                              onClick={async () => {
+                                if (!descriptionValue) return;
+                                try {
+                                  setAiBusy('description');
+                                  toast({ title: 'IA', description: 'Melhorando descrição...' });
+                                  const improved = await aiTextService.improveText(descriptionValue, 'description', titleValue);
+                                  form.setValue('description', improved, { shouldDirty: true, shouldValidate: true });
+                                  toast({ title: 'Pronto', description: 'Descrição melhorada pela IA' });
+                                } catch (err) {
+                                  logger.error('[IA module description improve]', err);
+                                  toast({ title: 'Erro', description: 'Não foi possível melhorar a descrição', variant: 'destructive' });
+                                } finally {
+                                  setAiBusy('idle');
+                                }
+                              }}
+                            >
+                              {aiBusy === 'description' ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-3 w-3" />
+                              )}
+                              Melhorar com IA
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Descreva o conteúdo do módulo..."
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Uma breve descrição do que será abordado neste módulo
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <Separator className="my-6" />
@@ -1101,7 +1204,40 @@ export default function EditModulePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Thumbnail Horizontal */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Thumbnail Horizontal (16:9)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Thumbnail Horizontal (16:9)</label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                        disabled={!form.watch('title')?.trim() || isSubmitting || aiBusy !== 'idle'}
+                        onClick={async () => {
+                          const title = form.watch('title')?.trim();
+                          if (!title) return;
+                          try {
+                            setAiBusy('thumbnail-h');
+                            toast({ title: 'IA', description: 'Gerando thumbnail horizontal... Isso pode levar alguns segundos.' });
+                            const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical' });
+                            await modulesService.update(moduleId, { thumbnailHorizontal: url } as any);
+                            setModule(prev => prev ? { ...prev, thumbnailHorizontal: url } : null);
+                            toast({ title: 'Pronto', description: 'Thumbnail horizontal gerada e enviada ao R2' });
+                          } catch (err) {
+                            logger.error('[IA module thumbnail-h]', err);
+                            toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail horizontal', variant: 'destructive' });
+                          } finally {
+                            setAiBusy('idle');
+                          }
+                        }}
+                      >
+                        {aiBusy === 'thumbnail-h' ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        Gerar com IA
+                      </Button>
+                    </div>
                     <ThumbnailUpload
                       value={module?.thumbnailHorizontal || ''}
                       onChange={async (url) => {
@@ -1133,7 +1269,40 @@ export default function EditModulePage() {
 
                   {/* Thumbnail Vertical */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Thumbnail Vertical (9:16)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Thumbnail Vertical (9:16)</label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                        disabled={!form.watch('title')?.trim() || isSubmitting || aiBusy !== 'idle'}
+                        onClick={async () => {
+                          const title = form.watch('title')?.trim();
+                          if (!title) return;
+                          try {
+                            setAiBusy('thumbnail-v');
+                            toast({ title: 'IA', description: 'Gerando thumbnail vertical... Isso pode levar alguns segundos.' });
+                            const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical' });
+                            await modulesService.update(moduleId, { thumbnailVertical: url } as any);
+                            setModule(prev => prev ? { ...prev, thumbnailVertical: url } : null);
+                            toast({ title: 'Pronto', description: 'Thumbnail vertical gerada e enviada ao R2' });
+                          } catch (err) {
+                            logger.error('[IA module thumbnail-v]', err);
+                            toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail vertical', variant: 'destructive' });
+                          } finally {
+                            setAiBusy('idle');
+                          }
+                        }}
+                      >
+                        {aiBusy === 'thumbnail-v' ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        Gerar com IA
+                      </Button>
+                    </div>
                     <ThumbnailUpload
                       value={module?.thumbnailVertical || ''}
                       onChange={async (url) => {
