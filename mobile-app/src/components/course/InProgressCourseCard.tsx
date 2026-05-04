@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors as colors } from '../../constants/colors';
 import type { EnrolledCourse } from '../../types/student.types';
+import { getCourseProgressPercent } from '../../lib/course-progress';
 
 interface InProgressCourseCardProps {
   course: EnrolledCourse;
@@ -17,10 +18,7 @@ export function InProgressCourseCard({
   onPress,
   onResume,
 }: InProgressCourseCardProps) {
-  const progress = course.progress?.percentage
-    ?? course.progress?.progressPercentage
-    ?? course.enrollment?.progress
-    ?? 0;
+  const progress = getCourseProgressPercent(course);
   const watched = course.progress?.watchedVideos ?? course.progress?.completedVideos ?? 0;
   const total = course.progress?.totalVideos ?? 0;
   const thumbnail = course.thumbnailHorizontal || course.thumbnail || course.thumbnailUrl;

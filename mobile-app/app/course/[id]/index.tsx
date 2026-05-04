@@ -117,7 +117,9 @@ export default function CourseDetailScreen() {
   );
 
   const totalModules = course?.modules?.length || 0;
-  const progressPercentage = progress?.percentage || 0;
+  // Prioriza weightedPercentage (granular). Fallback pra binário se backend antigo.
+  const progressPercentage =
+    progress?.weightedPercentage ?? progress?.percentage ?? progress?.progressPercentage ?? 0;
   const isEnrolled = !!progress;
 
   // Duração estimada (~10 min por vídeo)

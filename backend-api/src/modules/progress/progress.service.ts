@@ -11,7 +11,10 @@ export interface CourseProgressResponse {
   watchedVideos: number;
   completedVideos: number;
   totalWatchTime: number;
+  /** % por aulas concluídas inteiras (binário per-vídeo). Backward-compat. */
   progressPercentage: number;
+  /** % ponderado por watchTime acumulado / soma das durações. Granular. */
+  weightedPercentage: number;
   videos: VideoProgressItem[];
 }
 
@@ -164,13 +167,15 @@ export class ProgressService {
    * Buscar progresso de todos os vídeos de um curso
    */
   async getCourseProgress(userId: string, courseId: string): Promise<CourseProgressResponse> {
-    // Verificar se o curso existe
+    // Verificar se o curso existe — filtra modules + videos soft-deleted
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
       include: {
         modules: {
+          where: { deletedAt: null },
           include: {
             videos: {
+              where: { deletedAt: null },
               orderBy: { order: 'asc' },
             },
           },
@@ -228,6 +233,17 @@ export class ProgressService {
     const totalWatchTime = videos.reduce((sum, v) => sum + v.watchTime, 0);
     const progressPercentage = totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
 
+    // Progresso ponderado por watchTime: granular, reflete % real assistido.
+    // Cap em videoDuration evita watchTime > duration inflar (scrubbing/bugs).
+    // Vídeos sem duration declarada são ignorados (não contam denominador).
+    const totalDuration = videos.reduce((sum, v) => sum + (v.videoDuration || 0), 0);
+    const totalWatched = videos.reduce(
+      (sum, v) => sum + Math.min(v.watchTime, v.videoDuration || v.watchTime),
+      0,
+    );
+    const weightedPercentage =
+      totalDuration > 0 ? Math.min(100, Math.round((totalWatched / totalDuration) * 100)) : 0;
+
     return {
       courseId,
       totalVideos,
@@ -235,6 +251,7 @@ export class ProgressService {
       completedVideos,
       totalWatchTime,
       progressPercentage,
+      weightedPercentage,
       videos,
     };
   }
@@ -642,8 +659,10 @@ export class ProgressService {
             isPublished: true,
             price: true,
             modules: {
+              where: { deletedAt: null },
               include: {
                 videos: {
+                  where: { deletedAt: null },
                   orderBy: { order: 'asc' },
                 },
               },
@@ -679,6 +698,8 @@ export class ProgressService {
       let totalVideos = 0;
       let watchedVideos = 0;
       let completedVideos = 0;
+      let totalDuration = 0;
+      let totalWatched = 0;
       const videoProgressItems: any[] = [];
 
       for (const module of course.modules) {
@@ -687,6 +708,12 @@ export class ProgressService {
           const progress = progressMap.get(video.id);
           if (progress?.watched) watchedVideos++;
           if (progress?.completed) completedVideos++;
+
+          const videoDuration = video.duration || 0;
+          totalDuration += videoDuration;
+          if (progress?.watchTime && videoDuration > 0) {
+            totalWatched += Math.min(progress.watchTime, videoDuration);
+          }
 
           // Incluir progresso por vídeo para "Continue de onde parou"
           if (progress?.watched) {
@@ -707,6 +734,13 @@ export class ProgressService {
       const progressPercentage = totalVideos > 0
         ? Math.round((completedVideos / totalVideos) * 100)
         : 0;
+
+      // Progresso ponderado por watchTime (granular). Cap em duration evita
+      // scrubbing inflar. Vídeos sem duration ignorados no denominador.
+      const weightedPercentage =
+        totalDuration > 0
+          ? Math.min(100, Math.round((totalWatched / totalDuration) * 100))
+          : 0;
 
       return {
         id: course.id,
@@ -732,6 +766,7 @@ export class ProgressService {
           watchedVideos,
           completedVideos,
           percentage: progressPercentage,
+          weightedPercentage,
           videos: videoProgressItems,
         },
       };

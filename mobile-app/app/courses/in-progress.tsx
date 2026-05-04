@@ -17,6 +17,7 @@ import { useGamificationStore } from '../../src/stores/gamification-store';
 import { progressService } from '../../src/services/api/progress.service';
 import { logger } from '../../src/lib/logger';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
+import { getCourseProgressPercent } from '../../src/lib/course-progress';
 import { InProgressCourseCard } from '../../src/components/course/InProgressCourseCard';
 import {
   Colors,
@@ -47,7 +48,7 @@ export default function InProgressScreen() {
     try {
       const enrolled = await progressService.getEnrolledCourses();
       const inProgress = enrolled.filter((c) => {
-        const p = c.progress?.percentage ?? c.progress?.progressPercentage ?? c.enrollment?.progress ?? 0;
+        const p = getCourseProgressPercent(c);
         return p > 0 && p < 100;
       });
 
