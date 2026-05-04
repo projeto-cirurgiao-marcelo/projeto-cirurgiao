@@ -300,102 +300,82 @@ export default function WatchVideoScreen() {
     );
   }
 
-  // Landscape: layout dedicado com APENAS o player ocupando flex:1 sem chrome.
-  // Evita race condition do enterFullscreen nativo + vídeo recortado por
-  // header/tabs no layout portrait original.
-  if (isLandscape && video.playback?.kind === 'hls' && video.playback.playbackUrl) {
-    return (
-      <View style={styles.landscapeContainer}>
-        <VideoPlayer
-          ref={playerRef}
-          video={video}
-          streamUrl={video.playback.playbackUrl}
-          playbackKind={video.playback.kind}
-          fillContainer
-          onEnded={handleVideoEnded}
-          onProgressUpdate={handleProgressUpdate}
-          initialPosition={initialPosition}
-        />
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={isLandscape ? [] : ['top']}>
+      {/* Header compacto sobre fundo escuro — oculto em landscape ou tabs expandidos */}
       {!isTabsExpanded && !isLandscape && (
-        <>
-          {/* Header compacto sobre fundo escuro.
-              Oculto em landscape: vídeo ocupa tela inteira sem header recortando frame. */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={handleBack}
-              style={styles.headerBackButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle} numberOfLines={1}>
-                {video.title}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={handleBack}
+            style={styles.headerBackButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {video.title}
+            </Text>
+            {totalVideos > 0 && (
+              <Text style={styles.headerSubtitle}>
+                Aula {currentIndex + 1} de {totalVideos}
               </Text>
-              {totalVideos > 0 && (
-                <Text style={styles.headerSubtitle}>
-                  Aula {currentIndex + 1} de {totalVideos}
-                </Text>
-              )}
-            </View>
+            )}
           </View>
+        </View>
+      )}
 
-          {/* Player de video: switcha por playback.kind (contrato unificado).
-              - 'hls' + URL -> VideoPlayer HLS nativo (r2_hls ou cloudflare).
-              - 'iframe' -> fallback "Em breve no app mobile"; aluno pode abrir
-                no web (YouTube/Vimeo/external). EmbedPlayer com WebView e
-                sprint seguinte (TECH-DEBT).
-              - 'none' ou playback ausente -> VideoUnavailable. */}
-          {(() => {
-            const playback = video.playback;
-            const kind = playback?.kind;
-            const playbackUrl = playback?.playbackUrl ?? null;
+      {/* Player wrapper — SEMPRE presente na árvore (não desmonta ao girar
+          orientação, evita pausar o vídeo). Em landscape, View vira overlay
+          absoluto cobrindo tudo (zIndex acima dos demais). */}
+      <View style={isLandscape ? styles.landscapePlayerWrapper : undefined}>
+        {(() => {
+          const playback = video.playback;
+          const kind = playback?.kind;
+          const playbackUrl = playback?.playbackUrl ?? null;
 
-            if (kind === 'hls' && playbackUrl) {
-              return (
-                <VideoPlayer
-                  ref={playerRef}
-                  video={video}
-                  streamUrl={playbackUrl}
-                  playbackKind={kind}
-                  onEnded={handleVideoEnded}
-                  onProgressUpdate={handleProgressUpdate}
-                  initialPosition={initialPosition}
-                />
-              );
-            }
-            if (kind === 'iframe' && playbackUrl) {
-              return (
-                <View style={styles.unavailableContainer}>
-                  <Ionicons name="open-outline" size={32} color={colors.textMuted} />
-                  <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
-                  <Text style={styles.unavailableSubtitle}>
-                    Este vídeo usa um player externo ({video.videoSource}).{'\n'}
-                    Por enquanto, acesse pelo navegador em projetocirurgiao.app.
-                  </Text>
-                </View>
-              );
-            }
-            // kind === 'none' ou playback ausente (payload antiga sem contrato).
+          if (kind === 'hls' && playbackUrl) {
+            return (
+              <VideoPlayer
+                ref={playerRef}
+                video={video}
+                streamUrl={playbackUrl}
+                playbackKind={kind}
+                fillContainer={isLandscape}
+                onEnded={handleVideoEnded}
+                onProgressUpdate={handleProgressUpdate}
+                initialPosition={initialPosition}
+              />
+            );
+          }
+          if (kind === 'iframe' && playbackUrl) {
             return (
               <View style={styles.unavailableContainer}>
-                <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
-                <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
+                <Ionicons name="open-outline" size={32} color={colors.textMuted} />
+                <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
                 <Text style={styles.unavailableSubtitle}>
-                  Este vídeo ainda não está pronto para reprodução.
+                  Este vídeo usa um player externo ({video.videoSource}).{'\n'}
+                  Por enquanto, acesse pelo navegador em projetocirurgiao.app.
                 </Text>
               </View>
             );
-          })()}
+          }
+          return (
+            <View style={styles.unavailableContainer}>
+              <Ionicons name="videocam-off-outline" size={32} color={colors.textMuted} />
+              <Text style={styles.unavailableTitle}>Vídeo indisponível</Text>
+              <Text style={styles.unavailableSubtitle}>
+                Este vídeo ainda não está pronto para reprodução.
+              </Text>
+            </View>
+          );
+        })()}
+      </View>
 
-          {/* Info compacta abaixo do player */}
+      {/* Info + ActionBar — só portrait, fora-tabs */}
+      {!isTabsExpanded && !isLandscape && (
+        <>
           <View style={styles.videoInfo}>
             <View style={styles.videoMetaRow}>
               {video.duration ? (
@@ -452,26 +432,30 @@ export default function WatchVideoScreen() {
         </View>
       )}
 
-      {/* Botao expandir/recolher */}
-      <TouchableOpacity
-        style={styles.expandToggle}
-        onPress={() => setIsTabsExpanded(!isTabsExpanded)}
-        activeOpacity={0.7}
-        hitSlop={{ top: 4, bottom: 4 }}
-      >
-        <View style={styles.expandToggleHandle} />
-        <Ionicons
-          name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
-          size={16}
-          color={colors.textMuted}
-        />
-      </TouchableOpacity>
+      {/* Botao expandir/recolher — só portrait */}
+      {!isLandscape && (
+        <TouchableOpacity
+          style={styles.expandToggle}
+          onPress={() => setIsTabsExpanded(!isTabsExpanded)}
+          activeOpacity={0.7}
+          hitSlop={{ top: 4, bottom: 4 }}
+        >
+          <View style={styles.expandToggleHandle} />
+          <Ionicons
+            name={isTabsExpanded ? 'chevron-down' : 'chevron-up'}
+            size={16}
+            color={colors.textMuted}
+          />
+        </TouchableOpacity>
+      )}
 
-      {/* Tabs de conteúdo */}
-      <CustomTabView
-        routes={TAB_ROUTES}
-        renderScene={renderScene}
-      />
+      {/* Tabs de conteúdo — só portrait */}
+      {!isLandscape && (
+        <CustomTabView
+          routes={TAB_ROUTES}
+          renderScene={renderScene}
+        />
+      )}
 
       {/* FAB IA expandível */}
       <ExpandableFAB
@@ -500,6 +484,21 @@ const styles = StyleSheet.create({
   },
   landscapeContainer: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  /**
+   * Wrapper absoluto que cobre toda a tela em landscape. Player + filhos
+   * ficam por cima do header/tabs/actionbar (que continuam montados pra
+   * preservar state mas ficam atrás). Player nunca remonta ao girar →
+   * vídeo não pausa.
+   */
+  landscapePlayerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
     backgroundColor: '#000',
   },
   loadingContainer: {
