@@ -29,7 +29,7 @@ crons = ["0 * * * *"]
 # BACKEND_API_URL = "https://api.projetocirurgiao.app/api/v1"
 [vars]
 ALLOWED_ORIGINS = "https://app.projetocirurgiao.app,https://projetocirurgiao.app,https://www.projetocirurgiao.app,http://localhost:3001,http://localhost:3000"
-BACKEND_API_URL = "https://api.projetocirurgiao.app/api/v1"
+BACKEND_API_URL = "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1"
 # Bucket subtree to scan. Empty string = whole bucket (slow on big buckets).
 # Use "videos/" to scan only the videos subtree.
 INDEX_PREFIX = "videos/"
