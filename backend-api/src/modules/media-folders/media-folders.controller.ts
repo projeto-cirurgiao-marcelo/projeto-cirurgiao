@@ -68,6 +68,11 @@ export class MediaFoldersController {
     return this.service.listUnassigned();
   }
 
+  @Get('folders/:id/videos')
+  videosInFolder(@Param('id') id: string) {
+    return this.service.listVideosInFolder(id);
+  }
+
   /**
    * Sincronizar com R2: diff entre o KV folder index do Worker r2-browser e
    * os Videos r2_hls cadastrados. Retorna pastas com playlist que ainda nao

@@ -1,0 +1,388 @@
+'use client';
+
+/**
+ * Admin Media Library — pagina principal.
+ * Modelo hibrido: storage R2 imutavel; organizacao logica em DB via
+ * MediaFolder + Video.folderId. Toda movimentacao = UPDATE, zero ops em R2.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { mediaFoldersService } from '@/lib/api/media-folders.service';
+import type {
+  MediaFolderNode,
+  SyncStatusResponse,
+  UnassignedVideo,
+} from '@/lib/types/media-folder.types';
+import { FolderTreePanel } from './_components/folder-tree-panel';
+import { VideosPanel } from './_components/videos-panel';
+import { MoveToModal } from './_components/move-to-modal';
+
+type SelectedId = string | null | 'INBOX';
+
+export default function AdminMediaPage() {
+  const [folders, setFolders] = useState<MediaFolderNode[]>([]);
+  const [foldersLoading, setFoldersLoading] = useState(true);
+  const [unassigned, setUnassigned] = useState<UnassignedVideo[]>([]);
+  const [pending, setPending] = useState<SyncStatusResponse | null>(null);
+  const [videosOfFolder, setVideosOfFolder] = useState<UnassignedVideo[]>([]);
+  const [videosLoading, setVideosLoading] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<SelectedId>('INBOX');
+  const [syncing, setSyncing] = useState(false);
+
+  // Modal: criar pasta
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createParentId, setCreateParentId] = useState<string | null>(null);
+  const [createName, setCreateName] = useState('');
+
+  // Modal: renomear pasta
+  const [renameTarget, setRenameTarget] = useState<MediaFolderNode | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  // Modal: mover (pasta ou video)
+  const [moveModal, setMoveModal] = useState<{
+    open: boolean;
+    kind: 'folder' | 'video';
+    id: string;
+    label: string;
+    currentFolderId: string | null;
+    movingFolderId?: string;
+  } | null>(null);
+
+  const loadFolders = useCallback(async () => {
+    setFoldersLoading(true);
+    try {
+      const data = await mediaFoldersService.listFolders();
+      setFolders(data);
+    } catch (err) {
+      toast.error('Erro ao carregar pastas', {
+        description: err instanceof Error ? err.message : '',
+      });
+    } finally {
+      setFoldersLoading(false);
+    }
+  }, []);
+
+  const loadUnassigned = useCallback(async () => {
+    try {
+      const data = await mediaFoldersService.listUnassigned();
+      setUnassigned(data);
+    } catch {
+      // silent — toast no sync
+    }
+  }, []);
+
+  const loadFolderVideos = useCallback(async (folderId: string) => {
+    setVideosLoading(true);
+    try {
+      const data = await mediaFoldersService.listVideosInFolder(folderId);
+      setVideosOfFolder(data);
+    } catch (err) {
+      toast.error('Erro ao listar vídeos', {
+        description: err instanceof Error ? err.message : '',
+      });
+    } finally {
+      setVideosLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFolders();
+    loadUnassigned();
+  }, [loadFolders, loadUnassigned]);
+
+  useEffect(() => {
+    if (selectedFolderId && selectedFolderId !== 'INBOX') {
+      loadFolderVideos(selectedFolderId);
+    } else {
+      setVideosOfFolder([]);
+    }
+  }, [selectedFolderId, loadFolderVideos]);
+
+  async function handleSync() {
+    setSyncing(true);
+    const toastId = toast.loading('Sincronizando com R2...');
+    try {
+      const data = await mediaFoldersService.getSyncStatus();
+      setPending(data);
+      toast.success('Sincronização concluída', {
+        id: toastId,
+        description: `${data.totalInR2} no R2 · ${data.totalInDb} no DB · ${data.pendingCount} pendentes`,
+      });
+    } catch (err) {
+      toast.error('Erro na sincronização', {
+        id: toastId,
+        description: err instanceof Error ? err.message : '',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleCreate() {
+    if (!createName.trim()) return;
+    try {
+      await mediaFoldersService.createFolder({
+        name: createName.trim(),
+        parentId: createParentId,
+      });
+      toast.success('Pasta criada');
+      setCreateOpen(false);
+      setCreateName('');
+      await loadFolders();
+    } catch (err) {
+      toast.error('Erro ao criar pasta', {
+        description: err instanceof Error ? err.message : '',
+      });
+    }
+  }
+
+  async function handleRename() {
+    if (!renameTarget || !renameValue.trim()) return;
+    try {
+      await mediaFoldersService.updateFolder(renameTarget.id, {
+        name: renameValue.trim(),
+      });
+      toast.success('Pasta renomeada');
+      setRenameTarget(null);
+      setRenameValue('');
+      await loadFolders();
+    } catch (err) {
+      toast.error('Erro ao renomear', {
+        description: err instanceof Error ? err.message : '',
+      });
+    }
+  }
+
+  async function handleDelete(folder: MediaFolderNode) {
+    const childCount = folder._count?.children ?? 0;
+    const videoCount = folder._count?.videos ?? 0;
+    const message =
+      childCount + videoCount > 0
+        ? `Excluir "${folder.name}"? Subpastas (${childCount}) serão removidas em cascata. Vídeos (${videoCount}) voltam para o Inbox.`
+        : `Excluir "${folder.name}"?`;
+    if (!confirm(message)) return;
+    try {
+      await mediaFoldersService.deleteFolder(folder.id);
+      toast.success('Pasta excluída');
+      if (selectedFolderId === folder.id) setSelectedFolderId('INBOX');
+      await Promise.all([loadFolders(), loadUnassigned()]);
+    } catch (err) {
+      toast.error('Erro ao excluir', {
+        description: err instanceof Error ? err.message : '',
+      });
+    }
+  }
+
+  async function handleMoveConfirm(targetFolderId: string | null) {
+    if (!moveModal) return;
+    try {
+      if (moveModal.kind === 'folder') {
+        await mediaFoldersService.updateFolder(moveModal.id, {
+          parentId: targetFolderId,
+        });
+        toast.success('Pasta movida');
+        await loadFolders();
+      } else {
+        await mediaFoldersService.moveVideo(moveModal.id, targetFolderId);
+        toast.success('Vídeo movido');
+        // refresh both views
+        await Promise.all([
+          loadUnassigned(),
+          selectedFolderId && selectedFolderId !== 'INBOX'
+            ? loadFolderVideos(selectedFolderId)
+            : Promise.resolve(),
+          loadFolders(), // counts atualizam
+        ]);
+      }
+    } catch (err) {
+      toast.error('Erro ao mover', {
+        description: err instanceof Error ? err.message : '',
+      });
+      throw err;
+    }
+  }
+
+  const selectedFolderName = useMemo(() => {
+    if (selectedFolderId === 'INBOX') return 'Inbox';
+    if (selectedFolderId === null) return 'Raiz';
+    return folders.find((f) => f.id === selectedFolderId)?.name ?? '—';
+  }, [selectedFolderId, folders]);
+
+  return (
+    <div className="space-y-4">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Media Library</h1>
+          <p className="text-sm text-muted-foreground">
+            Organização lógica de vídeos R2. Storage permanece intacto;
+            mover/renomear/agrupar é só metadata.
+          </p>
+        </div>
+        <Button onClick={handleSync} disabled={syncing} variant="outline">
+          {syncing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          Sincronizar com R2
+        </Button>
+      </header>
+
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        {foldersLoading ? (
+          <aside className="flex items-center justify-center rounded-lg border bg-card p-12">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </aside>
+        ) : (
+          <FolderTreePanel
+            folders={folders}
+            selectedFolderId={selectedFolderId}
+            onSelect={setSelectedFolderId}
+            onCreate={(parentId) => {
+              setCreateParentId(parentId);
+              setCreateName('');
+              setCreateOpen(true);
+            }}
+            onRename={(f) => {
+              setRenameTarget(f);
+              setRenameValue(f.name);
+            }}
+            onMove={(f) => {
+              setMoveModal({
+                open: true,
+                kind: 'folder',
+                id: f.id,
+                label: f.name,
+                currentFolderId: f.parentId,
+                movingFolderId: f.id,
+              });
+            }}
+            onDelete={handleDelete}
+          />
+        )}
+
+        <VideosPanel
+          loading={videosLoading}
+          selectedFolderId={selectedFolderId}
+          selectedFolderName={selectedFolderName}
+          videos={videosOfFolder.map((v) => ({
+            id: v.id,
+            title: v.title,
+            hlsUrl: v.hlsUrl,
+            thumbnailUrl: v.thumbnailUrl,
+            duration: v.duration,
+            folderId: v.folderId,
+          }))}
+          unassigned={unassigned}
+          pending={pending?.pending ?? []}
+          onMoveVideo={(videoId, currentFolderId, label) => {
+            setMoveModal({
+              open: true,
+              kind: 'video',
+              id: videoId,
+              label,
+              currentFolderId,
+            });
+          }}
+        />
+      </div>
+
+      {/* Modal: criar pasta */}
+      <Dialog
+        open={createOpen}
+        onOpenChange={(v) => !v && setCreateOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Nova pasta
+              {createParentId
+                ? ` em "${folders.find((f) => f.id === createParentId)?.name}"`
+                : ''}
+            </DialogTitle>
+            <DialogDescription>
+              Slug é gerado automaticamente a partir do nome.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Nome</Label>
+            <Input
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="Ex: Cirurgia abdominal"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate();
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreate} disabled={!createName.trim()}>
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: renomear */}
+      <Dialog
+        open={!!renameTarget}
+        onOpenChange={(v) => !v && setRenameTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear pasta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Nome</Label>
+            <Input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRename();
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameTarget(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRename} disabled={!renameValue.trim()}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: mover */}
+      {moveModal && (
+        <MoveToModal
+          open={moveModal.open}
+          onClose={() => setMoveModal(null)}
+          folders={folders}
+          currentFolderId={moveModal.currentFolderId}
+          movingFolderId={moveModal.movingFolderId}
+          itemLabel={moveModal.label}
+          onConfirm={handleMoveConfirm}
+        />
+      )}
+    </div>
+  );
+}
