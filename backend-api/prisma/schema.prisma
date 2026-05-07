@@ -100,6 +100,7 @@ model Course {
   enrollments         Enrollment[]
   forumTopics         ForumTopic[]
   modules             Module[]
+  mediaFolders        MediaFolder[] @relation("MediaFolderCourse")
 
   @@index([instructorId])
   @@index([slug])
@@ -150,6 +151,13 @@ model Video {
   videoSource     String            @default("cloudflare")
   hlsUrl          String?
   deletedAt       DateTime?
+  // Organização lógica em árvore custom — independente do path físico no R2.
+  // Source of truth do path físico = hlsUrl (imutável). folderId é só catalogação.
+  folderId        String?
+  // Basename derivado do path R2 (ex: "abc123" de "videos/abc123/playlist.m3u8").
+  // Chave de reconciliação com o pipeline externo. NULL = vídeo não-r2_hls.
+  r2Basename      String?           @unique
+  folder          MediaFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
   forumTopics     ForumTopic[]
   quizzes         Quiz[]
   video_bookmarks video_bookmarks[]
@@ -165,7 +173,32 @@ model Video {
   @@index([moduleId])
   @@index([cloudflareId])
   @@index([deletedAt])
+  @@index([folderId])
+  @@index([r2Basename])
   @@map("videos")
+}
+
+/// Árvore de organização custom para a Media Library admin.
+/// Vídeos físicos vivem em R2; MediaFolder é só catalogação mutável.
+/// Móvel à vontade — rename, mover subtree, reorder = update.
+model MediaFolder {
+  id        String        @id @default(uuid())
+  name      String
+  slug      String
+  parentId  String?
+  courseId  String?
+  position  Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  parent    MediaFolder?  @relation("MediaFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  MediaFolder[] @relation("MediaFolderTree")
+  course    Course?       @relation("MediaFolderCourse", fields: [courseId], references: [id], onDelete: SetNull)
+  videos    Video[]
+
+  @@unique([parentId, slug])
+  @@index([parentId, position])
+  @@index([courseId])
+  @@map("media_folders")
 }
 
 model Enrollment {
