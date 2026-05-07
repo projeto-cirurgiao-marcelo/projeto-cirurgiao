@@ -11,6 +11,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { BulkMoveDto } from './dto/bulk-move.dto';
+import { deriveR2Basename } from '../videos/utils/r2-basename';
 
 interface WorkerIndexFolder {
   fullPath: string;
@@ -377,6 +378,70 @@ export class MediaFoldersService {
         folderId: true,
       },
     });
+  }
+
+  /**
+   * One-shot: scan Videos com videoSource=r2_hls AND r2Basename IS NULL,
+   * deriva basename do hlsUrl, atualiza. Usado uma vez apos a migration
+   * de schema pra retroativar a chave de reconciliacao em videos legacy.
+   *
+   * Retorna count de updated + count de skipped (hlsUrl nao parseavel).
+   */
+  async backfillR2Basenames() {
+    const candidates = await this.prisma.video.findMany({
+      where: {
+        videoSource: 'r2_hls',
+        r2Basename: null,
+        deletedAt: null,
+      },
+      select: { id: true, hlsUrl: true, title: true },
+    });
+
+    let updated = 0;
+    let skipped = 0;
+    const conflicts: Array<{ id: string; basename: string; existingId: string }> = [];
+
+    for (const v of candidates) {
+      const basename = deriveR2Basename(v.hlsUrl);
+      if (!basename) {
+        skipped++;
+        continue;
+      }
+      // Tenta atualizar; se r2Basename ja em uso por outro Video, captura
+      // conflito sem abortar o batch (pode haver legacy duplicado).
+      try {
+        await this.prisma.video.update({
+          where: { id: v.id },
+          data: { r2Basename: basename },
+        });
+        updated++;
+      } catch (err: any) {
+        if (err?.code === 'P2002') {
+          const existing = await this.prisma.video.findFirst({
+            where: { r2Basename: basename, id: { not: v.id } },
+            select: { id: true },
+          });
+          conflicts.push({
+            id: v.id,
+            basename,
+            existingId: existing?.id ?? 'unknown',
+          });
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    this.logger.log(
+      `backfillR2Basenames: candidates=${candidates.length} updated=${updated} skipped=${skipped} conflicts=${conflicts.length}`,
+    );
+
+    return {
+      candidatesScanned: candidates.length,
+      updated,
+      skipped,
+      conflicts,
+    };
   }
 
   async listVideosInFolder(folderId: string) {

@@ -83,4 +83,13 @@ export class MediaFoldersController {
   syncStatus(@Headers('authorization') auth?: string) {
     return this.service.getSyncStatus(auth);
   }
+
+  /**
+   * One-shot: deriva e popula r2Basename de Videos legacy (videoSource=r2_hls
+   * com r2Basename NULL). Idempotente.
+   */
+  @Post('backfill-r2-basenames')
+  backfill() {
+    return this.service.backfillR2Basenames();
+  }
 }
