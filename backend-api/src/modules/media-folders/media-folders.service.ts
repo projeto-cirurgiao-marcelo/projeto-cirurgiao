@@ -374,6 +374,33 @@ export class MediaFoldersService {
         thumbnailUrl: true,
         duration: true,
         createdAt: true,
+        folderId: true,
+      },
+    });
+  }
+
+  async listVideosInFolder(folderId: string) {
+    const folder = await this.prisma.mediaFolder.findUnique({
+      where: { id: folderId },
+      select: { id: true },
+    });
+    if (!folder) throw new NotFoundException('Pasta nao encontrada');
+
+    return this.prisma.video.findMany({
+      where: {
+        folderId,
+        deletedAt: null,
+      },
+      orderBy: [{ title: 'asc' }],
+      select: {
+        id: true,
+        title: true,
+        hlsUrl: true,
+        r2Basename: true,
+        thumbnailUrl: true,
+        duration: true,
+        createdAt: true,
+        folderId: true,
       },
     });
   }
