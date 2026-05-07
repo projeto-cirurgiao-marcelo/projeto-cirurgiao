@@ -65,4 +65,10 @@ EXPOSE 8080
 # Start the application
 ENV NODE_ENV=production
 
-CMD ["node", "dist/main"]
+# Run pending migrations on cold start as a safety net. The Cloud Run Job
+# `cirurgiao-api-migrator` is the primary migration step (executed by
+# deploy-artifact-registry.ps1 before the new revision goes live), but if
+# someone bypasses the script this guarantees prod schema is in sync. The
+# `_prisma_migrations` table holds an advisory lock, so concurrent
+# instances serialize on first cold start of a new revision.
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

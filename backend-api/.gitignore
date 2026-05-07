@@ -52,3 +52,7 @@ lerna-debug.log*
 # Firebase Service Account Key (NUNCA commitar!)
 firebase-service-account.json
 *-service-account*.json
+
+# local tooling
+cloud-sql-proxy.exe
+fix-owner.sql
