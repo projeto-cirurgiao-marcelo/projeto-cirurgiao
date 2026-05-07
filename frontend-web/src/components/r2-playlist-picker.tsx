@@ -7,6 +7,9 @@
  * URL completa via CDN (`cdnUrl(playlistKeyFor(fullPath))`).
  *
  * Uso tipico: modal "Adicionar Video" no admin, modo R2 HLS.
+ *
+ * Filtra hits por `hasPlaylist=true`; admin pode tambem digitar URL manual
+ * no input adjacente como fallback.
  */
 
 import { useEffect, useRef, useState } from 'react';
