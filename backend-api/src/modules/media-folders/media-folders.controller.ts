@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -65,5 +66,16 @@ export class MediaFoldersController {
   @Get('unassigned')
   unassigned() {
     return this.service.listUnassigned();
+  }
+
+  /**
+   * Sincronizar com R2: diff entre o KV folder index do Worker r2-browser e
+   * os Videos r2_hls cadastrados. Retorna pastas com playlist que ainda nao
+   * tem Video record. Admin usa esta lista no /admin/media para criar
+   * Videos via flow existente do AdicionarVideo (R2 HLS).
+   */
+  @Get('sync-status')
+  syncStatus(@Headers('authorization') auth?: string) {
+    return this.service.getSyncStatus(auth);
   }
 }
