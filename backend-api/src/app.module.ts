@@ -32,6 +32,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { AiLibraryModule } from './modules/ai-library/ai-library.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
+import { MediaFoldersModule } from './modules/media-folders/media-folders.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.
     AiLibraryModule,
     JobsModule,
     AdminDashboardModule,
+    MediaFoldersModule,
   ],
   providers: [
     {
