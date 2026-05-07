@@ -166,10 +166,14 @@ export async function reindexCurrentFolder(
 /**
  * Drive reindex to completion by looping chunked invocations.
  * `onProgress` is called after each chunk so the UI can show progress.
+ *
+ * `maxChunks` precisa ser alto: bucket de prod tem >300k keys e cada chunk
+ * Worker scan ~5-15k. Cap baixo (50) atingia antes de done=true e o KV
+ * index NUNCA finalizava (finalizeIndex so roda quando truncated=false).
  */
 export async function reindexFull(
   onProgress?: (p: ReindexResponse) => void,
-  maxChunks = 50,
+  maxChunks = 500,
 ): Promise<ReindexResponse> {
   let progress = await reindex(true);
   onProgress?.(progress);
