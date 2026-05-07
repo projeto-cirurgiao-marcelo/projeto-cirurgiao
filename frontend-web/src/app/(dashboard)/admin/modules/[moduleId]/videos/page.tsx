@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Upload, Eye, Ey
 import dynamic from 'next/dynamic';
 import Hls from 'hls.js';
 import type { DropResult } from '@hello-pangea/dnd';
+import { R2PlaylistPicker } from '@/components/r2-playlist-picker';
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 import { VideoMaterialsManager } from '@/components/admin/video-materials-manager';
 import { VideoCaptionsManager } from '@/components/admin/video-captions-manager';
@@ -1207,6 +1208,27 @@ export default function ModuleVideosPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
+                    Buscar pasta no R2
+                  </label>
+                  <R2PlaylistPicker
+                    disabled={isUploading}
+                    scope="videos/"
+                    onSelect={({ url, parentName }) => {
+                      setR2HlsUrl(url);
+                      // Pre-preenche titulo com nome da pasta se admin nao
+                      // tiver digitado nada ainda (campo title vive em state
+                      // separado; nao mexemos pra nao surpreender se ja
+                      // editou).
+                      toast({
+                        title: 'Pasta selecionada',
+                        description: parentName,
+                      });
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
                     URL do master playlist (.m3u8) *
                   </label>
                   <Input
@@ -1216,7 +1238,8 @@ export default function ModuleVideosPage() {
                     disabled={isUploading}
                   />
                   <p className="text-xs text-muted-foreground">
-                    A URL deve terminar em <code>.m3u8</code>.
+                    A URL deve terminar em <code>.m3u8</code>. Use a busca
+                    acima para auto-preencher.
                   </p>
                 </div>
 
