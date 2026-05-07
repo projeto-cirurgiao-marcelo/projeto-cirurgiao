@@ -4,6 +4,7 @@ import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
 import { CreateVideoDto, VideoUploadStatus, VideoSource } from './dto/create-video.dto';
 import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
+import { deriveR2Basename } from './utils/r2-basename';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
 import { AuditService } from '../../shared/audit/audit.service';
@@ -210,6 +211,14 @@ export class VideosService {
         }
       }
 
+      // Auto-deriva r2Basename quando videoSource=r2_hls — chave de
+      // reconciliacao com o KV folder index do Worker r2-browser. Source
+      // of truth do path fisico continua sendo hlsUrl (imutavel).
+      const r2Basename =
+        createVideoDto.videoSource === 'r2_hls'
+          ? deriveR2Basename(createVideoDto.hlsUrl)
+          : null;
+
       const video = await this.prisma.video.create({
         data: {
           title: createVideoDto.title,
@@ -230,6 +239,7 @@ export class VideosService {
           hlsUrl: createVideoDto.hlsUrl,
           externalUrl: createVideoDto.externalUrl,
           videoSource: createVideoDto.videoSource,
+          r2Basename,
           module: {
             connect: { id: moduleId },
           },
@@ -407,6 +417,7 @@ export class VideosService {
         uploadProgress: 100,
         hlsUrl: dto.hlsUrl,
         videoSource: VideoSource.R2_HLS,
+        r2Basename: deriveR2Basename(dto.hlsUrl),
         module: { connect: { id: moduleId } },
       },
       include: {
@@ -415,7 +426,7 @@ export class VideosService {
     });
 
     this.logger.log(
-      `R2/HLS video created: ${video.id} (module ${moduleId}, captionsEmbedded=${captionsEmbedded})`,
+      `R2/HLS video created: ${video.id} (module ${moduleId}, captionsEmbedded=${captionsEmbedded}, r2Basename=${video.r2Basename})`,
     );
     return video;
   }
