@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { MediaFoldersController } from './media-folders.controller';
 import { MediaFoldersService } from './media-folders.service';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { PrismaModule } from '../../shared/prisma/prisma.module';
 
 @Module({
-  imports: [FirebaseModule, PrismaModule],
+  imports: [FirebaseModule, PrismaModule, ConfigModule],
   controllers: [MediaFoldersController],
   providers: [MediaFoldersService],
   exports: [MediaFoldersService],

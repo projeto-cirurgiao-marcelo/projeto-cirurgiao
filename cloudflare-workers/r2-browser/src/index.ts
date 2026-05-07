@@ -132,6 +132,35 @@ async function handleList(req: Request, env: Env): Promise<Response> {
   return json(payload);
 }
 
+/**
+ * Dump completo do KV folder index, opcionalmente filtrado por hasPlaylist.
+ * Consumido pelo backend /admin/media/sync-status para diff entre R2 e DB.
+ * Nao retorna ancestrais (depth>1 sem playlist) por padrao — overhead pra
+ * quem so quer leaf folders prontas pra cadastrar.
+ */
+async function handleIndex(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url);
+  const onlyPlaylist = url.searchParams.get('hasPlaylist') !== 'false';
+
+  const index = await getOrBuildIndex(env);
+  const folders = onlyPlaylist
+    ? index.folders.filter((f) => f.hasPlaylist)
+    : index.folders;
+
+  return json({
+    builtAt: index.builtAt,
+    totalCount: index.folderCount,
+    returned: folders.length,
+    folders: folders.map((f) => ({
+      fullPath: f.fullPath,
+      parentName: f.parentName,
+      hasPlaylist: f.hasPlaylist,
+      fileCount: f.fileCount,
+      depth: f.depth,
+    })),
+  });
+}
+
 async function handleSearch(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const q = url.searchParams.get('q') ?? '';
@@ -223,6 +252,8 @@ export default {
           response = await handleList(request, env);
         } else if (path === '/search' && request.method === 'GET') {
           response = await handleSearch(request, env);
+        } else if (path === '/index' && request.method === 'GET') {
+          response = await handleIndex(request, env);
         } else if (path === '/signed-url' && request.method === 'GET') {
           response = await handleSignedUrl(request, env);
         } else if (path === '/object' && request.method === 'GET') {

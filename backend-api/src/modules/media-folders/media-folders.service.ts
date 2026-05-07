@@ -4,11 +4,31 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { BulkMoveDto } from './dto/bulk-move.dto';
+
+interface WorkerIndexFolder {
+  fullPath: string;
+  parentName: string;
+  hasPlaylist: boolean;
+  fileCount: number;
+  depth: number;
+}
+
+interface WorkerIndexResponse {
+  builtAt: string;
+  totalCount: number;
+  returned: number;
+  folders: WorkerIndexFolder[];
+}
+
+const DEFAULT_WORKER_URL = 'https://r2-browser.gustavobressanin6.workers.dev';
+const DEFAULT_CDN_BASE = 'https://cdn.projetocirurgiao.app';
 
 /**
  * MediaFolder = camada de organizacao logica acima dos vídeos R2. Storage
@@ -22,7 +42,10 @@ import { BulkMoveDto } from './dto/bulk-move.dto';
 export class MediaFoldersService {
   private readonly logger = new Logger(MediaFoldersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   /**
    * Slug auto: lowercase + sem diacritics + alphanum/hifen. Se ja existir
@@ -256,6 +279,78 @@ export class MediaFoldersService {
       data: { folderId },
     });
     return { moved: result.count };
+  }
+
+  /**
+   * Diff entre o folder index do Worker r2-browser (R2 reality) e os Videos
+   * com videoSource=r2_hls cadastrados em DB. Usado pelo botao "Sincronizar
+   * com R2" no admin: lista pastas com playlist no bucket que ainda nao tem
+   * Video correspondente.
+   *
+   * NAO cria Video automaticamente — cria seria forcar moduleId obrigatorio
+   * pra um stub. Frontend mostra a lista e admin escolhe ativamente
+   * "Adicionar a um curso", reaproveitando a flow existente do AdicionarVideo.
+   */
+  async getSyncStatus(authHeader: string | undefined) {
+    if (!authHeader) {
+      throw new BadRequestException('Authorization header obrigatorio');
+    }
+    const workerUrl = (
+      this.config.get<string>('R2_BROWSER_WORKER_URL') ?? DEFAULT_WORKER_URL
+    ).replace(/\/+$/, '');
+    const cdnBase = (
+      this.config.get<string>('R2_CDN_BASE') ?? DEFAULT_CDN_BASE
+    ).replace(/\/+$/, '');
+
+    let res: Response;
+    try {
+      res = await fetch(`${workerUrl}/index?hasPlaylist=true`, {
+        headers: { authorization: authHeader },
+      });
+    } catch (err) {
+      this.logger.error('Worker /index unreachable', err);
+      throw new ServiceUnavailableException(
+        'Worker r2-browser indisponivel',
+      );
+    }
+    if (!res.ok) {
+      throw new ServiceUnavailableException(
+        `Worker /index retornou ${res.status}`,
+      );
+    }
+    const data = (await res.json()) as WorkerIndexResponse;
+
+    const existing = await this.prisma.video.findMany({
+      where: {
+        videoSource: 'r2_hls',
+        r2Basename: { not: null },
+        deletedAt: null,
+      },
+      select: { r2Basename: true },
+    });
+    const existingSet = new Set(
+      existing.map((v) => v.r2Basename).filter((s): s is string => !!s),
+    );
+
+    const pending = data.folders
+      .filter((f) => f.hasPlaylist && !existingSet.has(f.parentName))
+      .map((f) => ({
+        r2Basename: f.parentName,
+        fullPath: f.fullPath,
+        hlsUrl: `${cdnBase}/${f.fullPath
+          .split('/')
+          .map(encodeURIComponent)
+          .join('/')}/playlist.m3u8`,
+        fileCount: f.fileCount,
+      }));
+
+    return {
+      indexBuiltAt: data.builtAt,
+      totalInR2: data.returned,
+      totalInDb: existing.length,
+      pendingCount: pending.length,
+      pending,
+    };
   }
 
   /**
