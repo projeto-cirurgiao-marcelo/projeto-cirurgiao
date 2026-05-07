@@ -50,8 +50,48 @@ export function R2Browser() {
     setLoading(true);
     setError(null);
     try {
-      const res = await listPrefix(next);
-      setData(res);
+      // R2 list pagina por orcamento de scan interno: pastas com muitos
+      // descendentes (ex: HLS com milhares de .ts) retornam truncated=true
+      // com poucos delimitedPrefixes por pagina. Itera cursor ate done.
+      const SAFETY_CAP = 30;
+      const seenFolders = new Set<string>();
+      const seenObjects = new Set<string>();
+      const folders: string[] = [];
+      const objects: ListResponse['objects'] = [];
+      let cursor: string | undefined;
+      let truncated = true;
+      let i = 0;
+
+      while (truncated && i++ < SAFETY_CAP) {
+        const page: ListResponse = await listPrefix(next, cursor, 1000);
+        for (const f of page.folders) {
+          if (!seenFolders.has(f)) {
+            seenFolders.add(f);
+            folders.push(f);
+          }
+        }
+        for (const o of page.objects) {
+          if (!seenObjects.has(o.key)) {
+            seenObjects.add(o.key);
+            objects.push(o);
+          }
+        }
+        truncated = page.truncated;
+        cursor = page.cursor;
+      }
+
+      setData({
+        prefix: next,
+        folders,
+        objects,
+        cursor: undefined,
+        truncated: truncated, // true significa que cap foi atingido
+      });
+
+      if (truncated) {
+        const msg = `Listagem incompleta: cap de ${SAFETY_CAP} paginas atingido. R2 retornou ${folders.length} pastas/${objects.length} arquivos.`;
+        setError(msg);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Falha ao listar';
       setError(msg);
@@ -88,12 +128,24 @@ export function R2Browser() {
           description: `${p.scanned} objs · ${p.folderCount} pastas${p.done ? ' · finalizando' : ''}`,
         });
       });
-      toast.success(`Index reconstruído: ${res.folderCount} pastas`, {
-        id: toastId,
-        description: `${res.scanned} objs scanned · ${res.playlistsFound} playlists`,
-      });
-      setIndexBuiltAt(res.builtAt ?? null);
-      setFolderCount(res.folderCount);
+      if (res.done) {
+        toast.success(`Index reconstruído: ${res.folderCount} pastas`, {
+          id: toastId,
+          description: `${res.scanned} objs scanned · ${res.playlistsFound} playlists`,
+        });
+        setIndexBuiltAt(res.builtAt ?? null);
+        setFolderCount(res.folderCount);
+      } else {
+        // reindexFull tem soft-cap de 50 chunks; se atingir antes de done=true
+        // o build esta incompleto e o KV index NAO foi finalizado.
+        toast.warning('Reindex incompleto', {
+          id: toastId,
+          description: `Cap de chunks atingido apos ${res.scanned} objs/${res.folderCount} pastas. Rode novamente para continuar.`,
+        });
+      }
+      // Refresh listagem atual: arquivos podem ter sido adicionados/removidos
+      // em R2 durante o reindex. Listagem le R2 direto (nao usa o index KV).
+      void loadPrefix(prefix);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Falha no reindex';
       toast.error('Reindex falhou', { id: toastId, description: msg });
@@ -101,7 +153,7 @@ export function R2Browser() {
       setReindexing(false);
       setReindexProgress(null);
     }
-  }, []);
+  }, [prefix, loadPrefix]);
 
   const handleReindexFolder = useCallback(async () => {
     if (!prefix) return;
