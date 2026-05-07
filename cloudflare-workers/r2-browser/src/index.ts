@@ -266,7 +266,9 @@ export default {
       (async () => {
         try {
           let progress = await reindexChunk(env, { reset: true });
-          let safety = 50;
+          // Bucket de prod >300k keys; cada chunk Worker scan ~5-15k.
+          // Cap maior pra garantir done=true e finalizeIndex rodar.
+          let safety = 500;
           while (!progress.done && safety-- > 0) {
             progress = await reindexChunk(env);
           }

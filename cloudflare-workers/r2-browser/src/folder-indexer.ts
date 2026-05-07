@@ -14,7 +14,9 @@ const DEFAULT_PREFIX = 'videos/';
 // Pages processed per /reindex invocation.
 // Calibrated so each call fits comfortably under Worker wall time (<30s)
 // even when R2 list latency is high. Frontend loops until done=true.
-const PAGES_PER_CHUNK = 12;
+// 24 paginas × 1000 keys = ate 24k objetos por chunk; em prod chunk dura
+// ~10s. Bucket >300k keys precisa ~15 chunks para finalizar.
+const PAGES_PER_CHUNK = 24;
 
 function emptyJob(prefix: string): ReindexJobState {
   return {
