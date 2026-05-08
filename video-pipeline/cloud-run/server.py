@@ -321,6 +321,34 @@ def process_video(bucket, key):
     logger.info(f"Processando: {key}")
     logger.info(f"Destino R2: {r2_output_prefix}")
 
+    # Idempotency: se o master playlist ja existe em R2, skip.
+    # Causa: Worker da Queue antigo aguardava /process sincrono e dava
+    # message.retry() em timeouts, fazendo Cloud Run reprocessar o mesmo
+    # video varias vezes seguidas. Verificacao de existencia evita
+    # encode redundante.
+    playlist_key = f"{r2_output_prefix}/playlist.m3u8"
+    try:
+        s3.head_object(Bucket=R2_BUCKET, Key=playlist_key)
+        logger.info(f"Output ja existe, skipping: {playlist_key}")
+        notify_backend({
+            'sourceKey': key,
+            'destinationKey': r2_output_prefix,
+            'status': 'completed',
+            'profiles': [],
+            'durationSec': 0,
+            'filesUploaded': 0,
+        })
+        return {
+            'status': 'skipped',
+            'source': key,
+            'destination': r2_output_prefix,
+            'reason': 'output already exists in R2',
+        }
+    except s3.exceptions.ClientError as e:
+        # 404 = no existe, prossegue normalmente
+        if e.response.get('Error', {}).get('Code') not in ('404', 'NoSuchKey', 'NotFound'):
+            raise
+
     import time
     start_time = time.time()
 
