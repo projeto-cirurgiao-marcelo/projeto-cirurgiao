@@ -232,7 +232,7 @@ export default function ModuleVideosPage() {
         order: index + 1,
       }));
 
-      await videosService.reorder(moduleId, { videoOrders: updates });
+      await videosService.reorder(moduleId, { videos: updates });
 
       toast({
         title: 'Sucesso',

@@ -207,7 +207,7 @@ export default function EditCoursePage() {
 
         try {
           const videoOrders = videos.map((v, i) => ({ id: v.id, order: i + 1 }));
-          await videosService.reorder(sourceModuleId, { videoOrders });
+          await videosService.reorder(sourceModuleId, { videos: videoOrders });
         } catch {
           await loadModules();
         }
@@ -241,7 +241,7 @@ export default function EditCoursePage() {
           // Reordenar no módulo destino (best-effort, não bloqueia o sucesso)
           try {
             const videoOrders = dstVideos.map((v, i) => ({ id: v.id, order: i + 1 }));
-            await videosService.reorder(destModuleId, { videoOrders });
+            await videosService.reorder(destModuleId, { videos: videoOrders });
           } catch {
             // Reordenação falhou mas o move foi bem sucedido
           }
