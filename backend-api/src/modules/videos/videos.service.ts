@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
@@ -388,6 +388,28 @@ export class VideosService {
       throw new NotFoundException('Módulo não encontrado');
     }
 
+    const r2Basename = deriveR2Basename(dto.hlsUrl);
+
+    // Lida com r2Basename ja em uso: r2Basename e @unique no schema, mas
+    // soft-delete (deletedAt) nao libera o slot. Se admin deletou um Video
+    // dessa mesma pasta R2 e tenta cadastrar de novo, restauramos em vez
+    // de tentar criar e quebrar com P2002. Se for ativo, retornamos 409
+    // claro em vez do 500 Internal Server.
+    if (r2Basename) {
+      const existing = await this.prisma.video.findUnique({
+        where: { r2Basename },
+      });
+      if (existing) {
+        if (existing.deletedAt) {
+          return this.restoreR2HlsVideo(existing.id, moduleId, dto);
+        }
+        throw new ConflictException(
+          `Já existe um Video ativo apontando para esta pasta R2 (basename="${r2Basename}", id=${existing.id}). ` +
+            `Use o vídeo existente ou exclua-o antes de cadastrar de novo.`,
+        );
+      }
+    }
+
     // Resolve order: caller can pin it, otherwise next-available.
     const order =
       dto.order !== undefined && dto.order !== null
@@ -395,7 +417,7 @@ export class VideosService {
         : await this.getNextOrder(moduleId);
 
     const conflicting = await this.prisma.video.findFirst({
-      where: { moduleId, order },
+      where: { moduleId, order, deletedAt: null },
     });
     if (conflicting) {
       throw new BadRequestException(
@@ -417,7 +439,7 @@ export class VideosService {
         uploadProgress: 100,
         hlsUrl: dto.hlsUrl,
         videoSource: VideoSource.R2_HLS,
-        r2Basename: deriveR2Basename(dto.hlsUrl),
+        r2Basename,
         module: { connect: { id: moduleId } },
       },
       include: {
@@ -427,6 +449,63 @@ export class VideosService {
 
     this.logger.log(
       `R2/HLS video created: ${video.id} (module ${moduleId}, captionsEmbedded=${captionsEmbedded}, r2Basename=${video.r2Basename})`,
+    );
+    return video;
+  }
+
+  /**
+   * Restaura um Video soft-deletado que apontava para o mesmo r2Basename
+   * que estamos tentando cadastrar agora. Atualiza com os novos metadados
+   * (title, description, thumbnail, duration, order, module). Sem isso o
+   * unique constraint em r2Basename quebra a recriacao mesmo apos delete.
+   */
+  private async restoreR2HlsVideo(
+    videoId: string,
+    moduleId: string,
+    dto: CreateVideoFromR2HlsDto,
+  ): Promise<Video> {
+    const order =
+      dto.order !== undefined && dto.order !== null
+        ? dto.order
+        : await this.getNextOrder(moduleId);
+
+    const conflicting = await this.prisma.video.findFirst({
+      where: {
+        moduleId,
+        order,
+        deletedAt: null,
+        NOT: { id: videoId },
+      },
+    });
+    if (conflicting) {
+      throw new BadRequestException(
+        'Já existe um vídeo com esta ordem neste módulo',
+      );
+    }
+
+    const video = await this.prisma.video.update({
+      where: { id: videoId },
+      data: {
+        deletedAt: null,
+        moduleId,
+        title: dto.title,
+        description: dto.description,
+        thumbnailUrl: dto.thumbnailUrl,
+        duration: dto.duration,
+        order,
+        isPublished: false,
+        uploadStatus: 'READY',
+        uploadProgress: 100,
+        hlsUrl: dto.hlsUrl,
+        videoSource: VideoSource.R2_HLS,
+      },
+      include: {
+        module: { select: { id: true, title: true, courseId: true } },
+      },
+    });
+
+    this.logger.log(
+      `R2/HLS video restored: ${video.id} (was soft-deleted; new module=${moduleId})`,
     );
     return video;
   }
