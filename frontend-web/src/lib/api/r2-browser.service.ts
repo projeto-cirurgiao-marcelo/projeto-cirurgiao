@@ -187,11 +187,15 @@ export async function reindexFull(
 
 /**
  * Build the public CDN URL for an R2 key.
- * Used to copy a stable link for course creation.
+ * Used to copy a stable link for course creation. Encoda segmentos
+ * individualmente preservando `/` — chaves com espaco/acento ficam
+ * RFC3986-validas (class-validator @IsUrl exige isso ao registrar
+ * via /modules/:id/videos/from-r2-hls).
  */
 export function cdnUrl(key: string): string {
   const cleanKey = key.replace(/^\/+/, '');
-  return `${CDN_BASE}/${cleanKey}`;
+  const encoded = cleanKey.split('/').map(encodeURIComponent).join('/');
+  return `${CDN_BASE}/${encoded}`;
 }
 
 /**
