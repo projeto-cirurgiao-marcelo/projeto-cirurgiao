@@ -156,7 +156,10 @@ export interface UpdateVideoDto {
 }
 
 export interface ReorderVideosDto {
-  videoOrders: Array<{
+  // Backend DTO espera `videos` (ReorderVideosDto.videos no NestJS).
+  // Anteriormente esse campo se chamava `videoOrders` no frontend, o
+  // que gerava 400 (class-validator @IsArray em videos=undefined).
+  videos: Array<{
     id: string;
     order: number;
   }>;

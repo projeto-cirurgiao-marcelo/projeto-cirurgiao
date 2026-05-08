@@ -933,7 +933,7 @@ export default function EditModulePage() {
     // Salvar no backend
     try {
       await videosService.reorder(moduleId, {
-        videoOrders: reorderedVideos.map(v => ({ id: v.id, order: v.order })),
+        videos: reorderedVideos.map(v => ({ id: v.id, order: v.order })),
       });
       toast({
         title: 'Sucesso',
