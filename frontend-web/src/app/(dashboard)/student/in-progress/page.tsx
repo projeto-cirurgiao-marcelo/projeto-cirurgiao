@@ -21,6 +21,7 @@ import {
   type SectionTab,
 } from '@/components/atlas';
 import { logger } from '@/lib/logger';
+import { getCourseWeightedPercent } from '@/lib/course-progress';
 
 const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
   'default',
@@ -102,7 +103,8 @@ export default function InProgressPage() {
       const inProgress = enrolledData
         .filter(
           (course) =>
-            course.progress.percentage > 0 && course.progress.percentage < 100,
+            getCourseWeightedPercent(course) > 0 &&
+            course.progress.percentage < 100,
         )
         .sort((a, b) => {
           const dateA = new Date(
@@ -135,7 +137,7 @@ export default function InProgressPage() {
       ).getTime();
       const idle = now - lastAccess;
 
-      if (c.progress.percentage >= 75) almost.push(c);
+      if (getCourseWeightedPercent(c) >= 75) almost.push(c);
       if (idle <= 7 * 24 * 3600 * 1000) recent.push(c);
       if (idle >= FOURTEEN_DAYS_MS) paused.push(c);
     }
@@ -161,7 +163,7 @@ export default function InProgressPage() {
     courses.length === 0
       ? 0
       : Math.round(
-          courses.reduce((sum, c) => sum + c.progress.percentage, 0) /
+          courses.reduce((sum, c) => sum + getCourseWeightedPercent(c), 0) /
             courses.length,
         );
 
@@ -258,7 +260,7 @@ export default function InProgressPage() {
                 title={course.title}
                 category="Cirurgia veterinária"
                 instructor={course.instructor?.name}
-                progressPercent={Math.round(course.progress.percentage)}
+                progressPercent={getCourseWeightedPercent(course)}
                 lessonsProgress={`${course.progress.watchedVideos} / ${course.progress.totalVideos}`}
                 lastMeta={formatLastAccess(course.enrollment.lastAccessAt)}
                 thumbVariant={pickThumbVariant(course.id)}

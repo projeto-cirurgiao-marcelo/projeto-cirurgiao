@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService } from '@/lib/api/progress.service';
+import { getCourseWeightedPercent } from '@/lib/course-progress';
 import { Library, Search, Filter, ArrowDownUp } from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
 import {
@@ -142,6 +143,7 @@ export default function CoursesPage() {
                   totalVideos: enrolledCourse.progress.totalVideos,
                   watchedVideos: enrolledCourse.progress.watchedVideos,
                   percentage: enrolledCourse.progress.percentage,
+                  weightedPercentage: enrolledCourse.progress.weightedPercentage,
                 }
               : {
                   totalVideos,
@@ -316,7 +318,7 @@ export default function CoursesPage() {
                   progressPercent={
                     status === 'new'
                       ? undefined
-                      : Math.round(course.progress.percentage)
+                      : getCourseWeightedPercent(course)
                   }
                   lessonsProgress={
                     status === 'new'

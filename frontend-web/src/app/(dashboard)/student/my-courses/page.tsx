@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
+import { getCourseWeightedPercent } from '@/lib/course-progress';
 import {
   progressService,
   EnrolledCourseWithProgress,
@@ -127,11 +128,13 @@ export default function MyCoursesPage() {
       const enrolledRows: EnrolledCourseRow[] = (
         enrolledData as EnrolledCourseWithProgress[]
       ).map((c) => {
-        const pct = c.progress.percentage;
+        const binaryPct = c.progress.percentage;
+        const weightedPct = getCourseWeightedPercent(c);
+        // Status decide via binary (completion oficial); barra usa weighted.
         const status: AtlasCourseStatus =
-          c.enrollment.completedAt || pct >= 100
+          c.enrollment.completedAt || binaryPct >= 100
             ? 'completed'
-            : pct === 0
+            : weightedPct === 0
               ? 'new'
               : 'in-progress';
         return {
@@ -143,7 +146,7 @@ export default function MyCoursesPage() {
           thumbnailVertical: c.thumbnailVertical,
           instructor: c.instructor,
           status,
-          progressPercent: Math.round(pct),
+          progressPercent: weightedPct,
           watched: c.progress.watchedVideos,
           total: c.progress.totalVideos,
           lastAccessAt: c.enrollment.lastAccessAt,

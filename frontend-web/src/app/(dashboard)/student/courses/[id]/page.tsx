@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
+import { getCourseWeightedPercent } from '@/lib/course-progress';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
 import {
   AtlasButton,
@@ -161,7 +162,11 @@ export default function CourseDetailPage() {
     course?.modules?.reduce((sum, m) => sum + (m.videos?.length || 0), 0) ||
     0;
   const completedVideos = courseProgress?.completedVideos || 0;
-  const progress = courseProgress?.progressPercentage || 0;
+  // Barra de progresso usa ponderado (weightedPercentage). Contagem
+  // "X/Y aulas concluidas" continua com binario.
+  const progress = courseProgress
+    ? getCourseWeightedPercent(courseProgress)
+    : 0;
   const hasStarted =
     completedVideos > 0 || (courseProgress?.watchedVideos || 0) > 0;
 
