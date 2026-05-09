@@ -828,8 +828,11 @@ export default function VideoPlayerPage() {
 
         </section>
 
-        {/* Sidebar flush right (oculta em mobile) */}
-        <aside className="hidden lg:flex flex-col min-h-0 self-stretch">
+        {/* Sidebar flush right (oculta em mobile).
+            sticky + altura limitada ao viewport pra evitar que listas
+            longas estiquem a pagina inteira. Scroll interno do
+            AtlasModuleSidebar (overflow-y-auto) cuida do overflow. */}
+        <aside className="hidden lg:flex flex-col min-h-0 self-start sticky top-0 h-[100dvh] max-h-[100dvh]">
           <AtlasModuleSidebar
             flush
             metaLabel="Conteúdo do módulo"
