@@ -126,15 +126,20 @@ model Module {
   thumbnailVertical   String?
   thumbnailHorizontal String?
   deletedAt           DateTime?
+  // Hierarquia de submódulos (1 nível só — validação em service).
+  // Modulo raiz: parentModuleId = null, ordenado por (courseId, order).
+  // Submódulo: parentModuleId = <id do pai>, ordenado por (parentModuleId, order).
+  // Partial unique indexes scoped por contexto (raw SQL na migration).
+  parentModuleId      String?
+  parentModule        Module?   @relation("ModuleHierarchy", fields: [parentModuleId], references: [id], onDelete: Cascade)
+  childModules        Module[]  @relation("ModuleHierarchy")
   course              Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   videos              Video[]
 
-  // @@unique([courseId, order]) substituido por partial unique index
-  // (definido em raw SQL na migration) que aplica WHERE deletedAt IS NULL.
-  // Soft-deletes nao retem mais o slot, evitando P2002 em reorder.
   @@index([courseId, order])
   @@index([courseId])
   @@index([deletedAt])
+  @@index([parentModuleId, order])
   @@map("modules")
 }
 
