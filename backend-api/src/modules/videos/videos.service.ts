@@ -1060,17 +1060,19 @@ export class VideosService {
     }
 
     try {
-      // Usar transação para garantir atomicidade
+      // Atomicidade + offset gigante: igual ao ModulesService.reorder.
+      // Falha no meio do passo 1 deixava negativos -1..-N residuais que
+      // colidiam com proximas tentativas. Offset -1B evita colisao com
+      // qualquer residual e com partial unique index (deletados).
+      const TEMP_OFFSET = -1_000_000_000;
       await this.prisma.$transaction(async (prisma) => {
-        // Primeiro, definir todas as ordens como negativas temporariamente para evitar conflitos
-        for (const item of reorderDto.videos) {
+        for (let i = 0; i < reorderDto.videos.length; i++) {
+          const item = reorderDto.videos[i];
           await prisma.video.update({
             where: { id: item.id },
-            data: { order: -item.order },
+            data: { order: TEMP_OFFSET - (i + 1) },
           });
         }
-
-        // Depois, definir as ordens corretas
         for (const item of reorderDto.videos) {
           await prisma.video.update({
             where: { id: item.id },

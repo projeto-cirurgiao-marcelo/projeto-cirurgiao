@@ -236,27 +236,31 @@ export class ModulesService {
 
     try {
       this.logger.log(`[REORDER] Atualizando ${reorderDto.modules.length} módulos...`);
-      
-      // SOLUÇÃO: Primeiro, atribuir valores temporários negativos para evitar conflito de constraint
-      // Isso permite que todos os módulos fiquem com valores únicos temporariamente
-      this.logger.log(`[REORDER] Passo 1: Atribuindo valores temporários...`);
-      for (let i = 0; i < reorderDto.modules.length; i++) {
-        const item = reorderDto.modules[i];
-        await this.prisma.module.update({
-          where: { id: item.id },
-          data: { order: -(i + 1) }, // Valores negativos temporários: -1, -2, -3, etc
-        });
-      }
-      
-      // Agora, atualizar para os valores finais
-      this.logger.log(`[REORDER] Passo 2: Atribuindo valores finais...`);
-      for (const item of reorderDto.modules) {
-        this.logger.log(`[REORDER] Atualizando módulo ${item.id} para ordem ${item.order}`);
-        await this.prisma.module.update({
-          where: { id: item.id },
-          data: { order: item.order },
-        });
-      }
+
+      // Atomicidade: envolve as 2 fases numa unica transacao Prisma.
+      // Sem isso, falha no meio do passo 1 deixa modules com order
+      // negativo persistido — proximas tentativas batem em P2002.
+      // Offset gigante (-1_000_000_000) evita colidir com qualquer
+      // residual ou com o partial unique index pos-soft-delete.
+      const TEMP_OFFSET = -1_000_000_000;
+      await this.prisma.$transaction(async (tx) => {
+        this.logger.log(`[REORDER] Passo 1: Atribuindo valores temporários...`);
+        for (let i = 0; i < reorderDto.modules.length; i++) {
+          const item = reorderDto.modules[i];
+          await tx.module.update({
+            where: { id: item.id },
+            data: { order: TEMP_OFFSET - (i + 1) },
+          });
+        }
+
+        this.logger.log(`[REORDER] Passo 2: Atribuindo valores finais...`);
+        for (const item of reorderDto.modules) {
+          await tx.module.update({
+            where: { id: item.id },
+            data: { order: item.order },
+          });
+        }
+      });
 
       this.logger.log(`[REORDER] Módulos reordenados com sucesso para curso ${courseId}`);
 

@@ -56,3 +56,6 @@ firebase-service-account.json
 # local tooling
 cloud-sql-proxy.exe
 fix-owner.sql
+
+# DB backups manuais
+db-backups/
