@@ -738,9 +738,6 @@ export default function VideoPlayerPage() {
               }
               title={currentVideo.title}
               description={currentVideo.description ?? undefined}
-              inlineAction={
-                <VideoLikeButton videoId={videoId} size="sm" />
-              }
               contextLine={
                 course?.title && currentLessonIndex >= 0 ? (
                   <>
@@ -754,7 +751,8 @@ export default function VideoPlayerPage() {
               }
               actions={
                 /* Botões só em md+ — em mobile bottom bar contextual já cobre */
-                <div className="hidden sm:flex flex-wrap gap-2">
+                <div className="hidden sm:flex flex-wrap items-center gap-2">
+                  <VideoLikeButton videoId={videoId} size="default" />
                   {hasPreviousVideo && (
                     <AtlasButton
                       variant="outline"
