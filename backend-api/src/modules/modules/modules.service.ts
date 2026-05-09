@@ -21,6 +21,65 @@ export class ModulesService {
   ) {}
 
   /**
+   * Valida regras de hierarquia: parent existe, pertence ao mesmo course,
+   * NAO tem parentModuleId proprio (limita arvore a 1 nivel), e nao e o
+   * mesmo que o filho (loop). Retorna o parent validado.
+   */
+  private async validateParentForChild(
+    parentModuleId: string,
+    expectedCourseId: string,
+    childModuleId?: string,
+  ): Promise<{ id: string; courseId: string }> {
+    if (childModuleId && parentModuleId === childModuleId) {
+      throw new BadRequestException(
+        'Modulo nao pode ser pai de si mesmo',
+      );
+    }
+    const parent = await this.prisma.module.findUnique({
+      where: { id: parentModuleId },
+      select: {
+        id: true,
+        courseId: true,
+        parentModuleId: true,
+        deletedAt: true,
+      },
+    });
+    if (!parent || parent.deletedAt) {
+      throw new NotFoundException('Modulo pai nao encontrado');
+    }
+    if (parent.courseId !== expectedCourseId) {
+      throw new BadRequestException(
+        'Modulo pai pertence a outro curso',
+      );
+    }
+    if (parent.parentModuleId) {
+      throw new BadRequestException(
+        'Hierarquia limitada a 1 nivel — modulo pai ja e submodulo',
+      );
+    }
+    return { id: parent.id, courseId: parent.courseId };
+  }
+
+  /**
+   * Proximo `order` disponivel no escopo (parentModuleId || courseId raiz).
+   * Reflete o partial unique scoped: modulos raiz sao unicos por courseId,
+   * submodulos sao unicos por parentModuleId.
+   */
+  private async getNextOrderInScope(
+    courseId: string,
+    parentModuleId: string | null,
+  ): Promise<number> {
+    const last = await this.prisma.module.findFirst({
+      where: parentModuleId
+        ? { parentModuleId, deletedAt: null }
+        : { courseId, parentModuleId: null, deletedAt: null },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+    return (last?.order ?? -1) + 1;
+  }
+
+  /**
    * Criar um novo módulo
    */
   async create(courseId: string, createModuleDto: CreateModuleDto): Promise<Module> {
@@ -34,21 +93,37 @@ export class ModulesService {
         throw new NotFoundException('Curso não encontrado');
       }
 
-      // Verificar se já existe um módulo com a mesma ordem
+      // Resolve parentModuleId (null = modulo raiz, UUID = submodulo).
+      const parentModuleId = createModuleDto.parentModuleId || null;
+      if (parentModuleId) {
+        await this.validateParentForChild(parentModuleId, courseId);
+      }
+
+      // Conflito de order respeita o scope (raiz vs filho de pai X).
+      const conflictWhere = parentModuleId
+        ? { parentModuleId, order: createModuleDto.order, deletedAt: null }
+        : {
+            courseId,
+            parentModuleId: null,
+            order: createModuleDto.order,
+            deletedAt: null,
+          };
       const existingModule = await this.prisma.module.findFirst({
-        where: {
-          courseId,
-          order: createModuleDto.order,
-        },
+        where: conflictWhere,
       });
 
       if (existingModule) {
-        throw new BadRequestException('Já existe um módulo com esta ordem neste curso');
+        throw new BadRequestException(
+          parentModuleId
+            ? 'Já existe um submódulo com esta ordem dentro do pai'
+            : 'Já existe um módulo com esta ordem neste curso',
+        );
       }
 
       const module = await this.prisma.module.create({
         data: {
           ...createModuleDto,
+          parentModuleId,
           courseId,
         },
         include: {
@@ -82,6 +157,9 @@ export class ModulesService {
       throw new NotFoundException('Curso não encontrado');
     }
 
+    // Carrega flat (todos os modulos do curso ativos). Frontend monta a
+    // arvore hierarquica filtrando por parentModuleId. Mais simples que
+    // recursive include e funciona ate ~1000 modulos sem stress.
     return this.prisma.module.findMany({
       where: {
         courseId,
@@ -97,12 +175,14 @@ export class ModulesService {
         _count: {
           select: {
             videos: { where: { deletedAt: null } },
+            childModules: { where: { deletedAt: null } },
           },
         },
       },
-      orderBy: {
-        order: 'asc',
-      },
+      orderBy: [
+        { parentModuleId: 'asc' }, // raizes (null) primeiro, depois grupos de filhos
+        { order: 'asc' },
+      ],
     });
   }
 
@@ -149,26 +229,90 @@ export class ModulesService {
     const existingModule = await this.findOne(id);
 
     try {
-      // Se a ordem foi alterada, verificar se não conflita com outro módulo
-      if (updateModuleDto.order !== undefined && updateModuleDto.order !== existingModule.order) {
-        const conflictingModule = await this.prisma.module.findFirst({
-          where: {
-            courseId: existingModule.courseId,
-            order: updateModuleDto.order,
-            NOT: {
-              id,
-            },
-          },
-        });
+      // Detecta mudanca de parentModuleId. undefined = nao toca; null/'' =
+      // promove pra raiz; UUID = move pra dentro de outro pai.
+      let nextParentModuleId: string | null | undefined = undefined;
+      if ('parentModuleId' in updateModuleDto) {
+        const raw = updateModuleDto.parentModuleId;
+        nextParentModuleId = raw === null || raw === undefined || raw === ''
+          ? null
+          : raw;
+      }
 
+      const willChangeParent =
+        nextParentModuleId !== undefined &&
+        nextParentModuleId !== existingModule.parentModuleId;
+
+      if (willChangeParent && nextParentModuleId) {
+        // Mover pra dentro de outro modulo: valida 1-nivel + nao-loop +
+        // mesmo curso.
+        await this.validateParentForChild(
+          nextParentModuleId,
+          existingModule.courseId,
+          id,
+        );
+        // Se este modulo ja tem filhos proprios (e submodulo), promove-lo
+        // a filho de outro pai criaria 2 niveis. Bloqueia.
+        const hasChildren = await this.prisma.module.count({
+          where: { parentModuleId: id, deletedAt: null },
+        });
+        if (hasChildren > 0) {
+          throw new BadRequestException(
+            'Modulo com submodulos nao pode virar submodulo (limite de 1 nivel)',
+          );
+        }
+      }
+
+      // Resolve novo order: muda quando parent muda (vai pro fim do novo
+      // scope) OU quando admin envia order explicito. Conflito respeita
+      // partial unique scoped (raiz vs filho).
+      const finalParentForOrder =
+        nextParentModuleId !== undefined
+          ? nextParentModuleId
+          : existingModule.parentModuleId;
+
+      let finalOrder = updateModuleDto.order;
+      if (willChangeParent && finalOrder === undefined) {
+        finalOrder = await this.getNextOrderInScope(
+          existingModule.courseId,
+          finalParentForOrder,
+        );
+      }
+
+      if (finalOrder !== undefined) {
+        const conflictWhere: any = finalParentForOrder
+          ? {
+              parentModuleId: finalParentForOrder,
+              order: finalOrder,
+              deletedAt: null,
+              NOT: { id },
+            }
+          : {
+              courseId: existingModule.courseId,
+              parentModuleId: null,
+              order: finalOrder,
+              deletedAt: null,
+              NOT: { id },
+            };
+        const conflictingModule = await this.prisma.module.findFirst({
+          where: conflictWhere,
+        });
         if (conflictingModule) {
-          throw new BadRequestException('Já existe um módulo com esta ordem neste curso');
+          throw new BadRequestException(
+            finalParentForOrder
+              ? 'Ja existe submodulo com esta ordem dentro do pai'
+              : 'Ja existe modulo com esta ordem neste curso',
+          );
         }
       }
 
       const module = await this.prisma.module.update({
         where: { id },
-        data: updateModuleDto,
+        data: {
+          ...updateModuleDto,
+          ...(willChangeParent ? { parentModuleId: nextParentModuleId } : {}),
+          ...(finalOrder !== undefined ? { order: finalOrder } : {}),
+        },
         include: {
           videos: {
             where: { deletedAt: null },
@@ -233,6 +377,39 @@ export class ModulesService {
     }
 
     this.logger.log(`[REORDER] Curso encontrado: ${course.title}`);
+
+    // Scope: null = reorder de modulos raiz; UUID = reorder de filhos
+    // de um parent. Valida que TODOS os ids do payload pertencem ao mesmo
+    // scope — impede mistura raiz+filho num unico reorder.
+    const expectedParentId =
+      reorderDto.parentModuleId === undefined || reorderDto.parentModuleId === ''
+        ? null
+        : reorderDto.parentModuleId;
+
+    if (reorderDto.modules.length > 0) {
+      const ids = reorderDto.modules.map((m) => m.id);
+      const found = await this.prisma.module.findMany({
+        where: { id: { in: ids }, deletedAt: null },
+        select: { id: true, courseId: true, parentModuleId: true },
+      });
+      if (found.length !== ids.length) {
+        throw new BadRequestException('Um ou mais modulos nao encontrados');
+      }
+      const wrongCourse = found.find((m) => m.courseId !== courseId);
+      if (wrongCourse) {
+        throw new BadRequestException(
+          `Modulo ${wrongCourse.id} nao pertence ao curso ${courseId}`,
+        );
+      }
+      const wrongScope = found.find(
+        (m) => (m.parentModuleId ?? null) !== expectedParentId,
+      );
+      if (wrongScope) {
+        throw new BadRequestException(
+          'Reorder mistura modulos de scopes diferentes (raiz vs submodulo). Envie listas separadas.',
+        );
+      }
+    }
 
     try {
       this.logger.log(`[REORDER] Atualizando ${reorderDto.modules.length} módulos...`);

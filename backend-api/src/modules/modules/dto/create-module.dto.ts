@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, Min, IsUUID, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateModuleDto {
@@ -26,4 +26,14 @@ export class CreateModuleDto {
   @Type(() => Number)
   @Min(0)
   order: number;
+
+  /**
+   * Modulo pai (submodulo). Null/undefined = modulo raiz do curso.
+   * Hierarquia limitada a 1 nivel: parent nao pode ter parentModuleId.
+   * Validado em service (BadRequestException se violar).
+   */
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== '')
+  @IsUUID()
+  parentModuleId?: string | null;
 }
