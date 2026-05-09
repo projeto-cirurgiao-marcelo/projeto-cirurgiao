@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,6 +35,8 @@ import { coursesService, modulesService, videosService } from '@/lib/api';
 import { aiTextService } from '@/lib/api/ai-text.service';
 import type { Course, Module, Video } from '@/lib/types/course.types';
 import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
+import { MoveToModal } from '@/components/tree/move-to-modal';
+import type { TreeNodeData } from '@/components/tree/types';
 import { logger } from '@/lib/logger';
 
 const DragDropContext = dynamic(
@@ -76,6 +78,10 @@ export default function EditCoursePage() {
   const [moveVideoDialog, setMoveVideoDialog] = useState<{ video: Video; currentModuleId: string } | null>(null);
   const [moveTargetModuleId, setMoveTargetModuleId] = useState<string>('');
   const [isMoving, setIsMoving] = useState(false);
+  // Modal generico pra mover Module entre raiz/submodulo.
+  const [moveModuleDialog, setMoveModuleDialog] = useState<{
+    module: Module;
+  } | null>(null);
   const [aiBusy, setAiBusy] = useState<'idle' | 'title' | 'description' | 'thumbnail-h' | 'thumbnail-v'>('idle');
 
   const [isCourseInfoCollapsed, setIsCourseInfoCollapsed] = useState(() => {
@@ -157,6 +163,81 @@ export default function EditCoursePage() {
     }
   };
 
+  // Hierarquia: separa modulos raiz (parentModuleId IS NULL) dos filhos
+  // agrupados por parentId. Backend ja entrega ordenado por
+  // (parentModuleId ASC, order ASC), preservamos a ordem.
+  const { rootModules, childrenByParent } = useMemo(() => {
+    const roots: Module[] = [];
+    const map = new Map<string, Module[]>();
+    for (const m of modules) {
+      if (m.parentModuleId) {
+        const arr = map.get(m.parentModuleId) ?? [];
+        arr.push(m);
+        map.set(m.parentModuleId, arr);
+      } else {
+        roots.push(m);
+      }
+    }
+    return { rootModules: roots, childrenByParent: map };
+  }, [modules]);
+
+  // Tree pro MoveToModal: nodes representam ESCOPOS validos pra Module
+  // virar filho. Cada raiz vira node, com hint mostrando count de filhos.
+  const moduleTreeNodes = useMemo<TreeNodeData[]>(() => {
+    return modules
+      .filter((m) => !m.parentModuleId)
+      .map((m) => {
+        const childCount = childrenByParent.get(m.id)?.length ?? 0;
+        return {
+          id: m.id,
+          parentId: null,
+          label: m.title,
+          position: m.order,
+          hint: childCount > 0 ? `${childCount} submódulos` : undefined,
+        };
+      });
+  }, [modules, childrenByParent]);
+
+  const handleMoveModuleConfirm = useCallback(async (targetParentId: string | null) => {
+    if (!moveModuleDialog) return;
+    try {
+      await modulesService.update(moveModuleDialog.module.id, {
+        parentModuleId: targetParentId,
+      } as any);
+      toast({
+        title: 'Sucesso',
+        description: targetParentId
+          ? 'Módulo movido para submódulo'
+          : 'Módulo promovido para raiz',
+      });
+      await loadModules();
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Não foi possível mover o módulo';
+      toast({ title: 'Erro ao mover', description: msg, variant: 'destructive' });
+      throw error;
+    }
+  }, [moveModuleDialog, toast]);
+
+  const handleAddSubmodule = useCallback(async (parentModuleId: string) => {
+    const title = prompt('Nome do novo submódulo:');
+    if (!title || !title.trim()) return;
+    try {
+      // Backend resolve ordem automaticamente via getNextOrderInScope quando
+      // a chamada vem de outro lugar; mas createDto exige order. Usamos length atual.
+      const existingChildren = childrenByParent.get(parentModuleId)?.length ?? 0;
+      await modulesService.create(courseId, {
+        title: title.trim(),
+        order: existingChildren + 1,
+        parentModuleId,
+      } as any);
+      toast({ title: 'Submódulo criado', description: title.trim() });
+      await loadModules();
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Erro ao criar submódulo';
+      toast({ title: 'Erro', description: msg, variant: 'destructive' });
+    }
+  }, [courseId, childrenByParent, toast]);
+
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => {
       const next = new Set(prev);
@@ -166,31 +247,69 @@ export default function EditCoursePage() {
     });
   };
 
-  // Drag & drop handler - suporta reordenar módulos E mover vídeos entre módulos
+  // Drag & drop handler — scopes:
+  //  - MODULE_ROOT: reorder modulos raiz (parentModuleId IS NULL).
+  //  - MODULE_CHILD_<parentId>: reorder submodulos do mesmo pai.
+  //  - VIDEO: reorder/move videos entre modulos.
+  // Cross-parent de Module e via "Mover para..." dropdown — drag-drop nao
+  // gerencia mudancas de parentModuleId (UX mais previsivel).
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, type } = result;
     if (!destination) return;
 
-    if (type === 'MODULE') {
-      // Reordenar módulos
+    if (type === 'MODULE_ROOT') {
       if (source.index === destination.index) return;
-      const items = Array.from(modules);
+      const items = Array.from(rootModules);
       const [removed] = items.splice(source.index, 1);
       items.splice(destination.index, 0, removed);
-      setModules(items);
+      // Reflete no estado: substitui apenas os raizes, mantendo filhos.
+      const otherModules = modules.filter((m) => m.parentModuleId);
+      setModules([...items.map((m, i) => ({ ...m, order: i + 1 })), ...otherModules]);
 
       try {
         const updates = items.map((module, index) => ({
           id: module.id,
-          order: parseInt(String(index + 1), 10),
+          order: index + 1,
         }));
-        await modulesService.reorder(courseId, { modules: updates });
+        await modulesService.reorder(courseId, { modules: updates, parentModuleId: null } as any);
         toast({ title: 'Sucesso', description: 'Ordem dos módulos atualizada!' });
       } catch (error: any) {
-        toast({ title: 'Erro ao reordenar', description: 'Não foi possível reordenar os módulos.', variant: 'destructive' });
+        const msg = error?.response?.data?.message || 'Não foi possível reordenar os módulos.';
+        toast({ title: 'Erro ao reordenar', description: msg, variant: 'destructive' });
         await loadModules();
       }
-    } else if (type === 'VIDEO') {
+      return;
+    }
+
+    if (typeof type === 'string' && type.startsWith('MODULE_CHILD_')) {
+      const parentId = type.slice('MODULE_CHILD_'.length);
+      if (source.index === destination.index && source.droppableId === destination.droppableId) return;
+      const children = childrenByParent.get(parentId) ?? [];
+      const items = Array.from(children);
+      const [removed] = items.splice(source.index, 1);
+      items.splice(destination.index, 0, removed);
+      const newChildIds = new Set(items.map((m) => m.id));
+      setModules((prev) =>
+        prev.map((m) => {
+          if (!newChildIds.has(m.id)) return m;
+          const idx = items.findIndex((x) => x.id === m.id);
+          return { ...m, order: idx + 1 };
+        }),
+      );
+
+      try {
+        const updates = items.map((m, i) => ({ id: m.id, order: i + 1 }));
+        await modulesService.reorder(courseId, { modules: updates, parentModuleId: parentId } as any);
+        toast({ title: 'Sucesso', description: 'Ordem dos submódulos atualizada!' });
+      } catch (error: any) {
+        const msg = error?.response?.data?.message || 'Não foi possível reordenar os submódulos.';
+        toast({ title: 'Erro', description: msg, variant: 'destructive' });
+        await loadModules();
+      }
+      return;
+    }
+
+    if (type === 'VIDEO') {
       const sourceModuleId = source.droppableId;
       const destModuleId = destination.droppableId;
 
@@ -253,7 +372,7 @@ export default function EditCoursePage() {
         }
       }
     }
-  }, [modules, courseId, toast]);
+  }, [modules, rootModules, childrenByParent, courseId, toast]);
 
   // Mover vídeo via dialog
   const handleMoveVideo = async () => {
@@ -604,130 +723,217 @@ export default function EditCoursePage() {
             </div>
           ) : (
             <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="modules" type="MODULE">
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                    {modules.map((module, moduleIndex) => {
-                      const isExpanded = expandedModules.has(module.id);
-                      const videos = module.videos || [];
-                      return (
-                        <Draggable key={module.id} draggableId={module.id} index={moduleIndex}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`border rounded-lg overflow-hidden transition-shadow ${snapshot.isDragging ? 'shadow-xl ring-2 ring-blue-400' : 'shadow-sm'}`}
-                            >
-                              {/* Module Header (Pasta) */}
-                              <div className="flex items-center gap-2 px-3 py-2.5 bg-atlas-surface-2 border-b">
-                                <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing text-atlas-muted-2 hover:text-atlas-ink-2">
-                                  <GripVertical className="h-4 w-4" />
-                                </div>
-                                <button onClick={() => toggleModule(module.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-                                  {isExpanded
-                                    ? <FolderOpen className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                                    : <FolderClosed className="h-4 w-4 text-blue-500 flex-shrink-0" />}
-                                  <span className="font-semibold text-sm truncate">{module.title}</span>
-                                  <Badge variant="outline" className="text-[10px] flex-shrink-0">
-                                    {videos.length} {videos.length === 1 ? 'vídeo' : 'vídeos'}
-                                  </Badge>
-                                  <ChevronRight className={`h-3.5 w-3.5 text-atlas-muted-2 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                </button>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/admin/modules/${module.id}/videos`)} title="Gerenciar vídeos">
-                                    <VideoIcon className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/admin/courses/${courseId}/modules/${module.id}/edit`)} title="Editar módulo">
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteModule(module.id)} title="Deletar módulo">
-                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                  </Button>
-                                </div>
-                              </div>
-
-                              {/* Videos inside module (Arquivos dentro da pasta) */}
-                              {isExpanded && (
-                                <Droppable droppableId={module.id} type="VIDEO">
-                                  {(provided, snapshot) => (
-                                    <div
-                                      ref={provided.innerRef}
-                                      {...provided.droppableProps}
-                                      className={`min-h-[40px] transition-colors ${snapshot.isDraggingOver ? 'bg-atlas-primary-soft' : 'bg-white'}`}
-                                    >
-                                      {videos.length === 0 ? (
-                                        <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-                                          <FileVideo className="h-6 w-6 mx-auto mb-1.5 text-atlas-muted-2" />
-                                          Arraste vídeos para cá ou adicione via "Gerenciar vídeos"
-                                        </div>
-                                      ) : (
-                                        videos.map((video, videoIndex) => (
-                                          <Draggable key={video.id} draggableId={video.id} index={videoIndex}>
-                                            {(provided, snapshot) => (
-                                              <div
-                                                ref={provided.innerRef}
-                                                {...provided.draggableProps}
-                                                className={`flex items-center gap-2.5 px-4 py-2 border-b last:border-b-0 text-sm transition-colors ${
-                                                  snapshot.isDragging ? 'bg-atlas-primary-soft shadow-md rounded' : 'hover:bg-atlas-surface-2'
-                                                }`}
-                                              >
-                                                <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing text-atlas-muted-2 hover:text-atlas-muted">
-                                                  <GripVertical className="h-3.5 w-3.5" />
-                                                </div>
-                                                <FileVideo className="h-3.5 w-3.5 text-atlas-muted-2 flex-shrink-0" />
-                                                <span className="flex-1 truncate text-atlas-ink-2">{video.title}</span>
-                                                {video.duration ? (
-                                                  <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDuration(video.duration)}</span>
-                                                ) : null}
-                                                <Badge variant={video.uploadStatus === 'READY' ? 'default' : 'secondary'} className="text-[10px] h-5 flex-shrink-0">
-                                                  {video.uploadStatus === 'READY' ? 'Pronto' : video.uploadStatus || 'Pendente'}
-                                                </Badge>
-                                                <DropdownMenu>
-                                                  <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
-                                                      <Pencil className="h-3 w-3" />
-                                                    </Button>
-                                                  </DropdownMenuTrigger>
-                                                  <DropdownMenuContent align="end" className="w-44">
-                                                    <DropdownMenuItem onClick={() => router.push(`/admin/courses/${courseId}/modules/${module.id}/edit`)} className="text-xs cursor-pointer">
-                                                      <Pencil className="mr-2 h-3 w-3" />
-                                                      Editar vídeo
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                      onClick={() => {
-                                                        setMoveVideoDialog({ video, currentModuleId: module.id });
-                                                        setMoveTargetModuleId('');
-                                                      }}
-                                                      className="text-xs cursor-pointer"
-                                                    >
-                                                      <MoveRight className="mr-2 h-3 w-3" />
-                                                      Mover para...
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDeleteVideo(video.id)} className="text-xs cursor-pointer text-red-600 focus:text-red-600">
-                                                      <Trash2 className="mr-2 h-3 w-3" />
-                                                      Deletar
-                                                    </DropdownMenuItem>
-                                                  </DropdownMenuContent>
-                                                </DropdownMenu>
-                                              </div>
-                                            )}
-                                          </Draggable>
-                                        ))
-                                      )}
-                                      {provided.placeholder}
-                                    </div>
-                                  )}
-                                </Droppable>
-                              )}
+              {(() => {
+                /**
+                 * Helper inline pra renderizar Module (raiz ou filho).
+                 * Closures capturam: courseId, expandedModules, toggleModule,
+                 * router, handleDeleteModule, handleDeleteVideo, setMoveVideoDialog,
+                 * setMoveModuleDialog, handleAddSubmodule, childrenByParent.
+                 */
+                const renderVideosDroppable = (module: Module) => {
+                  const videos = module.videos || [];
+                  return (
+                    <Droppable droppableId={module.id} type="VIDEO">
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`min-h-[40px] transition-colors ${snapshot.isDraggingOver ? 'bg-atlas-primary-soft' : 'bg-white'}`}
+                        >
+                          {videos.length === 0 ? (
+                            <div className="px-4 py-3 text-center text-xs text-muted-foreground">
+                              <FileVideo className="h-5 w-5 mx-auto mb-1 text-atlas-muted-2" />
+                              Arraste vídeos para cá ou adicione via &quot;Gerenciar vídeos&quot;
                             </div>
+                          ) : (
+                            videos.map((video, videoIndex) => (
+                              <Draggable key={video.id} draggableId={video.id} index={videoIndex}>
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    className={`flex items-center gap-2.5 px-4 py-2 border-b last:border-b-0 text-sm transition-colors ${
+                                      snapshot.isDragging ? 'bg-atlas-primary-soft shadow-md rounded' : 'hover:bg-atlas-surface-2'
+                                    }`}
+                                  >
+                                    <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing text-atlas-muted-2 hover:text-atlas-muted">
+                                      <GripVertical className="h-3.5 w-3.5" />
+                                    </div>
+                                    <FileVideo className="h-3.5 w-3.5 text-atlas-muted-2 flex-shrink-0" />
+                                    <span className="flex-1 truncate text-atlas-ink-2">{video.title}</span>
+                                    {video.duration ? (
+                                      <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDuration(video.duration)}</span>
+                                    ) : null}
+                                    <Badge variant={video.uploadStatus === 'READY' ? 'default' : 'secondary'} className="text-[10px] h-5 flex-shrink-0">
+                                      {video.uploadStatus === 'READY' ? 'Pronto' : video.uploadStatus || 'Pendente'}
+                                    </Badge>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                                          <Pencil className="h-3 w-3" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-44">
+                                        <DropdownMenuItem onClick={() => router.push(`/admin/courses/${courseId}/modules/${module.id}/edit`)} className="text-xs cursor-pointer">
+                                          <Pencil className="mr-2 h-3 w-3" />
+                                          Editar vídeo
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setMoveVideoDialog({ video, currentModuleId: module.id });
+                                            setMoveTargetModuleId('');
+                                          }}
+                                          className="text-xs cursor-pointer"
+                                        >
+                                          <MoveRight className="mr-2 h-3 w-3" />
+                                          Mover para...
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleDeleteVideo(video.id)} className="text-xs cursor-pointer text-red-600 focus:text-red-600">
+                                          <Trash2 className="mr-2 h-3 w-3" />
+                                          Deletar
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))
                           )}
-                        </Draggable>
-                      );
-                    })}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  );
+                };
+
+                const renderModuleHeader = (
+                  module: Module,
+                  dragHandleProps: any,
+                  opts: { isChild: boolean; childCount?: number },
+                ) => {
+                  const isExpanded = expandedModules.has(module.id);
+                  const videos = module.videos || [];
+                  return (
+                    <div className={`flex items-center gap-2 px-3 py-2.5 ${opts.isChild ? 'bg-atlas-surface' : 'bg-atlas-surface-2'} border-b`}>
+                      <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing text-atlas-muted-2 hover:text-atlas-ink-2">
+                        <GripVertical className={opts.isChild ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+                      </div>
+                      <button onClick={() => toggleModule(module.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                        {isExpanded
+                          ? <FolderOpen className={`${opts.isChild ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-blue-500 flex-shrink-0`} />
+                          : <FolderClosed className={`${opts.isChild ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-blue-500 flex-shrink-0`} />}
+                        <span className={`${opts.isChild ? 'text-xs font-medium' : 'text-sm font-semibold'} truncate`}>{module.title}</span>
+                        <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                          {videos.length} {videos.length === 1 ? 'vídeo' : 'vídeos'}
+                        </Badge>
+                        {!opts.isChild && opts.childCount !== undefined && opts.childCount > 0 && (
+                          <Badge variant="secondary" className="text-[10px] flex-shrink-0">
+                            {opts.childCount} sub{opts.childCount === 1 ? '' : 's'}
+                          </Badge>
+                        )}
+                        <ChevronRight className={`h-3.5 w-3.5 text-atlas-muted-2 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                      </button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/admin/modules/${module.id}/videos`)} title="Gerenciar vídeos">
+                          <VideoIcon className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/admin/courses/${courseId}/modules/${module.id}/edit`)} title="Editar módulo">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Mais ações">
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {!opts.isChild && (
+                              <DropdownMenuItem onClick={() => handleAddSubmodule(module.id)} className="text-xs cursor-pointer">
+                                <Plus className="mr-2 h-3 w-3" />
+                                Adicionar submódulo
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => setMoveModuleDialog({ module })} className="text-xs cursor-pointer">
+                              <MoveRight className="mr-2 h-3 w-3" />
+                              Mover para...
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteModule(module.id)} className="text-xs cursor-pointer text-red-600 focus:text-red-600">
+                              <Trash2 className="mr-2 h-3 w-3" />
+                              Deletar módulo
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  );
+                };
+
+                return (
+                  <Droppable droppableId="root-modules" type="MODULE_ROOT">
+                    {(provided) => (
+                      <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                        {rootModules.map((module, moduleIndex) => {
+                          const isExpanded = expandedModules.has(module.id);
+                          const children = childrenByParent.get(module.id) ?? [];
+                          return (
+                            <Draggable key={module.id} draggableId={module.id} index={moduleIndex}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={`border rounded-lg overflow-hidden transition-shadow ${snapshot.isDragging ? 'shadow-xl ring-2 ring-blue-400' : 'shadow-sm'}`}
+                                >
+                                  {renderModuleHeader(module, provided.dragHandleProps, { isChild: false, childCount: children.length })}
+                                  {isExpanded && (
+                                    <>
+                                      {/* Vídeos diretos do módulo raiz */}
+                                      {renderVideosDroppable(module)}
+
+                                      {/* Submódulos (filhos) */}
+                                      <Droppable droppableId={`children-${module.id}`} type={`MODULE_CHILD_${module.id}`}>
+                                        {(childProvided, childSnap) => (
+                                          <div
+                                            ref={childProvided.innerRef}
+                                            {...childProvided.droppableProps}
+                                            className={`pl-6 space-y-1.5 py-2 transition-colors ${childSnap.isDraggingOver ? 'bg-atlas-primary-soft' : ''}`}
+                                          >
+                                            {children.length === 0 ? (
+                                              <div className="text-[11px] text-muted-foreground italic py-1">
+                                                Sem submódulos.
+                                              </div>
+                                            ) : (
+                                              children.map((child, childIndex) => (
+                                                <Draggable key={child.id} draggableId={child.id} index={childIndex}>
+                                                  {(prov2, snap2) => (
+                                                    <div
+                                                      ref={prov2.innerRef}
+                                                      {...prov2.draggableProps}
+                                                      className={`border rounded-md overflow-hidden ${snap2.isDragging ? 'shadow-md ring-1 ring-blue-300' : ''}`}
+                                                    >
+                                                      {renderModuleHeader(child, prov2.dragHandleProps, { isChild: true })}
+                                                      {expandedModules.has(child.id) && renderVideosDroppable(child)}
+                                                    </div>
+                                                  )}
+                                                </Draggable>
+                                              ))
+                                            )}
+                                            {childProvided.placeholder}
+                                          </div>
+                                        )}
+                                      </Droppable>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                );
+              })()}
             </DragDropContext>
           )}
         </CardContent>
@@ -771,6 +977,20 @@ export default function EditCoursePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Modal generico pra mover Module entre raiz/submodulo. */}
+      {moveModuleDialog && (
+        <MoveToModal
+          open={!!moveModuleDialog}
+          onClose={() => setMoveModuleDialog(null)}
+          nodes={moduleTreeNodes}
+          currentParentId={moveModuleDialog.module.parentModuleId ?? null}
+          movingNodeId={moveModuleDialog.module.id}
+          itemLabel={moveModuleDialog.module.title}
+          rootLabel="Módulo raiz (sem pai)"
+          description="Escolha o módulo pai. Selecione 'Módulo raiz' pra promover este módulo ao nível superior."
+          onConfirm={handleMoveModuleConfirm}
+        />
+      )}
     </div>
   );
 }

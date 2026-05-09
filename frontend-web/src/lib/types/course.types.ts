@@ -37,12 +37,18 @@ export interface Module {
   thumbnailHorizontal: string | null; // Thumbnail horizontal (16:9)
   order: number;
   courseId: string;
+  /**
+   * Hierarquia de submodulos (1 nivel). null/undefined = modulo raiz.
+   * UUID = e submodulo do pai. Backend valida 1-nivel.
+   */
+  parentModuleId?: string | null;
   createdAt: string;
   updatedAt: string;
   course?: Course;
   videos?: Video[];
   _count?: {
     videos: number;
+    childModules?: number;
   };
 }
 
