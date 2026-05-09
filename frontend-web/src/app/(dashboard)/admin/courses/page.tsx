@@ -92,20 +92,39 @@ export default function CoursesPage() {
     }
   };
 
-  const handleDragEnd = useCallback((result: DropResult) => {
+  const handleDragEnd = useCallback(async (result: DropResult) => {
     if (!result.destination) return;
 
     const sourceIndex = result.source.index;
     const destIndex = result.destination.index;
     if (sourceIndex === destIndex) return;
 
-    setCourses(prev => {
-      const items = Array.from(prev);
-      const [removed] = items.splice(sourceIndex, 1);
-      items.splice(destIndex, 0, removed);
-      return items;
-    });
-  }, []);
+    // Optimistic update
+    const previousCourses = courses;
+    const items = Array.from(courses);
+    const [removed] = items.splice(sourceIndex, 1);
+    items.splice(destIndex, 0, removed);
+    setCourses(items);
+
+    // Persist
+    try {
+      await coursesService.reorder(
+        items.map((c, i) => ({ id: c.id, position: i + 1 })),
+      );
+      toast({
+        title: 'Ordem atualizada',
+        description: 'Nova ordem dos cursos salva.',
+      });
+    } catch (error) {
+      // Reverter optimistic em caso de erro
+      setCourses(previousCourses);
+      toast({
+        title: 'Erro ao reordenar',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+    }
+  }, [courses, toast]);
 
   const filteredCourses = searchQuery
     ? courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()))

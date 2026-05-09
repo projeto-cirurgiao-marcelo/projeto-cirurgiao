@@ -96,6 +96,10 @@ model Course {
   thumbnailVertical   String?
   thumbnailHorizontal String?
   deletedAt           DateTime?
+  // Ordem manual definida via admin drag-drop em /admin/courses.
+  // Listing default = ORDER BY position ASC, createdAt DESC. Cursos novos
+  // pegam max(position)+1 ao serem criados.
+  position            Int          @default(0)
   instructor          User         @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
   enrollments         Enrollment[]
   forumTopics         ForumTopic[]
@@ -106,6 +110,7 @@ model Course {
   @@index([slug])
   @@index([isPublished])
   @@index([deletedAt])
+  @@index([position, createdAt])
   @@map("courses")
 }
 

@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { ReorderCoursesDto } from './dto/reorder-courses.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -73,6 +74,18 @@ export class CoursesController {
   @Get('slug/:slug')
   findBySlug(@Param('slug') slug: string) {
     return this.coursesService.findBySlug(slug);
+  }
+
+  /**
+   * Reordenar cursos via drag-drop em /admin/courses (admin-only).
+   * Precisa estar antes de @Patch(':id') pra route matcher pegar este
+   * primeiro — se nao, "reorder" colidiria com :id.
+   */
+  @Patch('reorder')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  async reorder(@Body() reorderDto: ReorderCoursesDto) {
+    return this.coursesService.reorder(reorderDto);
   }
 
   /**

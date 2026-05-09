@@ -90,4 +90,16 @@ export const coursesService = {
     const response = await apiClient.patch<Course>(`/courses/${id}/toggle-publish`);
     return response.data;
   },
+
+  /**
+   * Reordenar cursos (admin-only). Backend ordena listing default por
+   * position ASC, createdAt DESC — admin define ordem manual via drag-drop
+   * em /admin/courses.
+   */
+  async reorder(courses: Array<{ id: string; position: number }>): Promise<Course[]> {
+    const response = await apiClient.patch<Course[]>('/courses/reorder', {
+      courses,
+    });
+    return response.data;
+  },
 };
