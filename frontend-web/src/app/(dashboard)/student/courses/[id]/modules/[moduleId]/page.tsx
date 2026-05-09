@@ -124,6 +124,13 @@ export default function ModuleDetailPage() {
   };
 
   const moduleVideos = useMemo(() => module?.videos || [], [module]);
+
+  // Submodulos (filhos): se este modulo for raiz e tem filhos, renderiza
+  // section abaixo dos videos diretos. Se este e submodulo, fica vazio.
+  const childModules = useMemo(() => {
+    if (!course?.modules || !module) return [] as Module[];
+    return course.modules.filter((m) => m.parentModuleId === module.id);
+  }, [course, module]);
   const moduleCompletedCount = moduleVideos.filter((v) =>
     isVideoCompleted(v.id),
   ).length;
@@ -408,6 +415,52 @@ export default function ModuleDetailPage() {
               );
             })}
           </ul>
+        )}
+
+        {/* Submodulos: aparecem abaixo dos videos diretos do modulo raiz */}
+        {childModules.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink mb-[14px]">
+              Submódulos
+            </h2>
+            <ul className="bg-atlas-surface border border-atlas-line rounded-md overflow-hidden divide-y divide-atlas-line">
+              {childModules.map((sub) => {
+                const subVideos = sub.videos || [];
+                const subCompleted = subVideos.filter((v) =>
+                  isVideoCompleted(v.id),
+                ).length;
+                return (
+                  <li key={sub.id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/student/courses/${courseId}/modules/${sub.id}`,
+                        )
+                      }
+                      className="group w-full text-left grid grid-cols-[44px_1fr_auto] items-center gap-3 px-4 sm:px-5 py-3 transition-colors hover:bg-atlas-surface-2"
+                    >
+                      <div className="size-10 rounded-md flex items-center justify-center shrink-0 border bg-atlas-primary-soft border-atlas-primary/30 text-atlas-primary-2">
+                        <Video className="size-4" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-[14px] sm:text-[15px] font-medium leading-tight text-atlas-ink truncate">
+                          {sub.title}
+                        </h3>
+                        <p className="text-[12px] text-atlas-muted mt-0.5">
+                          {subVideos.length} {subVideos.length === 1 ? 'aula' : 'aulas'}
+                          {subVideos.length > 0 && ` · ${subCompleted} concluída${subCompleted === 1 ? '' : 's'}`}
+                        </p>
+                      </div>
+                      <div className="atlas-mono text-[11.5px] text-atlas-muted shrink-0">
+                        Abrir →
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
       </div>
     </>
