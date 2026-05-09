@@ -5,6 +5,7 @@ import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { ReorderCoursesDto } from './dto/reorder-courses.dto';
 import { Course } from '@prisma/client';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -36,6 +37,15 @@ export class CoursesService {
         throw new BadRequestException('Um curso com este título já existe');
       }
 
+      // Curso novo entra no fim da lista (max+1). Admin reordena via
+      // drag-drop em /admin/courses depois.
+      const last = await this.prisma.course.findFirst({
+        where: { deletedAt: null },
+        orderBy: { position: 'desc' },
+        select: { position: true },
+      });
+      const nextPosition = (last?.position ?? 0) + 1;
+
       const course = await this.prisma.course.create({
         data: {
           title: createCourseDto.title,
@@ -44,6 +54,7 @@ export class CoursesService {
           price: createCourseDto.price,
           isPublished: createCourseDto.isPublished,
           slug,
+          position: nextPosition,
           instructor: {
             connect: { id: instructorId },
           },
@@ -114,9 +125,13 @@ export class CoursesService {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      // position ASC = ordem manual definida via /admin/courses drag-drop;
+      // empate cai no createdAt DESC (cursos novos primeiro entre os de
+      // mesma position). Indexado em (position, createdAt).
+      orderBy: [
+        { position: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
   }
 
@@ -151,9 +166,10 @@ export class CoursesService {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { position: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
   }
 
@@ -334,6 +350,47 @@ export class CoursesService {
     } catch (error) {
       this.logger.error(`Error soft-deleting course ${id}`, error);
       throw new BadRequestException('Erro ao deletar curso');
+    }
+  }
+
+  /**
+   * Reordenar cursos via drag-drop em /admin/courses.
+   *
+   * Pattern igual ao ModulesService.reorder: $transaction + offset gigante
+   * pra evitar colisao com Course unique key se acontecer no futuro
+   * (atualmente Course nao tem unique constraint em (instructorId, position)
+   * mas defensive coding mantem o pattern caso seja adicionado).
+   */
+  async reorder(reorderDto: ReorderCoursesDto): Promise<Course[]> {
+    this.logger.log(`[REORDER] Reordenando ${reorderDto.courses.length} cursos`);
+
+    try {
+      const TEMP_OFFSET = -1_000_000_000;
+      await this.prisma.$transaction(async (tx) => {
+        for (let i = 0; i < reorderDto.courses.length; i++) {
+          const item = reorderDto.courses[i];
+          await tx.course.update({
+            where: { id: item.id },
+            data: { position: TEMP_OFFSET - (i + 1) },
+          });
+        }
+        for (const item of reorderDto.courses) {
+          await tx.course.update({
+            where: { id: item.id },
+            data: { position: item.position },
+          });
+        }
+      });
+
+      this.logger.log(`[REORDER] Cursos reordenados com sucesso`);
+
+      return this.prisma.course.findMany({
+        where: { deletedAt: null },
+        orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+      });
+    } catch (error) {
+      this.logger.error(`[REORDER] Erro ao reordenar cursos:`, error);
+      throw new BadRequestException('Erro ao reordenar cursos');
     }
   }
 
