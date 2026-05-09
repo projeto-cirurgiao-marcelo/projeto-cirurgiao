@@ -124,7 +124,10 @@ model Module {
   course              Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   videos              Video[]
 
-  @@unique([courseId, order])
+  // @@unique([courseId, order]) substituido por partial unique index
+  // (definido em raw SQL na migration) que aplica WHERE deletedAt IS NULL.
+  // Soft-deletes nao retem mais o slot, evitando P2002 em reorder.
+  @@index([courseId, order])
   @@index([courseId])
   @@index([deletedAt])
   @@map("modules")
@@ -169,7 +172,9 @@ model Video {
   transcript      VideoTranscript?
   module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
-  @@unique([moduleId, order])
+  // @@unique([moduleId, order]) substituido por partial unique index
+  // (raw SQL na migration) WHERE deletedAt IS NULL — mesmo motivo de Module.
+  @@index([moduleId, order])
   @@index([moduleId])
   @@index([cloudflareId])
   @@index([deletedAt])
