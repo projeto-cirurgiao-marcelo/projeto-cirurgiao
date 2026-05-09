@@ -7,6 +7,7 @@ import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { videosService } from '@/lib/api/videos.service';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
+import { getCourseWeightedPercent } from '@/lib/course-progress';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock, PlayCircle } from 'lucide-react';
 import {
@@ -642,7 +643,9 @@ export default function VideoPlayerPage() {
             ? String(courseProgress.totalVideos).padStart(2, '0')
             : undefined
         }
-        progressPercent={courseProgress?.progressPercentage}
+        progressPercent={
+          courseProgress ? getCourseWeightedPercent(courseProgress) : undefined
+        }
         backLabel="Voltar aos cursos"
         backLabelMobile="Voltar"
         onBack={handleBackToAllCourses}

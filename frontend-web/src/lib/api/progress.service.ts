@@ -38,7 +38,14 @@ export interface CourseProgress {
   watchedVideos: number;
   completedVideos: number;
   totalWatchTime: number;
+  /** % por aulas concluídas inteiras (binário). Usar pra label "X/Y aulas". */
   progressPercentage: number;
+  /**
+   * % ponderado por watchTime / soma das durações. Mais granular —
+   * reflete tempo realmente assistido. Usar pra barras de progresso.
+   * Backend popula desde 2026-01.
+   */
+  weightedPercentage?: number;
   videos: VideoProgressItem[];
 }
 
@@ -136,6 +143,9 @@ export interface EnrolledCourseWithProgress {
     totalVideos: number;
     watchedVideos: number;
     completedVideos: number;
+    /** % binário (alias de progressPercentage no payload enrolled-courses). */
     percentage: number;
+    /** % ponderado por watchTime. Backend popula desde 2026-01. */
+    weightedPercentage?: number;
   };
 }
