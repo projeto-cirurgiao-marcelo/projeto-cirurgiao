@@ -529,7 +529,26 @@ export default function VideoPlayerPage() {
   })();
   const totalLessons = getAllVideosInOrder().length;
 
-  const sidebarModules: SidebarModule[] = (course?.modules ?? []).map((mod) => ({
+  // Sidebar so mostra modulo raiz da aula atual + seus submodulos.
+  // Se currentVideo esta num submodulo, identifica o pai como raiz.
+  // Resultado: aluno ve apenas o capitulo em que esta, nao todos os
+  // modulos do curso.
+  const sidebarRootModule = currentModule
+    ? currentModule.parentModuleId
+      ? course?.modules?.find((m) => m.id === currentModule.parentModuleId) ?? currentModule
+      : currentModule
+    : null;
+
+  const sidebarSourceModules = sidebarRootModule
+    ? [
+        sidebarRootModule,
+        ...(course?.modules ?? []).filter(
+          (m) => m.parentModuleId === sidebarRootModule.id,
+        ),
+      ]
+    : [];
+
+  const sidebarModules: SidebarModule[] = sidebarSourceModules.map((mod) => ({
     id: mod.id,
     title: mod.title,
     lessons: (mod.videos ?? []).map((video): SidebarLesson => {
