@@ -28,7 +28,8 @@ import type {
 } from '@/lib/types/media-folder.types';
 import { FolderTreePanel } from './_components/folder-tree-panel';
 import { VideosPanel } from './_components/videos-panel';
-import { MoveToModal } from './_components/move-to-modal';
+import { MoveToModal } from '@/components/tree/move-to-modal';
+import type { TreeNodeData } from '@/components/tree/types';
 
 type SelectedId = string | null | 'INBOX';
 
@@ -371,14 +372,23 @@ export default function AdminMediaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: mover */}
+      {/* Modal: mover (componente generico de tree) */}
       {moveModal && (
         <MoveToModal
           open={moveModal.open}
           onClose={() => setMoveModal(null)}
-          folders={folders}
-          currentFolderId={moveModal.currentFolderId}
-          movingFolderId={moveModal.movingFolderId}
+          nodes={folders.map<TreeNodeData>((f) => ({
+            id: f.id,
+            parentId: f.parentId,
+            label: f.name,
+            position: f.position,
+            hint:
+              f._count && f._count.videos > 0
+                ? `${f._count.videos} vídeos`
+                : undefined,
+          }))}
+          currentParentId={moveModal.currentFolderId}
+          movingNodeId={moveModal.movingFolderId}
           itemLabel={moveModal.label}
           onConfirm={handleMoveConfirm}
         />
