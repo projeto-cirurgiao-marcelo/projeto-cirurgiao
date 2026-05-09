@@ -127,8 +127,9 @@ export default function EditCoursePage() {
       setIsLoadingModules(true);
       const data = await modulesService.list(courseId);
       setModules(data);
-      // Expandir todos os módulos por padrão
-      setExpandedModules(new Set(data.map(m => m.id)));
+      // Modulos comecam fechados — admin abre conforme precisa.
+      // Sem persistencia entre navegacoes (estado in-memory).
+      setExpandedModules(new Set());
     } catch (error) {
       toast({ title: 'Erro', description: 'Não foi possível carregar os módulos.', variant: 'destructive' });
     } finally {
