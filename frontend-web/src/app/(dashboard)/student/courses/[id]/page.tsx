@@ -368,52 +368,85 @@ export default function CourseDetailPage() {
             title="Nenhum módulo cadastrado"
             description="Este curso ainda não possui módulos. Volte em breve."
           />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
-            {course.modules.map((module, moduleIndex) => {
-              const moduleVideos = module.videos || [];
-              const moduleCompleted = moduleVideos.filter((v) =>
-                isVideoCompleted(v.id),
-              ).length;
-              const moduleProgress =
-                moduleVideos.length > 0
-                  ? Math.round(
-                      (moduleCompleted / moduleVideos.length) * 100,
-                    )
-                  : 0;
-              const moduleWatched = moduleVideos.some((v) =>
-                isVideoWatched(v.id),
-              );
-              const status: AtlasCourseStatus =
-                moduleProgress === 100
-                  ? 'completed'
-                  : moduleWatched || moduleCompleted > 0
-                    ? 'in-progress'
-                    : 'new';
-              const thumbImageUrl =
-                module.thumbnailHorizontal ||
-                module.thumbnailVertical ||
-                module.thumbnail ||
-                undefined;
+        ) : (() => {
+          // Hierarquia: filtra modulos raiz; cards agregam contagem de
+          // videos diretos + videos de submodulos filhos.
+          const allModules = course.modules ?? [];
+          const rootModules = allModules.filter((m) => !m.parentModuleId);
+          const childrenByParent = new Map<string, typeof allModules>();
+          for (const m of allModules) {
+            if (m.parentModuleId) {
+              const arr = childrenByParent.get(m.parentModuleId) ?? [];
+              arr.push(m);
+              childrenByParent.set(m.parentModuleId, arr);
+            }
+          }
 
-              return (
-                <AtlasModuleCard
-                  key={module.id}
-                  href={`/student/courses/${course.id}/modules/${module.id}`}
-                  moduleIndex={moduleIndex + 1}
-                  title={module.title}
-                  description={module.description}
-                  totalLessons={moduleVideos.length}
-                  completedLessons={moduleCompleted}
-                  progressPercent={moduleProgress}
-                  status={status}
-                  thumbVariant={pickThumbVariant(module.id)}
-                  thumbImageUrl={thumbImageUrl}
-                />
-              );
-            })}
-          </div>
-        )}
+          if (rootModules.length === 0) {
+            return (
+              <AtlasEmptyState
+                icon={BookOpen}
+                title="Nenhum módulo cadastrado"
+                description="Este curso ainda não possui módulos. Volte em breve."
+              />
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
+              {rootModules.map((module, moduleIndex) => {
+                const directVideos = module.videos || [];
+                const children = childrenByParent.get(module.id) ?? [];
+                const childVideos = children.flatMap((c) => c.videos || []);
+                const allVideos = [...directVideos, ...childVideos];
+
+                const moduleCompleted = allVideos.filter((v) =>
+                  isVideoCompleted(v.id),
+                ).length;
+                const moduleProgress =
+                  allVideos.length > 0
+                    ? Math.round(
+                        (moduleCompleted / allVideos.length) * 100,
+                      )
+                    : 0;
+                const moduleWatched = allVideos.some((v) =>
+                  isVideoWatched(v.id),
+                );
+                const status: AtlasCourseStatus =
+                  moduleProgress === 100
+                    ? 'completed'
+                    : moduleWatched || moduleCompleted > 0
+                      ? 'in-progress'
+                      : 'new';
+                const thumbImageUrl =
+                  module.thumbnailHorizontal ||
+                  module.thumbnailVertical ||
+                  module.thumbnail ||
+                  undefined;
+
+                return (
+                  <AtlasModuleCard
+                    key={module.id}
+                    href={`/student/courses/${course.id}/modules/${module.id}`}
+                    moduleIndex={moduleIndex + 1}
+                    title={module.title}
+                    description={
+                      children.length > 0
+                        ? `${children.length} submódulo${children.length === 1 ? '' : 's'}${module.description ? ' · ' + module.description : ''}`
+                        : module.description
+                    }
+                    totalLessons={allVideos.length}
+                    completedLessons={moduleCompleted}
+                    progressPercent={moduleProgress}
+                    status={status}
+                    thumbVariant={pickThumbVariant(module.id)}
+                    thumbImageUrl={thumbImageUrl}
+                  />
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </>
   );
