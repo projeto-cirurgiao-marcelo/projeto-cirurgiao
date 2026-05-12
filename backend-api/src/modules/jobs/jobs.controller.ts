@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -44,6 +45,22 @@ export class JobsController {
   listVideoJobs(@Query('limit') limit?: string) {
     const parsed = limit ? parseInt(limit, 10) : 50;
     return this.videoJobs.listRecent(Number.isFinite(parsed) ? parsed : 50);
+  }
+
+  // NOTE: declarada antes de DELETE /:id para o segmento literal 'failed'
+  // ser resolvido pelo Express router antes do param genérico.
+  @Delete('video-processing/failed')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  deleteFailedVideoJobs() {
+    return this.videoJobs.deleteFailed();
+  }
+
+  @Delete('video-processing/:id')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  deleteVideoJob(@Param('id') id: string) {
+    return this.videoJobs.deleteOne(id);
   }
 
   /**

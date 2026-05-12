@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { VideoProcessedDto } from './dto/video-processed.dto';
 
@@ -52,5 +52,24 @@ export class VideoJobsService {
       orderBy: { createdAt: 'desc' },
       take: Math.min(Math.max(limit, 1), 200),
     });
+  }
+
+  async deleteOne(id: string) {
+    const existing = await this.prisma.videoProcessingJob.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException(`VideoProcessingJob ${id} não encontrado`);
+    }
+    await this.prisma.videoProcessingJob.delete({ where: { id } });
+    return { id, deleted: true };
+  }
+
+  async deleteFailed() {
+    const result = await this.prisma.videoProcessingJob.deleteMany({
+      where: { status: 'failed' },
+    });
+    return { deleted: result.count };
   }
 }

@@ -25,3 +25,14 @@ export async function listVideoJobs(limit = 50): Promise<VideoProcessingJob[]> {
   });
   return res.data;
 }
+
+export async function deleteVideoJob(id: string): Promise<void> {
+  await apiClient.delete(`/jobs/video-processing/${id}`);
+}
+
+export async function deleteFailedVideoJobs(): Promise<{ deleted: number }> {
+  const res = await apiClient.delete<{ deleted: number }>(
+    '/jobs/video-processing/failed',
+  );
+  return res.data;
+}
