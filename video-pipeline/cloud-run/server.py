@@ -12,6 +12,7 @@ import subprocess
 import shutil
 import tempfile
 import logging
+import glob
 from flask import Flask, request, jsonify
 import boto3
 import requests
@@ -115,6 +116,65 @@ def get_video_info(filepath):
     return width, height, fps
 
 
+def normalize_source_if_needed(input_file, width):
+    """Pre-encode H.264 sources > 4096px wide to a 4K H.264 mezzanine.
+
+    NVDEC H.264 caps at 4096px width on all current NVIDIA GPUs (L4, A100,
+    H100). Sources above that fail hardware decode entirely. Running a
+    single CPU decode pass here to a 4K mezzanine lets the multi-profile
+    encode below run fully in hardware (NVDEC + NVENC), avoiding 3x CPU
+    decode passes in the fallback path.
+
+    Returns the path to use as encode input. On normalize failure, returns
+    the original input so encode_hls's fallback chain still handles it.
+    """
+    if width <= 4096:
+        return input_file
+
+    mezzanine = os.path.join(os.path.dirname(input_file), 'mezzanine_4k.mp4')
+    logger.info(f"Source width {width} > 4096, normalizing to 4K mezzanine")
+    cmd = [
+        'ffmpeg', '-threads', '1',
+        '-i', input_file,
+        '-vf', 'scale=3840:-2:flags=lanczos,format=yuv420p',
+        '-c:v', 'h264_nvenc', '-preset', 'p4', '-tune', 'hq',
+        '-b:v', '25M', '-maxrate', '30M', '-bufsize', '60M',
+        '-c:a', 'copy',
+        '-y', mezzanine,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        logger.warning(f"Normalize failed (rc={result.returncode}), falling back to original source")
+        logger.error(f"normalize ffmpeg stderr (tail): {result.stderr[-800:]}")
+        return input_file
+
+    logger.info(f"Normalized to mezzanine OK: {mezzanine}")
+    return mezzanine
+
+
+NVENC_MAX_WIDTH = 4096
+
+
+def compute_output_dims(src_w, src_h, target_h, max_w=NVENC_MAX_WIDTH):
+    """Compute actual output dims fitting inside max_w x target_h.
+
+    NVENC H.264 caps frame width at 4096px on all NVIDIA GPUs. Sources with
+    aspect ratio wider than max_w/target_h (e.g. 2:1 ultra-wide @ 2160p)
+    would produce >4096px output and fail. We mirror ffmpeg's
+    force_original_aspect_ratio=decrease behaviour so the master playlist
+    RESOLUTION matches what the encoder actually emits.
+    """
+    src_aspect = src_w / src_h
+    target_aspect = max_w / target_h
+    if src_aspect > target_aspect:
+        out_w = max_w
+        out_h = round(max_w / src_aspect / 2) * 2
+    else:
+        out_h = target_h
+        out_w = round(target_h * src_aspect / 2) * 2
+    return out_w, out_h
+
+
 def encode_hls(input_file, output_dir):
     """Encoda vídeo para HLS com múltiplas qualidades."""
     os.makedirs(output_dir, exist_ok=True)
@@ -131,31 +191,33 @@ def encode_hls(input_file, output_dir):
     if not profiles_to_encode:
         profiles_to_encode['720p'] = HLS_PROFILES['720p']
 
+    input_file = normalize_source_if_needed(input_file, width)
+
     gop = fps * 4  # keyframe a cada 4 segundos
     master_playlist_lines = ['#EXTM3U', '#EXT-X-VERSION:3', '']
 
     for name, profile in profiles_to_encode.items():
         logger.info(f"Encoding {name}...")
         out_height = profile['height']
-        out_width = -2  # manter aspect ratio
 
         variant_dir = output_dir
-        cmd = [
-            'ffmpeg',
-            '-hwaccel', 'cuda',
-            '-hwaccel_output_format', 'cuda',
-            '-i', input_file,
-            '-vf', f'scale_cuda=-2:{out_height}',
-            '-c:v', 'h264_nvenc',
-            '-preset', 'p4',
-            '-tune', 'hq',
-            '-b:v', profile['bitrate'],
-            '-maxrate', profile['maxrate'],
-            '-bufsize', str(int(profile['maxrate'].replace('k', '')) * 2) + 'k',
-            '-c:a', 'aac', '-b:a', '128k',
-            '-g', str(gop),
-            '-keyint_min', str(gop),
-            '-force_key_frames', f'expr:gte(t,n_forced*4)',
+        bufsize = str(int(profile['maxrate'].replace('k', '')) * 2) + 'k'
+
+        # Capping width to 4096 (NVENC H.264 hard limit). For 16:9 sources this
+        # is a no-op; for >2:1 ultra-wide sources at the 2160p variant it
+        # downsizes height instead of producing a >4096px frame the encoder
+        # would reject.
+        cuda_scale = (
+            f'scale_cuda=w={NVENC_MAX_WIDTH}:h={out_height}:'
+            'force_original_aspect_ratio=decrease:force_divisible_by=2'
+        )
+        cpu_scale = (
+            f'scale=w={NVENC_MAX_WIDTH}:h={out_height}:'
+            'force_original_aspect_ratio=decrease:force_divisible_by=2:'
+            'flags=lanczos,format=yuv420p'
+        )
+
+        hls_args = [
             '-hls_time', '4',
             '-hls_list_size', '0',
             '-hls_segment_filename', f'{variant_dir}/{name}_%03d.ts',
@@ -163,18 +225,95 @@ def encode_hls(input_file, output_dir):
             f'{variant_dir}/{name}.m3u8',
             '-y'
         ]
+        rate_audio_gop_args = [
+            '-b:v', profile['bitrate'],
+            '-maxrate', profile['maxrate'],
+            '-bufsize', bufsize,
+            '-c:a', 'aac', '-b:a', '128k',
+            '-g', str(gop),
+            '-keyint_min', str(gop),
+            '-force_key_frames', f'expr:gte(t,n_forced*4)',
+        ]
+        nvenc_args = [
+            '-c:v', 'h264_nvenc',
+            '-preset', 'p4',
+            '-tune', 'hq',
+        ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
+        encode_attempts = [
+            (
+                'cuda_original',
+                [
+                    'ffmpeg',
+                    '-hwaccel', 'cuda',
+                    '-hwaccel_output_format', 'cuda',
+                    '-i', input_file,
+                    '-vf', cuda_scale,
+                    *nvenc_args,
+                    *rate_audio_gop_args,
+                    *hls_args,
+                ],
+            ),
+            (
+                'cuda_threads_1',
+                [
+                    'ffmpeg',
+                    '-threads', '1',
+                    '-hwaccel', 'cuda',
+                    '-hwaccel_output_format', 'cuda',
+                    '-i', input_file,
+                    '-vf', cuda_scale,
+                    *nvenc_args,
+                    *rate_audio_gop_args,
+                    *hls_args,
+                ],
+            ),
+            (
+                'cpu_scale_nvenc',
+                [
+                    'ffmpeg',
+                    '-threads', '1',
+                    '-i', input_file,
+                    '-vf', cpu_scale,
+                    *nvenc_args,
+                    *rate_audio_gop_args,
+                    *hls_args,
+                ],
+            ),
+        ]
+
+        success = False
+        failed_attempts = []
+        for attempt_name, cmd in encode_attempts:
+            logger.info(f"Encoding {name} attempt: {attempt_name}")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                logger.info(f"Encoding {name} OK via {attempt_name}")
+                success = True
+                break
+
+            failed_attempts.append(attempt_name)
+            logger.warning(f"Encode {name} attempt failed: {attempt_name}")
             logger.error(f"ffmpeg cmd: {' '.join(cmd)}")
-            logger.error(f"ffmpeg stderr (full) for {name}:\n{result.stderr}")
+            logger.error(f"ffmpeg stderr (full) for {name}/{attempt_name}:\n{result.stderr}")
+
+            partial_files = glob.glob(f'{variant_dir}/{name}_*.ts') + glob.glob(f'{variant_dir}/{name}.m3u8*')
+            for partial in partial_files:
+                try:
+                    os.remove(partial)
+                except FileNotFoundError:
+                    pass
+
+        if not success:
+            logger.error(f"All encode attempts failed for {name}: {failed_attempts}")
             raise Exception(f"Encode {name} failed")
 
-        # Adicionar ao master playlist
+        # Adicionar ao master playlist com as dimensões reais de saída
+        # (que podem diferir de out_height após o cap de 4096 de largura).
         bandwidth = int(profile['maxrate'].replace('k', '')) * 1000
-        res_width = round(out_height * width / height / 2) * 2
+        res_width, res_height = compute_output_dims(width, height, out_height)
         master_playlist_lines.append(
-            f'#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={res_width}x{out_height}'
+            f'#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={res_width}x{res_height}'
         )
         master_playlist_lines.append(f'{name}.m3u8')
 
