@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { firebaseAuthService } from '@/lib/firebase/auth.service';
 
 /**
  * Extrai `Retry-After` do response 429. Retorna segundos (inteiro >= 0)
@@ -85,9 +86,42 @@ function applyAuthInterceptors(client: AxiosInstance) {
   client.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
+      const originalRequest = error.config as
+        | (InternalAxiosRequestConfig & { _retry?: boolean })
+        | undefined;
+
+      if (
+        error.response?.status === 401 &&
+        originalRequest &&
+        !originalRequest._retry
+      ) {
+        originalRequest._retry = true;
+        // Force-refresh do Firebase ID token. O ID token expira em 1h, mas o
+        // refresh token tem duracao muito maior — getCurrentToken() faz
+        // getIdToken(currentUser, true) e devolve um token fresco sem pedir
+        // credenciais. Resolve o "logout irritante" que kickava o operador
+        // ativo em /admin quando o token de 1h expirava.
+        try {
+          const newToken = await firebaseAuthService.getCurrentToken();
+          if (newToken) {
+            useAuthStore.setState({ firebaseToken: newToken });
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            return client(originalRequest);
+          }
+        } catch {
+          // refresh falhou - cai pro logout abaixo
+        }
+        useAuthStore.getState().logout();
+        return Promise.reject(error);
+      }
+
       if (error.response?.status === 401) {
+        // Segunda 401 apos retry — refresh ja foi tentado, deslogar.
         useAuthStore.getState().logout();
       }
+
       if (error.response?.status === 429) {
         // Rate limit por usuario (30 rpm em endpoints de IA) ou por IP.
         // Toast amigavel + respeita Retry-After header. Sem retry

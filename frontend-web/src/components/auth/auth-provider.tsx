@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { onIdTokenChanged } from 'firebase/auth';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { auth } from '@/lib/firebase/config';
 import { logger } from '@/lib/logger';
 
 interface AuthProviderProps {
@@ -52,6 +54,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       document.cookie = 'auth-session=; path=/; max-age=0';
     }
   }, [isAuthenticated, user, hasHydrated]);
+
+  // Mantem o firebaseToken no zustand sincronizado com refreshes automaticos
+  // do SDK Firebase. ID tokens expiram em 1h; o SDK faz refresh interno ~10min
+  // antes da expiracao e dispara onIdTokenChanged. Sem este listener, o token
+  // no zustand fica stale e a primeira chamada apos 1h vira 401.
+  useEffect(() => {
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) return;
+      try {
+        const token = await firebaseUser.getIdToken();
+        useAuthStore.setState({ firebaseToken: token });
+      } catch (err) {
+        logger.error('❌ [Auth] Falha ao sincronizar token refrescado:', err);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   return <>{children}</>;
 }
