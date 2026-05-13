@@ -282,7 +282,10 @@ export function R2Browser() {
         ))}
       </nav>
 
-      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+      {/* minmax(0,1fr) na 2a track: evita o bug de CSS Grid em que conteudo */}
+      {/* intrinsico largo (URLs, segmentos com nome longo) expande a track */}
+      {/* alem do viewport e estica a pagina toda. */}
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <FolderTree
           folders={data?.folders ?? []}
           currentPrefix={prefix}
@@ -292,10 +295,12 @@ export function R2Browser() {
         />
         <ObjectList
           objects={data?.objects ?? []}
+          folders={data?.folders ?? []}
           prefix={prefix}
           loading={loading}
           error={error}
           onPreview={handleOpenPreview}
+          onSelectFolder={setPrefix}
         />
       </div>
 
