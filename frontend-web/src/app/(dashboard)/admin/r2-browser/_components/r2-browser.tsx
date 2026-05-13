@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 import { FolderSync, Loader2, RefreshCw, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
+  type FolderIndexEntry,
   type ListResponse,
+  getFolderIndex,
   getHealth,
   listPrefix,
   reindexFull,
@@ -22,6 +24,18 @@ interface PreviewState {
   folder: string | null;
 }
 
+// Normaliza prefixo removendo trailing slash. Pra comparar parent path
+// de uma folder do índice com o prefix atual de forma consistente.
+function normalizePrefix(p: string): string {
+  return p.replace(/\/+$/, '');
+}
+
+function parentPath(fullPath: string): string {
+  const trimmed = fullPath.replace(/\/+$/, '');
+  const lastSlash = trimmed.lastIndexOf('/');
+  return lastSlash === -1 ? '' : trimmed.slice(0, lastSlash);
+}
+
 export function R2Browser() {
   const [prefix, setPrefix] = useState('');
   const [data, setData] = useState<ListResponse | null>(null);
@@ -30,6 +44,7 @@ export function R2Browser() {
   const [reindexing, setReindexing] = useState(false);
   const [indexBuiltAt, setIndexBuiltAt] = useState<string | null>(null);
   const [folderCount, setFolderCount] = useState<number>(0);
+  const [folderIndex, setFolderIndex] = useState<FolderIndexEntry[]>([]);
   const [preview, setPreview] = useState<PreviewState>({
     open: false,
     folder: null,
@@ -46,68 +61,103 @@ export function R2Browser() {
     }
   }, []);
 
-  const loadPrefix = useCallback(async (next: string) => {
-    setLoading(true);
-    setError(null);
+  // Carrega o índice KV completo de folders (1x no mount, refresh após
+  // reindex). Sem paginação, sem cap — Worker devolve tudo de uma vez.
+  // Substitui o enumerador R2/CommonPrefixes que estourava o cap em
+  // pastas com muitos descendentes (videos/ com 100+ aulas e 60k+ .ts).
+  const refreshFolderIndex = useCallback(async () => {
     try {
-      // R2 list pagina por orcamento de scan interno: pastas com muitos
-      // descendentes (ex: HLS com milhares de .ts) retornam truncated=true
-      // com poucos delimitedPrefixes por pagina. Itera cursor ate done.
-      const SAFETY_CAP = 30;
-      const seenFolders = new Set<string>();
-      const seenObjects = new Set<string>();
-      const folders: string[] = [];
-      const objects: ListResponse['objects'] = [];
-      let cursor: string | undefined;
-      let truncated = true;
-      let i = 0;
-
-      while (truncated && i++ < SAFETY_CAP) {
-        const page: ListResponse = await listPrefix(next, cursor, 1000);
-        for (const f of page.folders) {
-          if (!seenFolders.has(f)) {
-            seenFolders.add(f);
-            folders.push(f);
-          }
-        }
-        for (const o of page.objects) {
-          if (!seenObjects.has(o.key)) {
-            seenObjects.add(o.key);
-            objects.push(o);
-          }
-        }
-        truncated = page.truncated;
-        cursor = page.cursor;
-      }
-
-      setData({
-        prefix: next,
-        folders,
-        objects,
-        cursor: undefined,
-        truncated: truncated, // true significa que cap foi atingido
-      });
-
-      if (truncated) {
-        const msg = `Listagem incompleta: cap de ${SAFETY_CAP} paginas atingido. R2 retornou ${folders.length} pastas/${objects.length} arquivos.`;
-        setError(msg);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Falha ao listar';
-      setError(msg);
-      setData(null);
-    } finally {
-      setLoading(false);
+      const res = await getFolderIndex({ includeAll: true });
+      setFolderIndex(res.folders);
+    } catch {
+      // Best-effort: se falhar, navegação via /list ainda funciona pra
+      // pastas pequenas. Reindex resolve.
     }
   }, []);
 
+  // Derivar subpastas imediatas do prefix atual via filtro em memória
+  // no índice. Comparação por parent path canônico (sem trailing slash).
+  const subfoldersFromIndex = useMemo(() => {
+    if (folderIndex.length === 0) return null;
+    const target = normalizePrefix(prefix);
+    return folderIndex
+      .filter((f) => parentPath(f.fullPath) === target)
+      .map((f) => `${f.fullPath.replace(/\/+$/, '')}/`)
+      .sort();
+  }, [folderIndex, prefix]);
+
+  const loadPrefix = useCallback(
+    async (next: string, foldersFromIndex: string[] | null) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Folders já vêm do índice KV (instantâneo). /list é usado APENAS
+        // pra objetos da pasta atual: 0 em categoria (todos arquivos vivem
+        // em subpastas), ~600 em aula (cabe em 1-2 páginas com limit=1000).
+        // Cap baixo (5) é suficiente; truncation vira aviso brando.
+        const SAFETY_CAP = 5;
+        const seenObjects = new Set<string>();
+        const seenFolders = new Set<string>();
+        const objects: ListResponse['objects'] = [];
+        const fallbackFolders: string[] = [];
+        let cursor: string | undefined;
+        let truncated = true;
+        let i = 0;
+
+        while (truncated && i++ < SAFETY_CAP) {
+          const page: ListResponse = await listPrefix(next, cursor, 1000);
+          for (const o of page.objects) {
+            if (!seenObjects.has(o.key)) {
+              seenObjects.add(o.key);
+              objects.push(o);
+            }
+          }
+          // Fallback: se índice não está pronto, ainda agregamos folders
+          // do /list pra não deixar a navegação vazia.
+          if (!foldersFromIndex) {
+            for (const f of page.folders) {
+              if (!seenFolders.has(f)) {
+                seenFolders.add(f);
+                fallbackFolders.push(f);
+              }
+            }
+          }
+          truncated = page.truncated;
+          cursor = page.cursor;
+        }
+
+        setData({
+          prefix: next,
+          folders: foldersFromIndex ?? fallbackFolders,
+          objects,
+          cursor: undefined,
+          truncated,
+        });
+
+        if (truncated) {
+          setError(
+            `Listagem de arquivos truncada (${objects.length} items lidos). Folders vêm do índice e estão completas — só os arquivos brutos desta pasta podem estar incompletos.`,
+          );
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Falha ao listar';
+        setError(msg);
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    void loadPrefix(prefix);
-  }, [prefix, loadPrefix]);
+    void loadPrefix(prefix, subfoldersFromIndex);
+  }, [prefix, loadPrefix, subfoldersFromIndex]);
 
   useEffect(() => {
     void refreshHealth();
-  }, [refreshHealth]);
+    void refreshFolderIndex();
+  }, [refreshHealth, refreshFolderIndex]);
 
   const [reindexProgress, setReindexProgress] = useState<{
     scanned: number;
@@ -143,9 +193,11 @@ export function R2Browser() {
           description: `Cap de chunks atingido apos ${res.scanned} objs/${res.folderCount} pastas. Rode novamente para continuar.`,
         });
       }
-      // Refresh listagem atual: arquivos podem ter sido adicionados/removidos
-      // em R2 durante o reindex. Listagem le R2 direto (nao usa o index KV).
-      void loadPrefix(prefix);
+      // Refresh índice KV (folders) + listagem atual (objects do prefix).
+      // Reindex pode ter adicionado/removido folders, então o estado em
+      // memória ficaria stale sem isso.
+      await refreshFolderIndex();
+      void loadPrefix(prefix, subfoldersFromIndex);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Falha no reindex';
       toast.error('Reindex falhou', { id: toastId, description: msg });
@@ -153,7 +205,7 @@ export function R2Browser() {
       setReindexing(false);
       setReindexProgress(null);
     }
-  }, [prefix, loadPrefix]);
+  }, [prefix, loadPrefix, refreshFolderIndex, subfoldersFromIndex]);
 
   const handleReindexFolder = useCallback(async () => {
     if (!prefix) return;
@@ -169,15 +221,16 @@ export function R2Browser() {
       });
       setIndexBuiltAt(res.builtAt ?? null);
       setFolderCount(res.folderCount);
-      // refresh listing pra refletir mudanças
-      void loadPrefix(prefix);
+      // refresh índice KV (folders) + listing local
+      await refreshFolderIndex();
+      void loadPrefix(prefix, subfoldersFromIndex);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Falha no reindex';
       toast.error('Reindex da pasta falhou', { id: toastId, description: msg });
     } finally {
       setReindexing(false);
     }
-  }, [prefix, loadPrefix]);
+  }, [prefix, loadPrefix, refreshFolderIndex, subfoldersFromIndex]);
 
   const breadcrumbs = useMemo(() => {
     const parts = prefix.split('/').filter(Boolean);
@@ -318,11 +371,13 @@ export function R2Browser() {
         onClose={() => {
           setUploadOpen(false);
           // refresh listing in case current view is inside inbox/
-          if (prefix.startsWith('inbox/')) void loadPrefix(prefix);
+          if (prefix.startsWith('inbox/'))
+            void loadPrefix(prefix, subfoldersFromIndex);
         }}
         onUploaded={() => {
           // optimistic refresh
-          if (prefix.startsWith('inbox/')) void loadPrefix(prefix);
+          if (prefix.startsWith('inbox/'))
+            void loadPrefix(prefix, subfoldersFromIndex);
         }}
       />
     </div>

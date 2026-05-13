@@ -147,6 +147,39 @@ export async function getHealth(): Promise<HealthResponse> {
   return workerFetch<HealthResponse>(`/health`);
 }
 
+export interface FolderIndexEntry {
+  fullPath: string;
+  parentName: string;
+  hasPlaylist: boolean;
+  fileCount: number;
+  depth: number;
+}
+
+export interface FolderIndexResponse {
+  builtAt: string | null;
+  totalCount: number;
+  returned: number;
+  folders: FolderIndexEntry[];
+}
+
+/**
+ * Lê o índice KV de pastas mantido pelo Worker. Diferente de listPrefix
+ * (R2 listObjectsV2 com delimitador), este endpoint devolve TODAS as
+ * pastas instantaneamente — usado pra navegação (filtragem em memória
+ * por parent path). Sem paginação, sem cap de scan.
+ *
+ * Default do Worker é `hasPlaylist=true` (só aulas). Pra ter categorias
+ * e folders intermediárias passe `includeAll: true`.
+ */
+export async function getFolderIndex(
+  options: { includeAll?: boolean } = {},
+): Promise<FolderIndexResponse> {
+  const params = new URLSearchParams();
+  if (options.includeAll) params.set('hasPlaylist', 'false');
+  const qs = params.toString();
+  return workerFetch<FolderIndexResponse>(`/index${qs ? `?${qs}` : ''}`);
+}
+
 export async function reindex(reset = false): Promise<ReindexResponse> {
   const qs = reset ? '?reset=1' : '';
   return workerFetch<ReindexResponse>(`/reindex${qs}`, { method: 'POST' });
