@@ -94,7 +94,8 @@ export function R2Browser() {
         // Folders já vêm do índice KV (instantâneo). /list é usado APENAS
         // pra objetos da pasta atual: 0 em categoria (todos arquivos vivem
         // em subpastas), ~600 em aula (cabe em 1-2 páginas com limit=1000).
-        // Cap baixo (5) é suficiente; truncation vira aviso brando.
+        // Cap baixo (5) é suficiente; truncation só vira aviso se houver
+        // objetos parciais (aula com >5000 .ts em corner case).
         const SAFETY_CAP = 5;
         const seenObjects = new Set<string>();
         const seenFolders = new Set<string>();
@@ -106,6 +107,7 @@ export function R2Browser() {
 
         while (truncated && i++ < SAFETY_CAP) {
           const page: ListResponse = await listPrefix(next, cursor, 1000);
+          const objectsBefore = objects.length;
           for (const o of page.objects) {
             if (!seenObjects.has(o.key)) {
               seenObjects.add(o.key);
@@ -124,6 +126,18 @@ export function R2Browser() {
           }
           truncated = page.truncated;
           cursor = page.cursor;
+
+          // Categoria/raiz: R2 marca truncated=true enquanto enumera
+          // CommonPrefixes (subpastas) por orçamento interno, mas Contents
+          // (arquivos diretos no nivel) ja veio vazio. Como folders vem do
+          // índice, parar aqui e seguro — continuar so dispararia chamadas
+          // inuteis ate o cap. Heuristica: 1a pagina com zero objects =
+          // pasta sem arquivos diretos, encerrar sem aviso.
+          if (objects.length === 0 && objectsBefore === 0) {
+            // limpar flag pra nao virar warning falso-positivo
+            truncated = false;
+            break;
+          }
         }
 
         setData({
@@ -134,9 +148,9 @@ export function R2Browser() {
           truncated,
         });
 
-        if (truncated) {
+        if (truncated && objects.length > 0) {
           setError(
-            `Listagem de arquivos truncada (${objects.length} items lidos). Folders vêm do índice e estão completas — só os arquivos brutos desta pasta podem estar incompletos.`,
+            `Listagem de arquivos truncada após ${objects.length} items. Apenas os arquivos brutos desta pasta podem estar incompletos — pastas e player funcionam normal.`,
           );
         }
       } catch (err) {
