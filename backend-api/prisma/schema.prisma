@@ -22,15 +22,15 @@ model User {
   audioPreference AudioPref @default(AUTO)
   timezone        String    @default("America/Sao_Paulo")
 
-  auditLogs         AuditLog[]
-  chatConversations ChatConversation[]
-  coursesInstructor Course[]           @relation("InstructorCourses")
-  enrollments       Enrollment[]
-  forumReplies      ForumReply[]
-  forumReplyVotes   ForumReplyVote[]
-  forumReports      ForumReport[]
-  forumTopicVotes   ForumTopicVote[]
-  forumTopics       ForumTopic[]
+  auditLogs              AuditLog[]
+  chatConversations      ChatConversation[]
+  coursesInstructor      Course[]                @relation("InstructorCourses")
+  enrollments            Enrollment[]
+  forumReplies           ForumReply[]
+  forumReplyVotes        ForumReplyVote[]
+  forumReports           ForumReport[]
+  forumTopicVotes        ForumTopicVote[]
+  forumTopics            ForumTopic[]
   gamificationChallenges GamificationChallenge[]
   gamificationEvents     GamificationEvent[]
   libraryConversations   LibraryConversation[]
@@ -83,24 +83,24 @@ model RefreshToken {
 }
 
 model Course {
-  id                  String       @id @default(uuid())
+  id                  String        @id @default(uuid())
   title               String
-  slug                String       @unique
+  slug                String        @unique
   description         String?
   thumbnail           String?
   instructorId        String
-  isPublished         Boolean      @default(false)
-  price               Decimal      @default(0) @db.Decimal(10, 2)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  isPublished         Boolean       @default(false)
+  price               Decimal       @default(0) @db.Decimal(10, 2)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
   thumbnailVertical   String?
   thumbnailHorizontal String?
   deletedAt           DateTime?
   // Ordem manual definida via admin drag-drop em /admin/courses.
   // Listing default = ORDER BY position ASC, createdAt DESC. Cursos novos
   // pegam max(position)+1 ao serem criados.
-  position            Int          @default(0)
-  instructor          User         @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
+  position            Int           @default(0)
+  instructor          User          @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
   enrollments         Enrollment[]
   forumTopics         ForumTopic[]
   modules             Module[]
@@ -169,7 +169,10 @@ model Video {
   folderId        String?
   // Basename derivado do path R2 (ex: "abc123" de "videos/abc123/playlist.m3u8").
   // Chave de reconciliação com o pipeline externo. NULL = vídeo não-r2_hls.
-  r2Basename      String?           @unique
+  // Unicidade composta com moduleId (@@unique abaixo) permite a mesma aula
+  // ser registrada em módulos/cursos diferentes — reuso pedagógico — mas
+  // impede duplicação dentro do mesmo módulo (erro de admin).
+  r2Basename      String?
   folder          MediaFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
   forumTopics     ForumTopic[]
   quizzes         Quiz[]
@@ -184,6 +187,7 @@ model Video {
 
   // @@unique([moduleId, order]) substituido por partial unique index
   // (raw SQL na migration) WHERE deletedAt IS NULL — mesmo motivo de Module.
+  @@unique([r2Basename, moduleId])
   @@index([moduleId, order])
   @@index([moduleId])
   @@index([cloudflareId])

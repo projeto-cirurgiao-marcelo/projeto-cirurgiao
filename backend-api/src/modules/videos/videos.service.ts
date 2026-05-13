@@ -524,21 +524,21 @@ export class VideosService {
 
     const r2Basename = deriveR2Basename(dto.hlsUrl);
 
-    // Lida com r2Basename ja em uso: r2Basename e @unique no schema, mas
-    // soft-delete (deletedAt) nao libera o slot. Se admin deletou um Video
-    // dessa mesma pasta R2 e tenta cadastrar de novo, restauramos em vez
-    // de tentar criar e quebrar com P2002. Se for ativo, retornamos 409
-    // claro em vez do 500 Internal Server.
+    // Lida com r2Basename ja em uso DENTRO DO MESMO MODULO: a unicidade
+    // (basename, moduleId) permite reusar a aula em modulos diferentes,
+    // mas impede duplica-la dentro do mesmo modulo. Soft-delete
+    // (deletedAt) nao libera o slot — se admin deletou e tenta cadastrar
+    // de novo no mesmo modulo, restauramos em vez de quebrar com P2002.
     if (r2Basename) {
-      const existing = await this.prisma.video.findUnique({
-        where: { r2Basename },
+      const existing = await this.prisma.video.findFirst({
+        where: { r2Basename, moduleId },
       });
       if (existing) {
         if (existing.deletedAt) {
           return this.restoreR2HlsVideo(existing.id, moduleId, dto);
         }
         throw new ConflictException(
-          `Já existe um Video ativo apontando para esta pasta R2 (basename="${r2Basename}", id=${existing.id}). ` +
+          `Já existe um Video ativo neste módulo apontando para esta pasta R2 (basename="${r2Basename}", id=${existing.id}). ` +
             `Use o vídeo existente ou exclua-o antes de cadastrar de novo.`,
         );
       }

@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { modulesService, videosService } from '@/lib/api';
+import { getErrorMessage } from '@/lib/api/client';
 import type { Module, Video, VideoUploadStatus } from '@/lib/types/course.types';
 
 import { logger } from '@/lib/logger';
@@ -700,8 +701,10 @@ export default function ModuleVideosPage() {
       return;
     } catch (error: unknown) {
       logger.error('[R2 HLS] falha ao registrar video:', error);
-      const msg =
-        error instanceof Error ? error.message : 'Não foi possível registrar o vídeo.';
+      // Usa getErrorMessage pra extrair a mensagem do backend (response.data.message)
+      // em vez do generico "Request failed with status code XXX" do axios. Casos
+      // de 409 trazem detalhes uteis como o id do Video conflitante.
+      const msg = getErrorMessage(error);
       toast({
         title: 'Erro',
         description: msg,
