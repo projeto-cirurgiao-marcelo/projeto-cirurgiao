@@ -119,6 +119,15 @@ export default function ModuleVideosPage() {
   const r2ProbeVideoRef = useRef<HTMLVideoElement | null>(null);
   const r2ProbeHlsRef = useRef<Hls | null>(null);
 
+  // Status do auto-extract de thumbnail (ffmpeg server-side via HLS).
+  // Marca-se "manual" se o admin upload um thumbnail manualmente ou usa
+  // "Gerar com IA" — daí o auto-extract não sobrescreve.
+  const [r2ThumbnailStatus, setR2ThumbnailStatus] = useState<
+    'idle' | 'loading' | 'ok' | 'error'
+  >('idle');
+  const [r2ThumbnailManual, setR2ThumbnailManual] = useState(false);
+  const r2ThumbnailAbortRef = useRef<AbortController | null>(null);
+
   // Após criar o vídeo R2 HLS, o modal entra em "modo edição" com
   // Materiais / Legendas / Quiz apontando pro vídeo recém-criado.
   // Reuso direto dos managers do fluxo "Editar Detalhes do Vídeo".
@@ -453,6 +462,8 @@ export default function ModuleVideosPage() {
     setR2ThumbnailUrl('');
     setR2DurationStatus('idle');
     setR2DurationManual(false);
+    setR2ThumbnailStatus('idle');
+    setR2ThumbnailManual(false);
     setCreatedR2Video(null);
     setR2AiBusy('idle');
   };
@@ -557,6 +568,69 @@ export default function ModuleVideosPage() {
       cleanup();
     };
   }, [r2HlsUrl, uploadMode, r2DurationManual]);
+
+  // Auto-extract thumbnail from the HLS playlist when admin pastes/picks
+  // a valid .m3u8 in r2_hls mode AND has not manually set a thumbnail.
+  // Backend runs ffmpeg server-side, uploads to R2, returns the public
+  // URL — usually <2s end-to-end after the input segment is fetched.
+  // Manual upload / "Gerar com IA" pin r2ThumbnailManual=true to avoid
+  // surprise overwrites.
+  useEffect(() => {
+    if (uploadMode !== 'r2_hls') return;
+    if (r2ThumbnailManual) return;
+
+    const url = r2HlsUrl.trim();
+    if (!url) {
+      setR2ThumbnailStatus('idle');
+      return;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      setR2ThumbnailStatus('idle');
+      return;
+    }
+    if (parsed.protocol !== 'https:' || !parsed.pathname.endsWith('.m3u8')) {
+      setR2ThumbnailStatus('idle');
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    if (r2ThumbnailAbortRef.current) {
+      r2ThumbnailAbortRef.current.abort();
+    }
+    r2ThumbnailAbortRef.current = controller;
+
+    const debounce = window.setTimeout(async () => {
+      if (cancelled) return;
+      setR2ThumbnailStatus('loading');
+      try {
+        const { thumbnailUrl } = await videosService.extractThumbnailFromHls(
+          moduleId,
+          url,
+        );
+        if (cancelled) return;
+        // Cache-bust se R2 já tinha um auto-thumbnail.jpg de uma
+        // tentativa anterior — sem isso o <img> do ThumbnailUpload
+        // mostraria a versão velha.
+        setR2ThumbnailUrl(`${thumbnailUrl}?v=${Date.now()}`);
+        setR2ThumbnailStatus('ok');
+      } catch (err) {
+        if (cancelled || (err as Error)?.name === 'CanceledError') return;
+        logger.warn('[R2 HLS thumbnail] auto-extract falhou:', err);
+        setR2ThumbnailStatus('error');
+      }
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(debounce);
+      controller.abort();
+    };
+  }, [r2HlsUrl, uploadMode, r2ThumbnailManual, moduleId]);
 
   // Handler: criar video registrando um master playlist HLS ja existente
   // em R2. Backend nao processa — so grava o row com uploadStatus=READY.
@@ -1321,6 +1395,7 @@ export default function ModuleVideosPage() {
                             { overlayText: videoTitle.trim(), style: 'surgical' },
                           );
                           setR2ThumbnailUrl(url);
+                          setR2ThumbnailManual(true);
                           toast({ title: 'Pronto', description: 'Thumbnail gerada e enviada ao R2' });
                         } catch (err) {
                           logger.error('[IA thumbnail]', err);
@@ -1342,9 +1417,30 @@ export default function ModuleVideosPage() {
                       Gerar com IA
                     </Button>
                   </div>
+                  {r2ThumbnailStatus === 'loading' && (
+                    <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Extraindo thumbnail do vídeo...
+                    </p>
+                  )}
+                  {r2ThumbnailStatus === 'ok' && !r2ThumbnailManual && (
+                    <p className="text-xs text-green-700 inline-flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Thumbnail extraída do vídeo. Edite se preferir.
+                    </p>
+                  )}
+                  {r2ThumbnailStatus === 'error' && (
+                    <p className="text-xs text-amber-700">
+                      Não foi possível extrair do vídeo. Gere com IA ou faça
+                      upload manual.
+                    </p>
+                  )}
                   <ThumbnailUpload
                     value={r2ThumbnailUrl}
-                    onChange={(url) => setR2ThumbnailUrl(url)}
+                    onChange={(url) => {
+                      setR2ThumbnailUrl(url);
+                      setR2ThumbnailManual(true);
+                    }}
                     aspectRatio="horizontal"
                     label="Thumbnail"
                   />

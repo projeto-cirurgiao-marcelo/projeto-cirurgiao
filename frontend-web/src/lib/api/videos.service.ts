@@ -109,6 +109,24 @@ export const videosService = {
   },
 
   /**
+   * Extrai um frame da playlist HLS via ffmpeg no backend e devolve a
+   * URL pública do thumbnail JPEG salvo em R2. Usado pelo modal de
+   * Adicionar Vídeo para auto-preencher a thumbnail quando o admin
+   * seleciona/pasta um master playlist .m3u8.
+   */
+  async extractThumbnailFromHls(
+    moduleId: string,
+    url: string,
+    seekSec?: number,
+  ): Promise<{ thumbnailUrl: string }> {
+    const response = await apiClient.post<{ thumbnailUrl: string }>(
+      `/modules/${moduleId}/videos/extract-thumbnail-from-hls`,
+      { url, ...(seekSec !== undefined ? { seekSec } : {}) },
+    );
+    return response.data;
+  },
+
+  /**
    * Listar vídeos de um módulo
    */
   async findAll(moduleId: string): Promise<Video[]> {

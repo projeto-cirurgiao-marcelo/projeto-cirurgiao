@@ -34,8 +34,9 @@ FROM node:20-slim AS production
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma + fonts for Sharp SVG text rendering
-RUN apt-get update -y && apt-get install -y openssl ca-certificates fontconfig fonts-dejavu-core fonts-liberation && rm -rf /var/lib/apt/lists/* && fc-cache -fv
+# Install OpenSSL for Prisma + fonts for Sharp SVG text rendering + ffmpeg
+# for extracting thumbnails from R2 HLS playlists at admin upload time.
+RUN apt-get update -y && apt-get install -y openssl ca-certificates fontconfig fonts-dejavu-core fonts-liberation ffmpeg && rm -rf /var/lib/apt/lists/* && fc-cache -fv
 
 # Install Anton Regular (Google Fonts, OFL) for AI thumbnail overlay text
 COPY assets/fonts/Anton-Regular.ttf /usr/share/fonts/truetype/anton/Anton-Regular.ttf

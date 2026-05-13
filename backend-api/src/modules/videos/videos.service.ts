@@ -1,16 +1,22 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CloudflareStreamService } from '../cloudflare/cloudflare-stream.service';
 import { CloudflareR2Service } from '../cloudflare/cloudflare-r2.service';
 import { CreateVideoDto, VideoUploadStatus, VideoSource } from './dto/create-video.dto';
 import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
+import { ExtractThumbnailFromHlsDto } from './dto/extract-thumbnail-from-hls.dto';
 import { deriveR2Basename } from './utils/r2-basename';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
 import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { Video } from '@prisma/client';
+import { spawn } from 'child_process';
 import { unlink } from 'fs';
+import { mkdtemp, readFile, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join, posix } from 'path';
 import { promisify } from 'util';
 
 const unlinkAsync = promisify(unlink);
@@ -86,7 +92,135 @@ export class VideosService {
     private cloudflareStream: CloudflareStreamService,
     private cloudflareR2: CloudflareR2Service,
     private audit: AuditService,
+    private configService: ConfigService,
   ) {}
+
+  /**
+   * Extract a single-frame JPEG thumbnail from an R2-hosted HLS playlist
+   * via ffmpeg and upload to R2 alongside the source. Used by the admin
+   * "Add Video" modal to auto-fill the thumbnail field when an operator
+   * pastes/picks a playlist.m3u8.
+   *
+   * SSRF guard: URL must start with our CLOUDFLARE_R2_PUBLIC_URL prefix
+   * so the backend only fetches from our own R2 bucket. Output key is
+   * derived from the input URL (sibling auto-thumbnail.jpg) to keep
+   * artifacts grouped with the video.
+   */
+  async extractThumbnailFromHls(
+    dto: ExtractThumbnailFromHlsDto,
+  ): Promise<{ thumbnailUrl: string }> {
+    const url = dto.url.trim();
+    const seekSec = Math.max(0, Math.min(7200, dto.seekSec ?? 30));
+
+    const publicUrl = (
+      this.configService.get<string>('CLOUDFLARE_R2_PUBLIC_URL') ?? ''
+    ).replace(/\/+$/, '');
+    if (!publicUrl) {
+      throw new BadRequestException(
+        'R2 public URL not configured on backend',
+      );
+    }
+    if (!url.startsWith(`${publicUrl}/`)) {
+      throw new BadRequestException(
+        'URL must point to the project R2 bucket',
+      );
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new BadRequestException('Invalid URL');
+    }
+    if (!parsed.pathname.endsWith('.m3u8')) {
+      throw new BadRequestException('URL must end with .m3u8');
+    }
+
+    const relativeKey = url.substring(publicUrl.length + 1);
+    const baseDir = posix.dirname(relativeKey);
+    if (
+      !baseDir ||
+      baseDir === '.' ||
+      baseDir.includes('..') ||
+      !baseDir.startsWith('videos/')
+    ) {
+      throw new BadRequestException(
+        'Playlist must live under videos/<name>/',
+      );
+    }
+    const outputKey = `${baseDir}/auto-thumbnail.jpg`;
+
+    const tmp = await mkdtemp(join(tmpdir(), 'hls-thumb-'));
+    const outputPath = join(tmp, 'thumb.jpg');
+    try {
+      await this.runFfmpegThumbnail(url, seekSec, outputPath);
+      const buffer = await readFile(outputPath);
+      const uploaded = await this.cloudflareR2.uploadFile(
+        buffer,
+        outputKey,
+        'image/jpeg',
+      );
+      this.logger.log(
+        `Extracted HLS thumbnail: ${url} -> ${uploaded.url} (seek=${seekSec}s)`,
+      );
+      return { thumbnailUrl: uploaded.url };
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  }
+
+  private runFfmpegThumbnail(
+    inputUrl: string,
+    seekSec: number,
+    outputPath: string,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // -ss BEFORE -i = fast seek (HLS-aware). Single frame, 1280px wide
+      // lanczos downscale, JPEG quality 2 (high). 30s timeout caps any
+      // pathological case where ffmpeg waits on a stalled segment.
+      const args = [
+        '-y',
+        '-ss',
+        String(seekSec),
+        '-i',
+        inputUrl,
+        '-vframes',
+        '1',
+        '-vf',
+        'scale=1280:-2:flags=lanczos',
+        '-q:v',
+        '2',
+        outputPath,
+      ];
+
+      const ff = spawn('ffmpeg', args);
+      let stderr = '';
+      ff.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      const timeout = setTimeout(() => {
+        ff.kill('SIGKILL');
+        reject(new Error('ffmpeg timeout after 30s'));
+      }, 30000);
+
+      ff.on('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+
+      ff.on('close', (code) => {
+        clearTimeout(timeout);
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(
+            new Error(`ffmpeg exited ${code}: ${stderr.slice(-500)}`),
+          );
+        }
+      });
+    });
+  }
 
   /**
    * Derive the playback descriptor the frontend should use.

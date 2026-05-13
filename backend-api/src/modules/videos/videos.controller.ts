@@ -22,6 +22,7 @@ import { CoursesService } from '../courses/courses.service';
 import { ModulesService } from '../modules/modules.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
+import { ExtractThumbnailFromHlsDto } from './dto/extract-thumbnail-from-hls.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { UpdateVideoDurationDto } from './dto/update-video-duration.dto';
 import { ReorderVideosDto } from './dto/reorder-videos.dto';
@@ -85,6 +86,23 @@ export class VideosController {
     await this.checkInstructorPermission(moduleId, req.user.sub, req.user.role);
     const video = await this.videosService.createFromR2Hls(moduleId, dto);
     return this.videosService.withPlayback(video);
+  }
+
+  /**
+   * Extrai 1 frame da playlist HLS via ffmpeg, sobe pra R2 como
+   * auto-thumbnail.jpg ao lado do vídeo, e devolve a URL. Disparado
+   * pelo modal /admin de Adicionar Vídeo no modo R2 HLS.
+   */
+  @Post('modules/:moduleId/videos/extract-thumbnail-from-hls')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  async extractThumbnailFromHls(
+    @Param('moduleId') moduleId: string,
+    @Body() dto: ExtractThumbnailFromHlsDto,
+    @Request() req,
+  ) {
+    await this.checkInstructorPermission(moduleId, req.user.sub, req.user.role);
+    return this.videosService.extractThumbnailFromHls(dto);
   }
 
   /**
