@@ -44,7 +44,7 @@ const SECTIONS: RailSection[] = [
       { label: 'Módulos', href: '/admin/modules', icon: Folders },
       { label: 'Vídeos', href: '/admin/videos', icon: Video },
       { label: 'R2 Browser', href: '/admin/r2-browser', icon: HardDrive },
-      { label: 'Media Library', href: '/admin/media', icon: Folders },
+      { label: 'Catálogo de Vídeos', href: '/admin/media', icon: Folders },
       { label: 'Jobs', href: '/admin/jobs', icon: ListChecks },
     ],
   },

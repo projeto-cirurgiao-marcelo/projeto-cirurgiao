@@ -63,10 +63,12 @@ export function VideosPanel({
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold">{selectedFolderName}</h2>
+        <h2 className="text-lg font-semibold">
+          {isInbox ? 'Sem categoria' : selectedFolderName}
+        </h2>
         {isInbox ? (
           <span className="text-xs text-muted-foreground">
-            {unassigned.length} no DB · {pending.length} no R2 sem Video
+            {unassigned.length} no catálogo · {pending.length} aulas em R2 não cadastradas
           </span>
         ) : (
           <span className="text-xs text-muted-foreground">
@@ -80,7 +82,7 @@ export function VideosPanel({
         <>
           <section>
             <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-              Vídeos no DB sem pasta ({unassigned.length})
+              Vídeos sem categoria ({unassigned.length})
             </h3>
             {unassigned.length === 0 ? (
               <p className="rounded-md border bg-card p-4 text-sm text-muted-foreground">
@@ -116,7 +118,7 @@ export function VideosPanel({
 
           <section>
             <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-              Pastas no R2 sem Video cadastrado ({pending.length})
+              Aulas em R2 ainda não cadastradas ({pending.length})
             </h3>
             {pending.length === 0 ? (
               <p className="rounded-md border bg-card p-4 text-sm text-muted-foreground">

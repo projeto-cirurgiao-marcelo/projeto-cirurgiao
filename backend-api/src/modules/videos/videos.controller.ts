@@ -278,6 +278,22 @@ export class VideosController {
     return { nextOrder };
   }
 
+  /**
+   * Lista todos os Video records que apontam pro mesmo r2Basename. Usado
+   * pelo /admin/r2-browser pra mostrar o status de catálogo da aula
+   * (em qual MediaFolder está, em quantos módulos foi inserida) e
+   * permitir reassociação rápida sem ir pra /admin/media.
+   */
+  @Get('videos/by-r2-basename')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  async findByR2Basename(@Query('basename') basename?: string) {
+    if (!basename || !basename.trim()) {
+      throw new BadRequestException('basename é obrigatório');
+    }
+    return this.videosService.findByR2Basename(basename.trim());
+  }
+
   @Patch('modules/:moduleId/videos/reorder')
   @UseGuards(RolesGuard)
   @Roles(Role.INSTRUCTOR, Role.ADMIN)

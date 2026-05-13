@@ -226,10 +226,11 @@ export default function AdminMediaPage() {
     <div className="space-y-4">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Media Library</h1>
+          <h1 className="text-2xl font-semibold">Catálogo de Vídeos</h1>
           <p className="text-sm text-muted-foreground">
-            Organização lógica de vídeos R2. Storage permanece intacto;
-            mover/renomear/agrupar é só metadata.
+            Organize seus vídeos em pastas customizadas pra encontrá-los rápido.
+            Esta é uma camada lógica — o arquivo no R2 e a URL HLS{' '}
+            <strong>não são alterados</strong> por nenhuma ação aqui.
           </p>
         </div>
         <Button onClick={handleSync} disabled={syncing} variant="outline">
@@ -241,6 +242,29 @@ export default function AdminMediaPage() {
           Sincronizar com R2
         </Button>
       </header>
+
+      {/* Helper de onboarding: 3 dimensões de um Video sempre causam confusão
+          no 1o contato. Bloco curto explicando como Catálogo se relaciona
+          com R2 (físico) e Módulos (pedagógico). */}
+      <div className="rounded-md border border-atlas-line bg-atlas-surface-2/40 p-3 text-xs text-atlas-muted-2">
+        <p className="mb-1 font-medium text-atlas-ink dark:text-atlas-ink-2">
+          Onde meu vídeo aparece?
+        </p>
+        <ul className="space-y-0.5">
+          <li>
+            <strong>R2 Browser</strong> (/admin/r2-browser): arquivo físico
+            imutável. Onde fica o player + URL pra copiar.
+          </li>
+          <li>
+            <strong>Catálogo</strong> (aqui): pasta lógica pra você encontrar.
+            Mover entre pastas = só metadata.
+          </li>
+          <li>
+            <strong>Módulo do curso</strong> (/admin/modules/.../videos): onde a
+            aula vira lição numa sequência. Tem ordem, é publicada/oculta etc.
+          </li>
+        </ul>
+      </div>
 
       {/* minmax(0,1fr) na 2a track evita o bug classico de CSS Grid em que */}
       {/* conteudo intrinsicamente largo (URLs longas, <code> sem break) */}

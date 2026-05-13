@@ -106,6 +106,34 @@ export class VideosService {
    * derived from the input URL (sibling auto-thumbnail.jpg) to keep
    * artifacts grouped with the video.
    */
+  /**
+   * Lista os Video records que apontam pro mesmo r2Basename. Pode retornar
+   * múltiplos: após @@unique([r2Basename, moduleId]), a mesma aula pode
+   * ser registrada em N módulos diferentes (reuso pedagógico). Cada um
+   * tem seu próprio folderId (catálogo MediaFolder) — admin pode mover
+   * todos pro mesmo folder via UI do /admin/r2-browser.
+   */
+  async findByR2Basename(r2Basename: string) {
+    return this.prisma.video.findMany({
+      where: { r2Basename, deletedAt: null },
+      select: {
+        id: true,
+        title: true,
+        folderId: true,
+        moduleId: true,
+        folder: { select: { id: true, name: true } },
+        module: {
+          select: {
+            id: true,
+            title: true,
+            course: { select: { id: true, title: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async extractThumbnailFromHls(
     dto: ExtractThumbnailFromHlsDto,
   ): Promise<{ thumbnailUrl: string }> {

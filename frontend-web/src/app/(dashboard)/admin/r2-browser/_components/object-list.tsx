@@ -29,6 +29,7 @@ import {
   cdnUrl,
   playlistKeyFor,
 } from '@/lib/api/r2-browser.service';
+import { videosService, type VideoByR2Basename } from '@/lib/api/videos.service';
 import { CopyCdnLink } from './copy-cdn-link';
 
 // HlsVideoPlayer fica fora do SSR — depende de <video> + hls.js.
@@ -54,6 +55,14 @@ interface ObjectListProps {
   error: string | null;
   onPreview: (folder: string) => void;
   onSelectFolder: (prefix: string) => void;
+  /** Abre o MoveToModal com a lista de Videos do r2Basename atual. */
+  onCatalogClick: (
+    videoIds: string[],
+    currentFolderId: string | null,
+    label: string,
+  ) => void;
+  /** Incrementado pelo parent após Move bem-sucedido pra forçar refetch. */
+  catalogRefreshKey: number;
 }
 
 type ViewMode = 'cards' | 'list';
@@ -231,9 +240,19 @@ export function ObjectList({
   error,
   onPreview,
   onSelectFolder,
+  onCatalogClick,
+  catalogRefreshKey,
 }: ObjectListProps) {
   const folderPath = prefix.replace(/\/+$/, '');
   const [rawOpen, setRawOpen] = useState(false);
+
+  // Estado do catálogo (Videos registrados com este r2Basename + atribuição
+  // de MediaFolder). Fetcheado quando a aula muda OU quando o parent
+  // sinaliza refresh via catalogRefreshKey++.
+  const [catalogVideos, setCatalogVideos] = useState<VideoByR2Basename[] | null>(
+    null,
+  );
+  const [catalogLoading, setCatalogLoading] = useState(false);
 
   // Persistência localStorage. Hidrato no useEffect pra evitar mismatch
   // de SSR (state inicial é o default sem ler storage).
@@ -317,6 +336,67 @@ export function ObjectList({
     ? cdnUrl(`${folderPath}/subtitles_pt.vtt`)
     : null;
 
+  // Basename = ultimo segmento do prefix (sem trailing slash). Bate com
+  // Video.r2Basename gravado pelo /from-r2-hls.
+  const aulaBasename = useMemo(() => {
+    if (!isAula || !folderPath) return null;
+    const idx = folderPath.lastIndexOf('/');
+    return idx === -1 ? folderPath : folderPath.slice(idx + 1);
+  }, [isAula, folderPath]);
+
+  // Carrega Videos com este r2Basename quando a aula muda ou após move.
+  useEffect(() => {
+    if (!aulaBasename) {
+      setCatalogVideos(null);
+      return;
+    }
+    let cancelled = false;
+    setCatalogLoading(true);
+    videosService
+      .findByR2Basename(aulaBasename)
+      .then((videos) => {
+        if (!cancelled) setCatalogVideos(videos);
+      })
+      .catch(() => {
+        if (!cancelled) setCatalogVideos([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCatalogLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [aulaBasename, catalogRefreshKey]);
+
+  // Heurística de "catálogo atual": pega o folderId do 1o Video do lote
+  // como referência. Se todos estão na mesma pasta, mostra; se variam,
+  // sinaliza "múltiplos". Usuário pode bulk-mover pra um único destino.
+  const catalogState = useMemo(() => {
+    if (!catalogVideos || catalogVideos.length === 0) return null;
+    const uniqueFolderIds = Array.from(
+      new Set(catalogVideos.map((v) => v.folderId ?? '__root__')),
+    );
+    const allSameFolder = uniqueFolderIds.length === 1;
+    const firstFolder = catalogVideos[0].folder;
+    return {
+      count: catalogVideos.length,
+      videoIds: catalogVideos.map((v) => v.id),
+      allSameFolder,
+      currentFolderName: allSameFolder
+        ? (firstFolder?.name ?? null)
+        : null,
+      currentFolderId: allSameFolder
+        ? (catalogVideos[0].folderId ?? null)
+        : null,
+      modules: catalogVideos.map((v) => ({
+        id: v.moduleId,
+        title: v.module.title,
+        courseTitle: v.module.course.title,
+        folderName: v.folder?.name ?? null,
+      })),
+    };
+  }, [catalogVideos]);
+
   const segmentBytes = segments.reduce((acc, o) => acc + o.size, 0);
   const variantBytes = variants.reduce((acc, o) => acc + o.size, 0);
   const totalRawCount = segments.length + variants.length;
@@ -359,6 +439,95 @@ export function ObjectList({
           <p className="text-xs text-atlas-muted-2">
             Cole a URL HLS no campo <code>videoUrl</code> ao registrar a aula no
             módulo (modo R2 HLS).
+          </p>
+        </div>
+      )}
+
+      {/* Modo Aula: catálogo (MediaFolder) + módulos onde a aula vive */}
+      {isAula && aulaBasename && (
+        <div className="space-y-2 border-b border-atlas-line bg-atlas-surface-2/40 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-atlas-muted-2">
+                Catálogo
+              </p>
+              {catalogLoading && (
+                <p className="mt-1 inline-flex items-center gap-1 text-xs text-atlas-muted-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Carregando catálogo...
+                </p>
+              )}
+              {!catalogLoading && catalogState && (
+                <>
+                  <p className="mt-1 text-sm text-atlas-ink dark:text-atlas-ink-2">
+                    Registrada em{' '}
+                    <strong>{catalogState.count}</strong>{' '}
+                    {catalogState.count === 1 ? 'módulo' : 'módulos'} ·{' '}
+                    {catalogState.allSameFolder ? (
+                      catalogState.currentFolderName ? (
+                        <>
+                          Pasta de catálogo:{' '}
+                          <strong>{catalogState.currentFolderName}</strong>
+                        </>
+                      ) : (
+                        <span className="text-atlas-muted-2">
+                          Sem pasta de catálogo
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-amber-700">
+                        Pastas diferentes (revisar)
+                      </span>
+                    )}
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-[11px] text-atlas-muted-2">
+                    {catalogState.modules.map((m, i) => (
+                      <li key={`${m.id}-${i}`}>
+                        <span className="font-mono">›</span>{' '}
+                        {m.courseTitle} / {m.title}
+                        {m.folderName && (
+                          <span className="text-atlas-muted-2/80">
+                            {' '}— {m.folderName}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {!catalogLoading &&
+                catalogVideos !== null &&
+                catalogVideos.length === 0 && (
+                  <p className="mt-1 text-xs text-atlas-muted-2">
+                    Aula ainda não registrada no DB. Vá em{' '}
+                    <code>/admin/modules/&lt;id&gt;/videos</code> no modo R2
+                    HLS pra cadastrar primeiro.
+                  </p>
+                )}
+            </div>
+            {catalogState && catalogState.count > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  onCatalogClick(
+                    catalogState.videoIds,
+                    catalogState.currentFolderId,
+                    aulaBasename,
+                  )
+                }
+                title="Mover esta aula entre pastas do catálogo (não afeta R2)"
+              >
+                <Folder className="mr-2 h-3.5 w-3.5" />
+                {catalogState.currentFolderName
+                  ? 'Mover catálogo'
+                  : 'Catalogar em...'}
+              </Button>
+            )}
+          </div>
+          <p className="text-[10px] text-atlas-muted-2">
+            Catálogo = organização lógica no DB. Mover entre pastas é só
+            metadata; o arquivo R2 e a URL HLS permanecem inalterados.
           </p>
         </div>
       )}

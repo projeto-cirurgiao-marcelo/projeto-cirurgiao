@@ -9,6 +9,20 @@ import type {
 } from '../types/course.types';
 import type { CreateVideoFromR2HlsRequest } from '@/types/api-shared';
 
+/** Resposta de GET /videos/by-r2-basename — Video com placement de catálogo e módulo. */
+export interface VideoByR2Basename {
+  id: string;
+  title: string;
+  folderId: string | null;
+  moduleId: string;
+  folder: { id: string; name: string } | null;
+  module: {
+    id: string;
+    title: string;
+    course: { id: string; title: string };
+  };
+}
+
 // Interface para resposta do upload direto
 export interface DirectUploadResponse {
   uploadURL: string;
@@ -122,6 +136,19 @@ export const videosService = {
     const response = await apiClient.post<{ thumbnailUrl: string }>(
       `/modules/${moduleId}/videos/extract-thumbnail-from-hls`,
       { url, ...(seekSec !== undefined ? { seekSec } : {}) },
+    );
+    return response.data;
+  },
+
+  /**
+   * Lista Videos com o mesmo r2Basename. Usado pelo /admin/r2-browser
+   * pra exibir o status de catálogo (MediaFolder) de uma aula sem
+   * precisar abrir /admin/media.
+   */
+  async findByR2Basename(basename: string): Promise<VideoByR2Basename[]> {
+    const response = await apiClient.get<VideoByR2Basename[]>(
+      '/videos/by-r2-basename',
+      { params: { basename } },
     );
     return response.data;
   },

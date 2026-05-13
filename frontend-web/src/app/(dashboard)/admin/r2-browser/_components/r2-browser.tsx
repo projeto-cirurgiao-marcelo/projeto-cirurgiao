@@ -13,6 +13,10 @@ import {
   reindexFull,
   reindexCurrentFolder,
 } from '@/lib/api/r2-browser.service';
+import { mediaFoldersService } from '@/lib/api/media-folders.service';
+import type { MediaFolderNode } from '@/lib/types/media-folder.types';
+import { MoveToModal } from '@/components/tree/move-to-modal';
+import type { TreeNodeData } from '@/components/tree/types';
 import { SearchBar } from './search-bar';
 import { FolderTree } from './folder-tree';
 import { ObjectList } from './object-list';
@@ -22,6 +26,16 @@ import { UploadDrawer } from './upload-drawer';
 interface PreviewState {
   open: boolean;
   folder: string | null;
+}
+
+interface CatalogModalState {
+  open: boolean;
+  /** Videos com mesmo r2Basename pra mover em lote. */
+  videoIds: string[];
+  /** folderId atual (escolhido do 1o Video do lote como referencia). */
+  currentFolderId: string | null;
+  /** Label exibida no modal. */
+  label: string;
 }
 
 // Normaliza prefixo removendo trailing slash. Pra comparar parent path
@@ -45,6 +59,11 @@ export function R2Browser() {
   const [indexBuiltAt, setIndexBuiltAt] = useState<string | null>(null);
   const [folderCount, setFolderCount] = useState<number>(0);
   const [folderIndex, setFolderIndex] = useState<FolderIndexEntry[]>([]);
+  const [mediaFolders, setMediaFolders] = useState<MediaFolderNode[]>([]);
+  const [catalogModal, setCatalogModal] = useState<CatalogModalState | null>(
+    null,
+  );
+  const [catalogRefreshKey, setCatalogRefreshKey] = useState(0);
   const [preview, setPreview] = useState<PreviewState>({
     open: false,
     folder: null,
@@ -178,6 +197,51 @@ export function R2Browser() {
     void refreshHealth();
     void refreshFolderIndex();
   }, [refreshHealth, refreshFolderIndex]);
+
+  // Carrega árvore de MediaFolders (catálogo) 1x. Usado pelo MoveToModal
+  // pra escolher destino quando admin clica "Catalogar em..." numa aula.
+  useEffect(() => {
+    mediaFoldersService
+      .listFolders()
+      .then(setMediaFolders)
+      .catch(() => {
+        // best-effort; sem catalogo a UI mostra "Catálogo indisponível"
+      });
+  }, []);
+
+  const handleOpenCatalog = useCallback(
+    (videoIds: string[], currentFolderId: string | null, label: string) => {
+      setCatalogModal({ open: true, videoIds, currentFolderId, label });
+    },
+    [],
+  );
+
+  const handleCatalogConfirm = useCallback(
+    async (targetFolderId: string | null) => {
+      if (!catalogModal) return;
+      try {
+        await Promise.all(
+          catalogModal.videoIds.map((id) =>
+            mediaFoldersService.moveVideo(id, targetFolderId),
+          ),
+        );
+        toast.success(
+          catalogModal.videoIds.length === 1
+            ? 'Vídeo catalogado'
+            : `${catalogModal.videoIds.length} vídeos catalogados`,
+        );
+        setCatalogModal(null);
+        // força ObjectList a refazer findByR2Basename pra refletir
+        setCatalogRefreshKey((k) => k + 1);
+      } catch (err) {
+        toast.error('Erro ao catalogar', {
+          description: err instanceof Error ? err.message : '',
+        });
+        throw err;
+      }
+    },
+    [catalogModal],
+  );
 
   const [reindexProgress, setReindexProgress] = useState<{
     scanned: number;
@@ -375,6 +439,8 @@ export function R2Browser() {
           error={error}
           onPreview={handleOpenPreview}
           onSelectFolder={setPrefix}
+          onCatalogClick={handleOpenCatalog}
+          catalogRefreshKey={catalogRefreshKey}
         />
       </div>
 
@@ -383,6 +449,28 @@ export function R2Browser() {
         folder={preview.folder}
         onClose={handleClosePreview}
       />
+
+      {catalogModal && (
+        <MoveToModal
+          open={catalogModal.open}
+          onClose={() => setCatalogModal(null)}
+          nodes={mediaFolders.map<TreeNodeData>((f) => ({
+            id: f.id,
+            parentId: f.parentId,
+            label: f.name,
+            position: f.position,
+            hint:
+              f._count && f._count.videos > 0
+                ? `${f._count.videos} vídeos`
+                : undefined,
+          }))}
+          currentParentId={catalogModal.currentFolderId}
+          itemLabel={catalogModal.label}
+          rootLabel="Sem pasta (descatalogar)"
+          description="Move o vídeo no catálogo lógico. Não altera o arquivo no R2."
+          onConfirm={handleCatalogConfirm}
+        />
+      )}
 
       <UploadDrawer
         open={uploadOpen}
