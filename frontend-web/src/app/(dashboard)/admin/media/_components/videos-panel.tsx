@@ -153,9 +153,9 @@ export function VideosPanel({
               </ul>
             )}
             {pending.length > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 break-words text-xs text-muted-foreground">
                 Esses paths existem no R2 mas não tem Video no DB. Adicione
-                via <code>/admin/modules/&lt;moduleId&gt;/videos</code> no modo
+                via <code className="break-all">/admin/modules/&lt;moduleId&gt;/videos</code> no modo
                 R2 HLS — depois aparecem aqui no Inbox e podem ser movidos
                 para a árvore.
               </p>

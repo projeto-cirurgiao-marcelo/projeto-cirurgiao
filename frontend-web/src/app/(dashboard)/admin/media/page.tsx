@@ -242,7 +242,10 @@ export default function AdminMediaPage() {
         </Button>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+      {/* minmax(0,1fr) na 2a track evita o bug classico de CSS Grid em que */}
+      {/* conteudo intrinsicamente largo (URLs longas, <code> sem break) */}
+      {/* expande a track alem do esperado e estica a pagina toda. */}
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         {foldersLoading ? (
           <aside className="flex items-center justify-center rounded-lg border bg-card p-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
