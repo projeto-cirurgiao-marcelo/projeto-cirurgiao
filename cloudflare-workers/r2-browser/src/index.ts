@@ -157,6 +157,7 @@ async function handleIndex(req: Request, env: Env): Promise<Response> {
       hasPlaylist: f.hasPlaylist,
       fileCount: f.fileCount,
       depth: f.depth,
+      lastUpdated: f.lastUpdated,
     })),
   });
 }

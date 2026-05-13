@@ -37,6 +37,12 @@ function mergePlaylistObject(
   const parts = obj.key.split('/').slice(0, -1);
   if (parts.length === 0) return false;
 
+  // R2Object.uploaded é Date; converte pra ISO string pra serialização no KV.
+  // Captura no leaf (folder onde o playlist mora) — propaga somente quando
+  // o folder é a aula em si, não nos ancestrais.
+  const uploadedIso =
+    obj.uploaded instanceof Date ? obj.uploaded.toISOString() : undefined;
+
   for (let i = 1; i <= parts.length; i++) {
     const fullPath = parts.slice(0, i).join('/');
     const isLeaf = i === parts.length;
@@ -49,10 +55,19 @@ function mergePlaylistObject(
         depth: i,
         hasPlaylist: isLeaf,
         fileCount: isLeaf ? 1 : 0,
+        lastUpdated: isLeaf ? uploadedIso : undefined,
       });
     } else if (isLeaf) {
       existing.hasPlaylist = true;
       existing.fileCount += 1;
+      // Mantém o mais recente se já houver registro (rebuild incremental
+      // pode ver o mesmo objeto várias vezes — pegamos o max).
+      if (
+        uploadedIso &&
+        (!existing.lastUpdated || uploadedIso > existing.lastUpdated)
+      ) {
+        existing.lastUpdated = uploadedIso;
+      }
     }
   }
   return true;

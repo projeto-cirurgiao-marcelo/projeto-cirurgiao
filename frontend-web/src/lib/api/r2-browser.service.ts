@@ -153,6 +153,10 @@ export interface FolderIndexEntry {
   hasPlaylist: boolean;
   fileCount: number;
   depth: number;
+  // ISO timestamp do playlist.m3u8 (data do upload no R2). Undefined em
+  // entradas do índice KV antigo (pré-reindex) — frontend trata como
+  // "data desconhecida" e joga pro final em sorts por data.
+  lastUpdated?: string;
 }
 
 export interface FolderIndexResponse {

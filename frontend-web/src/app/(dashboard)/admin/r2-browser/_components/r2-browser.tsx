@@ -77,14 +77,20 @@ export function R2Browser() {
 
   // Derivar subpastas imediatas do prefix atual via filtro em memória
   // no índice. Comparação por parent path canônico (sem trailing slash).
-  const subfoldersFromIndex = useMemo(() => {
+  // Mantemos as entries inteiras pra ObjectList poder ordenar por data
+  // (lastUpdated) sem ter que fazer outra chamada.
+  const subfolderEntries = useMemo(() => {
     if (folderIndex.length === 0) return null;
     const target = normalizePrefix(prefix);
-    return folderIndex
-      .filter((f) => parentPath(f.fullPath) === target)
+    return folderIndex.filter((f) => parentPath(f.fullPath) === target);
+  }, [folderIndex, prefix]);
+
+  const subfoldersFromIndex = useMemo(() => {
+    if (!subfolderEntries) return null;
+    return subfolderEntries
       .map((f) => `${f.fullPath.replace(/\/+$/, '')}/`)
       .sort();
-  }, [folderIndex, prefix]);
+  }, [subfolderEntries]);
 
   const loadPrefix = useCallback(
     async (next: string, foldersFromIndex: string[] | null) => {
@@ -363,6 +369,7 @@ export function R2Browser() {
         <ObjectList
           objects={data?.objects ?? []}
           folders={data?.folders ?? []}
+          subfolderEntries={subfolderEntries ?? []}
           prefix={prefix}
           loading={loading}
           error={error}

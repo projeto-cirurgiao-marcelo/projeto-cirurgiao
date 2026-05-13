@@ -1,9 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import {
   AlertCircle,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  CalendarArrowDown,
+  CalendarArrowUp,
   ChevronDown,
   ChevronRight,
   Eye,
@@ -11,6 +15,8 @@ import {
   FileText,
   FileVideo,
   Folder,
+  LayoutGrid,
+  List as ListIcon,
   Loader2,
   ListMusic,
   Subtitles,
@@ -18,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
+  type FolderIndexEntry,
   type ObjectMeta,
   cdnUrl,
   playlistKeyFor,
@@ -40,11 +47,112 @@ const HlsVideoPlayer = dynamic(
 interface ObjectListProps {
   objects: ObjectMeta[];
   folders: string[];
+  /** Subfolders enriquecidas do índice KV (com lastUpdated quando disponível). */
+  subfolderEntries: FolderIndexEntry[];
   prefix: string;
   loading: boolean;
   error: string | null;
   onPreview: (folder: string) => void;
   onSelectFolder: (prefix: string) => void;
+}
+
+type ViewMode = 'cards' | 'list';
+type SortMode = 'name-asc' | 'name-desc' | 'date-desc' | 'date-asc';
+
+const VIEW_STORAGE_KEY = 'r2-browser-view-mode';
+const SORT_STORAGE_KEY = 'r2-browser-sort';
+
+function isViewMode(v: string | null): v is ViewMode {
+  return v === 'cards' || v === 'list';
+}
+
+function isSortMode(v: string | null): v is SortMode {
+  return (
+    v === 'name-asc' ||
+    v === 'name-desc' ||
+    v === 'date-desc' ||
+    v === 'date-asc'
+  );
+}
+
+function relativeDate(iso?: string): string {
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '—';
+  const diff = Date.now() - t;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'há instantes';
+  if (m < 60) return `há ${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `há ${d}d`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `há ${mo}mes${mo > 1 ? 'es' : ''}`;
+  return `há ${Math.floor(mo / 12)}a`;
+}
+
+function SortIcon({ mode }: { mode: SortMode }) {
+  switch (mode) {
+    case 'name-asc':
+      return (
+        <ArrowDownAZ
+          className="h-3.5 w-3.5 text-atlas-muted-2"
+          aria-hidden
+        />
+      );
+    case 'name-desc':
+      return (
+        <ArrowUpAZ className="h-3.5 w-3.5 text-atlas-muted-2" aria-hidden />
+      );
+    case 'date-desc':
+      return (
+        <CalendarArrowDown
+          className="h-3.5 w-3.5 text-atlas-muted-2"
+          aria-hidden
+        />
+      );
+    case 'date-asc':
+      return (
+        <CalendarArrowUp
+          className="h-3.5 w-3.5 text-atlas-muted-2"
+          aria-hidden
+        />
+      );
+  }
+}
+
+function sortSubfolders(
+  entries: FolderIndexEntry[],
+  mode: SortMode,
+): FolderIndexEntry[] {
+  const copy = entries.slice();
+  copy.sort((a, b) => {
+    switch (mode) {
+      case 'name-asc':
+        return a.parentName.localeCompare(b.parentName, 'pt-BR', {
+          sensitivity: 'base',
+        });
+      case 'name-desc':
+        return b.parentName.localeCompare(a.parentName, 'pt-BR', {
+          sensitivity: 'base',
+        });
+      case 'date-desc':
+      case 'date-asc': {
+        // Sem data: vai pro final em ambas direções. Empate (ambos
+        // sem data) cai no name-asc pra ordem estável.
+        const ta = a.lastUpdated ? Date.parse(a.lastUpdated) : NaN;
+        const tb = b.lastUpdated ? Date.parse(b.lastUpdated) : NaN;
+        if (!Number.isFinite(ta) && !Number.isFinite(tb)) {
+          return a.parentName.localeCompare(b.parentName);
+        }
+        if (!Number.isFinite(ta)) return 1;
+        if (!Number.isFinite(tb)) return -1;
+        return mode === 'date-desc' ? tb - ta : ta - tb;
+      }
+    }
+  });
+  return copy;
 }
 
 const SPECIAL_BASENAMES = [
@@ -96,12 +204,6 @@ function basename(key: string): string {
   return idx === -1 ? trimmed : trimmed.slice(idx + 1);
 }
 
-function lastSegment(folder: string): string {
-  const trimmed = folder.replace(/\/+$/, '');
-  const idx = trimmed.lastIndexOf('/');
-  return idx === -1 ? trimmed : trimmed.slice(idx + 1);
-}
-
 function isSpecial(key: string): SpecialBasename | null {
   const b = basename(key);
   return (SPECIAL_BASENAMES as readonly string[]).includes(b)
@@ -123,6 +225,7 @@ function isSegment(key: string): boolean {
 export function ObjectList({
   objects,
   folders,
+  subfolderEntries,
   prefix,
   loading,
   error,
@@ -131,6 +234,57 @@ export function ObjectList({
 }: ObjectListProps) {
   const folderPath = prefix.replace(/\/+$/, '');
   const [rawOpen, setRawOpen] = useState(false);
+
+  // Persistência localStorage. Hidrato no useEffect pra evitar mismatch
+  // de SSR (state inicial é o default sem ler storage).
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [sortMode, setSortMode] = useState<SortMode>('name-asc');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const v = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    if (isViewMode(v)) setViewMode(v);
+    const s = window.localStorage.getItem(SORT_STORAGE_KEY);
+    if (isSortMode(s)) setSortMode(s);
+  }, []);
+
+  function changeViewMode(next: ViewMode) {
+    setViewMode(next);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    }
+  }
+
+  function changeSortMode(next: SortMode) {
+    setSortMode(next);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SORT_STORAGE_KEY, next);
+    }
+  }
+
+  // Fallback: se o índice KV ainda não carregou (cold start) mas /list
+  // já devolveu folders como strings, monta entries mínimas. Sort por data
+  // não funciona neste caso (lastUpdated undefined em todos) — sort por
+  // nome continua funcionando.
+  const effectiveSubfolders = useMemo(() => {
+    if (subfolderEntries.length > 0) {
+      return sortSubfolders(subfolderEntries, sortMode);
+    }
+    const fallback: FolderIndexEntry[] = folders.map((f) => {
+      const trimmed = f.replace(/\/+$/, '');
+      const lastSlash = trimmed.lastIndexOf('/');
+      const parentName =
+        lastSlash === -1 ? trimmed : trimmed.slice(lastSlash + 1);
+      return {
+        fullPath: trimmed,
+        parentName,
+        hasPlaylist: false,
+        fileCount: 0,
+        depth: trimmed.split('/').length,
+      };
+    });
+    return sortSubfolders(fallback, sortMode);
+  }, [subfolderEntries, folders, sortMode]);
 
   const { specialMap, segments, variants, others } = useMemo(() => {
     const map = new Map<SpecialBasename, ObjectMeta>();
@@ -279,43 +433,145 @@ export function ObjectList({
         </div>
       )}
 
-      {/* Modo Navegação: cards de subpastas em destaque no painel central */}
-      {!isAula && folders.length > 0 && (
+      {/* Modo Navegação: subpastas com toggles de view + sort */}
+      {!isAula && effectiveSubfolders.length > 0 && (
         <div className="border-b border-atlas-line p-3">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-atlas-muted-2">
-            Subpastas ({folders.length})
-          </p>
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {folders.map((f) => {
-              const name = lastSegment(f);
-              return (
-                <li key={f}>
-                  <div className="group relative">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-atlas-muted-2">
+              Subpastas ({effectiveSubfolders.length})
+            </p>
+            <div className="flex items-center gap-2">
+              <label className="sr-only" htmlFor="sort-mode">
+                Ordenar subpastas
+              </label>
+              <select
+                id="sort-mode"
+                value={sortMode}
+                onChange={(e) => changeSortMode(e.target.value as SortMode)}
+                className="h-7 rounded border border-atlas-line bg-atlas-surface px-2 text-xs text-atlas-ink hover:border-atlas-primary/50 focus:border-atlas-primary focus:outline-none dark:text-atlas-ink-2"
+              >
+                <option value="name-asc">Nome A → Z</option>
+                <option value="name-desc">Nome Z → A</option>
+                <option value="date-desc">Mais recentes primeiro</option>
+                <option value="date-asc">Mais antigos primeiro</option>
+              </select>
+              <SortIcon mode={sortMode} />
+              <div
+                className="inline-flex items-center rounded border border-atlas-line bg-atlas-surface"
+                role="group"
+                aria-label="Modo de visualização"
+              >
+                <button
+                  type="button"
+                  onClick={() => changeViewMode('cards')}
+                  aria-pressed={viewMode === 'cards'}
+                  title="Cards (grid)"
+                  className={
+                    viewMode === 'cards'
+                      ? 'inline-flex h-7 w-7 items-center justify-center bg-atlas-primary-soft text-atlas-primary-2'
+                      : 'inline-flex h-7 w-7 items-center justify-center text-atlas-muted-2 hover:text-atlas-ink'
+                  }
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeViewMode('list')}
+                  aria-pressed={viewMode === 'list'}
+                  title="Lista (linhas)"
+                  className={
+                    viewMode === 'list'
+                      ? 'inline-flex h-7 w-7 items-center justify-center bg-atlas-primary-soft text-atlas-primary-2'
+                      : 'inline-flex h-7 w-7 items-center justify-center text-atlas-muted-2 hover:text-atlas-ink'
+                  }
+                >
+                  <ListIcon className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {viewMode === 'cards' ? (
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {effectiveSubfolders.map((entry) => {
+                const slashPath = `${entry.fullPath}/`;
+                return (
+                  <li key={entry.fullPath}>
+                    <div className="group relative">
+                      <button
+                        type="button"
+                        onClick={() => onSelectFolder(slashPath)}
+                        className="flex w-full flex-col gap-1 rounded-md border border-atlas-line bg-atlas-surface px-3 py-3 text-left text-sm transition-colors hover:border-atlas-primary/50 hover:bg-atlas-surface-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-5 w-5 shrink-0 text-atlas-primary" />
+                          <span className="truncate font-medium text-atlas-ink dark:text-atlas-ink-2">
+                            {entry.parentName}
+                          </span>
+                        </div>
+                        {entry.lastUpdated && (
+                          <span className="text-[10px] text-atlas-muted-2">
+                            {relativeDate(entry.lastUpdated)}
+                          </span>
+                        )}
+                      </button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1 h-6 w-6 opacity-0 group-hover:opacity-100"
+                        onClick={() => onPreview(entry.fullPath)}
+                        title="Tentar preview HLS (válido se for aula)"
+                        aria-label={`Preview HLS de ${entry.parentName}`}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <ul className="divide-y divide-atlas-line rounded-md border border-atlas-line bg-atlas-surface">
+              {effectiveSubfolders.map((entry) => {
+                const slashPath = `${entry.fullPath}/`;
+                return (
+                  <li
+                    key={entry.fullPath}
+                    className="group flex items-center gap-3 px-3 py-2"
+                  >
                     <button
                       type="button"
-                      onClick={() => onSelectFolder(f)}
-                      className="flex w-full items-center gap-2 rounded-md border border-atlas-line bg-atlas-surface px-3 py-3 text-left text-sm transition-colors hover:border-atlas-primary/50 hover:bg-atlas-surface-2"
+                      onClick={() => onSelectFolder(slashPath)}
+                      className="flex flex-1 items-center gap-2 text-left text-sm"
                     >
-                      <Folder className="h-5 w-5 shrink-0 text-atlas-primary" />
+                      <Folder className="h-4 w-4 shrink-0 text-atlas-primary" />
                       <span className="truncate font-medium text-atlas-ink dark:text-atlas-ink-2">
-                        {name}
+                        {entry.parentName}
                       </span>
                     </button>
+                    <span className="hidden text-[11px] text-atlas-muted-2 sm:inline">
+                      {entry.lastUpdated ? relativeDate(entry.lastUpdated) : '—'}
+                    </span>
+                    {entry.fileCount > 0 && (
+                      <span className="hidden rounded bg-atlas-surface-2 px-1.5 py-0.5 text-[10px] text-atlas-muted-2 md:inline">
+                        {entry.fileCount} arq
+                      </span>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-1 top-1 h-6 w-6 opacity-0 group-hover:opacity-100"
-                      onClick={() => onPreview(f.replace(/\/+$/, ''))}
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100"
+                      onClick={() => onPreview(entry.fullPath)}
                       title="Tentar preview HLS (válido se for aula)"
-                      aria-label={`Preview HLS de ${name}`}
+                      aria-label={`Preview HLS de ${entry.parentName}`}
                     >
-                      <Eye className="h-3 w-3" />
+                      <Eye className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
 
@@ -323,7 +579,7 @@ export function ObjectList({
       {!loading &&
         !error &&
         !isAula &&
-        folders.length === 0 &&
+        effectiveSubfolders.length === 0 &&
         others.length === 0 && (
           <p className="px-3 py-6 text-center text-sm text-atlas-muted-2">
             Pasta vazia.

@@ -14,6 +14,11 @@ export interface FolderNode {
   depth: number;
   hasPlaylist: boolean;
   fileCount: number;
+  // ISO timestamp do playlist.m3u8 que originou esta folder. Usado pelo
+  // admin/r2-browser pra ordenar aulas por "mais recentes primeiro".
+  // Opcional pra backward-compat: índices KV v1 não tinham este campo;
+  // entradas legadas retornam undefined até o próximo reindex full.
+  lastUpdated?: string;
 }
 
 export interface FolderIndex {
