@@ -1,0 +1,704 @@
+/* === Dr. Gelpi — CSS Module (web port) ===
+   Merged from styles.css + styles-card.css + styles-error.css
+   Adaptado de Marcelo Portilho/Projeto Cirurgião
+
+   Strategy: all rules are scoped under .gelpiScope via :global() so that
+   the SVG/modal components can keep their plain className="..." strings
+   unchanged. Only the outermost wrapper needs className={styles.gelpiScope}.
+   @keyframes are NOT wrapped — CSS Modules rewrites them consistently.
+*/
+
+/* === Scope wrapper === */
+.gelpiScope {
+  display: contents;
+}
+
+/* ======================================================
+   FROM styles.css
+   ====================================================== */
+
+/* === MODAL OVERLAY (gate das animações) === */
+.gelpiScope :global(.modal-overlay) {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: transparent;
+}
+
+/* === DR. GELPI ANIMAÇÃO === */
+.gelpiScope :global(.gelpi-stage) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 320px;
+  z-index: 11;
+  opacity: 0;
+  pointer-events: none;
+}
+.gelpiScope :global(.modal-overlay.show .gelpi-stage) {
+  opacity: 1;
+  animation: gelpiEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes gelpiEnter {
+  0% { opacity: 0; transform: translate(-50%, -50%) translateY(40px) scale(0.6); }
+  60% { opacity: 1; transform: translate(-50%, -50%) translateY(-10px) scale(1.05); }
+  100% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+}
+
+.gelpiScope :global(.gelpi-root) {
+  width: 100%; height: 100%;
+  position: relative;
+}
+
+/* Pulinhos de comemoração */
+.gelpiScope :global(.modal-overlay.show .gelpi-root .body-group) {
+  animation: bodyBounce 0.7s 0.6s ease-out 2;
+  transform-origin: center bottom;
+}
+@keyframes bodyBounce {
+  0% { transform: translateY(0) scaleY(1); }
+  20% { transform: translateY(0) scaleY(0.9) scaleX(1.05); }
+  50% { transform: translateY(-30px) scaleY(1.05) scaleX(0.97); }
+  80% { transform: translateY(0) scaleY(0.95) scaleX(1.03); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+
+.gelpiScope :global(.modal-overlay.show .gelpi-root .head-group) {
+  animation: headTilt 0.7s 0.6s ease-out 2;
+  transform-origin: 200px 220px;
+}
+@keyframes headTilt {
+  0% { transform: rotate(0); }
+  30% { transform: rotate(-4deg) translateY(-3px); }
+  70% { transform: rotate(3deg); }
+  100% { transform: rotate(0); }
+}
+
+.gelpiScope :global(.modal-overlay.show .gelpi-root .arm-right) {
+  animation: thumbsUp 0.5s 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: 270px 270px;
+}
+@keyframes thumbsUp {
+  0% { transform: rotate(20deg) translateY(20px); }
+  60% { transform: rotate(-12deg) translateY(-5px); }
+  100% { transform: rotate(-5deg); }
+}
+
+.gelpiScope :global(.modal-overlay.show .gelpi-root .thumbs-up) {
+  animation: thumbWiggle 0.4s 1.2s ease-in-out 3;
+  transform-origin: 290px 200px;
+}
+@keyframes thumbWiggle {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(8deg); }
+}
+
+.gelpiScope :global(.modal-overlay.show .brow-l) { animation: browLift 0.6s 0.6s ease-out forwards; transform-origin: 175px 142px; }
+.gelpiScope :global(.modal-overlay.show .brow-r) { animation: browLift 0.6s 0.6s ease-out forwards; transform-origin: 225px 142px; }
+@keyframes browLift {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-6px) scaleY(1.1); }
+  100% { transform: translateY(-3px); }
+}
+
+.gelpiScope :global(.modal-overlay.show .eye-white-l),
+.gelpiScope :global(.modal-overlay.show .eye-white-r) {
+  animation: eyeShine 0.5s 0.7s ease-out;
+}
+@keyframes eyeShine {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.gelpiScope :global(.modal-overlay.show .cheek-l),
+.gelpiScope :global(.modal-overlay.show .cheek-r) {
+  animation: cheekPulse 1s 0.8s ease-in-out infinite;
+}
+@keyframes cheekPulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.gelpiScope :global(.modal-overlay.show .mouth-group) {
+  animation: mouthCheer 0.6s 0.6s ease-in-out infinite alternate;
+  transform-origin: 200px 222px;
+}
+@keyframes mouthCheer {
+  0% { transform: scaleY(0.7); }
+  100% { transform: scaleY(1.1); }
+}
+
+.gelpiScope :global(.modal-overlay.show .mustache) {
+  animation: mustacheJiggle 0.3s 0.6s ease-in-out infinite alternate;
+  transform-origin: 200px 207px;
+}
+@keyframes mustacheJiggle {
+  0% { transform: scaleX(0.97) translateY(0); }
+  100% { transform: scaleX(1.03) translateY(1px); }
+}
+
+.gelpiScope :global(.modal-overlay.show .stethoscope) {
+  animation: stethoSwing 0.7s 0.6s ease-in-out 2;
+  transform-origin: 200px 250px;
+}
+@keyframes stethoSwing {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-6deg); }
+}
+
+.gelpiScope :global(.modal-overlay.show .ground-shadow) {
+  animation: shadowPulse 0.7s 0.6s ease-out 2;
+  transform-origin: center;
+}
+@keyframes shadowPulse {
+  0%, 100% { transform: scale(1); opacity: 0.18; }
+  50% { transform: scale(0.6); opacity: 0.08; }
+}
+
+/* === CONFETTI === */
+.gelpiScope :global(.confetti-layer) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 12;
+}
+.gelpiScope :global(.confetti-piece) {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  animation: confettiBurst 1.6s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+@keyframes confettiBurst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0);
+  }
+  10% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+  }
+}
+
+/* === XP POPS === */
+.gelpiScope :global(.xp-layer) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13;
+}
+.gelpiScope :global(.xp-pop) {
+  position: absolute;
+  top: 60%;
+  font-family: system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: #FFB020;
+  text-shadow:
+    -2px -2px 0 #fff, 2px -2px 0 #fff,
+    -2px 2px 0 #fff, 2px 2px 0 #fff,
+    0 4px 12px rgba(255, 176, 32, 0.6);
+  -webkit-text-stroke: 3px white;
+  paint-order: stroke fill;
+  opacity: 0;
+  transform: translateY(0);
+  animation: xpFloat 1.8s ease-out forwards;
+  white-space: nowrap;
+}
+@keyframes xpFloat {
+  0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+  20% { opacity: 1; transform: translateY(0) scale(1.2); }
+  35% { transform: translateY(-10px) scale(1); }
+  100% { opacity: 0; transform: translateY(-180px) scale(0.9); }
+}
+
+/* === SPARKLES === */
+.gelpiScope :global(.sparkle-layer) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 11;
+}
+.gelpiScope :global(.sparkle) {
+  position: absolute;
+  opacity: 0;
+  animation: sparkleTwinkle 1.4s ease-in-out forwards;
+  filter: drop-shadow(0 0 6px rgba(255, 217, 60, 0.8));
+}
+@keyframes sparkleTwinkle {
+  0% { opacity: 0; transform: scale(0) rotate(0); }
+  40% { opacity: 1; transform: scale(1.3) rotate(180deg); }
+  70% { opacity: 0.7; transform: scale(1) rotate(280deg); }
+  100% { opacity: 0; transform: scale(0.5) rotate(360deg); }
+}
+
+/* === HALO === */
+.gelpiScope :global(.halo-layer) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+}
+.gelpiScope :global(.halo) {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid;
+  opacity: 0;
+}
+.gelpiScope :global(.halo-1) {
+  width: 240px; height: 240px;
+  border-color: rgba(79, 168, 232, 0.6);
+  animation: haloRing 1.5s ease-out forwards;
+}
+.gelpiScope :global(.halo-2) {
+  width: 240px; height: 240px;
+  border-color: rgba(255, 217, 60, 0.7);
+  animation: haloRing 1.5s 0.2s ease-out forwards;
+}
+.gelpiScope :global(.halo-3) {
+  width: 240px; height: 240px;
+  border-color: rgba(30, 111, 217, 0.5);
+  animation: haloRing 1.5s 0.4s ease-out forwards;
+}
+@keyframes haloRing {
+  0% { transform: scale(0.4); opacity: 0; border-width: 4px; }
+  30% { opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; border-width: 1px; }
+}
+
+/* ======================================================
+   FROM styles-card.css
+   ====================================================== */
+
+/* Fade-up animation usado por title/subtitle/pills/button */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Card branco que sobe de baixo */
+.gelpiScope :global(.celebrate-card) {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: white;
+  border-radius: 28px 28px 0 0;
+  padding: 24px 22px 36px;
+  transform: translateY(100%);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 30;
+}
+.gelpiScope :global(.modal-overlay.show .celebrate-card) {
+  transform: translateY(0);
+}
+
+.gelpiScope :global(.celebrate-card .title) {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0B2845;
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.5s forwards;
+}
+.gelpiScope :global(.celebrate-card .subtitle) {
+  font-size: 14px;
+  color: #6F8AA8;
+  font-weight: 600;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.6s forwards;
+}
+
+/* === Reward pills === */
+.gelpiScope :global(.reward-row) {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.7s forwards;
+}
+.gelpiScope :global(.reward-pill) {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #F4FAFF, #E1EFFC);
+  border: 1.5px solid #C5D2E0;
+  text-align: left;
+}
+.gelpiScope :global(.reward-pill .label) {
+  font-family: ui-monospace, 'Menlo', 'Consolas', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #6F8AA8;
+  text-transform: uppercase;
+}
+.gelpiScope :global(.reward-pill .value) {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0B2845;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.gelpiScope :global(.reward-pill .value .plus) {
+  color: #22C56E;
+  font-size: 14px;
+}
+.gelpiScope :global(.reward-pill.gold .value) { color: #C77F00; }
+
+/* === ConfidenceRating buttons === */
+.gelpiScope :global(.confidence-row) {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.75s forwards;
+}
+.gelpiScope :global(.confidence-row .conf-prompt) {
+  width: 100%;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  color: #6F8AA8;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.gelpiScope :global(.confidence-grid) {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.gelpiScope :global(.conf-btn) {
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 12px;
+  background: #F4FAFF;
+  border: 1.5px solid #C5D2E0;
+  font-family: system-ui, sans-serif;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s;
+  min-height: 64px;
+}
+.gelpiScope :global(.conf-btn .conf-emoji) {
+  font-size: 20px;
+  line-height: 1;
+}
+.gelpiScope :global(.conf-btn .conf-label) {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0B2845;
+  text-align: center;
+  line-height: 1.2;
+}
+.gelpiScope :global(.conf-btn:hover) { transform: translateY(-1px); border-color: #4FA8E8; }
+.gelpiScope :global(.conf-btn.active) {
+  background: linear-gradient(135deg, #1E6FD9, #4FA8E8);
+  border-color: #1E6FD9;
+  box-shadow: 0 4px 12px rgba(30, 111, 217, 0.35);
+}
+.gelpiScope :global(.conf-btn.active .conf-label) { color: white; }
+
+/* === Continue button === */
+.gelpiScope :global(.continue-btn) {
+  width: 100%;
+  background: linear-gradient(135deg, #1E6FD9, #4FA8E8);
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 16px;
+  font-family: system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 6px 20px rgba(30, 111, 217, 0.4);
+  cursor: pointer;
+  opacity: 0;
+  animation: fadeUp 0.4s 0.85s forwards;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.gelpiScope :global(.continue-btn:hover) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(30, 111, 217, 0.5); }
+.gelpiScope :global(.continue-btn:active) { transform: translateY(0); }
+.gelpiScope :global(.continue-btn:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === Variant erro === */
+.gelpiScope :global(.celebrate-card.error-mode .title) { color: #5A3520; }
+.gelpiScope :global(.celebrate-card.error-mode .subtitle) { color: #B8825C; }
+
+.gelpiScope :global(.reward-pill.encourage) {
+  background: linear-gradient(135deg, #FFF7EE, #FFE8D1);
+  border-color: #FFD0A0;
+}
+.gelpiScope :global(.reward-pill.encourage .label) { color: #B8825C; }
+.gelpiScope :global(.reward-pill.encourage .value) { color: #C97A3D; font-size: 18px; }
+
+.gelpiScope :global(.continue-btn.error-mode) {
+  background: linear-gradient(135deg, #C97A3D, #E89B5C);
+  box-shadow: 0 6px 20px rgba(201, 122, 61, 0.4);
+}
+.gelpiScope :global(.continue-btn.error-mode:hover) { box-shadow: 0 8px 24px rgba(201, 122, 61, 0.5); }
+
+.gelpiScope :global(.celebrate-card.error-mode .conf-btn.active) {
+  background: linear-gradient(135deg, #C97A3D, #E89B5C);
+  border-color: #C97A3D;
+  box-shadow: 0 4px 12px rgba(201, 122, 61, 0.35);
+}
+
+/* Modal overlay precisa de background dimmed quando show */
+.gelpiScope :global(.modal-overlay.show) {
+  background: linear-gradient(180deg,
+    rgba(11, 40, 69, 0.5) 0%,
+    rgba(30, 111, 217, 0.6) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: all;
+}
+.gelpiScope :global(.modal-overlay.show.error-mode) {
+  background: linear-gradient(180deg,
+    rgba(60, 35, 20, 0.45) 0%,
+    rgba(180, 110, 60, 0.55) 100%);
+}
+
+/* Position gelpi acima do card (não centralizado) */
+.gelpiScope :global(.modal-overlay.show .gelpi-stage) {
+  top: auto;
+  bottom: 340px;
+  transform: translateX(-50%);
+}
+@keyframes gelpiEnterCard {
+  0% { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.6); }
+  60% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1.05); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.gelpiScope :global(.modal-overlay.show .gelpi-stage) {
+  animation: gelpiEnterCard 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes gelpiEnterCardSoft {
+  0% { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.85); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.gelpiScope :global(.modal-overlay.show.error-mode .gelpi-stage) {
+  animation: gelpiEnterCardSoft 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ======================================================
+   FROM styles-error.css
+   ====================================================== */
+
+/* Entrada suave — sem pulo, só desliza pra cima */
+.gelpiScope :global(.modal-overlay.show.error-mode .gelpi-stage) {
+  animation: gelpiEnterSoft 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes gelpiEnterSoft {
+  0% { opacity: 0; transform: translate(-50%, -50%) translateY(30px) scale(0.85); }
+  100% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+}
+
+/* Cabeça inclinada com empatia */
+.gelpiScope :global(.modal-overlay.show.error-mode .head-group) {
+  animation: headEmpathy 1.4s 0.4s ease-in-out forwards;
+  transform-origin: 200px 220px;
+}
+@keyframes headEmpathy {
+  0% { transform: rotate(0); }
+  40% { transform: rotate(-8deg) translateY(2px); }
+  100% { transform: rotate(-6deg) translateY(2px); }
+}
+
+/* Sobrancelhas preocupadas */
+.gelpiScope :global(.modal-overlay.show.error-mode .brow-l) {
+  animation: browWorryL 0.5s 0.4s ease-out forwards;
+  transform-origin: 192px 142px;
+}
+.gelpiScope :global(.modal-overlay.show.error-mode .brow-r) {
+  animation: browWorryR 0.5s 0.4s ease-out forwards;
+  transform-origin: 208px 142px;
+}
+@keyframes browWorryL {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(-8deg) translateY(-2px); }
+}
+@keyframes browWorryR {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(8deg) translateY(-2px); }
+}
+
+/* Olhos piscar empático */
+.gelpiScope :global(.modal-overlay.show.error-mode .eye-white-l),
+.gelpiScope :global(.modal-overlay.show.error-mode .eye-white-r) {
+  animation: eyeBlinkSlow 2.5s 0.4s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes eyeBlinkSlow {
+  0%, 90%, 100% { transform: scaleY(1); }
+  93% { transform: scaleY(0.1); }
+}
+
+.gelpiScope :global(.modal-overlay.show.error-mode .iris-l) { animation: irisDown 0.6s 0.4s ease-out forwards; }
+.gelpiScope :global(.modal-overlay.show.error-mode .iris-r) { animation: irisDown 0.6s 0.4s ease-out forwards; }
+@keyframes irisDown {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(0, 2px); }
+}
+
+.gelpiScope :global(.modal-overlay.show.error-mode .mouth-group) {
+  animation: mouthGentle 0.5s 0.4s ease-out forwards;
+  transform-origin: 200px 222px;
+}
+@keyframes mouthGentle {
+  0% { transform: scaleY(1) scaleX(1); }
+  100% { transform: scaleY(0.35) scaleX(0.8) translateY(2px); }
+}
+
+/* Mão no coração */
+.gelpiScope :global(.modal-overlay.show.error-mode .arm-left) {
+  animation: handToHeart 0.7s 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: 130px 270px;
+}
+@keyframes handToHeart {
+  0% { transform: rotate(0) translate(0, 0); }
+  100% { transform: rotate(-35deg) translate(20px, -40px); }
+}
+
+.gelpiScope :global(.modal-overlay.show.error-mode .arm-right) {
+  animation: armDownRight 0.6s 0.4s ease-out forwards;
+  transform-origin: 270px 270px;
+}
+@keyframes armDownRight {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(15deg) translateY(20px); }
+}
+
+.gelpiScope :global(.modal-overlay.show.error-mode .thumbs-up) {
+  animation: thumbHide 0.3s 0.4s ease-out forwards;
+  transform-origin: 290px 200px;
+}
+@keyframes thumbHide {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.4) translateY(15px); opacity: 0.6; }
+}
+
+/* Corpo respira */
+.gelpiScope :global(.modal-overlay.show.error-mode .body-group) {
+  animation: gentleBreath 3s 0.6s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+@keyframes gentleBreath {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-2px) scaleY(1.01); }
+}
+
+.gelpiScope :global(.modal-overlay.show.error-mode .cheek-l),
+.gelpiScope :global(.modal-overlay.show.error-mode .cheek-r) {
+  opacity: 0.5;
+}
+
+/* === EFEITOS DE FUNDO ERRO === */
+
+/* Coração pulsando */
+.gelpiScope :global(.heart-pulse-layer) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13;
+}
+.gelpiScope :global(.heart-icon) {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-90px);
+  width: 36px;
+  height: 36px;
+  opacity: 0;
+  animation: heartShow 2s 0.9s ease-out forwards;
+  filter: drop-shadow(0 4px 12px rgba(231, 87, 87, 0.5));
+}
+@keyframes heartShow {
+  0% { opacity: 0; transform: translateX(-90px) scale(0.4); }
+  20% { opacity: 1; transform: translateX(-90px) scale(1.3); }
+  35% { transform: translateX(-90px) scale(1); }
+  60% { opacity: 1; transform: translateX(-90px) scale(1.15); }
+  80% { transform: translateX(-90px) scale(1); }
+  100% { opacity: 0.7; transform: translateX(-90px) scale(1); }
+}
+
+/* Ondas suaves */
+.gelpiScope :global(.calm-wave-layer) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  z-index: 9;
+}
+.gelpiScope :global(.calm-wave) {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 200, 130, 0.5);
+  opacity: 0;
+}
+.gelpiScope :global(.calm-wave-1) { animation: calmRipple 2.4s 0.6s ease-out infinite; }
+.gelpiScope :global(.calm-wave-2) { animation: calmRipple 2.4s 1.2s ease-out infinite; }
+.gelpiScope :global(.calm-wave-3) { animation: calmRipple 2.4s 1.8s ease-out infinite; }
+@keyframes calmRipple {
+  0% { transform: scale(0.5); opacity: 0; border-width: 3px; }
+  20% { opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0; border-width: 1px; }
+}
+
+/* Insight bubbles */
+.gelpiScope :global(.insight-layer) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13;
+}
+.gelpiScope :global(.insight-pop) {
+  position: absolute;
+  font-family: system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: white;
+  background: linear-gradient(135deg, #E89B5C, #C97A3D);
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  opacity: 0;
+  box-shadow: 0 4px 12px rgba(201, 122, 61, 0.4);
+  animation: insightFloat 2.4s ease-out forwards;
+}
+@keyframes insightFloat {
+  0% { opacity: 0; transform: translateY(20px) scale(0.7); }
+  20% { opacity: 1; transform: translateY(0) scale(1.05); }
+  35% { transform: translateY(-8px) scale(1); }
+  100% { opacity: 0; transform: translateY(-90px) scale(0.95); }
+}
