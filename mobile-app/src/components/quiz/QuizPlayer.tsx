@@ -126,6 +126,11 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
   const startTimeRef = useRef(Date.now());
   const questionStartRef = useRef(Date.now());
 
+  // Lock síncrono: evita race condition de double-tap (<300ms) que
+  // dispararia checkAnswer + XP + haptic duas vezes. Síncrono (useRef)
+  // pois setState é assíncrono e não protege a janela entre taps rápidos.
+  const isCheckingRef = useRef(false);
+
   // Juice state
   const [xpBurstVisible, setXpBurstVisible] = useState(false);
   const [xpBurstValue, setXpBurstValue] = useState(0);
@@ -243,7 +248,12 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
    * network failure so a backend hiccup doesn't punish the user.
    */
   const handleSelectOption = async (optionIndex: number) => {
-    if (playStep !== 'answering' || !quiz) return;
+    // Guard síncrono: rejeita tap duplicado enquanto o primeiro ainda processa.
+    // playStep sozinho não protege porque setState é assíncrono — dois taps
+    // <300ms passariam pelo check antes de qualquer re-render.
+    if (isCheckingRef.current || playStep !== 'answering' || !quiz) return;
+    isCheckingRef.current = true;
+
     setSelectedOption(optionIndex);
 
     const question = quiz.questions[currentQuestionIndex];
@@ -266,6 +276,12 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       // Network failure: fall back to optimistic-positive (don't punish user
       // for backend hiccups).
       isCorrect = true;
+    } finally {
+      // Libera o lock após o await — respostas legítimas sequenciais só chegam
+      // depois que o GelpiCelebrateModal fecha via handleContinue, que seta
+      // playStep de volta para 'answering'. O lock aqui cobre apenas a janela
+      // do próprio await; playStep cobre o tempo até o usuário continuar.
+      isCheckingRef.current = false;
     }
 
     markCorrectness(question.id, isCorrect);
