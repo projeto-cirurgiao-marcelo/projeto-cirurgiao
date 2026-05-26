@@ -10,7 +10,6 @@ type GelpiState = 'idle' | 'celebrate';
 
 interface Props {
   state?: GelpiState;
-  intensity?: number;
 }
 
 export default function DrGelpi({ state = 'celebrate' }: Props) {

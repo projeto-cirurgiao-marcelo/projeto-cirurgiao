@@ -18,6 +18,13 @@ const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string; emoji: string
 interface GelpiCelebrateModalProps {
   visible: boolean;
   state: 'celebrate' | 'wrong' | 'idle';
+  /**
+   * Força remount/replay das animações quando o MESMO estado dispara de novo
+   * (ex.: dois acertos seguidos — sem mudança de `visible`/`state`, o React
+   * não remontaria o overlay e as animações CSS não re-disparariam). É usada
+   * na `key` do overlay; o consumidor deve incrementar este valor a cada
+   * questão para garantir o replay.
+   */
   triggerKey?: number;
   title: string;
   subtitle: string;
