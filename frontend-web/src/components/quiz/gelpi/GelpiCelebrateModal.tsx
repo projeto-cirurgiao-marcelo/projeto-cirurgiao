@@ -18,14 +18,6 @@ const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string; emoji: string
 interface GelpiCelebrateModalProps {
   visible: boolean;
   state: 'celebrate' | 'wrong' | 'idle';
-  /**
-   * Força remount/replay das animações quando o MESMO estado dispara de novo
-   * (ex.: dois acertos seguidos — sem mudança de `visible`/`state`, o React
-   * não remontaria o overlay e as animações CSS não re-disparariam). É usada
-   * na `key` do overlay; o consumidor deve incrementar este valor a cada
-   * questão para garantir o replay.
-   */
-  triggerKey?: number;
   title: string;
   subtitle: string;
   xpGained: number;
@@ -39,7 +31,6 @@ interface GelpiCelebrateModalProps {
 export function GelpiCelebrateModal({
   visible,
   state,
-  triggerKey = 0,
   title,
   subtitle,
   xpGained,
@@ -77,7 +68,7 @@ export function GelpiCelebrateModal({
 
   return (
     <div className={styles.gelpiScope}>
-      <div className={overlayClass} key={`${visible ? 1 : 0}-${triggerKey}`}>
+      <div className={overlayClass}>
         {/* Background effects */}
         <Halo active={isCelebrate} />
         <Sparkles active={isCelebrate} />
