@@ -8,14 +8,14 @@ import React from 'react';
 interface PieceProps {
   delay: number;
   x: number;
+  tx: number;
   color: string;
   shape: 'circle' | 'rect';
   rotate: number;
   distance: number;
 }
 
-const ConfettiPiece = ({ delay, x, color, shape, rotate, distance }: PieceProps) => {
-  const tx = (Math.random() - 0.5) * 200;
+const ConfettiPiece = ({ delay, x, tx, color, shape, rotate, distance }: PieceProps) => {
   const style: React.CSSProperties & Record<string, string> = {
     left: `${x}%`,
     backgroundColor: color,
@@ -43,6 +43,10 @@ export const Confetti = ({ active, count = 40 }: ConfettiProps) => {
     return Array.from({ length: count }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
+      // tx é calculado aqui (e não no corpo de ConfettiPiece) pra que um
+      // re-render do pai durante a animação não gere um novo valor aleatório
+      // e cause "pulo" visual da peça.
+      tx: (Math.random() - 0.5) * 200,
       delay: Math.random() * 400,
       color: colors[Math.floor(Math.random() * colors.length)],
       shape: shapes[Math.floor(Math.random() * shapes.length)],

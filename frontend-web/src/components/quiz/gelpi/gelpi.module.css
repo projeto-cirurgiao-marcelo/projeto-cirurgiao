@@ -43,12 +43,13 @@
 }
 .gelpiScope :global(.modal-overlay.show .gelpi-stage) {
   opacity: 1;
-  animation: gelpiEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-@keyframes gelpiEnter {
-  0% { opacity: 0; transform: translate(-50%, -50%) translateY(40px) scale(0.6); }
-  60% { opacity: 1; transform: translate(-50%, -50%) translateY(-10px) scale(1.05); }
-  100% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+  /* CASCADE: o `animation` desta regra (originalmente styles.css → gelpiEnter)
+     é sobrescrito mais abaixo por uma regra de mesma especificidade —
+     `.modal-overlay.show .gelpi-stage` em styles-card.css que aplica
+     `gelpiEnterCard` (ver ~linha 490). Como a regra posterior vence, a
+     animação efetiva no estado celebrate é gelpiEnterCard, e o keyframe
+     `gelpiEnter` ficou dead-code (removido). Mantemos só `opacity: 1` aqui,
+     que NÃO é sobrescrito. */
 }
 
 .gelpiScope :global(.gelpi-root) {
@@ -486,7 +487,11 @@
     rgba(180, 110, 60, 0.55) 100%);
 }
 
-/* Position gelpi acima do card (não centralizado) */
+/* Position gelpi acima do card (não centralizado) — vem de styles-card.css.
+   CASCADE celebrate: esta regra reposiciona o stage (top/bottom/transform) e,
+   logo abaixo, uma regra de mesma especificidade aplica `gelpiEnterCard`.
+   Essa é a animação VENCEDORA do estado celebrate (sobrescreve o `gelpiEnter`
+   de styles.css lá em cima). */
 .gelpiScope :global(.modal-overlay.show .gelpi-stage) {
   top: auto;
   bottom: 340px;
@@ -500,19 +505,20 @@
 .gelpiScope :global(.modal-overlay.show .gelpi-stage) {
   animation: gelpiEnterCard 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-@keyframes gelpiEnterCardSoft {
-  0% { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.85); }
-  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-}
-.gelpiScope :global(.modal-overlay.show.error-mode .gelpi-stage) {
-  animation: gelpiEnterCardSoft 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
+/* CASCADE error-mode: styles-card.css define aqui um `gelpiEnterCardSoft` para
+   `.modal-overlay.show.error-mode .gelpi-stage`, MAS abaixo (seção FROM
+   styles-error.css) uma regra de MESMA especificidade aplica `gelpiEnterSoft`.
+   A regra posterior vence → a animação efetiva do erro é gelpiEnterSoft, e o
+   keyframe `gelpiEnterCardSoft` ficou dead-code (removido junto com sua única
+   referência). Os keyframes gelpiEnterCardSoft e gelpiEnterSoft são idênticos
+   em forma; a diferença prática é só o nome, então o visual não muda. */
 
 /* ======================================================
    FROM styles-error.css
    ====================================================== */
 
-/* Entrada suave — sem pulo, só desliza pra cima */
+/* Entrada suave — sem pulo, só desliza pra cima.
+   Esta é a animação VENCEDORA do estado error-mode (ver nota de cascade acima). */
 .gelpiScope :global(.modal-overlay.show.error-mode .gelpi-stage) {
   animation: gelpiEnterSoft 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
