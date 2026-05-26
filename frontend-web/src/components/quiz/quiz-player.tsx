@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { quizzesService, Quiz, QuizAnswer, type ConfidenceLevel } from '@/lib/api/quizzes.service';
-import { nextCombo, estimateXp } from '@/lib/quiz-gamification';
+import { nextCombo, estimateXp, comboTier } from '@/lib/quiz-gamification';
 import { GelpiCelebrateModal } from './gelpi/GelpiCelebrateModal';
 import { logger } from '@/lib/logger';
 
@@ -99,9 +99,10 @@ export function QuizPlayer({ quiz, onSubmit, onCancel }: QuizPlayerProps) {
   }, [selectedOption, selectedConfidence, isLast, question, quiz.questions, onSubmit]);
 
   const awaiting = playStep === 'awaitingConfidence';
+  const tier = comboTier(combo);
 
   return (
-    <div className="space-y-5">
+    <div className="relative space-y-5">
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="atlas-caps text-atlas-muted mb-1.5">
@@ -116,7 +117,7 @@ export function QuizPlayer({ quiz, onSubmit, onCancel }: QuizPlayerProps) {
         </div>
         <div
           className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white text-[13px] font-bold"
-          style={{ background: 'linear-gradient(90deg,#FF8B3D,#FFB020)' }}
+          style={{ background: tier ? tier.color : 'linear-gradient(90deg,#FF8B3D,#FFB020)' }}
         >
           <span>🔥</span><span>{combo}</span>
         </div>
@@ -162,8 +163,8 @@ export function QuizPlayer({ quiz, onSubmit, onCancel }: QuizPlayerProps) {
       )}
 
       <GelpiCelebrateModal
+        key={gelpiKey}
         visible={awaiting && lastCorrect !== null}
-        triggerKey={gelpiKey}
         state={lastCorrect ? 'celebrate' : 'wrong'}
         title={lastCorrect ? 'Excelente, doutor!' : 'Quase lá, doutor!'}
         subtitle={lastCorrect ? 'Resposta correta.' : 'Vamos revisar no fim.'}
