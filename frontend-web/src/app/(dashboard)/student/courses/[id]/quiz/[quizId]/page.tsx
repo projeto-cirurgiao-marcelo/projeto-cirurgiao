@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { QuizPlayer } from '@/components/quiz/quiz-player';
 import { QuizResults } from '@/components/quiz/quiz-results';
@@ -171,29 +172,55 @@ export default function QuizPage() {
         )}
       </div>
 
-      {/* Conteúdo */}
-      {result ? (
-        <QuizResults
-          result={result}
-          quizTitle={quiz.title}
-          onRetry={handleRetry}
-          onReviewContent={handleBack}
-          onClose={handleBack}
-        />
-      ) : showIntro ? (
-        <QuizIntro
-          quiz={quiz}
-          stats={quizStats || undefined}
-          onStart={handleStartQuiz}
-          onSkip={handleSkipQuiz}
-        />
-      ) : (
-        <QuizPlayer
-          quiz={quiz}
-          onSubmit={handleSubmit}
-          onCancel={handleBack}
-        />
-      )}
+      {/* Conteúdo — transição suave (slide + fade) entre intro/quiz/resultado */}
+      <AnimatePresence mode="wait">
+        {result ? (
+          <motion.div
+            key="result"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <QuizResults
+              result={result}
+              quizTitle={quiz.title}
+              onRetry={handleRetry}
+              onReviewContent={handleBack}
+              onClose={handleBack}
+            />
+          </motion.div>
+        ) : showIntro ? (
+          <motion.div
+            key="intro"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <QuizIntro
+              quiz={quiz}
+              stats={quizStats || undefined}
+              onStart={handleStartQuiz}
+              onSkip={handleSkipQuiz}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="play"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <QuizPlayer
+              quiz={quiz}
+              onSubmit={handleSubmit}
+              onCancel={handleBack}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
