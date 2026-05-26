@@ -6,6 +6,8 @@ import {
 } from './waitForJob';
 import type { EnqueuedJobResponse } from '@/types/api-shared';
 
+export type ConfidenceLevel = 'GUESSED' | 'THOUGHT_KNEW' | 'KNEW' | 'MASTERED';
+
 export interface Quiz {
   id: string;
   videoId: string;
@@ -31,6 +33,7 @@ export interface QuizAnswer {
   questionId: string;
   answer: number;
   timeSpent?: number;
+  confidence?: ConfidenceLevel;
 }
 
 export interface QuizResult {
@@ -126,6 +129,18 @@ export const quizzesService = {
 
   async submitQuiz(quizId: string, answers: QuizAnswer[], totalTimeSpent?: number): Promise<QuizResult> {
     const response = await apiClient.post(`quizzes/${quizId}/submit`, { answers, totalTimeSpent });
+    return response.data;
+  },
+
+  async checkAnswer(
+    quizId: string,
+    questionId: string,
+    answer: number,
+  ): Promise<{ isCorrect: boolean }> {
+    const response = await apiClient.post(`quizzes/${quizId}/check-answer`, {
+      questionId,
+      answer,
+    });
     return response.data;
   },
 
