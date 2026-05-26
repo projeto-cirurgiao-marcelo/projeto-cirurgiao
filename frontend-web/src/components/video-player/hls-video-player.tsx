@@ -148,6 +148,10 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           enableWorker: true,
           lowLatencyMode: false,
           startLevel: -1,
+          // Nao exibir a legenda do manifest (subtitles.m3u8) automaticamente.
+          // Sem isto o hls.js liga a faixa por padrao, ignorando o controle
+          // do <track>. O aluno ativa pela barra de controles quando quiser.
+          subtitleDisplay: false,
         });
 
         hls.loadSource(src);
@@ -256,6 +260,41 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Legenda OFF por padrao no carregamento. Algo (hls.js / o <track>) liga a
+    // faixa ao iniciar mesmo sem `default` e com `subtitleDisplay: false`, entao
+    // forcamos `disabled` — mas SO durante a janela inicial (1.5s). Depois disso
+    // o aluno liga/desliga livremente pela barra (nao brigamos com a acao dele).
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      let autoOff = true;
+      const disableSubs = () => {
+        if (!autoOff) return;
+        const tracks = video.textTracks;
+        for (let i = 0; i < tracks.length; i++) {
+          const t = tracks[i];
+          if ((t.kind === 'subtitles' || t.kind === 'captions') && t.mode !== 'disabled') {
+            t.mode = 'disabled';
+          }
+        }
+      };
+
+      const onChange = () => disableSubs();
+      const onAdd = () => disableSubs();
+      video.textTracks.addEventListener?.('change', onChange);
+      video.textTracks.addEventListener?.('addtrack', onAdd);
+      const timers = [0, 200, 600, 1200].map((ms) => setTimeout(disableSubs, ms));
+      const endWindow = setTimeout(() => { autoOff = false; }, 1500);
+
+      return () => {
+        video.textTracks.removeEventListener?.('change', onChange);
+        video.textTracks.removeEventListener?.('addtrack', onAdd);
+        timers.forEach(clearTimeout);
+        clearTimeout(endWindow);
+      };
+    }, [src]);
+
     const currentQualityLabel = currentQuality === -1
       ? 'Auto'
       : qualities.find(q => q.index === currentQuality)?.label ?? 'Auto';
@@ -304,7 +343,6 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
               src={subtitleUrl}
               srcLang={externalCaptionsLang}
               label={externalCaptionsLabel}
-              default
             />
           )}
         </video>

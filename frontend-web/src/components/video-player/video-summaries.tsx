@@ -31,6 +31,8 @@ import {
 } from 'lucide-react';
 import { atlasToast } from '@/components/atlas';
 import { logger } from '@/lib/logger';
+import { formatMarkdown } from '@/lib/markdown';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import {
   summariesService,
   VideoSummary,
@@ -155,11 +157,29 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
 
   const handleDownload = async (summary: VideoSummary) => {
     try {
-      await summariesService.downloadSummary(videoId, summary.id);
+      // Import dinamico: a lib de PDF (@react-pdf/renderer) so entra no bundle
+      // quando o aluno realmente exporta.
+      const { generateSummaryPdfBlob } = await import('@/lib/summary-pdf');
+
+      // Titulo = primeiro heading `#` do conteudo, sem simbolos; fallback generico.
+      const titleMatch = summary.content.match(/^#\s+(.+)$/m);
+      const title = titleMatch
+        ? titleMatch[1].replace(/[*_`#]/g, '').trim()
+        : 'Resumo da aula';
+
+      const blob = await generateSummaryPdfBlob(summary.content, title);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resumo-${summary.version}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       // Sem toast — browser já indica download
     } catch (error) {
-      logger.error('Erro ao baixar resumo:', error);
-      atlasToast.error('Falha ao baixar arquivo');
+      logger.error('Erro ao exportar resumo em PDF:', error);
+      atlasToast.error('Falha ao gerar PDF');
     }
   };
 
@@ -227,10 +247,6 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
   const previousVersions = summaries.slice(0, -1);
   const usageLabel = `${summaries.length} / ${maxAllowed} usados`;
   const updatedLabel = `Atualizado · ${formatDate(latest.createdAt)}`;
-  const paragraphs = latest.content
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean);
 
   return (
     <div className="space-y-3">
@@ -255,15 +271,10 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
           </AtlasButton>
         }
       >
-        {paragraphs.length > 0 ? (
-          paragraphs.map((para, i) => (
-            <p key={i} className="whitespace-pre-line">
-              {para}
-            </p>
-          ))
-        ) : (
-          <p className="whitespace-pre-line">{latest.content}</p>
-        )}
+        <div
+          className="text-sm leading-relaxed text-atlas-ink-2 [&_h4]:font-serif [&_h4]:font-semibold [&_h4]:text-atlas-ink [&_h4]:text-[0.95rem] [&_h4]:mt-3 [&_h4]:mb-1 [&_h5]:font-serif [&_h5]:font-semibold [&_h5]:text-atlas-ink [&_h5]:text-[0.85rem] [&_h5]:mt-2.5 [&_h5]:mb-1 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-0.5 [&_strong]:font-semibold [&_strong]:text-atlas-ink"
+          dangerouslySetInnerHTML={{ __html: formatMarkdown(latest.content) }}
+        />
       </AtlasSynthesisCard>
 
       {previousVersions.length > 0 && (
@@ -316,7 +327,7 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => handleDownload(s)}
-                      title="Baixar .md"
+                      title="Baixar PDF"
                     >
                       <Download strokeWidth={1.5} />
                     </AtlasButton>
@@ -354,16 +365,14 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
 
           <ScrollArea className="h-[50vh] pr-4">
             {isEditMode ? (
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full h-full min-h-[400px] p-4 font-mono text-sm border border-atlas-line rounded-md resize-none focus:outline-none focus:border-atlas-ink-2"
-                placeholder="Conteúdo do resumo em Markdown..."
-              />
+              <MarkdownEditor value={editContent} onChange={setEditContent} />
             ) : (
-              <div className="font-serif text-[14.5px] leading-[1.65] text-atlas-ink-2 whitespace-pre-wrap">
-                {selectedSummary?.content}
-              </div>
+              <div
+                className="font-serif text-[14.5px] leading-[1.65] text-atlas-ink-2 [&_h4]:font-semibold [&_h4]:text-atlas-ink [&_h4]:text-[1.05rem] [&_h4]:mt-4 [&_h4]:mb-1.5 [&_h5]:font-semibold [&_h5]:text-atlas-ink [&_h5]:text-[0.95rem] [&_h5]:mt-3 [&_h5]:mb-1 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-0.5 [&_strong]:font-semibold [&_strong]:text-atlas-ink"
+                dangerouslySetInnerHTML={{
+                  __html: formatMarkdown(selectedSummary?.content ?? ''),
+                }}
+              />
             )}
           </ScrollArea>
 
@@ -414,7 +423,7 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
                     }
                   >
                     <Download strokeWidth={1.5} />
-                    Baixar .md
+                    Baixar PDF
                   </AtlasButton>
                 </>
               )}
