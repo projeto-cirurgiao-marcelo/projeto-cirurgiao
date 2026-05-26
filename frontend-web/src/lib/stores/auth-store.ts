@@ -91,6 +91,14 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
+
+          // 4. Seta o cookie sincronamente para que o middleware SSR já o enxergue
+          // na navegação imediata (router.push) chamada pela página logo após este
+          // await. O AuthProvider também seta o cookie num useEffect, mas esse roda
+          // depois do render — tarde demais para o redirect.
+          if (typeof document !== 'undefined') {
+            document.cookie = `auth-session=${JSON.stringify({ role: backendUser.role })}; path=/; max-age=86400; SameSite=Lax`;
+          }
         } catch (error: any) {
           logger.error('❌ [Login] Erro:', error);
           const errorMessage = error.response?.data?.message || error.message || 'Erro ao fazer login';
@@ -145,6 +153,12 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
+
+          // 4. Seta o cookie sincronamente — mesmo motivo da action login:
+          // o register-form faz router.push imediatamente após este await.
+          if (typeof document !== 'undefined') {
+            document.cookie = `auth-session=${JSON.stringify({ role: backendUser.role })}; path=/; max-age=86400; SameSite=Lax`;
+          }
         } catch (error: any) {
           logger.error('❌ [Register] Erro:', error);
           const errorMessage = error.response?.data?.message || error.message || 'Erro ao registrar';
