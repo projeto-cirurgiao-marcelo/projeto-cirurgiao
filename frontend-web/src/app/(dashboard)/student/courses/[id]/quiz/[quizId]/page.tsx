@@ -9,12 +9,14 @@ import { quizzesService, Quiz, QuizResult, QuizAnswer, QuizStats } from '@/lib/a
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function QuizPage() {
   const params = useParams();
   const router = useRouter();
   const quizId = params.quizId as string;
   const courseId = params.id as string;
+  const { toast } = useToast();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
@@ -63,7 +65,11 @@ export default function QuizPage() {
       const quizResult = await quizzesService.submitQuiz(quizId, answers, totalTime);
       setResult(quizResult);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao submeter quiz');
+      toast({
+        title: 'Erro',
+        description: err.response?.data?.message || 'Erro ao submeter quiz',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
