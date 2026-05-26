@@ -12,6 +12,7 @@ import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { QuizResult } from './interfaces/quiz.interface';
 import { AnalyticsService } from '../../shared/analytics/analytics.service';
 import { AnalyticsEvents } from '../../shared/analytics/analytics.events';
+import { Difficulty } from '@prisma/client';
 
 @Injectable()
 export class QuizAttemptsService {
@@ -130,9 +131,9 @@ export class QuizAttemptsService {
         const question = quiz.questions.find(
           (q: any) => q.id === correctedAnswer.questionId,
         );
-        // QuizQuestion does not yet have `difficulty` field; fall back to MEDIUM if absent.
-        // TODO Sprint 2: add Difficulty to QuizQuestion.
-        const difficulty: any = (question && (question as any).difficulty) ?? 'MEDIUM';
+        // Usa o campo difficulty da questão (adicionado no schema); fallback MEDIUM por segurança.
+        const difficulty: Difficulty =
+          (question?.difficulty as Difficulty | undefined) ?? Difficulty.MEDIUM;
 
         const xp = await this.xpCalculator.calculate({
           difficulty,
