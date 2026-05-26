@@ -19,8 +19,11 @@
 
 /* === MODAL OVERLAY (gate das animações) === */
 .gelpiScope :global(.modal-overlay) {
-  position: absolute;
+  /* fixed (não absolute): cobre a viewport inteira como um modal de verdade,
+     independente do scroll/altura do box do quiz. z-index acima da top bar. */
+  position: fixed;
   inset: 0;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -297,6 +300,11 @@
   left: 0;
   right: 0;
   width: 100%;
+  /* Desktop: limita a largura e centraliza (bottom-sheet vira card central-inferior).
+     O translateY do slide continua funcionando (não mexe no eixo X). */
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
   background: white;
   border-radius: 28px 28px 0 0;
   padding: 24px 22px 36px;
