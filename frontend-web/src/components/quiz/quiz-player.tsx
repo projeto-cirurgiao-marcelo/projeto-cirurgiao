@@ -39,7 +39,9 @@ export function QuizPlayer({ quiz, onSubmit, onCancel }: QuizPlayerProps) {
   const total = quiz.questions.length;
   const isLast = currentIndex === total - 1;
   const accuracyPct = answeredCount === 0 ? 0 : (correctCount / answeredCount) * 100;
-  const xpProgressPct = total > 0 ? (correctCount / total) * 100 : 0;
+  // Barra do header = progresso de questões (casa com "Pergunta X de Y").
+  // A gamificação de XP fica no modal (+XP por acerto) e na pílula de combo.
+  const progressPct = total > 0 ? ((currentIndex + 1) / total) * 100 : 0;
 
   const handleSelectOption = async (optionIndex: number) => {
     if (isCheckingRef.current || playStep !== 'answering') return;
@@ -111,7 +113,7 @@ export function QuizPlayer({ quiz, onSubmit, onCancel }: QuizPlayerProps) {
           <div className="h-2.5 rounded-full bg-atlas-surface-2 overflow-hidden">
             <div
               className="h-full rounded-full transition-[width] duration-500"
-              style={{ width: `${xpProgressPct}%`, background: 'linear-gradient(90deg,#1E6FD9,#4FA8E8)' }}
+              style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg,#1E6FD9,#4FA8E8)' }}
             />
           </div>
         </div>
