@@ -32,6 +32,14 @@ R2_SECRET_KEY = os.environ.get('R2_SECRET_KEY', '')
 R2_BUCKET = os.environ.get('R2_BUCKET', 's3-projeto-cirurgiao')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '')
 
+# Falha explícita no startup se o secret não estiver configurado.
+# Um secret vazio deixaria /process totalmente aberto — isso é inaceitável.
+if not WEBHOOK_SECRET:
+    raise RuntimeError(
+        "WEBHOOK_SECRET não configurado. "
+        "Defina a variável de ambiente antes de iniciar o serviço."
+    )
+
 # Whisper config
 WHISPER_MODEL = os.environ.get('WHISPER_MODEL', 'large-v3')
 WHISPER_LANGUAGE = 'pt'
@@ -557,9 +565,9 @@ def health():
 @app.route('/process', methods=['POST'])
 def process():
     """Endpoint principal - recebe webhook do Cloudflare Worker."""
-    # Verificar autenticação
+    # Verificar autenticação — WEBHOOK_SECRET é garantido não-vazio pelo startup check.
     auth = request.headers.get('Authorization', '')
-    if WEBHOOK_SECRET and auth != f'Bearer {WEBHOOK_SECRET}':
+    if auth != f'Bearer {WEBHOOK_SECRET}':
         return jsonify({'error': 'unauthorized'}), 401
 
     data = request.get_json()
