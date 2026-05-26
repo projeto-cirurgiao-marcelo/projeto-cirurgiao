@@ -8,7 +8,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { QuizGeneratorService } from './quiz-generator.service';
 import { VttTextService } from '../../shared/vtt/vtt-text.service';
 import { GenerateQuizDto } from './dto/generate-quiz.dto';
-import { QuizDifficulty } from '@prisma/client';
+import { Difficulty, QuizDifficulty } from '@prisma/client';
 
 @Injectable()
 export class QuizzesService {
@@ -62,14 +62,24 @@ export class QuizzesService {
         timeLimit: dto.timeLimit,
         passingScore: dto.passingScore || 70,
         questions: {
-          create: generatedQuiz.questions.map((q, index) => ({
-            question: q.question,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            explanation: q.explanation,
-            order: index + 1,
-            points: 10,
-          })),
+          create: generatedQuiz.questions.map((q, index) => {
+            // Herda difficulty da questão gerada (se a IA retornar), senão da
+            // dificuldade global do quiz, senão MEDIUM.
+            // QuizDifficulty e Difficulty têm os mesmos literais (EASY/MEDIUM/HARD).
+            const quizLevel = dto.difficulty || QuizDifficulty.MEDIUM;
+            const questionDifficulty: Difficulty =
+              ((q as any).difficulty as Difficulty) ??
+              (quizLevel as unknown as Difficulty);
+            return {
+              question: q.question,
+              options: q.options,
+              correctAnswer: q.correctAnswer,
+              explanation: q.explanation,
+              order: index + 1,
+              points: 10,
+              difficulty: questionDifficulty,
+            };
+          }),
         },
       },
       include: {

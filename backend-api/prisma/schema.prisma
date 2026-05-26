@@ -484,6 +484,7 @@ model QuizQuestion {
   explanation   String?
   order         Int
   points        Int          @default(10)
+  difficulty    Difficulty   @default(MEDIUM)
   createdAt     DateTime     @default(now())
   answers       QuizAnswer[]
   quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
