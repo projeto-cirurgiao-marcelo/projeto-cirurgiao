@@ -5,8 +5,7 @@ import styles from './gelpi.module.css';
 import DrGelpi from './DrGelpiSVG';
 import { Confetti, Halo, Sparkles, XPBurst } from './ConfettiSVG';
 import { HeartPulse, CalmWaves, InsightPops } from './ErrorEffectsSVG';
-
-export type ConfidenceLevel = 'GUESSED' | 'THOUGHT_KNEW' | 'KNEW' | 'MASTERED';
+import type { ConfidenceLevel } from '@/lib/api/quizzes.service';
 
 const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string; emoji: string }[] = [
   { value: 'GUESSED', label: 'Chutei', emoji: '🎲' },
@@ -57,14 +56,6 @@ export function GelpiCelebrateModal({
   const continueBtnClass = ['continue-btn', state === 'wrong' ? 'error-mode' : '']
     .filter(Boolean)
     .join(' ');
-
-  const handleConfidenceClick = (level: ConfidenceLevel) => {
-    onSelectConfidence(level);
-  };
-
-  const handleContinueClick = () => {
-    onContinue();
-  };
 
   return (
     <div className={styles.gelpiScope}>
@@ -118,7 +109,7 @@ export function GelpiCelebrateModal({
                     <button
                       key={opt.value}
                       className={`conf-btn ${active ? 'active' : ''}`}
-                      onClick={() => handleConfidenceClick(opt.value)}
+                      onClick={() => onSelectConfidence(opt.value)}
                       type="button"
                     >
                       <div className="conf-emoji">{opt.emoji}</div>
@@ -132,7 +123,7 @@ export function GelpiCelebrateModal({
 
           <button
             className={continueBtnClass}
-            onClick={handleContinueClick}
+            onClick={onContinue}
             disabled={!selectedConfidence}
             type="button"
           >
@@ -143,5 +134,3 @@ export function GelpiCelebrateModal({
     </div>
   );
 }
-
-export type { GelpiCelebrateModalProps };
