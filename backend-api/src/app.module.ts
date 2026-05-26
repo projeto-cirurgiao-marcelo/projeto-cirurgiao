@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { USER_THROTTLE_TRACKER } from './shared/throttler/user-throttler.guard';
@@ -9,6 +10,7 @@ import { AnalyticsModule } from './shared/analytics/analytics.module';
 import { AuditModule } from './shared/audit/audit.module';
 import { PrismaModule } from './shared/prisma/prisma.module';
 import { TokenCleanupService } from './shared/tasks/token-cleanup.service';
+import { QuizOrphanCleanupService } from './shared/tasks/quiz-orphan-cleanup.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
@@ -40,6 +42,7 @@ import { MediaFoldersModule } from './modules/media-folders/media-folders.module
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -103,6 +106,7 @@ import { MediaFoldersModule } from './modules/media-folders/media-folders.module
       useClass: ThrottlerGuard,
     },
     TokenCleanupService,
+    QuizOrphanCleanupService,
   ],
 })
 export class AppModule {}
