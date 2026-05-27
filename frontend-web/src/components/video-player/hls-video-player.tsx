@@ -148,11 +148,10 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           enableWorker: true,
           lowLatencyMode: false,
           startLevel: -1,
-          // Nao exibir a legenda do manifest (subtitles.m3u8) automaticamente.
-          // Sem isto o hls.js liga a faixa por padrao, ignorando o controle
-          // do <track>. O aluno ativa pela barra de controles quando quiser.
-          subtitleDisplay: false,
         });
+        // Nota: o desligamento da legenda por padrao e feito pelo efeito de
+        // force-off mais abaixo (poe as text tracks em `disabled` na janela
+        // inicial). `subtitleDisplay` nao e opcao tipada do hls.js nesta versao.
 
         hls.loadSource(src);
         hls.attachMedia(video);
