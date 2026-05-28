@@ -5,12 +5,15 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  Copy,
+  ExternalLink,
   Loader2,
   RefreshCw,
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { cdnUrl, playlistKeyFor } from '@/lib/api/r2-browser.service';
 import {
   type VideoProcessingJob,
   deleteFailedVideoJobs,
@@ -156,6 +159,15 @@ export function JobsTable() {
     }
   }, [confirm, fetchJobs]);
 
+  const copyHls = useCallback(async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('URL HLS copiada', { description: url });
+    } catch {
+      toast.error('Não foi possível copiar', { description: url });
+    }
+  }, []);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -224,7 +236,11 @@ export function JobsTable() {
                 </td>
               </tr>
             )}
-            {jobs.map((j) => (
+            {jobs.map((j) => {
+              const hlsUrl = j.destinationKey
+                ? cdnUrl(playlistKeyFor(j.destinationKey))
+                : null;
+              return (
               <tr key={j.id} className="hover:bg-atlas-surface-2/30">
                 <td className="px-3 py-2">
                   <span
@@ -247,8 +263,39 @@ export function JobsTable() {
                     </div>
                   )}
                 </td>
-                <td className="px-3 py-2 font-mono text-[11px] text-atlas-muted-2">
-                  {j.destinationKey ?? '—'}
+                <td className="px-3 py-2">
+                  {j.destinationKey ? (
+                    <div className="space-y-1">
+                      <div className="font-mono text-[11px] text-atlas-muted-2 break-all">
+                        {j.destinationKey}
+                      </div>
+                      {j.status === 'completed' && hlsUrl && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => copyHls(hlsUrl)}
+                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-atlas-muted-2 transition-colors hover:bg-atlas-surface-2 hover:text-atlas-ink dark:hover:text-atlas-ink-2"
+                          >
+                            <Copy className="h-3 w-3" />
+                            Copiar HLS
+                          </button>
+                          <a
+                            href={hlsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-atlas-muted-2 transition-colors hover:bg-atlas-surface-2 hover:text-atlas-ink dark:hover:text-atlas-ink-2"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Abrir
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="font-mono text-[11px] text-atlas-muted-2">
+                      —
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-[11px] text-atlas-muted-2">
                   {j.profiles.length > 0 ? j.profiles.join(', ') : '—'}
@@ -277,7 +324,8 @@ export function JobsTable() {
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
