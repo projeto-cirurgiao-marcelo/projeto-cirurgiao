@@ -332,7 +332,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         <video
           slot="media"
           ref={videoRef}
-          className="w-full h-full"
+          className="w-full h-full object-contain"
           playsInline
           crossOrigin="anonymous"
         >
