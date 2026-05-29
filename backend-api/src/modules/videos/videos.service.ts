@@ -140,18 +140,27 @@ export class VideosService {
     const url = dto.url.trim();
     const seekSec = Math.max(0, Math.min(7200, dto.seekSec ?? 30));
 
-    const publicUrl = (
-      this.configService.get<string>('CLOUDFLARE_R2_PUBLIC_URL') ?? ''
-    ).replace(/\/+$/, '');
-    if (!publicUrl) {
-      throw new BadRequestException(
-        'R2 public URL not configured on backend',
-      );
-    }
-    if (!url.startsWith(`${publicUrl}/`)) {
-      throw new BadRequestException(
-        'URL must point to the project R2 bucket',
-      );
+    // SSRF guard: só hosts R2 do projeto. Os vídeos são servidos tanto pela
+    // URL pública direta do R2 (CLOUDFLARE_R2_PUBLIC_URL) quanto pelo CDN
+    // custom (CLOUDFLARE_R2_CDN_URL) — o R2PlaylistPicker do admin usa o CDN,
+    // então ambos precisam ser aceitos. Validamos pelo HOST (allowlist) e
+    // derivamos a key R2 do pathname, não do prefixo da URL (o domínio que
+    // serviu o arquivo varia; ambos apontam pro mesmo bucket).
+    const allowedHosts = [
+      this.configService.get<string>('CLOUDFLARE_R2_PUBLIC_URL'),
+      this.configService.get<string>('CLOUDFLARE_R2_CDN_URL'),
+    ]
+      .filter((u): u is string => !!u)
+      .map((u) => {
+        try {
+          return new URL(u).host;
+        } catch {
+          return '';
+        }
+      })
+      .filter(Boolean);
+    if (allowedHosts.length === 0) {
+      throw new BadRequestException('R2 public URL not configured on backend');
     }
 
     let parsed: URL;
@@ -160,11 +169,17 @@ export class VideosService {
     } catch {
       throw new BadRequestException('Invalid URL');
     }
+    if (parsed.protocol !== 'https:' || !allowedHosts.includes(parsed.host)) {
+      throw new BadRequestException(
+        'URL must point to the project R2 bucket',
+      );
+    }
     if (!parsed.pathname.endsWith('.m3u8')) {
       throw new BadRequestException('URL must end with .m3u8');
     }
 
-    const relativeKey = url.substring(publicUrl.length + 1);
+    // Key R2 derivada do pathname decodificado — independe do host que serviu.
+    const relativeKey = decodeURIComponent(parsed.pathname).replace(/^\/+/, '');
     const baseDir = posix.dirname(relativeKey);
     if (
       !baseDir ||
