@@ -260,17 +260,31 @@ export default function ModuleVideosPage() {
     }
   };
 
-  // Publicar/despublicar vídeo
+  // Publicar/despublicar vídeo — update OTIMISTA, sem refetch da lista.
+  // Antes recarregava a lista inteira a cada clique (loadVideos), o que
+  // (a) escondia a lista durante o loading — a tela "piscava" — e (b) ao
+  // publicar várias aulas em série disparava um GET /modules/:id/videos por
+  // clique, estourando o rate limit do backend (20/s) → 429. Agora só o
+  // PATCH toggle-publish viaja; a UI reflete na hora e reconcilia com a
+  // resposta do servidor. Sem toast de sucesso (o badge já é o feedback e
+  // evita empilhar toasts numa publicação em série).
   const handleTogglePublish = async (videoId: string) => {
+    setVideos((cur) =>
+      cur.map((v) =>
+        v.id === videoId ? { ...v, isPublished: !v.isPublished } : v,
+      ),
+    );
     try {
-      await videosService.togglePublish(videoId);
-      toast({
-        title: 'Sucesso',
-        description: 'Status do vídeo atualizado!',
-      });
-      await loadVideos();
+      const updated = await videosService.togglePublish(videoId);
+      setVideos((cur) => cur.map((v) => (v.id === videoId ? updated : v)));
     } catch (error) {
       logger.error('Erro ao atualizar status:', error);
+      // rollback: desfaz o toggle otimista só deste item (preserva os demais)
+      setVideos((cur) =>
+        cur.map((v) =>
+          v.id === videoId ? { ...v, isPublished: !v.isPublished } : v,
+        ),
+      );
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o status do vídeo.',
