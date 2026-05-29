@@ -13,6 +13,7 @@ import shutil
 import tempfile
 import logging
 import glob
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify
 import boto3
 import requests
@@ -48,6 +49,10 @@ WHISPER_LANGUAGE = 'pt'
 BACKEND_API_URL = os.environ.get('BACKEND_API_URL', '')
 VIDEO_WEBHOOK_SECRET = os.environ.get('VIDEO_WEBHOOK_SECRET', '')
 R2_PUBLIC_URL = os.environ.get('R2_PUBLIC_URL', 'https://pub-42ef583694d949bca7c5c104422f55c7.r2.dev')
+
+# Upload paralelo: nº de PUTs simultâneos pro R2. Um vídeo 4K longo gera
+# >1000 segmentos .ts; subir serial dominava ~1/3 do tempo do job.
+UPLOAD_CONCURRENCY = int(os.environ.get('UPLOAD_CONCURRENCY', '32'))
 
 # HLS encoding profiles
 HLS_PROFILES = {
@@ -183,111 +188,117 @@ def compute_output_dims(src_w, src_h, target_h, max_w=NVENC_MAX_WIDTH):
     return out_w, out_h
 
 
-def encode_hls(input_file, output_dir):
-    """Encoda vídeo para HLS com múltiplas qualidades."""
-    os.makedirs(output_dir, exist_ok=True)
-    width, height, fps = get_video_info(input_file)
-
-    logger.info(f"Video: {width}x{height} @ {fps}fps")
-
-    # Determinar quais perfis gerar baseado na resolução
-    profiles_to_encode = {}
-    for name, profile in HLS_PROFILES.items():
-        if height >= profile['height']:
-            profiles_to_encode[name] = profile
-
-    if not profiles_to_encode:
-        profiles_to_encode['720p'] = HLS_PROFILES['720p']
-
-    input_file = normalize_source_if_needed(input_file, width)
-
-    gop = fps * 4  # keyframe a cada 4 segundos
-    master_playlist_lines = ['#EXTM3U', '#EXT-X-VERSION:3', '']
-
-    for name, profile in profiles_to_encode.items():
-        logger.info(f"Encoding {name}...")
-        out_height = profile['height']
-
-        variant_dir = output_dir
-        bufsize = str(int(profile['maxrate'].replace('k', '')) * 2) + 'k'
-
-        # Capping width to 4096 (NVENC H.264 hard limit). For 16:9 sources this
-        # is a no-op; for >2:1 ultra-wide sources at the 2160p variant it
-        # downsizes height instead of producing a >4096px frame the encoder
-        # would reject.
-        cuda_scale = (
+def _scale_expr(out_height, cuda=True):
+    """Filtro de scale com cap de 4096px de largura (limite NVENC H.264).
+    Pra 16:9 é no-op; pra sources >2:1 (ultra-wide) reduz a altura em vez de
+    emitir frame >4096px que o encoder rejeita."""
+    if cuda:
+        return (
             f'scale_cuda=w={NVENC_MAX_WIDTH}:h={out_height}:'
             'force_original_aspect_ratio=decrease:force_divisible_by=2'
         )
-        cpu_scale = (
-            f'scale=w={NVENC_MAX_WIDTH}:h={out_height}:'
-            'force_original_aspect_ratio=decrease:force_divisible_by=2:'
-            'flags=lanczos,format=yuv420p'
-        )
+    return (
+        f'scale=w={NVENC_MAX_WIDTH}:h={out_height}:'
+        'force_original_aspect_ratio=decrease:force_divisible_by=2:'
+        'flags=lanczos,format=yuv420p'
+    )
 
-        hls_args = [
-            '-hls_time', '4',
-            '-hls_list_size', '0',
-            '-hls_segment_filename', f'{variant_dir}/{name}_%03d.ts',
-            '-f', 'hls',
-            f'{variant_dir}/{name}.m3u8',
-            '-y'
-        ]
-        rate_audio_gop_args = [
-            '-b:v', profile['bitrate'],
-            '-maxrate', profile['maxrate'],
-            '-bufsize', bufsize,
-            '-c:a', 'aac', '-b:a', '128k',
-            '-g', str(gop),
-            '-keyint_min', str(gop),
-            '-force_key_frames', f'expr:gte(t,n_forced*4)',
-        ]
-        nvenc_args = [
-            '-c:v', 'h264_nvenc',
-            '-preset', 'p4',
-            '-tune', 'hq',
-        ]
+
+def _encoding_args(profile, gop):
+    """nvenc + rate/áudio/gop comuns a todos os caminhos. force_key_frames a
+    cada 4s mantém os keyframes alinhados entre variantes (ABR suave)."""
+    bufsize = str(int(profile['maxrate'].replace('k', '')) * 2) + 'k'
+    return [
+        '-c:v', 'h264_nvenc', '-preset', 'p4', '-tune', 'hq',
+        '-b:v', profile['bitrate'], '-maxrate', profile['maxrate'], '-bufsize', bufsize,
+        '-c:a', 'aac', '-b:a', '128k',
+        '-g', str(gop), '-keyint_min', str(gop),
+        '-force_key_frames', 'expr:gte(t,n_forced*4)',
+    ]
+
+
+def _hls_output_args(output_dir, name):
+    return [
+        '-hls_time', '4', '-hls_list_size', '0',
+        '-hls_segment_filename', f'{output_dir}/{name}_%03d.ts',
+        '-f', 'hls', f'{output_dir}/{name}.m3u8',
+    ]
+
+
+def _cleanup_variant(output_dir, name):
+    for partial in glob.glob(f'{output_dir}/{name}_*.ts') + glob.glob(f'{output_dir}/{name}.m3u8*'):
+        try:
+            os.remove(partial)
+        except FileNotFoundError:
+            pass
+
+
+def _write_master_playlist(output_dir, profiles_to_encode, src_w, src_h):
+    """Master playlist com as dimensões REAIS de saída (compute_output_dims),
+    que podem diferir do height nominal após o cap de 4096 de largura."""
+    lines = ['#EXTM3U', '#EXT-X-VERSION:3', '']
+    for name, profile in profiles_to_encode.items():
+        bandwidth = int(profile['maxrate'].replace('k', '')) * 1000
+        res_w, res_h = compute_output_dims(src_w, src_h, profile['height'])
+        lines.append(
+            f'#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={res_w}x{res_h}'
+        )
+        lines.append(f'{name}.m3u8')
+    with open(f'{output_dir}/playlist.m3u8', 'w', newline='\n') as f:
+        f.write('\n'.join(lines) + '\n')
+
+
+def _build_single_decode_cmd(input_file, output_dir, profiles_to_encode, gop):
+    """Um único ffmpeg: NVDEC decoda o source 1x, split pra N branches,
+    scale_cuda + h264_nvenc por branch. Elimina o decode repetido (era 1
+    decode do source POR perfil — dominava o tempo em 4K/longos)."""
+    names = list(profiles_to_encode.keys())
+    split_labels = ''.join(f'[s{i}]' for i in range(len(names)))
+    filter_parts = [f'[0:v]split={len(names)}{split_labels}']
+    for i, name in enumerate(names):
+        filter_parts.append(
+            f'[s{i}]{_scale_expr(profiles_to_encode[name]["height"], cuda=True)}[v{name}]'
+        )
+    filter_complex = ';'.join(filter_parts)
+
+    cmd = [
+        'ffmpeg', '-y',
+        '-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda',
+        '-i', input_file,
+        '-filter_complex', filter_complex,
+    ]
+    for name in names:
+        cmd += ['-map', f'[v{name}]', '-map', '0:a?']
+        cmd += _encoding_args(profiles_to_encode[name], gop)
+        cmd += _hls_output_args(output_dir, name)
+    return cmd
+
+
+def _encode_per_profile(input_file, output_dir, profiles_to_encode, gop):
+    """Fallback robusto: 1 ffmpeg por perfil com cascata cuda_original →
+    cuda_threads_1 → cpu_scale_nvenc. Re-decoda por perfil (mais lento), mas
+    tolera sources que quebram o caminho single-decode."""
+    for name, profile in profiles_to_encode.items():
+        logger.info(f"Encoding {name}...")
+        enc = _encoding_args(profile, gop)
+        hls = _hls_output_args(output_dir, name) + ['-y']
+        cuda_scale = _scale_expr(profile['height'], cuda=True)
+        cpu_scale = _scale_expr(profile['height'], cuda=False)
 
         encode_attempts = [
-            (
-                'cuda_original',
-                [
-                    'ffmpeg',
-                    '-hwaccel', 'cuda',
-                    '-hwaccel_output_format', 'cuda',
-                    '-i', input_file,
-                    '-vf', cuda_scale,
-                    *nvenc_args,
-                    *rate_audio_gop_args,
-                    *hls_args,
-                ],
-            ),
-            (
-                'cuda_threads_1',
-                [
-                    'ffmpeg',
-                    '-threads', '1',
-                    '-hwaccel', 'cuda',
-                    '-hwaccel_output_format', 'cuda',
-                    '-i', input_file,
-                    '-vf', cuda_scale,
-                    *nvenc_args,
-                    *rate_audio_gop_args,
-                    *hls_args,
-                ],
-            ),
-            (
-                'cpu_scale_nvenc',
-                [
-                    'ffmpeg',
-                    '-threads', '1',
-                    '-i', input_file,
-                    '-vf', cpu_scale,
-                    *nvenc_args,
-                    *rate_audio_gop_args,
-                    *hls_args,
-                ],
-            ),
+            ('cuda_original', [
+                'ffmpeg', '-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda',
+                '-i', input_file, '-vf', cuda_scale, *enc, *hls,
+            ]),
+            ('cuda_threads_1', [
+                'ffmpeg', '-threads', '1',
+                '-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda',
+                '-i', input_file, '-vf', cuda_scale, *enc, *hls,
+            ]),
+            ('cpu_scale_nvenc', [
+                'ffmpeg', '-threads', '1',
+                '-i', input_file, '-vf', cpu_scale, *enc, *hls,
+            ]),
         ]
 
         success = False
@@ -304,33 +315,55 @@ def encode_hls(input_file, output_dir):
             logger.warning(f"Encode {name} attempt failed: {attempt_name}")
             logger.error(f"ffmpeg cmd: {' '.join(cmd)}")
             logger.error(f"ffmpeg stderr (full) for {name}/{attempt_name}:\n{result.stderr}")
-
-            partial_files = glob.glob(f'{variant_dir}/{name}_*.ts') + glob.glob(f'{variant_dir}/{name}.m3u8*')
-            for partial in partial_files:
-                try:
-                    os.remove(partial)
-                except FileNotFoundError:
-                    pass
+            _cleanup_variant(output_dir, name)
 
         if not success:
             logger.error(f"All encode attempts failed for {name}: {failed_attempts}")
             raise Exception(f"Encode {name} failed")
 
-        # Adicionar ao master playlist com as dimensões reais de saída
-        # (que podem diferir de out_height após o cap de 4096 de largura).
-        bandwidth = int(profile['maxrate'].replace('k', '')) * 1000
-        res_width, res_height = compute_output_dims(width, height, out_height)
-        master_playlist_lines.append(
-            f'#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={res_width}x{res_height}'
-        )
-        master_playlist_lines.append(f'{name}.m3u8')
 
-    # Escrever master playlist
-    with open(f'{output_dir}/playlist.m3u8', 'w', newline='\n') as f:
-        f.write('\n'.join(master_playlist_lines) + '\n')
+def encode_hls(input_file, output_dir):
+    """Encoda vídeo para HLS com múltiplas qualidades.
 
+    Caminho primário: single-decode (1 NVDEC decode → split → N encodes NVENC
+    num único ffmpeg). O source decodava N vezes (1 por perfil), o que dominava
+    o tempo de encode em 4K/longos; agora decoda 1x. Se o single-decode falhar
+    (source que quebra split/scale_cuda, limite de sessões NVENC etc.), cai pro
+    caminho per-perfil com a cascata de fallback original.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    width, height, fps = get_video_info(input_file)
+    logger.info(f"Video: {width}x{height} @ {fps}fps")
+
+    # Determinar quais perfis gerar baseado na resolução
+    profiles_to_encode = {}
+    for name, profile in HLS_PROFILES.items():
+        if height >= profile['height']:
+            profiles_to_encode[name] = profile
+    if not profiles_to_encode:
+        profiles_to_encode['720p'] = HLS_PROFILES['720p']
+
+    input_file = normalize_source_if_needed(input_file, width)
+    gop = fps * 4  # keyframe a cada 4 segundos
+    names = list(profiles_to_encode.keys())
+
+    logger.info(f"Encoding single-decode: {names}")
+    single_cmd = _build_single_decode_cmd(input_file, output_dir, profiles_to_encode, gop)
+    result = subprocess.run(single_cmd, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        logger.info(f"Single-decode encode OK: {len(names)} qualidades")
+    else:
+        logger.warning("Single-decode falhou, caindo pro encode per-perfil")
+        logger.error(f"ffmpeg cmd: {' '.join(single_cmd)}")
+        logger.error(f"single-decode stderr (tail): {result.stderr[-2000:]}")
+        for name in names:
+            _cleanup_variant(output_dir, name)
+        _encode_per_profile(input_file, output_dir, profiles_to_encode, gop)
+
+    _write_master_playlist(output_dir, profiles_to_encode, width, height)
     logger.info(f"HLS encode concluído: {len(profiles_to_encode)} qualidades")
-    return list(profiles_to_encode.keys())
+    return names
 
 
 def generate_subtitles(input_file, output_dir):
@@ -419,7 +452,11 @@ def format_timestamp(seconds):
 
 
 def upload_to_r2(local_dir, r2_prefix):
-    """Faz upload de todos os arquivos com content-type correto."""
+    """Faz upload de todos os arquivos com content-type correto, em paralelo.
+
+    Um vídeo 4K longo gera >1000 segmentos .ts; subir serialmente dominava
+    ~1/3 do tempo do job. ThreadPoolExecutor com UPLOAD_CONCURRENCY PUTs
+    simultâneos (boto3 client de baixo nível é thread-safe)."""
     s3 = get_s3()
 
     mime_types = {
@@ -428,7 +465,8 @@ def upload_to_r2(local_dir, r2_prefix):
         '.ts': 'video/mp2t',
     }
 
-    files_uploaded = 0
+    # Coletar todos os arquivos primeiro (a árvore HLS é flat e finita).
+    tasks = []
     for root, dirs, files in os.walk(local_dir):
         for filename in files:
             local_path = os.path.join(root, filename)
@@ -436,13 +474,22 @@ def upload_to_r2(local_dir, r2_prefix):
             r2_key = f"{r2_prefix}/{rel_path}"
             ext = os.path.splitext(filename)[1].lower()
             content_type = mime_types.get(ext, 'application/octet-stream')
+            tasks.append((local_path, r2_key, content_type))
 
-            with open(local_path, 'rb') as f:
-                s3.put_object(Bucket=R2_BUCKET, Key=r2_key, Body=f, ContentType=content_type)
+    def _put(task):
+        local_path, r2_key, content_type = task
+        with open(local_path, 'rb') as f:
+            s3.put_object(Bucket=R2_BUCKET, Key=r2_key, Body=f, ContentType=content_type)
 
+    total = len(tasks)
+    files_uploaded = 0
+    with ThreadPoolExecutor(max_workers=UPLOAD_CONCURRENCY) as executor:
+        futures = [executor.submit(_put, t) for t in tasks]
+        for fut in as_completed(futures):
+            fut.result()  # propaga exceção do PUT (falha o job, como antes)
             files_uploaded += 1
-            if files_uploaded % 50 == 0:
-                logger.info(f"Upload progresso: {files_uploaded} arquivos")
+            if files_uploaded % 100 == 0:
+                logger.info(f"Upload progresso: {files_uploaded}/{total} arquivos")
 
     logger.info(f"Upload concluído: {files_uploaded} arquivos")
     return files_uploaded
