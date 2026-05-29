@@ -203,10 +203,16 @@ export class VideosService {
         outputKey,
         'image/jpeg',
       );
+      // getPublicUrl monta a URL com a key crua; chaves com espaço/acento
+      // (ex: "videos/Tecidos Moles na Prática/...") sairiam não-encodadas e
+      // o @IsUrl do create-video-from-r2-hls rejeitaria ("must be a URL
+      // address"). new URL() percent-encoda o pathname → URL RFC-válida
+      // (mesmo efeito do cdnUrl no frontend).
+      const thumbnailUrl = new URL(uploaded.url).href;
       this.logger.log(
-        `Extracted HLS thumbnail: ${url} -> ${uploaded.url} (seek=${seekSec}s)`,
+        `Extracted HLS thumbnail: ${url} -> ${thumbnailUrl} (seek=${seekSec}s)`,
       );
-      return { thumbnailUrl: uploaded.url };
+      return { thumbnailUrl };
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }
