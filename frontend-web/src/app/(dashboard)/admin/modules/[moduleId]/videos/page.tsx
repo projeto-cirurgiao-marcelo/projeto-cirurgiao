@@ -96,7 +96,11 @@ export default function ModuleVideosPage() {
 
   // Estados do modal de upload
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'file' | 'url' | 'r2_hls'>('file');
+  // Default R2 HLS: o upload de arquivo (Cloudflare Stream, legado) foi
+  // removido da UI — arquivos novos sobem pelo /admin/r2-browser (→ inbox/ →
+  // pipeline) e são registrados aqui pelo modo R2 HLS. O bloco do modo 'file'
+  // permanece no código mas inacessível (débito a limpar na migração R2 100%).
+  const [uploadMode, setUploadMode] = useState<'file' | 'url' | 'r2_hls'>('r2_hls');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -1031,21 +1035,11 @@ export default function ModuleVideosPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Toggle entre Upload, URL e R2 HLS — escondido após criação */}
+            {/* Toggle entre URL e R2 HLS — escondido após criação.
+                "Upload de Arquivo" (Cloudflare Stream legado) removido: arquivos
+                novos sobem pelo /admin/r2-browser e entram aqui via R2 HLS. */}
             {!createdR2Video && (
             <div className="flex gap-2 p-1 bg-muted rounded-lg">
-              <Button
-                variant={uploadMode === 'file' ? 'default' : 'ghost'}
-                className="flex-1"
-                onClick={() => {
-                  setUploadMode('file');
-                  setVideoUrl('');
-                }}
-                disabled={isUploading}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload de Arquivo
-              </Button>
               <Button
                 variant={uploadMode === 'url' ? 'default' : 'ghost'}
                 className="flex-1"
@@ -1295,6 +1289,12 @@ export default function ModuleVideosPage() {
                   .m3u8</strong> que já saiu do pipeline externo (FFmpeg +
                   Whisper em R2). O backend não processa nada — só grava
                   o vídeo como pronto.
+                  <br />
+                  <span className="text-xs">
+                    Para subir um <strong>arquivo novo</strong>, faça o upload
+                    pelo <strong>R2 Browser</strong> (vai pro pipeline) e depois
+                    registre a aula aqui.
+                  </span>
                 </div>
 
                 <div className="space-y-2">
