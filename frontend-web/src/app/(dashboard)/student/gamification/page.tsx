@@ -511,7 +511,7 @@ export default function GamificationPage() {
             {/* Top 3 Podium (só mostra se houver 3+) */}
             {leaderboardEntries.length >= 3 && (
             <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
-              <div className="flex flex-col items-center pt-8">
+              <div className="flex flex-col items-center pt-8 min-w-0">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-lg sm:text-xl font-bold text-gray-700 border-4 border-gray-300 shadow-md">
                   {leaderboardEntries[1].displayName.split(' ').map(n => n[0]).join('').slice(0,2)}
                 </div>
@@ -520,7 +520,7 @@ export default function GamificationPage() {
                 <p className="text-xs text-gray-500">{leaderboardEntries[1].xpEarned.toLocaleString()} XP</p>
               </div>
 
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center min-w-0">
                 <Crown className="w-8 h-8 text-amber-500 mb-1" />
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center text-xl sm:text-2xl font-bold text-amber-900 border-4 border-amber-400 shadow-lg ring-4 ring-amber-200">
                   {leaderboardEntries[0].displayName.split(' ').map(n => n[0]).join('').slice(0,2)}
@@ -530,7 +530,7 @@ export default function GamificationPage() {
                 <p className="text-xs text-gray-500">{leaderboardEntries[0].xpEarned.toLocaleString()} XP</p>
               </div>
 
-              <div className="flex flex-col items-center pt-12">
+              <div className="flex flex-col items-center pt-12 min-w-0">
                 <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-orange-200 to-orange-400 flex items-center justify-center text-base sm:text-lg font-bold text-orange-800 border-4 border-orange-300 shadow-md">
                   {leaderboardEntries[2].displayName.split(' ').map(n => n[0]).join('').slice(0,2)}
                 </div>
