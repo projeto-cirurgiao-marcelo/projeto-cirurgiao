@@ -251,7 +251,7 @@ export function NotificationCenter() {
 
       <DropdownMenuContent
         align="end"
-        className="w-[340px] sm:w-[400px] p-0 rounded-xl shadow-xl border border-gray-200"
+        className="w-[340px] max-w-[calc(100vw-1.5rem)] sm:w-[400px] p-0 rounded-xl shadow-xl border border-gray-200"
         sideOffset={8}
       >
         {/* Header */}
