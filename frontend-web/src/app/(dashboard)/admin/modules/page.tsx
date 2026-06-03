@@ -308,7 +308,7 @@ export default function AdminModulesPage() {
                             {mod.title}
                           </p>
                           {mod.description && (
-                            <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate max-w-[300px]">
+                            <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate max-w-[160px] sm:max-w-[300px]">
                               {mod.description}
                             </p>
                           )}

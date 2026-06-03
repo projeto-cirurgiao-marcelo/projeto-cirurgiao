@@ -427,7 +427,7 @@ export default function AdminVideosPage() {
                               {video.title}
                             </p>
                             {video.description && (
-                              <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate max-w-[280px]">
+                              <p className="text-xs text-atlas-muted dark:text-atlas-muted-2 truncate max-w-[160px] sm:max-w-[280px]">
                                 {video.description}
                               </p>
                             )}
