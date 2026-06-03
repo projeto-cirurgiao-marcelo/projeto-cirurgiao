@@ -1022,7 +1022,7 @@ export default function ModuleVideosPage() {
 
       {/* Modal de Upload */}
       <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white">
+        <DialogContent className="w-full max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white">
           <DialogHeader>
             <DialogTitle>
               {createdR2Video ? 'Finalize o conteúdo do vídeo' : 'Adicionar Vídeo'}
