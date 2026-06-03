@@ -452,7 +452,7 @@ export default function TopicDetailPage() {
                 </div>
 
                 <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed mb-5">
-                  <p className="whitespace-pre-wrap">{topic.content}</p>
+                  <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{topic.content}</p>
                 </div>
 
                 {/* Related Video */}

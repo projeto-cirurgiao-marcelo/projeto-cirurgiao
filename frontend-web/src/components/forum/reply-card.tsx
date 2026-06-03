@@ -114,7 +114,7 @@ export function ReplyCard({
 
         {/* Content */}
         <div className="pl-12">
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
             {reply.content}
           </p>
 
