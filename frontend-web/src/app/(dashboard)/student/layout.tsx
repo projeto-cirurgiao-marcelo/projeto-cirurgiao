@@ -133,7 +133,7 @@ export default function StudentLayout({
           className={cn(
             'p-4 md:p-6 lg:p-8 transition-all duration-300',
             'ml-0',
-            'overflow-x-hidden',
+            // Overflow horizontal contido pelo backstop overflow-x:clip no html (globals-premium.css), não mascarado aqui.
             isCollapsed ? 'md:ml-20' : 'md:ml-60',
             // Mobile: se topbar global escondida (watch route), conteúdo começa no topo
             // Desktop (md+): topbar sempre visível, mantém offset
