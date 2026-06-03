@@ -170,11 +170,11 @@ export function JobsTable() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-atlas-muted-2">
           {jobs.length} jobs · atualiza a cada {POLL_MS / 1000}s
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {failedCount > 0 && (
             <Button
               variant="outline"
@@ -212,7 +212,7 @@ export function JobsTable() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-atlas-line bg-atlas-surface">
+      <div className="overflow-x-auto rounded-lg border border-atlas-line bg-atlas-surface">
         <table className="w-full text-sm">
           <thead className="bg-atlas-surface-2/40 text-xs uppercase tracking-wide text-atlas-muted-2">
             <tr>
@@ -254,7 +254,7 @@ export function JobsTable() {
                   </span>
                 </td>
                 <td className="px-3 py-2">
-                  <div className="font-mono text-[11px] text-atlas-ink dark:text-atlas-ink-2">
+                  <div className="font-mono text-[11px] text-atlas-ink dark:text-atlas-ink-2 max-w-[200px] break-all" title={j.sourceKey}>
                     {j.sourceKey}
                   </div>
                   {j.errorMessage && (
