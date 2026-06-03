@@ -37,7 +37,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, rememberMe);
       // Pegar o usuário do store após o login
       const currentUser = useAuthStore.getState().user;
       

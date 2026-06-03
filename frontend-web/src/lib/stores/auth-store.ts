@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { firebaseAuthService, type FirebaseAuthUser } from '../firebase/auth.service';
 import { logger } from '../logger';
 import { maskEmail } from '../utils/mask-pii';
@@ -26,7 +26,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
@@ -36,6 +36,67 @@ interface AuthActions {
 type AuthStore = AuthState & AuthActions;
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+
+const STORAGE_NAME = 'auth-storage-firebase';
+
+/**
+ * Storage dinâmico para o "Lembrar de mim":
+ * - lembrar=true  → localStorage (sobrevive ao fechar o navegador)
+ * - lembrar=false → sessionStorage (some ao fechar a aba/navegador)
+ *
+ * O storage ativo é decidido no login via setAuthPersistence(). Na carga inicial
+ * (antes de qualquer login), detecta onde os dados já estão — sessionStorage tem
+ * prioridade — para que escritas seguintes (ex.: refresh de token) fiquem no mesmo lugar.
+ */
+let activeStorage: Storage | null = null;
+
+const resolveActiveStorage = (): Storage | null => {
+  if (typeof window === 'undefined') return null;
+  if (activeStorage) return activeStorage;
+  activeStorage =
+    window.sessionStorage.getItem(STORAGE_NAME) != null
+      ? window.sessionStorage
+      : window.localStorage;
+  return activeStorage;
+};
+
+/** Define onde a sessão será persistida e migra o valor existente pro storage alvo. */
+export const setAuthPersistence = (remember: boolean) => {
+  if (typeof window === 'undefined') return;
+  const target = remember ? window.localStorage : window.sessionStorage;
+  const other = remember ? window.sessionStorage : window.localStorage;
+  activeStorage = target;
+  const existing = other.getItem(STORAGE_NAME) ?? target.getItem(STORAGE_NAME);
+  if (existing != null) target.setItem(STORAGE_NAME, existing);
+  other.removeItem(STORAGE_NAME);
+};
+
+/** true se a sessão atual deve ser lembrada (persistida em localStorage, não em sessionStorage). */
+export const isRememberedSession = (): boolean => {
+  if (typeof window === 'undefined') return true;
+  // Se os dados estão na sessionStorage, é sessão efêmera ("não lembrar").
+  return window.sessionStorage.getItem(STORAGE_NAME) == null;
+};
+
+const dynamicStorage: StateStorage = {
+  getItem: (name) => {
+    if (typeof window === 'undefined') return null;
+    // Lê de onde existir (sessão tem prioridade — fluxo "não lembrar").
+    return window.sessionStorage.getItem(name) ?? window.localStorage.getItem(name);
+  },
+  setItem: (name, value) => {
+    const storage = resolveActiveStorage();
+    if (!storage) return;
+    storage.setItem(name, value);
+    const other = storage === window.localStorage ? window.sessionStorage : window.localStorage;
+    other.removeItem(name); // evita duplicata stale no outro storage
+  },
+  removeItem: (name) => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(name);
+    window.sessionStorage.removeItem(name);
+  },
+};
 
 /**
  * Store de autenticação usando Firebase + Backend
@@ -55,14 +116,16 @@ export const useAuthStore = create<AuthStore>()(
       /**
        * Realiza login com Firebase e sincroniza com backend
        */
-      login: async (email: string, password: string) => {
+      login: async (email: string, password: string, rememberMe: boolean = true) => {
+        // Define o storage (local vs session) ANTES de qualquer escrita persistida.
+        setAuthPersistence(rememberMe);
         set({ isLoading: true, error: null });
 
         try {
           logger.log('🔥 [Firebase] Iniciando login...');
-          
-          // 1. Login no Firebase
-          const firebaseResult = await firebaseAuthService.login(email, password);
+
+          // 1. Login no Firebase (persistência conforme "Lembrar de mim")
+          const firebaseResult = await firebaseAuthService.login(email, password, rememberMe);
           
           if (!firebaseResult.success || !firebaseResult.token) {
             throw new Error(firebaseResult.error || 'Falha no login Firebase');
@@ -97,7 +160,10 @@ export const useAuthStore = create<AuthStore>()(
           // await. O AuthProvider também seta o cookie num useEffect, mas esse roda
           // depois do render — tarde demais para o redirect.
           if (typeof document !== 'undefined') {
-            document.cookie = `auth-session=${JSON.stringify({ role: backendUser.role })}; path=/; max-age=86400; SameSite=Lax`;
+            // Lembrar → cookie com 1 dia de validade; não lembrar → cookie de sessão
+            // (sem max-age, o navegador descarta ao fechar), alinhado à persistência.
+            const maxAge = rememberMe ? '; max-age=86400' : '';
+            document.cookie = `auth-session=${JSON.stringify({ role: backendUser.role })}; path=/${maxAge}; SameSite=Lax`;
           }
         } catch (error: any) {
           logger.error('❌ [Login] Erro:', error);
@@ -256,7 +322,8 @@ export const useAuthStore = create<AuthStore>()(
       },
     }),
     {
-      name: 'auth-storage-firebase',
+      name: STORAGE_NAME,
+      storage: createJSONStorage(() => dynamicStorage),
       partialize: (state) => ({
         user: state.user,
         firebaseToken: state.firebaseToken,
