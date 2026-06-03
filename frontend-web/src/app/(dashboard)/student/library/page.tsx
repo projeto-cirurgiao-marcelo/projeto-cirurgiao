@@ -488,10 +488,10 @@ function MessageBubble({
           )}
         >
           {isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
           ) : (
             <div
-              className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-h4:text-[0.875rem] prose-h5:text-[0.8125rem] prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5"
+              className="prose prose-sm dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-h4:text-[0.875rem] prose-h5:text-[0.8125rem] prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5"
               dangerouslySetInnerHTML={{
                 __html: formatMarkdown(message.content),
               }}
