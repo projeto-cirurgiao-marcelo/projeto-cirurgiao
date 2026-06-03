@@ -35,7 +35,7 @@ export function AtlasLessonInfo({
     >
       <div className="min-w-0 md:flex-1">
         {lessonNum && (
-          <div className="atlas-mono text-[12px] text-atlas-muted-2 tracking-[0.05em] uppercase mb-1.5 whitespace-nowrap">
+          <div className="atlas-mono text-[12px] text-atlas-muted-2 tracking-[0.05em] uppercase mb-1.5 truncate">
             {lessonNum}
           </div>
         )}
