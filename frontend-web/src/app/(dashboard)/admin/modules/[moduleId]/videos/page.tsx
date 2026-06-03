@@ -898,7 +898,7 @@ export default function ModuleVideosPage() {
 
                             {/* Thumbnail */}
                             {video.thumbnailUrl ? (
-                              <div className="w-32 h-18 rounded overflow-hidden bg-muted flex-shrink-0">
+                              <div className="w-24 sm:w-32 h-14 sm:h-18 rounded overflow-hidden bg-muted flex-shrink-0">
                                 <img
                                   src={video.thumbnailUrl}
                                   alt={video.title}
@@ -906,7 +906,7 @@ export default function ModuleVideosPage() {
                                 />
                               </div>
                             ) : (
-                              <div className="w-32 h-18 rounded overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
+                              <div className="w-24 sm:w-32 h-14 sm:h-18 rounded overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
                                 <FileVideo className="h-8 w-8 text-muted-foreground" />
                               </div>
                             )}
