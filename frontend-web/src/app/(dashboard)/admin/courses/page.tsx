@@ -247,7 +247,7 @@ export default function CoursesPage() {
         </div>
       ) : viewMode === 'grid' ? (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="courses-grid" direction="horizontal">
+          <Droppable droppableId="courses-grid" direction="vertical">
             {(provided) => (
               <div
                 ref={provided.innerRef}
