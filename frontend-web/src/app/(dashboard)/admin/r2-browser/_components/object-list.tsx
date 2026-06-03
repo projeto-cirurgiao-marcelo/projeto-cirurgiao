@@ -403,8 +403,8 @@ export function ObjectList({
 
   return (
     <section className="rounded-lg border border-atlas-line bg-atlas-surface">
-      <header className="flex items-center justify-between border-b border-atlas-line px-3 py-2 text-xs font-medium uppercase tracking-wide text-atlas-muted-2">
-        <span>
+      <header className="flex items-center justify-between gap-2 border-b border-atlas-line px-3 py-2 text-xs font-medium uppercase tracking-wide text-atlas-muted-2">
+        <span className="min-w-0 truncate">
           {isAula ? 'Aula' : 'Pasta'}
           {prefix ? ` · /${prefix}` : ' · raiz'}
         </span>

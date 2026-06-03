@@ -351,8 +351,8 @@ export function R2Browser() {
             onPreview={handleOpenPreview}
           />
         </div>
-        <div className="flex items-center gap-3 text-xs text-atlas-muted-2">
-          <span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-atlas-muted-2">
+          <span className="min-w-0">
             {reindexing && reindexProgress
               ? `Indexando: ${reindexProgress.scanned} objs · ${reindexProgress.folders} pastas`
               : indexBuiltAt
