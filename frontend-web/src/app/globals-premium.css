@@ -398,12 +398,21 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Backstop: nunca permitir scroll horizontal do documento.
+     `clip` (≠ `hidden`) não cria stacking context nem quebra position: sticky/fixed.
+     Isto é rede de segurança — as causas reais de overflow são corrigidas nos componentes. */
+  html {
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
     letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   /* Tipografia */
