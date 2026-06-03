@@ -11,6 +11,9 @@ import {
   User as FirebaseUser,
   UserCredential,
   getIdToken,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 import { auth } from './config';
 
@@ -90,8 +93,12 @@ export const firebaseAuthService = {
   /**
    * Login com email e senha
    */
-  async login(email: string, password: string): Promise<AuthResult> {
+  async login(email: string, password: string, remember: boolean = true): Promise<AuthResult> {
     try {
+      // Persistência do Firebase Auth conforme "Lembrar de mim":
+      // - remember=true  → browserLocalPersistence (sobrevive ao fechar o navegador)
+      // - remember=false → browserSessionPersistence (sessão some ao fechar a aba/navegador)
+      await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
       const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, password);
       const token = await getIdToken(userCredential.user);
       

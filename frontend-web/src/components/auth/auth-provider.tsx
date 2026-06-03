@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { onIdTokenChanged } from 'firebase/auth';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuthStore, isRememberedSession } from '@/lib/stores/auth-store';
 import { auth } from '@/lib/firebase/config';
 import { logger } from '@/lib/logger';
 
@@ -47,8 +47,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (isAuthenticated && user) {
       lastAuthCheckRef.current = Date.now();
-      // Setar cookie para o middleware SSR poder verificar
-      document.cookie = `auth-session=${JSON.stringify({ role: user.role })}; path=/; max-age=86400; SameSite=Lax`;
+      // Setar cookie para o middleware SSR poder verificar.
+      // Respeita "Lembrar de mim": sessão efêmera → cookie de sessão (sem max-age).
+      const maxAge = isRememberedSession() ? '; max-age=86400' : '';
+      document.cookie = `auth-session=${JSON.stringify({ role: user.role })}; path=/${maxAge}; SameSite=Lax`;
     } else if (hasHydrated && !isAuthenticated) {
       // Limpar cookie quando deslogado
       document.cookie = 'auth-session=; path=/; max-age=0';
