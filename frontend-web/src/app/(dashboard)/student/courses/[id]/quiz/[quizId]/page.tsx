@@ -112,7 +112,7 @@ export default function QuizPage() {
   // Loading
   if (isLoading) {
     return (
-      <div className="container max-w-4xl mx-auto py-8">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <Card>
           <CardContent className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -126,7 +126,7 @@ export default function QuizPage() {
   // Error
   if (error || !quiz) {
     return (
-      <div className="container max-w-4xl mx-auto py-8">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <Card>
           <CardContent className="py-12 text-center space-y-4">
             <p className="text-red-600">{error || 'Quiz não encontrado'}</p>
@@ -143,7 +143,7 @@ export default function QuizPage() {
   // Submitting
   if (isSubmitting) {
     return (
-      <div className="container max-w-4xl mx-auto py-8">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <Card>
           <CardContent className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -155,7 +155,7 @@ export default function QuizPage() {
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
       <div className="mb-6">
         <Button
