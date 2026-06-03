@@ -353,7 +353,7 @@ export default function AdminStudentsPage() {
 
                       {/* Progresso Medio */}
                       <TableCell>
-                        <div className="flex items-center gap-3 min-w-[140px]">
+                        <div className="flex items-center gap-3 w-full min-w-[100px] sm:min-w-[140px]">
                           <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all duration-500"
