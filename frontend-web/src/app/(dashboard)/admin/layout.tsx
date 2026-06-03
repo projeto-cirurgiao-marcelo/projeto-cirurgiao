@@ -68,7 +68,7 @@ export default function AdminLayout({
       {/* Desktop: margem esquerda ajusta conforme sidebar (60px colapsado, 240px expandido) */}
       <main className={cn(
         "mt-16 p-4 md:p-6 lg:p-8 transition-all duration-300",
-        "ml-0", // Mobile: sem margem
+        "ml-0 overflow-x-hidden", // Mobile: sem margem; contém overflow horizontal
         isCollapsed ? "md:ml-20" : "md:ml-60" // Desktop: margem dinâmica
       )}>
         {children}

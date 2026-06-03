@@ -133,6 +133,7 @@ export default function StudentLayout({
           className={cn(
             'p-4 md:p-6 lg:p-8 transition-all duration-300',
             'ml-0',
+            'overflow-x-hidden',
             isCollapsed ? 'md:ml-20' : 'md:ml-60',
             // Mobile: se topbar global escondida (watch route), conteúdo começa no topo
             // Desktop (md+): topbar sempre visível, mantém offset
@@ -143,6 +144,7 @@ export default function StudentLayout({
               : isAdminViewingAsStudent
                 ? 'mt-[104px]'
                 : 'mt-16',
+            !tabBarHiddenOnMobile && 'pb-[calc(3.75rem+env(safe-area-inset-bottom))] md:pb-6 lg:pb-8',
           )}
         >
           {children}

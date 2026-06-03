@@ -169,7 +169,7 @@ export default function CoursesPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-atlas-surface rounded-sm border border-atlas-line px-4 py-3 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-atlas-primary-soft flex items-center justify-center">
             <BookOpen className="w-4 h-4 text-atlas-primary" />
