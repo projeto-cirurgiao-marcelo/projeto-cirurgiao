@@ -629,7 +629,7 @@ export default function VideoPlayerPage() {
       : Math.round((moduleLessonsDone / moduleLessonsTotal) * 100);
 
   return (
-    <main className="min-h-screen bg-atlas-bg pb-20 sm:pb-0 -m-4 md:-m-6 lg:-m-8">
+    <main className="min-h-screen bg-atlas-bg pb-20 sm:pb-0 -m-4 md:-m-6 lg:-m-8 overflow-x-clip">
       <AtlasLessonHeader
         metaLabel={`Curso · ${course?.title ?? ''}`}
         title={course?.title ?? 'Curso'}
@@ -656,7 +656,7 @@ export default function VideoPlayerPage() {
       {/* Study area: 1fr + 320px sidebar flush */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 min-h-0">
         {/* Player Principal */}
-        <section className="min-w-0 px-8 pt-6 pb-12">
+        <section className="min-w-0 px-4 sm:px-6 lg:px-8 pt-6 pb-12">
           {/* Player Container — wrapper Atlas */}
           <AtlasPlayerWrapper className="mb-[18px]">
               {/*
