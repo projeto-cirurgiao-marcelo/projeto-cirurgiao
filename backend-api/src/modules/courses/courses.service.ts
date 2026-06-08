@@ -50,7 +50,9 @@ export class CoursesService {
         data: {
           title: createCourseDto.title,
           description: createCourseDto.description,
-          thumbnail: createCourseDto.thumbnail,
+          thumbnail: createCourseDto.thumbnailHorizontal ?? createCourseDto.thumbnail,
+          thumbnailHorizontal: createCourseDto.thumbnailHorizontal,
+          thumbnailVertical: createCourseDto.thumbnailVertical,
           price: createCourseDto.price,
           isPublished: createCourseDto.isPublished,
           slug,

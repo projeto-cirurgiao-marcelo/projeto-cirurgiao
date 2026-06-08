@@ -100,6 +100,7 @@ export interface CreateCourseDto {
   thumbnail?: string; // Deprecated
   thumbnailVertical?: string;
   thumbnailHorizontal?: string;
+  isPublished?: boolean;
 }
 
 export interface UpdateCourseDto {

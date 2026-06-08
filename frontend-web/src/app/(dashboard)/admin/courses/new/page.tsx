@@ -36,7 +36,8 @@ const courseSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().optional(),
   price: z.number().min(0, 'O preço deve ser maior ou igual a 0'),
-  thumbnailUrl: z.string().optional().or(z.literal('')),
+  thumbnailHorizontal: z.string().url('URL inválida').optional().or(z.literal('')),
+  thumbnailVertical: z.string().url('URL inválida').optional().or(z.literal('')),
 });
 
 type CourseFormData = z.infer<typeof courseSchema>;
@@ -55,7 +56,8 @@ export default function NewCoursePage() {
       title: '',
       description: '',
       price: 0,
-      thumbnailUrl: '',
+      thumbnailHorizontal: '',
+      thumbnailVertical: '',
     },
   });
 
@@ -67,7 +69,8 @@ export default function NewCoursePage() {
         title: data.title,
         description: data.description || undefined,
         price: data.price,
-        thumbnail: data.thumbnailUrl || undefined,
+        thumbnailHorizontal: data.thumbnailHorizontal || undefined,
+        thumbnailVertical: data.thumbnailVertical || undefined,
       };
 
       await coursesService.create(courseData);
@@ -184,52 +187,101 @@ export default function NewCoursePage() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="thumbnailUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Thumbnail do Curso</FormLabel>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
-                        disabled={!form.getValues('title')?.trim()}
-                        onClick={async () => {
-                          const title = form.getValues('title');
-                          if (!title?.trim()) return;
-                          try {
-                            toast({ title: 'IA', description: 'Gerando thumbnail...' });
-                            const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical' });
-                            field.onChange(url);
-                            toast({ title: 'Pronto', description: 'Thumbnail gerada com IA' });
-                          } catch (err) {
-                            logger.error(err);
-                            toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail', variant: 'destructive' });
-                          }
-                        }}
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Gerar com IA
-                      </Button>
-                    </div>
-                    <FormControl>
-                      <ThumbnailUpload
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        aspectRatio="horizontal"
-                        label="Capa do Curso"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Faça upload de uma imagem ou gere com IA (opcional)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="thumbnailHorizontal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Thumbnail Horizontal (16:9)</FormLabel>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                          disabled={!form.getValues('title')?.trim()}
+                          onClick={async () => {
+                            const title = form.getValues('title');
+                            if (!title?.trim()) return;
+                            try {
+                              toast({ title: 'IA', description: 'Gerando thumbnail horizontal...' });
+                              const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical' });
+                              field.onChange(url);
+                              toast({ title: 'Pronto', description: 'Thumbnail horizontal gerada com IA' });
+                            } catch (err) {
+                              logger.error(err);
+                              toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail horizontal', variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Gerar com IA
+                        </Button>
+                      </div>
+                      <FormControl>
+                        <ThumbnailUpload
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          aspectRatio="horizontal"
+                          label="Thumbnail horizontal"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Imagem para exibição em desktop e tablet
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="thumbnailVertical"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Thumbnail Vertical (9:16)</FormLabel>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                          disabled={!form.getValues('title')?.trim()}
+                          onClick={async () => {
+                            const title = form.getValues('title');
+                            if (!title?.trim()) return;
+                            try {
+                              toast({ title: 'IA', description: 'Gerando thumbnail vertical...' });
+                              const url = await aiTextService.generateThumbnail(title, { overlayText: title, style: 'medical', aspectRatio: 'vertical' });
+                              field.onChange(url);
+                              toast({ title: 'Pronto', description: 'Thumbnail vertical gerada com IA' });
+                            } catch (err) {
+                              logger.error(err);
+                              toast({ title: 'Erro', description: 'Não foi possível gerar a thumbnail vertical', variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Gerar com IA
+                        </Button>
+                      </div>
+                      <FormControl>
+                        <ThumbnailUpload
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          aspectRatio="vertical"
+                          label="Thumbnail vertical"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Imagem usada nos cards verticais do admin
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="flex gap-4">
                 <Button

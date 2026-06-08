@@ -153,6 +153,7 @@ describe('CoursesService', () => {
   describe('create', () => {
     it('slugifies the title and persists the course', async () => {
       prisma.course.findUnique.mockResolvedValue(null);
+      prisma.course.findFirst.mockResolvedValue(null);
       prisma.course.create.mockResolvedValue(
         makeCourse({ slug: 'curso-avancado-de-cirurgia' }),
       );
@@ -166,8 +167,26 @@ describe('CoursesService', () => {
       expect(data.instructor.connect.id).toBe('instructor-1');
     });
 
+    it('persists horizontal and vertical thumbnails on create', async () => {
+      prisma.course.findUnique.mockResolvedValue(null);
+      prisma.course.findFirst.mockResolvedValue(makeCourse({ position: 3 } as any));
+      prisma.course.create.mockResolvedValue(makeCourse());
+
+      await service.create('instructor-1', {
+        title: 'Curso com Capa',
+        thumbnailHorizontal: 'https://r2.example/horizontal.webp',
+        thumbnailVertical: 'https://r2.example/vertical.webp',
+      } as any);
+
+      const data = prisma.course.create.mock.calls[0][0].data as any;
+      expect(data.thumbnail).toBe('https://r2.example/horizontal.webp');
+      expect(data.thumbnailHorizontal).toBe('https://r2.example/horizontal.webp');
+      expect(data.thumbnailVertical).toBe('https://r2.example/vertical.webp');
+    });
+
     it('strips accents, special chars, collapses whitespace in the slug', async () => {
       prisma.course.findUnique.mockResolvedValue(null);
+      prisma.course.findFirst.mockResolvedValue(null);
       prisma.course.create.mockResolvedValue(makeCourse());
 
       await service.create('instructor-1', {
