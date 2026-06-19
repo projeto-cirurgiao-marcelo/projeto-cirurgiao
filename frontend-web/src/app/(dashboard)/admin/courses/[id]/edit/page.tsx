@@ -813,6 +813,17 @@ export default function EditCoursePage() {
                 ) => {
                   const isExpanded = expandedModules.has(module.id);
                   const videos = module.videos || [];
+                  // Contagem de aulas: módulo raiz soma os próprios vídeos +
+                  // os vídeos de todos os submódulos (1 nível). Submódulo conta
+                  // apenas os próprios. Preferimos _count.videos quando presente.
+                  const directVideoCount = module._count?.videos ?? videos.length;
+                  const childVideoCount = opts.isChild
+                    ? 0
+                    : (childrenByParent.get(module.id) ?? []).reduce(
+                        (sum, child) => sum + (child._count?.videos ?? child.videos?.length ?? 0),
+                        0,
+                      );
+                  const totalVideoCount = directVideoCount + childVideoCount;
                   return (
                     <div className={`flex items-center gap-2 px-3 py-2.5 ${opts.isChild ? 'bg-atlas-surface' : 'bg-atlas-surface-2'} border-b`}>
                       <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing text-atlas-muted-2 hover:text-atlas-ink-2">
@@ -824,7 +835,7 @@ export default function EditCoursePage() {
                           : <FolderClosed className={`${opts.isChild ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-blue-500 flex-shrink-0`} />}
                         <span className={`${opts.isChild ? 'text-xs font-medium' : 'text-sm font-semibold'} truncate`}>{module.title}</span>
                         <Badge variant="outline" className="text-[10px] flex-shrink-0">
-                          {videos.length} {videos.length === 1 ? 'vídeo' : 'vídeos'}
+                          {totalVideoCount} {totalVideoCount === 1 ? 'vídeo' : 'vídeos'}
                         </Badge>
                         {!opts.isChild && opts.childCount !== undefined && opts.childCount > 0 && (
                           <Badge variant="secondary" className="text-[10px] flex-shrink-0">
