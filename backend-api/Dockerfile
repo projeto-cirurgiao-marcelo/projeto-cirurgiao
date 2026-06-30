@@ -57,8 +57,10 @@ COPY --from=builder /app/dist ./dist
 # Copy thumbnail background for Sharp thumbnail generation
 COPY --from=builder /app/src/modules/ai-summaries/thumbnail-bg.base64.txt ./dist/modules/ai-summaries/thumbnail-bg.base64.txt
 
-# Copy firebase service account
-COPY firebase-service-account.json ./firebase-service-account.json
+# Firebase service account is NOT baked into the image. At runtime the backend
+# loads credentials via FIREBASE_SERVICE_ACCOUNT_KEY (Secret Manager) or, when
+# absent, Application Default Credentials (Cloud Run service account). See
+# firebase-admin.service.ts (Método 2 / Método 3) and secrets-loader.ts.
 
 # Expose port (Cloud Run will set PORT env variable)
 EXPOSE 8080

@@ -15,3 +15,10 @@ uploads/*
 test
 *.spec.ts
 jest.config.js
+
+# Secrets — never bake into the image. Firebase Admin loads credentials at
+# runtime via FIREBASE_SERVICE_ACCOUNT_KEY (Secret Manager) or ADC.
+firebase-service-account.json
+*service-account*.json
+*.pem
+*.key
