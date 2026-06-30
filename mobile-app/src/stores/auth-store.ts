@@ -16,6 +16,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../lib/secure-storage';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -92,7 +93,7 @@ export const useAuthStore = create<AuthStore>()(
             credentials.password
           );
           const token = await userCredential.user.getIdToken();
-          await AsyncStorage.setItem('firebaseToken', token);
+          await secureStorage.setItem('firebaseToken', token);
 
           // 2. Sincroniza com backend (mesmo endpoint do web)
           const backendResponse = await apiClient.post('/auth/firebase-login', {
@@ -162,7 +163,7 @@ export const useAuthStore = create<AuthStore>()(
             credentials.password
           );
           const token = await userCredential.user.getIdToken();
-          await AsyncStorage.setItem('firebaseToken', token);
+          await secureStorage.setItem('firebaseToken', token);
 
           // 3. Sincroniza com backend para obter dados do usuário com role
           const backendResponse = await apiClient.post('/auth/firebase-login', {
@@ -217,7 +218,7 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           logger.error('Erro ao fazer logout:', error);
         } finally {
-          await AsyncStorage.removeItem('firebaseToken');
+          await secureStorage.removeItem('firebaseToken');
           set({
             ...initialState,
             hasHydrated: true,
@@ -230,7 +231,9 @@ export const useAuthStore = create<AuthStore>()(
        * Chamado na hidratação do app para restaurar sessão
        */
       loadUser: async () => {
-        const token = get().firebaseToken;
+        // Token persiste no SecureStore, não no estado do Zustand (que só
+        // guarda dados não sensíveis). Lê de lá na hidratação.
+        const token = await secureStorage.getItem('firebaseToken');
         if (!token) {
           set({ hasHydrated: true });
           return;
@@ -247,6 +250,7 @@ export const useAuthStore = create<AuthStore>()(
 
           set({
             user: backendUser,
+            firebaseToken: token,
             isAuthenticated: true,
             isLoading: false,
             hasHydrated: true,
@@ -257,7 +261,7 @@ export const useAuthStore = create<AuthStore>()(
             const currentUser = auth.currentUser;
             if (currentUser) {
               const newToken = await getIdToken(currentUser, true);
-              await AsyncStorage.setItem('firebaseToken', newToken);
+              await secureStorage.setItem('firebaseToken', newToken);
 
               const response = await apiClient.post('/auth/firebase-login', {
                 firebaseToken: newToken,
@@ -279,7 +283,7 @@ export const useAuthStore = create<AuthStore>()(
           }
 
           // Limpa sessão
-          await AsyncStorage.removeItem('firebaseToken');
+          await secureStorage.removeItem('firebaseToken');
           set({
             ...initialState,
             hasHydrated: true,
@@ -311,7 +315,7 @@ export const useAuthStore = create<AuthStore>()(
 
       setFirebaseToken: (token: string) => {
         set({ firebaseToken: token });
-        AsyncStorage.setItem('firebaseToken', token);
+        void secureStorage.setItem('firebaseToken', token);
       },
 
       setUser: (user: User) => {
@@ -325,9 +329,11 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // firebaseToken NÃO é persistido aqui (AsyncStorage não-criptografado).
+      // Vive no SecureStore; loadUser() o relê na hidratação. Só dados não
+      // sensíveis ficam no AsyncStorage do Zustand.
       partialize: (state) => ({
         user: state.user,
-        firebaseToken: state.firebaseToken,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {

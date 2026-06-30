@@ -5,6 +5,7 @@
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../../lib/secure-storage';
 import { getAuth } from 'firebase/auth';
 import Toast from 'react-native-toast-message';
 import { logger } from '../../lib/logger';
@@ -76,7 +77,7 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
-      const token = await AsyncStorage.getItem('firebaseToken');
+      const token = await secureStorage.getItem('firebaseToken');
       if (token) {
         if (!config.headers) {
           config.headers = new axios.AxiosHeaders();
@@ -119,7 +120,7 @@ apiClient.interceptors.response.use(
           if (currentUser) {
             // Forçar refresh do token Firebase
             const newToken = await currentUser.getIdToken(true);
-            await AsyncStorage.setItem('firebaseToken', newToken);
+            await secureStorage.setItem('firebaseToken', newToken);
             isRefreshing = false;
 
             // Retentar a request original com o novo token
@@ -137,7 +138,7 @@ apiClient.interceptors.response.use(
       }
 
       // Refresh falhou ou não há usuário - limpar sessão
-      await AsyncStorage.removeItem('firebaseToken');
+      await secureStorage.removeItem('firebaseToken');
       await AsyncStorage.removeItem('auth-storage');
       // A navegação para login será tratada pelo AuthProvider
     }

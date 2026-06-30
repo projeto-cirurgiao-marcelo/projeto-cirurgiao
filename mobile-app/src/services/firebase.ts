@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 // @ts-ignore
 import { initializeAuth, getReactNativePersistence, Auth, getAuth } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../lib/secure-storage';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -18,9 +18,10 @@ let auth: Auth;
 
 if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
-  // Inicializa Auth com persistência no AsyncStorage
+  // Persistência da sessão (inclui o refresh token de longa duração) em
+  // SecureStore — Keychain/Keystore — em vez de AsyncStorage não-criptografado.
   auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
+    persistence: getReactNativePersistence(secureStorage),
   });
 } else {
   app = getApp();
