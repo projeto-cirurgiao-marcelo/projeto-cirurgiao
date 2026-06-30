@@ -14,7 +14,7 @@ import { apiClient } from '../../src/services/api/client';
 // axios guarda interceptors em `interceptors.response.handlers`. Em versoes recentes
 // do axios, cada handler tem { fulfilled, rejected }. Nosso handler 429 vive no rejected.
 function getResponseRejectHandler(): (err: unknown) => unknown {
-  // @ts-expect-error — API interna do axios.
+  // @ts-ignore — API interna do axios (presença do tipo varia entre versões).
   const handlers = apiClient.interceptors.response.handlers as Array<
     { fulfilled: unknown; rejected: (err: unknown) => unknown } | null
   >;
