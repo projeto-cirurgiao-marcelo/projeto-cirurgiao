@@ -142,6 +142,14 @@ logs/
 *.sqlite
 *.db
 
+# Production/local database backups — never commit (real dumps live here)
+# NOTE: do NOT add a blanket *.sql — Prisma migrations and scripts/init-db.sql
+# are tracked .sql files and a blanket rule would hide new migrations.
+db-backups/
+*.sql.gz
+*.dump
+*.backup
+
 # Temporary files
 tmp/
 temp/
