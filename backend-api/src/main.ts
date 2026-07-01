@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { loadSecretsIntoEnv } from './config/secrets';
 
@@ -21,6 +22,13 @@ async function bootstrap() {
   bootstrapLogger.log(`DATABASE_URL defined: ${!!process.env.DATABASE_URL}`);
 
   const app = await NestFactory.create(AppModule);
+
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Security headers (HSTS, X-Content-Type-Options, frameguard, etc.).
+  // CSP fica desligado fora de produção pra não quebrar a UI do Swagger (dev-only).
+  // ponytail: CSP default só em prod; se precisar CSP na API em prod, ajustar as directives aqui.
+  app.use(helmet(isProduction ? undefined : { contentSecurityPolicy: false }));
 
   // Aumentar limite de tamanho do body para 50MB (para uploads grandes)
   app.use(json({ limit: '50mb' }));
@@ -54,24 +62,28 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle('Projeto Cirurgião API')
-    .setDescription('API de autenticação e gestão de usuários para o Projeto Cirurgião')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('auth', 'Endpoints de autenticação')
-    .addTag('users', 'Endpoints de gestão de usuários')
-    .build();
+  // Swagger documentation — nunca exposto em produção (information disclosure).
+  if (!isProduction) {
+    const config = new DocumentBuilder()
+      .setTitle('Projeto Cirurgião API')
+      .setDescription('API de autenticação e gestão de usuários para o Projeto Cirurgião')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('auth', 'Endpoints de autenticação')
+      .addTag('users', 'Endpoints de gestão de usuários')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
 
   bootstrapLogger.log(`Aplicação rodando na porta: ${port}`);
-  bootstrapLogger.log(`Documentação Swagger: http://localhost:${port}/api/docs`);
+  if (!isProduction) {
+    bootstrapLogger.log(`Documentação Swagger: http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap().catch((err) => {

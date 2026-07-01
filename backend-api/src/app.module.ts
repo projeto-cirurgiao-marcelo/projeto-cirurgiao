@@ -35,6 +35,7 @@ import { AiLibraryModule } from './modules/ai-library/ai-library.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { MediaFoldersModule } from './modules/media-folders/media-folders.module';
+import { HealthController } from './modules/health/health.controller';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { MediaFoldersModule } from './modules/media-folders/media-folders.module
     AdminDashboardModule,
     MediaFoldersModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

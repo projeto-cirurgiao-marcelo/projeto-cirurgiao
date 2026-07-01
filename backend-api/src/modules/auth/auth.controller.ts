@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -34,7 +35,10 @@ export class AuthController {
     return this.authService.secureRegister(registerDto);
   }
 
+  // Rate limit apertado nos endpoints de auth (anti brute-force / credential stuffing).
+  // Sobrescreve os throttlers globais 'short' (20/s) e 'medium' (100/min) por IP.
   @Post('auth/login')
+  @Throttle({ short: { limit: 5, ttl: 1000 }, medium: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Fazer login' })
   @ApiResponse({ status: 200, description: 'Login realizado com sucesso' })
@@ -44,6 +48,7 @@ export class AuthController {
   }
 
   @Post('auth/firebase-login')
+  @Throttle({ short: { limit: 5, ttl: 1000 }, medium: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login com Firebase' })
   @ApiResponse({ status: 200, description: 'Login Firebase realizado com sucesso' })
@@ -53,6 +58,7 @@ export class AuthController {
   }
 
   @Post('auth/refresh')
+  @Throttle({ short: { limit: 5, ttl: 1000 }, medium: { limit: 30, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar tokens' })
   @ApiResponse({ status: 200, description: 'Tokens renovados com sucesso' })
@@ -62,6 +68,7 @@ export class AuthController {
   }
 
   @Post('auth/forgot-password')
+  @Throttle({ short: { limit: 3, ttl: 1000 }, medium: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Solicitar recuperação de senha' })
   @ApiResponse({ status: 200, description: 'Solicitação recebida com sucesso' })
