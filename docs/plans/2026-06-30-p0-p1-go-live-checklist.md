@@ -38,11 +38,11 @@ Progresso real dos P0. Commits na `main` como `xoiurp`, **pushados** (`1c5521e..
 | **P0.6** SecureStore | ✅ **CÓDIGO+TESTE** | Commit `4329d05`. Adapter chunking/encode; token + sessão SDK Firebase → SecureStore; teste 6/6. **Falta smoke em device real** (usuários logados deslogam 1x). |
 | **P0.7** axios | ✅ **FEITO** | mobile 1.7.9→^1.18.1 (commit `b248c88`); web/backend já ^1.15.2. |
 | **P0.8** Secret Manager | ✅ **DEPLOYADO** | 11 secrets no SM (project `projeto-cirurgiao-e8df7`), acesso mínimo à SA `81746498042-compute@`. Cutover backend (rev `00092-7zn`) + video-processor (rev `00016-dl6`), reusando secrets por igualdade de hash. Bug latente do script de deploy corrigido (commit `7103518`: migrator recebe `DATABASE_URL`). |
-| **P0.9** worker emissor | ⏳ **PENDENTE** | `video-processor-trigger` NÃO está no repo (`cloudflare-workers/` só tem `r2-browser`). Localizar + versionar/documentar + alinhar `WEBHOOK_SECRET` nas 2 pontas. |
+| **P0.9** worker emissor | ✅ **FEITO** | `video-processor-trigger` localizado em `video-pipeline/cloudflare-worker/` (gitignored) e versionado em `cloudflare-workers/video-processor-trigger/` (commit `2341fd1`), sem segredos. Par do `WEBHOOK_SECRET` confirmado (worker envia Bearer → `server.py` valida; mesmo valor nas 2 pontas). ⚠️ `handoff.md` local tem os valores em texto (risco aceito pelo Gustavo — tratar na rotação). |
 
 **Rollbacks disponíveis:** backend `00092-7zn`; video-processor `00015-v8d`.
 
-**Resumo:** todos os P0 executáveis sem acesso a consoles/device foram concluídos e validados em produção. Restam P0.2-B (rotação), P0.9 (worker), P0.6-smoke (device) e P0.5-teste (opcional).
+**Resumo:** todos os P0 de código/infra concluídos (P0.1–P0.9). Restam **P0.2-B** (rotação — Gustavo, inclui os 3 segredos expostos no `handoff.md` local: R2 access/secret + WEBHOOK), **P0.6-smoke** (device real) e **P0.5-teste** (opcional). Débito: a cópia do worker em `video-pipeline/cloudflare-worker/` (local de deploy atual) segue em disco; deploy futuro pode migrar para `cloudflare-workers/video-processor-trigger/`.
 
 ---
 
@@ -68,7 +68,7 @@ O projeto só sai do P0/P1 quando todos estes pontos estiverem verdadeiros:
 - [x] Video processor falha no startup se `WEBHOOK_SECRET` estiver ausente. *(P0.4 — validado; video-processor bootou com fail-fast)*
 - [x] Mobile não persiste token sensível em AsyncStorage (**inclui o refresh token do SDK Firebase**, não só o `firebaseToken`). *(P0.6 — código; falta smoke em device)*
 - [x] Axios atualizado no **mobile** (web/backend já em ^1.15.2), com smoke test de login/API. *(P0.7 — código; smoke de API pendente)*
-- [ ] **Lado emissor e receptor do `WEBHOOK_SECRET`** compartilham o mesmo segredo (P0.4 + P0.9). *(P0.9 — pendente)*
+- [x] **Lado emissor e receptor do `WEBHOOK_SECRET`** compartilham o mesmo segredo (P0.4 + P0.9). *(worker versionado; par confirmado)*
 - [ ] Existe error tracking mínimo ou, se adiado, está documentado como risco de lançamento.
 - [ ] **CI mínimo de backend** existe (P1.3); para **web/mobile**, há item criado **ou** checklist reprodutível validado e explicitamente documentado (hoje não há item de CI web/mobile — decidir).
 - [ ] Build mobile preview foi testado em device real.
@@ -807,7 +807,7 @@ Riscos de go-live dentro do escopo declarado que o checklist original não cobri
 **Trilha backend/infra** (sequencial nos deploys — batch para reduzir janelas de autorização):
 - [x] P0.3 — Firebase SA fora da imagem Docker. ✅ deployado+validado (rev `00093-kzm`)
 - [x] P0.4 — fail-fast já versionado; `WEBHOOK_SECRET` migrado p/ Secret Manager. ✅
-- [ ] P0.9 — lado emissor do webhook (versionar/documentar + segredo nas 2 pontas).
+- [x] P0.9 — worker emissor versionado em `cloudflare-workers/video-processor-trigger/`; par do segredo confirmado. ✅
 - [x] P0.8 — secrets → Secret Manager (backend rev `00092` + video-processor rev `00016`). ✅
 - [ ] P1.3 — CI backend (cedo, valida build antes dos deploys). + P1.11 secret scanning.
 - [ ] P1.2 — error tracking (backend-Sentry no deploy do P0.3; mobile-Sentry antes de P1.5) + P1.16 scrubbing.
