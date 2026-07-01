@@ -1,10 +1,11 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { loadSecretsIntoEnv } from './config/secrets';
+import { initSentry, SentryExceptionFilter } from './config/sentry';
 
 const bootstrapLogger = new Logger('Bootstrap');
 
@@ -21,9 +22,20 @@ async function bootstrap() {
   bootstrapLogger.log(`PORT: ${process.env.PORT || 3000}`);
   bootstrapLogger.log(`DATABASE_URL defined: ${!!process.env.DATABASE_URL}`);
 
+  // Error tracking — no-op sem SENTRY_DSN. Depois de hidratar env, antes do app.
+  const sentryEnabled = initSentry();
+  bootstrapLogger.log(`Sentry: ${sentryEnabled ? 'enabled' : 'disabled (no SENTRY_DSN)'}`);
+
   const app = await NestFactory.create(AppModule);
 
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // Registra o filtro global só quando o Sentry está ativo — sem DSN, zero
+  // mudança no comportamento de erros.
+  if (sentryEnabled) {
+    const { httpAdapter } = app.get(HttpAdapterHost);
+    app.useGlobalFilters(new SentryExceptionFilter(httpAdapter));
+  }
 
   // Security headers (HSTS, X-Content-Type-Options, frameguard, etc.).
   // CSP fica desligado fora de produção pra não quebrar a UI do Swagger (dev-only).

@@ -9,6 +9,10 @@ import { View, StyleSheet } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { OfflineBanner } from '../src/components/ui/OfflineBanner';
 import { GamificationCelebrationProvider } from '../src/components/gamification/GamificationCelebrationProvider';
+import { initSentry } from '../src/config/sentry';
+
+// Error tracking — no-op sem EXPO_PUBLIC_SENTRY_DSN. Uma vez, no load do módulo.
+initSentry();
 
 /**
  * Orientacao: portrait-only declarado via app.json ("orientation": "portrait").

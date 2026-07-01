@@ -232,6 +232,18 @@ jest.mock('react-native-toast-message', () => {
 });
 
 // ---------------------------------------------------------------------------
+// @sentry/react-native — módulo nativo; stub para não carregar no Jest.
+// initSentry() é no-op sem DSN, então init/captureException nunca disparam,
+// mas o import precisa resolver.
+// ---------------------------------------------------------------------------
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  wrap: (c: unknown) => c,
+}));
+
+// ---------------------------------------------------------------------------
 // nativewind + react-native-css
 // ---------------------------------------------------------------------------
 // NativeWind preview processa JSX em tempo de build. No Jest isso fica no

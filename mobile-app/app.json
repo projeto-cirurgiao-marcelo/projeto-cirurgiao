@@ -35,7 +35,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      ["expo-video", { "supportsPictureInPicture": true }]
+      [
+        "expo-video",
+        {
+          "supportsPictureInPicture": true
+        }
+      ],
+      "@sentry/react-native"
     ],
     "newArchEnabled": true,
     "experiments": {
