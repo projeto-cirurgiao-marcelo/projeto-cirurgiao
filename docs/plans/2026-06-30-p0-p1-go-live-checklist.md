@@ -674,11 +674,13 @@ grep -R "placeholder\|m3u8\|HLS" -n backend-api frontend-web mobile-app docs | h
 
 ---
 
-## P1.8 — Pinar dependências preview/nightly do mobile
+## P1.8 — Pinar dependências preview/nightly do mobile  ✅ FEITO
 
 **Objetivo:** reduzir risco de build quebrar perto da publicação.
 
 **Evidência da análise:** mobile usa deps preview/nightly, incluindo NativeWind/react-native-css.
+
+> ✅ **Decisão (feito):** as 2 deps instáveis — `nativewind@5.0.0-preview.2` e `react-native-css@0.0.0-nightly.5ce6396` — **já estavam com pin exato** (sem `^`/`~`), então não há range flutuante a corrigir. **Mantidas pinadas por compatibilidade** (NativeWind v5 é preview em toda a linha; estável só na v4 = migração ampla de styling, fora de escopo agora). **Não serão alteradas antes do preview (P1.5).** Reavaliação → P2/pós-go-live. Verificado: `npm test` verde (16 suites/56), `npm ci` não altera lockfile, `npm test` verde pós-install. Doc em `mobile-app/docs/DEPLOY.md §1.1`. Sem mudança de package (docs-only).
 
 **Arquivos:**
 - `mobile-app/package.json`

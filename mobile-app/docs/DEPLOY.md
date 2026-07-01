@@ -39,6 +39,32 @@ por ambiente (quando Gustav habilitar EAS Update — nao e agora).
 
 ---
 
+## 1.1 Dependencias instaveis pinadas (P1.8)
+
+Antes do build preview (P1.5), duas deps de styling estao em canal instavel.
+**Decisao: manter pin EXATO (nao usar range flutuante) e nao alterar antes do
+preview.** Sao a stack de styling atual (NativeWind v5) e nao ha versao estavel
+compativel com Expo SDK 54 / RN 0.81:
+
+| Dependencia | Versao (pin exato) | Por que fica |
+|---|---|---|
+| `nativewind` | `5.0.0-preview.2` | Toda a linha v5 e preview; estavel so na v4, cujo downgrade seria migracao ampla de styling. |
+| `react-native-css` | `0.0.0-nightly.5ce6396` | Compilador novo da NativeWind v5; so existe em nightly pre-1.0. Trocar exige mexer na NW v5. |
+
+Risco aceito: sao versoes pre-release. Mitigacao: **pin exato** (ja aplicado —
+sem `^`/`~`), entao `npm ci` resolve deterministico do lockfile e nao "flutua"
+pra uma build nova quebrada. `resolutions.lightningcss = 1.30.1` tambem fica
+pinado (dep transitiva do pipeline de styling).
+
+- **Nao serao alteradas antes do preview** (evitar churn visual/metro).
+- **Reavaliacao pos-go-live / P2:** subir pra NativeWind v5 estavel (e
+  `react-native-css` >= 1.0) quando sairem, com smoke visual dedicado.
+
+Verificado: `npm test` verde (16 suites), `npm ci` nao altera o lockfile,
+`npm test` verde de novo apos install limpo.
+
+---
+
 ## 2. Variaveis de ambiente
 
 ### `EXPO_PUBLIC_API_URL`
