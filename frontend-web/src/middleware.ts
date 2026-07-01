@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Middleware de proteção de rotas
- * 
- * Verifica se existe um cookie/header de autenticação para rotas protegidas.
- * Como usamos localStorage (Zustand persist) no frontend, o middleware
- * faz uma verificação básica via cookie de sessão.
- * 
- * A validação completa do token continua no lado do cliente (AuthProvider).
- * O middleware impede acesso direto a URLs protegidas sem sessão ativa.
+ * Middleware de proteção de rotas — APENAS UX guard.
+ *
+ * Só verifica se há *algum* indício de sessão (cookie `auth-session` ou header
+ * Authorization) para impedir acesso direto anônimo a URLs protegidas e
+ * redirecionar pro /login. NÃO é fronteira de segurança.
+ *
+ * A autorização real (inclusive admin/RBAC) é feita no BACKEND, que valida o
+ * Firebase ID token em cada request. Role vinda de cookie/localStorage é
+ * forjável no client e por isso NÃO decide autorização aqui — confiar nela
+ * seria uma falsa fronteira de segurança.
  */
 
 // Rotas que requerem autenticação
@@ -43,18 +45,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Verificação de role básica para /admin
-  if (pathname.startsWith('/admin') && authCookie) {
-    try {
-      const sessionData = JSON.parse(authCookie.value);
-      if (sessionData.role && sessionData.role !== 'ADMIN') {
-        return NextResponse.redirect(new URL('/student/courses', request.url));
-      }
-    } catch {
-      // Cookie malformado — deixar AuthProvider lidar
-    }
-  }
-
+  // Com indício de sessão, segue. A distinção de role (admin vs student) e o
+  // enforcement real acontecem no backend/UI autenticada, não aqui — o cookie
+  // não é assinado e não pode ser fronteira de autorização.
   return NextResponse.next();
 }
 
