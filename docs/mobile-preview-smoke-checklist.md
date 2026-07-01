@@ -4,7 +4,14 @@ Gate final do go-live controlado. **Execução manual pelo Gustavo** — o agent
 headless e não roda `eas build`. Comandos abaixo são **modelos**.
 
 Projeto EAS: slug `projeto-cirurgiao`, owner `projetocirurgiao`.
-Bundle iOS/Android: `com.projetocirurgiao.app`.
+Bundle iOS: `app.projetocirurgiao.mobile` — Android package: `com.projetocirurgiao.app`.
+
+> ⚠️ **Firebase iOS:** o `GoogleService-Info.plist` (gitignored) ainda declara
+> `BUNDLE_ID = com.projetocirurgiao.app`. Antes/para o build iOS ser 100%
+> correto, cadastrar o novo app iOS (`app.projetocirurgiao.mobile`) no Firebase
+> console e baixar um plist novo. O app usa o Firebase JS SDK (config via
+> `EXPO_PUBLIC_FIREBASE_*`), então o login não depende do plist em runtime — mas
+> não deixar o plist inconsistente para não confundir builds nativos futuros.
 
 ---
 
