@@ -112,9 +112,17 @@ jest.mock('expo-blur', () => {
 jest.mock('expo-screen-orientation', () => ({
   lockAsync: jest.fn(() => Promise.resolve()),
   unlockAsync: jest.fn(() => Promise.resolve()),
+  addOrientationChangeListener: jest.fn(() => ({ remove: jest.fn() })),
+  removeOrientationChangeListener: jest.fn(),
   OrientationLock: {
     PORTRAIT_UP: 'PORTRAIT_UP',
     LANDSCAPE: 'LANDSCAPE',
+  },
+  Orientation: {
+    PORTRAIT_UP: 'PORTRAIT_UP',
+    PORTRAIT_DOWN: 'PORTRAIT_DOWN',
+    LANDSCAPE_LEFT: 'LANDSCAPE_LEFT',
+    LANDSCAPE_RIGHT: 'LANDSCAPE_RIGHT',
   },
 }));
 
