@@ -66,15 +66,7 @@ jobs:
         run: npm run db:seed:specialties
 
       - name: Test
-        # Duas suites em quarentena por falhas PRÉ-EXISTENTES não relacionadas a DB
-        # (nem a este bloco). A corrigir no próximo bloco — ver docs/ci-backend.md:
-        #   videos.service.spec  — setup de teste quebrado (falta provider ConfigService)
-        #   modules.service.spec — mock de Prisma incompleto (findMany → undefined)
-        # '/node_modules/' é mantido no ignore para não reincluir deps.
-        run: >-
-          npm test --
-          --runInBand
-          --testPathIgnorePatterns '/node_modules/|videos\.service\.spec|modules\.service\.spec'
+        run: npm test -- --runInBand
 
   secret-scan:
     name: Secret scanning (gitleaks)

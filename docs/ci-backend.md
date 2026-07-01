@@ -13,7 +13,7 @@ Roda em `push` para `main` e em todo `pull_request`. **Não faz deploy.**
 3. `npm run build` (bloqueante)
 4. `npx prisma migrate deploy` — aplica o schema no Postgres do CI
 5. `npm run db:seed:specialties` — seed do `xp_rules` (necessário pros testes de gamificação)
-6. `npm test -- --runInBand` (com quarentena, ver abaixo)
+6. `npm test -- --runInBand` (suíte completa, sem exclusões)
 
 **Postgres do CI:** service container `pgvector/pgvector:pg15` (não `postgres` puro), porque
 a migration `20260418021654_add_pgvector_embeddings` faz `CREATE EXTENSION vector` e usa `vector(768)`.
@@ -26,19 +26,20 @@ Reprodutível no CI sem depender do Docker local do dev.
 `gitleaks/gitleaks-action@v2` com `fetch-depth: 0` (varre o histórico inteiro, não só o diff).
 **Bloqueante:** PR/push com segredo detectado falha o check.
 
-## Suites em quarentena (débito, próximo bloco)
+## Histórico: quarentena removida
 
-Duas suites são ignoradas via `--testPathIgnorePatterns` por falhas **pré-existentes e não
-relacionadas a banco** (não introduzidas por este bloco):
+O commit que introduziu este CI (`7dc1511`) rodava a suíte com
+`--testPathIgnorePatterns` excluindo `videos.service.spec` e `modules.service.spec`, que tinham
+falhas **pré-existentes e não relacionadas a banco**:
 
-| Suite | Falha | Causa |
+| Suite | Falha original | Causa |
 |---|---|---|
 | `videos.service.spec` | 52/52 | Setup do TestingModule sem provider `ConfigService` (erro de DI do Nest). |
-| `modules.service.spec` | 2/21 | Mock de Prisma incompleto: `module.findMany` retorna `undefined` → `found.length` estoura. |
+| `modules.service.spec` | 2/21 | Mock de Prisma incompleto no `reorder`: `module.findMany`/`$transaction` não mockados. |
 
-Ambas são bugs de teste, corrigíveis sem tocar em produção. Devem sair da quarentena no próximo
-bloco de estabilização de testes. As demais suites (incluindo os testes de integração `xp`/
-`xp-calculator`, que usam o Postgres do CI) rodam normalmente e são bloqueantes.
+Ambas foram **corrigidas** (mocks explícitos no setup dos specs, sem alterar os services nem relaxar
+assertions) e a quarentena foi **removida**. A suíte roda completa e bloqueante, incluindo os testes
+de integração `xp`/`xp-calculator` que usam o Postgres do CI.
 
 ## Caveats conhecidos
 

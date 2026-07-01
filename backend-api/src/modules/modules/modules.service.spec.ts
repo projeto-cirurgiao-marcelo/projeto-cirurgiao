@@ -208,8 +208,16 @@ describe('ModulesService', () => {
         id: 'course-1',
         title: 'Curso',
       } as any);
-      prisma.module.findMany.mockResolvedValue([]);
+      // Validação de existência: reorder faz findMany e exige que todos os
+      // ids do payload existam, no mesmo curso e scope (parentModuleId=null).
+      prisma.module.findMany.mockResolvedValue([
+        { id: 'a', courseId: 'course-1', parentModuleId: null },
+        { id: 'b', courseId: 'course-1', parentModuleId: null },
+      ] as any);
       prisma.module.update.mockResolvedValue(makeModule());
+      // As 2 fases rodam dentro de $transaction; encaminha o callback usando
+      // o próprio mock como tx (tx.module.update === prisma.module.update).
+      prisma.$transaction.mockImplementation(async (cb: any) => cb(prisma));
 
       await service.reorder('course-1', {
         modules: [{ id: 'a', order: 0 }, { id: 'b', order: 1 }],
@@ -223,6 +231,12 @@ describe('ModulesService', () => {
         id: 'course-1',
         title: 'Curso',
       } as any);
+      prisma.module.findMany.mockResolvedValue([
+        { id: 'a', courseId: 'course-1', parentModuleId: null },
+      ] as any);
+      // Executa o callback da transação de fato, para que o update rejeitado
+      // aconteça dentro do try/catch do reorder e seja embrulhado.
+      prisma.$transaction.mockImplementation(async (cb: any) => cb(prisma));
       prisma.module.update.mockRejectedValue(new Error('boom'));
 
       await expect(

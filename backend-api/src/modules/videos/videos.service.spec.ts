@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { ConfigService } from '@nestjs/config';
 import { Video } from '@prisma/client';
 
 import { VideosService } from './videos.service';
@@ -50,12 +51,14 @@ describe('VideosService', () => {
   let cloudflareStream: DeepMockProxy<CloudflareStreamService>;
   let cloudflareR2: DeepMockProxy<CloudflareR2Service>;
   let audit: DeepMockProxy<AuditService>;
+  let config: DeepMockProxy<ConfigService>;
 
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
     cloudflareStream = mockDeep<CloudflareStreamService>();
     cloudflareR2 = mockDeep<CloudflareR2Service>();
     audit = mockDeep<AuditService>();
+    config = mockDeep<ConfigService>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -64,6 +67,7 @@ describe('VideosService', () => {
         { provide: CloudflareStreamService, useValue: cloudflareStream },
         { provide: CloudflareR2Service, useValue: cloudflareR2 },
         { provide: AuditService, useValue: audit },
+        { provide: ConfigService, useValue: config },
       ],
     }).compile();
 
