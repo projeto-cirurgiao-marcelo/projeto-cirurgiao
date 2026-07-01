@@ -763,12 +763,12 @@ Riscos de go-live dentro do escopo declarado que o checklist original não cobri
 
 **Aceite:** deploy web consistente; canônica documentada. ✅ Doc em `frontend-web/docs/DEPLOY.md §0` + `CLAUDE.md`; `firebase.json` redireciona (não serve app). Deploy do Firebase não executado (fora de escopo) — redirect passa a valer no próximo `firebase deploy --only hosting`, se houver.
 
-## P1.15 — Security headers (helmet na API + CSP na web)  🆕 [borderline]
+## P1.15 — Security headers (helmet na API + CSP na web)  🆕 [borderline] ✅ FEITO
 
-- [ ] `helmet()` no backend (HSTS, X-Content-Type-Options, etc.).
-- [ ] Headers/CSP na web (`next.config` e/ou Firebase/Vercel).
+- [x] `helmet()` no backend (HSTS, X-Content-Type-Options, etc.). **Feito no P1.9-bloco (commit `752c9a1`), `main.ts`.**
+- [x] Headers/CSP na web (`next.config`). **`frontend-web/next.config.ts` `async headers()`: CSP enforced + nosniff/Referrer-Policy/X-Frame-Options/Permissions-Policy em `/:path*`. Emitido pela Vercel canônica (não Firebase). Verificado via `next start`+`curl`.**
 
-**Aceite:** respostas trazem headers de segurança básicos.
+**Aceite:** respostas trazem headers de segurança básicos. ✅ Doc em `frontend-web/docs/DEPLOY.md §2.1`. Débito: CSP ainda com `'unsafe-inline'`/`'unsafe-eval'` — apertar com nonces em rodada futura.
 
 ## P1.16 — Scrubbing de PII/segredos no error tracking  🆕 [borderline]
 

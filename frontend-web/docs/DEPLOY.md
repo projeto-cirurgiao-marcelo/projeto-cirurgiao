@@ -42,6 +42,33 @@ Configurar na Vercel (Project Settings > Environment Variables):
 - `NEXT_PUBLIC_DEBUG` — **deixar unset em prod**. Apenas ligar (`true`)
   temporariamente em staging pra debug.
 
+## §2.1 Security headers / CSP (P1.15)
+
+Os headers de segurança do web são emitidos pelo **Next via `next.config.ts`
+(`async headers()`)**, servido pela **Vercel canônica** — **não** pelo Firebase
+Hosting (que só redireciona; ver §0). Aplicam-se a todas as rotas (`/:path*`):
+
+- `Content-Security-Policy` (enforced, não report-only)
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Frame-Options: SAMEORIGIN`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+
+**CSP — allowlist mapeada pros usos reais:** Firebase Auth/backend/R2/HLS via
+`connect-src https: wss:`; imagens/mídia via `img-src`/`media-src https:`; players
+por `frame-src` (`iframe.videodelivery.net`, `*.cloudflarestream.com`,
+`www.youtube.com`, `player.vimeo.com`); Google Fonts (`fonts.googleapis.com` em
+`style-src`, `fonts.gstatic.com` em `font-src`); Sentry web futuro já cabe em
+`connect-src https:`.
+
+> ⚠️ **Débito consciente:** a CSP ainda permite `'unsafe-inline'` e `'unsafe-eval'`
+> em `script-src` por compatibilidade com Next (hydration/styled-jsx) e libs. É
+> hardening básico — **apertar em rodada futura** migrando pra nonces
+> (`script-src 'self' 'nonce-...'`), o que exige gerar nonce no middleware/SSR.
+> Verificado em runtime (`next start` + `curl -I`) que os headers saem e a home
+> renderiza 200. Player/login autenticado não foram smoke-testados aqui (cabem na
+> allowlist permissiva); validar no preview Vercel antes do go-live.
+
 ## §3 Preview deploy
 
 Cada PR gera preview no Vercel. Validar antes de merge:
