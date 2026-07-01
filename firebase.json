@@ -1,15 +1,16 @@
 {
   "hosting": {
-    "public": "frontend-web/out",
+    "public": "firebase-hosting",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
+    "redirects": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "destination": "https://app.projetocirurgiao.app",
+        "type": 301
       }
     ]
   }
