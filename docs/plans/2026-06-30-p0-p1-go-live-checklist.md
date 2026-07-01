@@ -738,14 +738,14 @@ Riscos de go-live dentro do escopo declarado que o checklist original não cobri
 
 **Aceite:** PR com segredo é barrado automaticamente.
 
-## P1.12 — Rollback de deploy documentado  🆕
+## P1.12 — Rollback de deploy documentado  🆕 ✅ FEITO (doc)
 
 **Evidência:** nenhum item cobre reversão para "release controlado".
 
-- [ ] Documentar rollback: Cloud Run (revisions) + Vercel (instant rollback) + EAS.
-- [ ] Validar uma reversão em ambiente controlado.
+- [x] Documentar rollback: Cloud Run (revisions) + Vercel (instant rollback) + EAS. **`docs/RUNBOOK-ROLLBACK.md`** — cobre backend Cloud Run, video-processor Cloud Run (`europe-west1`), Vercel canônica (Firebase = legado, não é rollback), EAS (OTA vs binário), Cloudflare Workers (`r2-browser`/`video-processor-trigger`) e seção explícita Prisma/banco (forward-only; app rollback ≠ DB rollback).
+- [ ] Validar uma reversão em ambiente controlado. **PENDENTE — exige deploy/rollback real (Gustavo); fora do escopo desta rodada docs-only.**
 
-**Aceite:** procedimento de rollback testado e no runbook.
+**Aceite:** procedimento de rollback testado e no runbook. ✅ Runbook pronto; teste de reversão real fica como gate manual do Gustavo (como P1.5).
 
 ## P1.13 — Health check / uptime monitoring  🆕
 
