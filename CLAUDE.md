@@ -8,7 +8,7 @@ SaaS de educação em cirurgia veterinária. Monorepo manual (sem workspaces; sc
 | Componente | Stack | Deploy |
 |---|---|---|
 | `backend-api/` | NestJS 10 + Prisma 5 + PostgreSQL (Cloud SQL) + Vertex AI | Cloud Run `southamerica-east1` |
-| `frontend-web/` | Next.js 15 + React 19 + shadcn/ui + Tailwind v4 | **Vercel** + Firebase Hosting |
+| `frontend-web/` | Next.js 15 + React 19 + shadcn/ui + Tailwind v4 | **Vercel** (canônico; Firebase Hosting é legado/redirect — ver `frontend-web/docs/DEPLOY.md §0`) |
 | `mobile-app/` | Expo SDK 54 + React Native 0.81 + Expo Router v6 + NativeWind v5 | EAS |
 | `video-pipeline/cloud-run/` | Python + FFmpeg/NVENC + Faster-Whisper (GPU L4) | Cloud Run `europe-west1` |
 | `cloudflare-workers/` | `r2-browser` (admin file mgmt + índice KV) e `video-processor-trigger` (Queue consumer) | Cloudflare Workers |

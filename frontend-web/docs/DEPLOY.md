@@ -1,7 +1,26 @@
 # DEPLOY — frontend-web
 
-Checklist operacional de deploy do `frontend-web/` (Next.js 15 + React
-19). Host: Vercel / Firebase Hosting.
+Checklist operacional de deploy do `frontend-web/` (Next.js 15 + React 19).
+
+## §0 Plataforma canônica: **Vercel**
+
+O `frontend-web` é servido **exclusivamente pela Vercel**. É Next 15 App Router
+com middleware edge e renderização dinâmica (SSR) — só a Vercel serve isso
+corretamente (`vercel.json` declara `framework: nextjs`, região `gru1`).
+
+**Firebase Hosting é legado.** A antiga config servia `frontend-web/out` (um
+`next export` estático), mas o projeto **não** é `output: 'export'` e nunca gera
+`out/` — logo aquilo estava morto. Para evitar servir uma versão divergente,
+`firebase.json` agora **redireciona 301** todo o tráfego para
+`https://app.projetocirurgiao.app` (domínio canônico Vercel).
+
+> ⚠️ **Não publicar o web em duas plataformas.** Nunca reativar Firebase Hosting
+> para servir o app — isso recria o risco de versões independentes em produção.
+> O projeto Firebase (`projeto-cirurgiao-e8df7`) segue em uso **apenas** para
+> Auth (Web SDK), não para hosting.
+
+Domínios: `app.projetocirurgiao.app` = app (Vercel); `projetocirurgiao.app` /
+`www` = marketing.
 
 ## §1 Build local
 
@@ -16,7 +35,7 @@ em `docs/TECH-DEBT.md` (framer-motion peer dep, video.js plugin).
 
 ## §2 Variáveis de ambiente
 
-Configurar em Vercel / Firebase Hosting:
+Configurar na Vercel (Project Settings > Environment Variables):
 
 - `NEXT_PUBLIC_API_URL` — URL do backend em produção (Cloud Run).
 - `NEXT_PUBLIC_FIREBASE_*` — config do Firebase Web SDK (auth).
@@ -41,7 +60,8 @@ Merge em `main` dispara deploy automático. Após deploy:
 ## §5 Rollback
 
 Vercel: usar painel "Deployments" > "Promote to Production" no deploy
-anterior. Firebase Hosting: `firebase hosting:clone` entre canais.
+anterior (Instant Rollback). Firebase Hosting **não é rota de rollback** —
+está desativado como host (só redirect); ver §0.
 
 ## §6 GO-LIVE CHECKLIST
 

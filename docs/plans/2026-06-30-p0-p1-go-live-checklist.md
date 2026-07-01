@@ -754,14 +754,14 @@ Riscos de go-live dentro do escopo declarado que o checklist original não cobri
 
 **Aceite:** queda do backend dispara alerta.
 
-## P1.14 — Consistência do deploy web Firebase Hosting × Vercel  🆕
+## P1.14 — Consistência do deploy web Firebase Hosting × Vercel  🆕 ✅ FEITO
 
 **Evidência:** `firebase.json`/`.firebaserc` na raiz; web sai em duas plataformas.
 
-- [ ] Definir qual é canônica; alinhar headers/redirects/SPA fallback.
-- [ ] Garantir que não há divergência de versão servida entre as duas.
+- [x] Definir qual é canônica; alinhar headers/redirects/SPA fallback. **Canônica = Vercel.**
+- [x] Garantir que não há divergência de versão servida entre as duas. **Firebase Hosting era config morta (`frontend-web/out` nunca gerado — app não é `output: 'export'` e tem middleware edge); trocado por redirect 301 → `https://app.projetocirurgiao.app`.**
 
-**Aceite:** deploy web consistente; canônica documentada.
+**Aceite:** deploy web consistente; canônica documentada. ✅ Doc em `frontend-web/docs/DEPLOY.md §0` + `CLAUDE.md`; `firebase.json` redireciona (não serve app). Deploy do Firebase não executado (fora de escopo) — redirect passa a valer no próximo `firebase deploy --only hosting`, se houver.
 
 ## P1.15 — Security headers (helmet na API + CSP na web)  🆕 [borderline]
 
