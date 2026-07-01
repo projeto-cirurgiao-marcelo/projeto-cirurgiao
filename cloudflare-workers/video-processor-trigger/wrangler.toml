@@ -1,0 +1,17 @@
+name = "video-processor-trigger"
+main = "src/worker.js"
+compatibility_date = "2024-09-25"
+
+# Queue consumer - recebe eventos do R2
+[[queues.consumers]]
+queue = "video-processing"
+max_batch_size = 1
+max_retries = 3
+dead_letter_queue = "video-processing-dlq"
+
+# Variáveis de ambiente
+[vars]
+CLOUD_RUN_URL = "https://video-processor-81746498042.europe-west1.run.app"
+
+# Secret (configurar via: wrangler secret put WEBHOOK_SECRET)
+# WEBHOOK_SECRET = "seu-secret-aqui"
