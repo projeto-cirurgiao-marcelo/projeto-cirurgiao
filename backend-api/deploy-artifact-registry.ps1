@@ -58,6 +58,10 @@ if ($LASTEXITCODE -ne 0) { Write-Host "Erro no build" -ForegroundColor Red; exit
 Write-Host "OK." -ForegroundColor Green
 
 # 5) Recuperar env vars do service em execucao (mantem paridade entre Job e Service)
+#    NOTA: so captura env vars PLAINTEXT ($e.value). Segredos sensiveis migraram
+#    para Secret Manager (secret refs, sem .value) — o migrator recebe DATABASE_URL
+#    via --update-secrets no passo 6. O deploy do service (passo 8) preserva os
+#    secret refs da revision anterior automaticamente.
 Write-Host "`n5. Capturando env vars do service em execucao..." -ForegroundColor Yellow
 $envFile = Join-Path $env:TEMP "$JOB-env-$(Get-Random).yaml"
 $envFlags = @()
@@ -100,6 +104,7 @@ if ($LASTEXITCODE -eq 0) {
         "--set-cloudsql-instances=$SQL_INSTANCE",
         "--command=sh",
         "--args=-c,npx prisma migrate deploy",
+        "--update-secrets=DATABASE_URL=DATABASE_URL:latest",
         "--max-retries=1",
         "--task-timeout=600s"
     ) + $envFlags
@@ -117,6 +122,7 @@ if ($LASTEXITCODE -eq 0) {
         "--set-cloudsql-instances=$SQL_INSTANCE",
         "--command=sh",
         "--args=-c,npx prisma migrate deploy",
+        "--update-secrets=DATABASE_URL=DATABASE_URL:latest",
         "--max-retries=1",
         "--task-timeout=600s"
     ) + $envFlags
