@@ -576,6 +576,8 @@ npm test
 
 ## P1.5 — Build preview e smoke test em device real
 
+> 📋 **Checklist operacional pronto para execução manual:** `docs/mobile-preview-smoke-checklist.md` (pré-requisitos, comandos EAS, gotcha do monorepo, matriz de smoke iOS/Android, critérios de aceite). **P1.5 permanece ABERTO** — gate manual do Gustavo (device real). Marcar aqui com o resultado ao concluir.
+
 **Objetivo:** validar que o app mobile funciona fora do ambiente dev.
 
 **Arquivos:**
