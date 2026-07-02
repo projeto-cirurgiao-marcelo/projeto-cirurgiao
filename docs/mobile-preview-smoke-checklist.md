@@ -3,6 +3,15 @@
 Gate final do go-live controlado. **Execução manual pelo Gustavo** — o agente é
 headless e não roda `eas build`. Comandos abaixo são **modelos**.
 
+> ## Status da execução
+> | Plataforma | Build preview | Smoke device físico |
+> |---|---|---|
+> | **iOS** | ✅ passou (`app.projetocirurgiao.mobile`) | ✅ aprovado |
+> | **Android** | ⏳ pendente | ⏳ pendente |
+>
+> - Sentry auto-upload desabilitado nos builds EAS (`SENTRY_DISABLE_AUTO_UPLOAD=true`).
+> - Firebase iOS plist: ⏳ pendente (ainda com bundle antigo — ver aviso abaixo).
+
 Projeto EAS: slug `projeto-cirurgiao`, owner `projetocirurgiao`.
 Bundle iOS: `app.projetocirurgiao.mobile` — Android package: `com.projetocirurgiao.app`.
 

@@ -574,9 +574,18 @@ npm test
 
 ---
 
-## P1.5 — Build preview e smoke test em device real
+## P1.5 — Build preview e smoke test em device real  ⏳ PARCIAL (iOS ✅ / Android ⏳)
 
-> 📋 **Checklist operacional pronto para execução manual:** `docs/mobile-preview-smoke-checklist.md` (pré-requisitos, comandos EAS, gotcha do monorepo, matriz de smoke iOS/Android, critérios de aceite). **P1.5 permanece ABERTO** — gate manual do Gustavo (device real). Marcar aqui com o resultado ao concluir.
+> 📋 **Checklist operacional:** `docs/mobile-preview-smoke-checklist.md`.
+>
+> **Resultado da execução (Gustavo):**
+> - **iOS preview build:** ✅ **passou** (bundle `app.projetocirurgiao.mobile`).
+> - **Smoke em device físico iOS:** ✅ **aprovado**.
+> - **Android preview/device:** ⏳ **pendente** — ainda não executado.
+> - **Sentry auto-upload:** desabilitado por decisão de escopo (`SENTRY_DISABLE_AUTO_UPLOAD=true` nos 3 perfis EAS — commit `241b729`; source maps ficaram fora de escopo, P1.2/P1.16).
+> - **Firebase iOS plist:** ⏳ **pendente** — `GoogleService-Info.plist` ainda declara `BUNDLE_ID = com.projetocirurgiao.app` (antigo). Login funcionou no device (Firebase **JS SDK** via `EXPO_PUBLIC_FIREBASE_*`, não depende do plist em runtime), mas cadastrar o app iOS `app.projetocirurgiao.mobile` no Firebase + baixar plist novo continua necessário antes de considerar Firebase/Auth iOS nativo definitivo.
+>
+> **P1.5 NÃO fechado** — falta Android preview/device (+ plist iOS acima). iOS está ✅.
 
 **Objetivo:** validar que o app mobile funciona fora do ambiente dev.
 
