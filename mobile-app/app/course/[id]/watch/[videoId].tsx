@@ -352,11 +352,11 @@ export default function WatchVideoScreen() {
         if (kind === 'iframe' && playbackUrl) {
           return (
             <View style={styles.unavailableContainer}>
-              <Ionicons name="open-outline" size={32} color={colors.textMuted} />
-              <Text style={styles.unavailableTitle}>Em breve no app mobile</Text>
+              <Ionicons name="time-outline" size={32} color={colors.textMuted} />
+              <Text style={styles.unavailableTitle}>Aula em preparação</Text>
               <Text style={styles.unavailableSubtitle}>
-                Este vídeo usa um player externo ({video.videoSource}).{'\n'}
-                Por enquanto, acesse pelo navegador em projetocirurgiao.app.
+                Esta aula ainda não está disponível no app.{'\n'}
+                Em breve você poderá assisti-la por aqui.
               </Text>
             </View>
           );
