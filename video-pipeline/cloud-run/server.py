@@ -370,6 +370,37 @@ def generate_subtitles(input_file, output_dir):
     """Gera legendas VTT com faster-whisper."""
     from faster_whisper import WhisperModel
 
+    # Opção A (anti-OOM): extrair o áudio para WAV 16kHz mono ANTES de transcrever.
+    # Passar o MP4 original (centenas de MB a >1GB) direto pro faster-whisper faz
+    # ele decodificar o áudio inteiro em memória mantendo o container MP4 inteiro
+    # mapeado — em vídeos longos (ex: 2h41) isso estourava a RAM do container (OOM
+    # → SIGKILL no worker, perdendo o encode já pronto). O WAV 16kHz mono é o
+    # formato que o Whisper usa internamente e é pequeno e previsível, derrubando
+    # o pico de memória. Se a extração falhar, cai pro arquivo original.
+    audio_file = os.path.join(output_dir, 'audio_whisper.wav')
+    transcribe_target = input_file
+    logger.info("Extraindo áudio (16kHz mono WAV) para transcrição...")
+    audio_cmd = [
+        'ffmpeg', '-y', '-threads', '1',
+        '-i', input_file,
+        '-vn',                    # sem vídeo
+        '-ac', '1',               # mono
+        '-ar', '16000',           # 16kHz (taxa nativa do Whisper)
+        '-c:a', 'pcm_s16le',      # PCM 16-bit
+        audio_file,
+    ]
+    audio_res = subprocess.run(audio_cmd, capture_output=True, text=True)
+    if audio_res.returncode == 0 and os.path.isfile(audio_file):
+        wav_mb = os.path.getsize(audio_file) / 1024 / 1024
+        logger.info(f"Áudio extraído OK: {wav_mb:.0f} MB")
+        transcribe_target = audio_file
+    else:
+        logger.warning(
+            f"Extração de áudio falhou (rc={audio_res.returncode}); "
+            "transcrevendo a partir do arquivo original."
+        )
+        logger.error(f"ffmpeg audio stderr (tail): {audio_res.stderr[-800:]}")
+
     logger.info(f"Carregando modelo Whisper {WHISPER_MODEL}...")
     try:
         model = WhisperModel(WHISPER_MODEL, device='cuda', compute_type='float16')
@@ -379,7 +410,7 @@ def generate_subtitles(input_file, output_dir):
 
     logger.info("Transcrevendo...")
     segments, info = model.transcribe(
-        input_file,
+        transcribe_target,
         language=WHISPER_LANGUAGE,
         beam_size=5,
         vad_filter=True,
@@ -394,6 +425,13 @@ def generate_subtitles(input_file, output_dir):
         text = seg.text.strip()
         if text:
             all_segments.append({'start': seg.start, 'end': seg.end, 'text': text})
+
+    # Remover o WAV temporário antes do upload (output_dir é enviado inteiro pro R2).
+    if transcribe_target == audio_file and os.path.isfile(audio_file):
+        try:
+            os.remove(audio_file)
+        except OSError as e:
+            logger.warning(f"Falha ao remover WAV temporário: {e}")
 
     if not all_segments:
         logger.warning("Nenhum texto detectado")
