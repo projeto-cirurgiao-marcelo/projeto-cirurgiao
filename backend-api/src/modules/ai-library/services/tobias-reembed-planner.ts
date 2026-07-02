@@ -230,3 +230,87 @@ export function buildSummary(
 export function isDryRunClean(csvVal: CsvValidation, align: Alignment): boolean {
   return csvVal.ok && align.ok;
 }
+
+// ---------------------------------------------------------------------------
+// --apply: guardas de argumentos, backup e batching (funções puras)
+// ---------------------------------------------------------------------------
+
+export interface ApplyArgs {
+  apply: boolean;
+  csv?: string;
+  backup?: string;
+  confirmTobiasProd: boolean;
+  batchSize?: number;
+  limit?: number;
+  startIndex?: number;
+}
+
+export function parseApplyArgs(argv: string[]): ApplyArgs {
+  const has = (f: string) => argv.includes(f);
+  const val = (f: string) => {
+    const i = argv.indexOf(f);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
+  const num = (s?: string) =>
+    s !== undefined && /^\d+$/.test(s.trim()) ? parseInt(s.trim(), 10) : undefined;
+  return {
+    apply: has('--apply'),
+    csv: val('--csv'),
+    backup: val('--backup'),
+    confirmTobiasProd: has('--confirm-tobias-prod'),
+    batchSize: num(val('--batch-size')),
+    limit: num(val('--limit')),
+    startIndex: num(val('--start-index')),
+  };
+}
+
+/** Retorna a lista de erros de guarda para --apply. Vazio = liberado. */
+export function validateApplyArgs(a: ApplyArgs): string[] {
+  const errs: string[] = [];
+  if (!a.apply) return errs;
+  if (!a.csv) errs.push('--csv <path> é obrigatório');
+  if (!a.backup) errs.push('--backup <path> é obrigatório para --apply');
+  if (!a.confirmTobiasProd)
+    errs.push('--confirm-tobias-prod é obrigatório para --apply');
+  if (a.batchSize === undefined || a.batchSize <= 0)
+    errs.push('--batch-size <n> (>0) é obrigatório para --apply');
+  return errs;
+}
+
+/** Campos permitidos no backup (inclui contentPt para rollback; exclui `content` EN). */
+export interface BackupRecord {
+  id: string;
+  chunkIndex: number;
+  contentPt: string | null;
+  chapterPt: string | null;
+  isTranslated: boolean;
+  isIndexed: boolean;
+  embedding: string | null;
+}
+
+export function pickBackupFields<T extends BackupRecord>(c: T): BackupRecord {
+  return {
+    id: c.id,
+    chunkIndex: c.chunkIndex,
+    contentPt: c.contentPt,
+    chapterPt: c.chapterPt,
+    isTranslated: c.isTranslated,
+    isIndexed: c.isIndexed,
+    embedding: c.embedding,
+  };
+}
+
+/** Divide os chunkIndex em batches, respeitando --start-index e --limit. */
+export function planBatches(
+  indexes: number[],
+  batchSize: number,
+  opts: { startIndex?: number; limit?: number } = {},
+): number[][] {
+  let sel = [...indexes].sort((a, b) => a - b);
+  if (opts.startIndex !== undefined) sel = sel.filter((i) => i >= opts.startIndex!);
+  if (opts.limit !== undefined) sel = sel.slice(0, opts.limit);
+  const batches: number[][] = [];
+  const size = Math.max(1, batchSize);
+  for (let i = 0; i < sel.length; i += size) batches.push(sel.slice(i, i + size));
+  return batches;
+}

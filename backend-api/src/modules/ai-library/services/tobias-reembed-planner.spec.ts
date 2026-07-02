@@ -7,6 +7,10 @@ import {
   buildSummary,
   normalizeForCompare,
   isDryRunClean,
+  parseApplyArgs,
+  validateApplyArgs,
+  pickBackupFields,
+  planBatches,
   CsvRecord,
 } from './tobias-reembed-planner';
 
@@ -168,6 +172,85 @@ describe('tobias-reembed-planner (dry-run puro)', () => {
   describe('normalizeForCompare', () => {
     it('colapsa whitespace e faz trim', () => {
       expect(normalizeForCompare('  a\n\t b   c ')).toBe('a b c');
+    });
+  });
+
+  describe('--apply: guardas de argumentos', () => {
+    const base = ['--apply', '--csv', 'x.csv', '--backup', 'b.jsonl', '--confirm-tobias-prod', '--batch-size', '50'];
+
+    it('libera quando todas as travas estão presentes', () => {
+      const a = parseApplyArgs(base);
+      expect(a.apply).toBe(true);
+      expect(a.batchSize).toBe(50);
+      expect(validateApplyArgs(a)).toEqual([]);
+    });
+
+    it('FALHA sem --confirm-tobias-prod', () => {
+      const argv = base.filter((x) => x !== '--confirm-tobias-prod');
+      const errs = validateApplyArgs(parseApplyArgs(argv));
+      expect(errs.some((e) => e.includes('--confirm-tobias-prod'))).toBe(true);
+    });
+
+    it('FALHA sem --backup', () => {
+      const argv = ['--apply', '--csv', 'x.csv', '--confirm-tobias-prod', '--batch-size', '50'];
+      const errs = validateApplyArgs(parseApplyArgs(argv));
+      expect(errs.some((e) => e.includes('--backup'))).toBe(true);
+    });
+
+    it('FALHA sem --batch-size (ou inválido)', () => {
+      const argv = ['--apply', '--csv', 'x.csv', '--backup', 'b.jsonl', '--confirm-tobias-prod'];
+      const errs = validateApplyArgs(parseApplyArgs(argv));
+      expect(errs.some((e) => e.includes('--batch-size'))).toBe(true);
+    });
+
+    it('sem --apply não exige travas (dry-run)', () => {
+      const a = parseApplyArgs(['--csv', 'x.csv']);
+      expect(a.apply).toBe(false);
+      expect(validateApplyArgs(a)).toEqual([]);
+    });
+  });
+
+  describe('pickBackupFields — só campos permitidos', () => {
+    it('inclui os campos de rollback e NÃO inclui content (EN) nem outros', () => {
+      const chunk = {
+        id: 'c1',
+        chunkIndex: 3,
+        contentPt: 'PT',
+        chapterPt: 'CapPT',
+        isTranslated: false,
+        isIndexed: true,
+        embedding: '[0.1,0.2]',
+        content: 'ENGLISH_BOOK_TEXT',
+        language: 'en',
+        documentId: 'doc',
+      };
+      const b = pickBackupFields(chunk);
+      expect(Object.keys(b).sort()).toEqual(
+        ['chapterPt', 'chunkIndex', 'contentPt', 'embedding', 'id', 'isIndexed', 'isTranslated'].sort(),
+      );
+      expect((b as any).content).toBeUndefined();
+      expect((b as any).language).toBeUndefined();
+      expect(JSON.stringify(b)).not.toContain('ENGLISH_BOOK_TEXT');
+    });
+  });
+
+  describe('planBatches — respeita --limit / --start-index / --batch-size', () => {
+    const idx = [0, 1, 2, 3, 4, 5, 6];
+
+    it('respeita --limit', () => {
+      const b = planBatches(idx, 2, { limit: 3 });
+      expect(b.flat()).toEqual([0, 1, 2]);
+      expect(b).toEqual([[0, 1], [2]]);
+    });
+
+    it('respeita --start-index', () => {
+      const b = planBatches(idx, 3, { startIndex: 4 });
+      expect(b.flat()).toEqual([4, 5, 6]);
+    });
+
+    it('batches têm no máximo batchSize itens', () => {
+      const b = planBatches(idx, 3);
+      expect(b.map((x) => x.length)).toEqual([3, 3, 1]);
     });
   });
 });
