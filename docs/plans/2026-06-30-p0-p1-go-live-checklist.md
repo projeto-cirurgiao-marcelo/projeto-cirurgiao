@@ -574,15 +574,15 @@ npm test
 
 ---
 
-## P1.5 — Build preview e smoke test em device real  ✅ ACEITO p/ go-live controlado (iOS validado; Android adiado)
+## P1.5 — Build preview e smoke test em device real  ✅ ACEITO p/ go-live controlado (escopo iOS-only)
 
 > 📋 **Checklist operacional:** `docs/mobile-preview-smoke-checklist.md`.
 >
 > **Resultado da execução (Gustavo):**
 > - **iOS preview build:** ✅ **feito** (bundle `app.projetocirurgiao.mobile`).
 > - **iOS smoke em device físico:** ✅ **feito** (aprovado).
-> - **Android preview/device:** ⏳ **pendência futura aceita** — pulado neste ciclo por decisão do Gustavo (ver "Notas de risco aceito").
-> - **P1.5 para go-live controlado:** ✅ **aceito** com escopo iOS validado e Android adiado.
+> - **Android preview/device:** **fora do escopo atual** — o app Android **não será validado/publicado neste go-live** (ver "Notas de risco aceito").
+> - **P1.5 para go-live controlado:** ✅ **aceito** com escopo **iOS-only**.
 > - **Sentry auto-upload:** desabilitado por decisão de escopo (`SENTRY_DISABLE_AUTO_UPLOAD=true` nos 3 perfis EAS — commit `241b729`; source maps fora de escopo, P1.2/P1.16).
 > - **Firebase iOS plist:** ⏳ **pendente** (não bloqueia P1.5) — `GoogleService-Info.plist` ainda declara `BUNDLE_ID = com.projetocirurgiao.app`. Login funcionou no device (Firebase **JS SDK** via `EXPO_PUBLIC_FIREBASE_*`, não depende do plist em runtime); cadastrar app iOS `app.projetocirurgiao.mobile` no Firebase + baixar plist novo segue necessário para Firebase nativo definitivo.
 
@@ -858,7 +858,7 @@ Use esta seção se algum P0/P1 for conscientemente adiado.
 
 | Item | Risco | Por que foi aceito | Data limite para resolver | Aprovador |
 |---|---|---|---|---|
-| **P1.5 — Android device smoke** | Bugs específicos de Android podem aparecer depois (não exercitado em device). | Escopo do go-live controlado é iOS-first. Mitigação: **Mobile Tests CI verde** + código Expo/RN majoritariamente compartilhado com iOS (já validado em device). **Android preview deve ser executado em ciclo posterior antes de publicação Android ampla.** | Antes de publicação Android ampla | Gustavo (2026-07-02) |
+| **P1.5 — Android fora do escopo** | O app Android não faz parte do release controlado atual (não validado nem publicado). | Decisão de escopo: este go-live é **iOS-only**. Impacto: o release controlado cobre **iOS com device físico validado**; Android exigirá **ciclo próprio** (build preview + smoke em device) quando entrar no escopo. Não é pendência ativa deste go-live. | Quando Android entrar no escopo | Gustavo (2026-07-02) |
 | **P0.2-B — rotação de secrets** | Secrets atuais em uso; valores expostos em handoff local. | Gustavo considera os secrets atuais aceitos para o go-live controlado; rotação não é pré-requisito. | Pré-abertura pública ampla | Gustavo |
 
 ---
@@ -902,7 +902,7 @@ npm test
 - [ ] P1.1 concluído ou contas externas com prazo formal.
 - [ ] P1.2 concluído para backend + mobile (**web: decidir explicitamente** se entra agora ou vira risco aceito — aceite do P1.2 pede os três).
 - [ ] P1.3 concluído ou deploy manual validado com checklist assinado.
-- [x] P1.5 **aceito para go-live controlado**: iOS preview build + smoke em device físico ✅; **Android device smoke adiado como risco aceito** (Gustavo, 2026-07-02 — ver "Notas de risco aceito"). Não é mais bloqueante; Android preview fica pra ciclo anterior à publicação Android ampla.
+- [x] P1.5 **aceito para go-live controlado, escopo iOS-only**: iOS preview build + smoke em device físico ✅. **Android está fora do escopo deste release controlado** (não validado/publicado — decisão do Gustavo, 2026-07-02; ver "Notas de risco aceito"). Não é bloqueante.
 - [ ] P1.9/P1.10/P1.13 (rate limit, Swagger off, health check) concluídos ou risco aceito documentado.
 - [ ] Lado emissor do webhook (P0.9) coberto.
 - [ ] Rollback de deploy documentado e testado (P1.12).
