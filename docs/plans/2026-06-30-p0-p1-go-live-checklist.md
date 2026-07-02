@@ -10,6 +10,21 @@
 
 ---
 
+## 🏁 Encerramento — Go-live controlado iOS-only em device interno (2026-07-02)
+
+**Status: ✅ FECHADO** neste ciclo, no modelo **device interno** (sem distribuição pública/lojas).
+
+- **P1.5 iOS:** ✅ build preview + smoke em device físico + Firebase iOS (`app.projetocirurgiao.mobile`) com `GoogleService-Info.plist` validado.
+- **Android:** **fora do escopo atual** — não validado/publicado neste go-live.
+- **TestFlight / App Store (P1.1):** **próxima fase** (decisão do Gustavo) — **não bloqueia** este go-live controlado.
+- **Rollback runbook** (`docs/RUNBOOK-ROLLBACK.md`): pronto; **teste prático segue opcional/manual**.
+- **Backend/web/CI:** hardening, CI+gitleaks, observabilidade (Sentry no-op+scrubbing), middleware web, Vercel canônica, headers/CSP, deps mobile pinadas — todos no remoto com CI verde.
+- **Riscos aceitos:** Android fora do escopo; P0.2-B rotação de secrets adiada (ver "Notas de risco aceito").
+
+> Publicação em lojas **não** foi realizada neste ciclo — é fase seguinte.
+
+---
+
 ## 🔄 Revisão 2026-06-30 (2ª passada — validação contra o working tree)
 
 O checklist original foi validado contra o código real. Convenções desta revisão:
@@ -898,6 +913,11 @@ npm test
 ---
 
 # Done criteria final para go-live controlado
+
+> **✅ Ciclo encerrado (2026-07-02) no modelo iOS-only / device interno.** Os critérios abaixo foram
+> avaliados para este escopo. Itens ligados a **publicação em lojas** (P1.1/submit) e **Android**
+> ficam para fases seguintes e **não** bloqueiam o encerramento deste go-live controlado. Ver o bloco
+> "🏁 Encerramento" no topo.
 
 - [ ] Todos os P0 concluídos (P0.1, P0.2, P0.3, P0.4, P0.6, P0.9). *P0.5 já resolvido (só teste); P0.7/P0.8 rebaixados a P1.*
 - [ ] P1.1 concluído ou contas externas com prazo formal.

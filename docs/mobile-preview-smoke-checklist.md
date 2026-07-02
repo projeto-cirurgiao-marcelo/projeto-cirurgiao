@@ -12,6 +12,11 @@ headless e não roda `eas build`. Comandos abaixo são **modelos**.
 > - **P1.5 CONCLUÍDO (escopo iOS-only).** **Android está fora do escopo deste release** (decisão do Gustavo, 2026-07-02) — exigirá ciclo próprio quando entrar no escopo.
 > - Sentry auto-upload desabilitado nos builds EAS (`SENTRY_DISABLE_AUTO_UPLOAD=true`).
 > - Firebase iOS: ✅ app `app.projetocirurgiao.mobile` cadastrado + `GoogleService-Info.plist` atualizado; novo build reinstalado e aprovado em device.
+>
+> ### 🏁 Status final do ciclo (2026-07-02)
+> - **iOS release validado em device interno.** ✅
+> - **Sem distribuição pública / lojas neste ciclo.**
+> - **Próxima fase:** TestFlight / App Store (P1.1), se o Gustavo decidir distribuir fora do device interno.
 
 Projeto EAS: slug `projeto-cirurgiao`, owner `projetocirurgiao`.
 Bundle iOS: `app.projetocirurgiao.mobile` — Android package: `com.projetocirurgiao.app`.

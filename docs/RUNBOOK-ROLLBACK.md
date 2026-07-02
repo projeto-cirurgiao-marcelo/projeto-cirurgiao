@@ -119,6 +119,12 @@ curl -I https://app.projetocirurgiao.app   # ou a URL *.vercel.app de produção
 
 ## 4. Mobile — EAS
 
+> **Ciclo atual (go-live controlado iOS-only, device interno):** como não há
+> distribuição pública, o rollback mobile é simples — **reinstalar o build iOS
+> preview anterior** no device ou **remover o app** do device interno. As opções
+> de OTA/stores/TestFlight abaixo ficam **fora do escopo deste ciclo** e valem
+> quando entrar distribuição pública.
+
 Distinguir **OTA** de **binário** — são caminhos de rollback diferentes:
 
 ### 4a. EAS Update (OTA) — mudanças só de JS/assets
