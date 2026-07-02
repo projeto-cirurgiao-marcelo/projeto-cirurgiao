@@ -11,6 +11,8 @@ import {
   validateApplyArgs,
   pickBackupFields,
   planBatches,
+  parseBackupJsonl,
+  selectBackupForRollback,
   CsvRecord,
 } from './tobias-reembed-planner';
 
@@ -251,6 +253,37 @@ describe('tobias-reembed-planner (dry-run puro)', () => {
     it('batches têm no máximo batchSize itens', () => {
       const b = planBatches(idx, 3);
       expect(b.map((x) => x.length)).toEqual([3, 3, 1]);
+    });
+  });
+
+  describe('rollback: parseBackupJsonl + selectBackupForRollback', () => {
+    const mkLine = (chunkIndex: number) =>
+      JSON.stringify({
+        id: `id-${chunkIndex}`,
+        chunkIndex,
+        contentPt: null,
+        chapterPt: null,
+        isTranslated: false,
+        isIndexed: true,
+        embedding: '[0.1,0.2]',
+      });
+
+    it('parseBackupJsonl ignora linhas em branco', () => {
+      const text = [mkLine(0), '', mkLine(1), '  ', mkLine(2)].join('\n') + '\n';
+      const recs = parseBackupJsonl(text);
+      expect(recs).toHaveLength(3);
+      expect(recs[0].id).toBe('id-0');
+    });
+
+    it('selectBackupForRollback restaura exatamente chunkIndex 0..maxIndex', () => {
+      const recs = parseBackupJsonl(
+        Array.from({ length: 21 }, (_, i) => mkLine(i)).join('\n'),
+      );
+      const sel = selectBackupForRollback(recs, 9);
+      expect(sel).toHaveLength(10); // 0..9
+      expect(sel.map((r) => r.chunkIndex)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      // só ids/chunkIndex são "expostos"; nenhum content no registro
+      expect((sel[0] as any).content).toBeUndefined();
     });
   });
 });

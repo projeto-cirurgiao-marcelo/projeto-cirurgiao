@@ -300,6 +300,28 @@ export function pickBackupFields<T extends BackupRecord>(c: T): BackupRecord {
   };
 }
 
+/** Parseia o backup JSONL (uma linha por registro). Ignora linhas em branco. */
+export function parseBackupJsonl(text: string): BackupRecord[] {
+  return text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .map((l) => JSON.parse(l) as BackupRecord);
+}
+
+/**
+ * Seleciona os registros do backup a restaurar: `chunkIndex <= maxIndex`,
+ * ordenados. Usado no rollback pontual dos chunks tocados.
+ */
+export function selectBackupForRollback(
+  records: BackupRecord[],
+  maxIndex: number,
+): BackupRecord[] {
+  return records
+    .filter((r) => typeof r.chunkIndex === 'number' && r.chunkIndex <= maxIndex)
+    .sort((a, b) => a.chunkIndex - b.chunkIndex);
+}
+
 /** Divide os chunkIndex em batches, respeitando --start-index e --limit. */
 export function planBatches(
   indexes: number[],
