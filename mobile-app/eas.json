@@ -9,7 +9,8 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3000/api/v1"
+        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3000/api/v1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "android": {
         "resourceClass": "medium"
@@ -23,7 +24,8 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "android": {
         "buildType": "apk",
@@ -37,7 +39,8 @@
       "channel": "production",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "android": {
         "resourceClass": "medium"
