@@ -9,19 +9,18 @@ headless e não roda `eas build`. Comandos abaixo são **modelos**.
 > | **iOS** | ✅ passou (`app.projetocirurgiao.mobile`) | ✅ aprovado |
 > | **Android** | N/A neste go-live | N/A neste go-live |
 >
-> - **P1.5 aceito para go-live controlado, escopo iOS-only.** **Android está fora do escopo deste release** (decisão do Gustavo, 2026-07-02) — exigirá ciclo próprio quando entrar no escopo.
+> - **P1.5 CONCLUÍDO (escopo iOS-only).** **Android está fora do escopo deste release** (decisão do Gustavo, 2026-07-02) — exigirá ciclo próprio quando entrar no escopo.
 > - Sentry auto-upload desabilitado nos builds EAS (`SENTRY_DISABLE_AUTO_UPLOAD=true`).
-> - Firebase iOS plist: ⏳ pendente (ainda com bundle antigo — ver aviso abaixo).
+> - Firebase iOS: ✅ app `app.projetocirurgiao.mobile` cadastrado + `GoogleService-Info.plist` atualizado; novo build reinstalado e aprovado em device.
 
 Projeto EAS: slug `projeto-cirurgiao`, owner `projetocirurgiao`.
 Bundle iOS: `app.projetocirurgiao.mobile` — Android package: `com.projetocirurgiao.app`.
 
-> ⚠️ **Firebase iOS:** o `GoogleService-Info.plist` (gitignored) ainda declara
-> `BUNDLE_ID = com.projetocirurgiao.app`. Antes/para o build iOS ser 100%
-> correto, cadastrar o novo app iOS (`app.projetocirurgiao.mobile`) no Firebase
-> console e baixar um plist novo. O app usa o Firebase JS SDK (config via
-> `EXPO_PUBLIC_FIREBASE_*`), então o login não depende do plist em runtime — mas
-> não deixar o plist inconsistente para não confundir builds nativos futuros.
+> ✅ **Firebase iOS (resolvido):** app `app.projetocirurgiao.mobile` cadastrado no
+> Firebase e `GoogleService-Info.plist` (gitignored — não versionado) atualizado
+> com o novo bundle. Novo build iOS preview reinstalado em device físico e
+> aprovado. (Login já funcionava via Firebase JS SDK / `EXPO_PUBLIC_FIREBASE_*`;
+> o plist correto deixa builds nativos consistentes.)
 
 ---
 

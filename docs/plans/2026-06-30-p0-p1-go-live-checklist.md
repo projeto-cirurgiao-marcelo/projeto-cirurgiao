@@ -574,17 +574,18 @@ npm test
 
 ---
 
-## P1.5 — Build preview e smoke test em device real  ✅ ACEITO p/ go-live controlado (escopo iOS-only)
+## P1.5 — Build preview e smoke test em device real  ✅ CONCLUÍDO (escopo iOS-only)
 
 > 📋 **Checklist operacional:** `docs/mobile-preview-smoke-checklist.md`.
 >
 > **Resultado da execução (Gustavo):**
 > - **iOS preview build:** ✅ **feito** (bundle `app.projetocirurgiao.mobile`).
 > - **iOS smoke em device físico:** ✅ **feito** (aprovado).
+> - **Firebase iOS:** ✅ app `app.projetocirurgiao.mobile` **cadastrado** no Firebase; `GoogleService-Info.plist` **atualizado** localmente (gitignored — não versionado). **Novo build iOS preview reinstalado em device físico: ✅ aprovado.**
 > - **Android preview/device:** **fora do escopo atual** — o app Android **não será validado/publicado neste go-live** (ver "Notas de risco aceito").
-> - **P1.5 para go-live controlado:** ✅ **aceito** com escopo **iOS-only**.
+> - **P1.5 (go-live controlado, iOS-only):** ✅ **CONCLUÍDO**.
 > - **Sentry auto-upload:** desabilitado por decisão de escopo (`SENTRY_DISABLE_AUTO_UPLOAD=true` nos 3 perfis EAS — commit `241b729`; source maps fora de escopo, P1.2/P1.16).
-> - **Firebase iOS plist:** ⏳ **pendente** (não bloqueia P1.5) — `GoogleService-Info.plist` ainda declara `BUNDLE_ID = com.projetocirurgiao.app`. Login funcionou no device (Firebase **JS SDK** via `EXPO_PUBLIC_FIREBASE_*`, não depende do plist em runtime); cadastrar app iOS `app.projetocirurgiao.mobile` no Firebase + baixar plist novo segue necessário para Firebase nativo definitivo.
+> - **Próxima etapa (fora do P1.5):** P1.1 publicação/TestFlight/App Store, se distribuir fora do device interno.
 
 **Objetivo:** validar que o app mobile funciona fora do ambiente dev.
 
@@ -902,7 +903,7 @@ npm test
 - [ ] P1.1 concluído ou contas externas com prazo formal.
 - [ ] P1.2 concluído para backend + mobile (**web: decidir explicitamente** se entra agora ou vira risco aceito — aceite do P1.2 pede os três).
 - [ ] P1.3 concluído ou deploy manual validado com checklist assinado.
-- [x] P1.5 **aceito para go-live controlado, escopo iOS-only**: iOS preview build + smoke em device físico ✅. **Android está fora do escopo deste release controlado** (não validado/publicado — decisão do Gustavo, 2026-07-02; ver "Notas de risco aceito"). Não é bloqueante.
+- [x] P1.5 **concluído (escopo iOS-only)**: iOS preview build + smoke em device físico ✅; Firebase iOS (`app.projetocirurgiao.mobile`) cadastrado + `GoogleService-Info.plist` atualizado + novo build reinstalado e aprovado em device ✅. **Android está fora do escopo deste release controlado** (decisão do Gustavo, 2026-07-02; ver "Notas de risco aceito").
 - [ ] P1.9/P1.10/P1.13 (rate limit, Swagger off, health check) concluídos ou risco aceito documentado.
 - [ ] Lado emissor do webhook (P0.9) coberto.
 - [ ] Rollback de deploy documentado e testado (P1.12).
