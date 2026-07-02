@@ -7,8 +7,9 @@ headless e não roda `eas build`. Comandos abaixo são **modelos**.
 > | Plataforma | Build preview | Smoke device físico |
 > |---|---|---|
 > | **iOS** | ✅ passou (`app.projetocirurgiao.mobile`) | ✅ aprovado |
-> | **Android** | ⏳ pendente | ⏳ pendente |
+> | **Android** | ⏳ pendência futura aceita | ⏳ pendência futura aceita |
 >
+> - **P1.5 aceito para go-live controlado** com escopo iOS validado; **Android adiado por decisão do Gustavo (2026-07-02)** — executar antes de publicação Android ampla.
 > - Sentry auto-upload desabilitado nos builds EAS (`SENTRY_DISABLE_AUTO_UPLOAD=true`).
 > - Firebase iOS plist: ⏳ pendente (ainda com bundle antigo — ver aviso abaixo).
 
