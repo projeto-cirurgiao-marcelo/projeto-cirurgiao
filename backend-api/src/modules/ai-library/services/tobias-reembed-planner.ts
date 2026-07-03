@@ -243,6 +243,11 @@ export interface ApplyArgs {
   batchSize?: number;
   limit?: number;
   startIndex?: number;
+  // throttle/retry (defaults conservadores)
+  sleepMs: number;
+  maxRetries: number;
+  initialBackoffMs: number;
+  maxBackoffMs: number;
 }
 
 export function parseApplyArgs(argv: string[]): ApplyArgs {
@@ -261,6 +266,10 @@ export function parseApplyArgs(argv: string[]): ApplyArgs {
     batchSize: num(val('--batch-size')),
     limit: num(val('--limit')),
     startIndex: num(val('--start-index')),
+    sleepMs: num(val('--sleep-ms')) ?? 3000,
+    maxRetries: num(val('--max-retries')) ?? 5,
+    initialBackoffMs: num(val('--initial-backoff-ms')) ?? 5000,
+    maxBackoffMs: num(val('--max-backoff-ms')) ?? 60000,
   };
 }
 
@@ -298,6 +307,115 @@ export function pickBackupFields<T extends BackupRecord>(c: T): BackupRecord {
     isIndexed: c.isIndexed,
     embedding: c.embedding,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Resiliência: classificação de erro, backoff e retry (funções puras)
+// ---------------------------------------------------------------------------
+
+function errorText(err: unknown): string {
+  if (err == null) return '';
+  if (typeof err === 'string') return err;
+  const anyErr = err as { message?: unknown; toString?: () => string };
+  if (typeof anyErr.message === 'string') return anyErr.message;
+  try {
+    return String(err);
+  } catch {
+    return '';
+  }
+}
+
+function errorStatus(err: unknown): number | undefined {
+  const e = err as { status?: unknown; code?: unknown; response?: { status?: unknown } };
+  for (const v of [e?.status, e?.code, e?.response?.status]) {
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string' && /^\d+$/.test(v)) return parseInt(v, 10);
+  }
+  return undefined;
+}
+
+/**
+ * Só é retryable erro de quota/rate limit: HTTP 429, "Quota exceeded",
+ * "RESOURCE_EXHAUSTED", "Too Many Requests". Validação/CSV/DB/payload → NÃO.
+ */
+export function isRetryableError(err: unknown): boolean {
+  if (errorStatus(err) === 429) return true;
+  const msg = errorText(err).toLowerCase();
+  return (
+    msg.includes('quota exceeded') ||
+    msg.includes('resource_exhausted') ||
+    msg.includes('too many requests') ||
+    msg.includes('rate limit')
+  );
+}
+
+export interface BackoffOpts {
+  initialMs: number;
+  maxMs: number;
+  jitter?: number; // fração (default 0.1)
+}
+
+/** Backoff exponencial com jitter pequeno, limitado a maxMs. */
+export function computeBackoff(
+  attempt: number,
+  opts: BackoffOpts,
+  rng: () => number = Math.random,
+): number {
+  const base = Math.min(opts.maxMs, opts.initialMs * Math.pow(2, Math.max(0, attempt - 1)));
+  const jitter = (opts.jitter ?? 0.1) * base * rng();
+  return Math.min(opts.maxMs, Math.round(base + jitter));
+}
+
+export interface RetryOptions {
+  maxRetries: number;
+  initialBackoffMs: number;
+  maxBackoffMs: number;
+  jitter?: number;
+}
+
+export interface RetryDeps {
+  sleep: (ms: number) => Promise<void>;
+  rng?: () => number;
+  onRetry?: (attempt: number, delayMs: number, err: unknown) => void;
+}
+
+/**
+ * Executa `fn`, com retry APENAS em erro retryable (quota/429), backoff
+ * exponencial. Erro não-retryable ou retries esgotados → propaga o erro.
+ */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  opts: RetryOptions,
+  deps: RetryDeps,
+): Promise<T> {
+  let attempt = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      return await fn();
+    } catch (err) {
+      attempt++;
+      if (!isRetryableError(err) || attempt > opts.maxRetries) throw err;
+      const delay = computeBackoff(
+        attempt,
+        { initialMs: opts.initialBackoffMs, maxMs: opts.maxBackoffMs, jitter: opts.jitter },
+        deps.rng ?? Math.random,
+      );
+      deps.onRetry?.(attempt, delay, err);
+      await deps.sleep(delay);
+    }
+  }
+}
+
+/** Embeda com retry e aplica o throttle (--sleep-ms) após sucesso. */
+export async function embedWithPolicy(
+  embed: () => Promise<number[]>,
+  opts: RetryOptions & { sleepMs: number },
+  deps: RetryDeps,
+): Promise<number[]> {
+  const vec = await withRetry(embed, opts, deps);
+  if (opts.sleepMs > 0) await deps.sleep(opts.sleepMs);
+  return vec;
 }
 
 /** Parseia o backup JSONL (uma linha por registro). Ignora linhas em branco. */

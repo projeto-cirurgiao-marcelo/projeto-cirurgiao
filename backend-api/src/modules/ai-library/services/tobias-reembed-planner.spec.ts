@@ -13,6 +13,10 @@ import {
   planBatches,
   parseBackupJsonl,
   selectBackupForRollback,
+  isRetryableError,
+  computeBackoff,
+  withRetry,
+  embedWithPolicy,
   CsvRecord,
 } from './tobias-reembed-planner';
 
@@ -284,6 +288,96 @@ describe('tobias-reembed-planner (dry-run puro)', () => {
       expect(sel.map((r) => r.chunkIndex)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
       // só ids/chunkIndex são "expostos"; nenhum content no registro
       expect((sel[0] as any).content).toBeUndefined();
+    });
+  });
+
+  describe('resiliência: isRetryableError', () => {
+    it('429 / quota / RESOURCE_EXHAUSTED são retryable', () => {
+      expect(isRetryableError({ code: 429 })).toBe(true);
+      expect(isRetryableError({ response: { status: 429 } })).toBe(true);
+      expect(isRetryableError(new Error('Quota exceeded for aiplatform...'))).toBe(true);
+      expect(isRetryableError(new Error('RESOURCE_EXHAUSTED: ...'))).toBe(true);
+      expect(isRetryableError('Too Many Requests')).toBe(true);
+    });
+
+    it('validação/CSV/DB/payload NÃO são retryable', () => {
+      expect(isRetryableError(new Error('Invalid embedding response'))).toBe(false);
+      expect(isRetryableError(new Error('CSV desalinhado'))).toBe(false);
+      expect(isRetryableError({ code: 400 })).toBe(false);
+      expect(isRetryableError(new Error("Can't reach database server"))).toBe(false);
+    });
+  });
+
+  describe('resiliência: computeBackoff', () => {
+    it('cresce exponencialmente (sem jitter) e respeita o máximo', () => {
+      const opts = { initialMs: 1000, maxMs: 8000, jitter: 0 };
+      const zero = () => 0;
+      expect(computeBackoff(1, opts, zero)).toBe(1000);
+      expect(computeBackoff(2, opts, zero)).toBe(2000);
+      expect(computeBackoff(3, opts, zero)).toBe(4000);
+      expect(computeBackoff(4, opts, zero)).toBe(8000);
+      expect(computeBackoff(10, opts, zero)).toBe(8000); // cap
+    });
+
+    it('jitter fica dentro do máximo', () => {
+      const v = computeBackoff(3, { initialMs: 1000, maxMs: 8000, jitter: 0.1 }, () => 1);
+      expect(v).toBeGreaterThanOrEqual(4000);
+      expect(v).toBeLessThanOrEqual(8000);
+    });
+  });
+
+  describe('resiliência: withRetry', () => {
+    const opts = { maxRetries: 3, initialBackoffMs: 10, maxBackoffMs: 100, jitter: 0 };
+
+    it('retenta erro retryable até maxRetries e então propaga', async () => {
+      let calls = 0;
+      const slept: number[] = [];
+      const fn = async () => {
+        calls++;
+        throw new Error('Quota exceeded');
+      };
+      await expect(
+        withRetry(fn, opts, { sleep: async (ms) => { slept.push(ms); }, rng: () => 0 }),
+      ).rejects.toThrow('Quota exceeded');
+      expect(calls).toBe(opts.maxRetries + 1); // 1 inicial + 3 retries
+      expect(slept).toEqual([10, 20, 40]); // backoff cresce
+    });
+
+    it('NÃO retenta erro não-retryable (1 chamada)', async () => {
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        throw new Error('Invalid payload');
+      };
+      await expect(
+        withRetry(fn, opts, { sleep: async () => {}, rng: () => 0 }),
+      ).rejects.toThrow('Invalid payload');
+      expect(calls).toBe(1);
+    });
+
+    it('sucesso após 1 retry retorna o valor', async () => {
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        if (calls === 1) throw new Error('429 Too Many Requests');
+        return [1, 2, 3];
+      };
+      const r = await withRetry(fn, opts, { sleep: async () => {}, rng: () => 0 });
+      expect(r).toEqual([1, 2, 3]);
+      expect(calls).toBe(2);
+    });
+  });
+
+  describe('resiliência: embedWithPolicy respeita --sleep-ms', () => {
+    it('dorme sleepMs após sucesso do embedding', async () => {
+      const slept: number[] = [];
+      const r = await embedWithPolicy(
+        async () => [0.1, 0.2],
+        { maxRetries: 2, initialBackoffMs: 10, maxBackoffMs: 100, sleepMs: 3000, jitter: 0 },
+        { sleep: async (ms) => { slept.push(ms); }, rng: () => 0 },
+      );
+      expect(r).toEqual([0.1, 0.2]);
+      expect(slept).toEqual([3000]); // throttle entre chamadas
     });
   });
 });

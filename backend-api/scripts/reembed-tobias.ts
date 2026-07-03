@@ -27,11 +27,14 @@ import {
   validateApplyArgs,
   pickBackupFields,
   planBatches,
+  embedWithPolicy,
   CsvRecord,
   DbChunk,
 } from '../src/modules/ai-library/services/tobias-reembed-planner';
 
 const EXPECTED_TOBIAS_CHUNKS = 6161;
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 interface FullDbChunk {
   id: string;
@@ -163,6 +166,10 @@ async function main() {
         (args.limit ? ` (limit=${args.limit})` : '') +
         (args.startIndex ? ` (start-index=${args.startIndex})` : ''),
     );
+    console.log(
+      `Throttle/retry: sleep-ms=${args.sleepMs} max-retries=${args.maxRetries} ` +
+        `initial-backoff-ms=${args.initialBackoffMs} max-backoff-ms=${args.maxBackoffMs}`,
+    );
 
     const embedder = new KnowledgeSearchService(new ConfigService() as any, prisma as any);
     let phaseADone = 0;
@@ -183,10 +190,26 @@ async function main() {
           phaseADone++;
         }
         // Fase B: regenerar embedding a partir de contentPt e salvar.
+        // Throttle (--sleep-ms) entre chamadas + retry/backoff só p/ quota/429.
         for (const idx of batch) {
           const rec = csvByIdx.get(idx)!;
           const id = idByIdx.get(idx)!;
-          const vec = await embedder.generateEmbedding(rec.contentPt);
+          const vec = await embedWithPolicy(
+            () => embedder.generateEmbedding(rec.contentPt),
+            {
+              maxRetries: args.maxRetries,
+              initialBackoffMs: args.initialBackoffMs,
+              maxBackoffMs: args.maxBackoffMs,
+              sleepMs: args.sleepMs,
+            },
+            {
+              sleep,
+              onRetry: (attempt, delayMs) =>
+                console.log(
+                  `    retry ${attempt}/${args.maxRetries} chunkIndex ${idx} em ${delayMs}ms (quota/429)`,
+                ),
+            },
+          );
           await prisma.$executeRawUnsafe(
             `UPDATE knowledge_chunks SET embedding = $1::vector, "isIndexed" = true WHERE id = $2`,
             `[${vec.join(',')}]`,
