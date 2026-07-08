@@ -6,6 +6,7 @@
  * to the browser; the Worker validates the JWT/Firebase token on every part.
  */
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { auth } from '@/lib/firebase/config';
 
 const WORKER_BASE = (
   process.env.NEXT_PUBLIC_R2_BROWSER_WORKER_URL ||
@@ -72,9 +73,21 @@ class UploadError extends Error {
   }
 }
 
-function authHeaders(): Headers {
+// Filas longas de upload estouram a validade de 1h do Firebase ID token; o
+// token estático do zustand vence no meio da fila e o Worker devolve 401.
+// getIdToken() devolve o cached se válido e renova sozinho quando expira;
+// forceRefresh cobre o retry pós-401.
+async function authHeaders(forceRefresh = false): Promise<Headers> {
   const headers = new Headers();
-  const token = useAuthStore.getState().firebaseToken;
+  let token: string | null = null;
+  try {
+    token = auth.currentUser
+      ? await auth.currentUser.getIdToken(forceRefresh)
+      : null;
+  } catch {
+    // cai pro token persistido abaixo
+  }
+  if (!token) token = useAuthStore.getState().firebaseToken;
   if (token) headers.set('authorization', `Bearer ${token}`);
   return headers;
 }
@@ -84,14 +97,20 @@ async function workerJson<T>(
   body: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
-  const headers = authHeaders();
-  headers.set('content-type', 'application/json');
-  const res = await fetch(`${WORKER_BASE}${path}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-    signal,
-  });
+  const doFetch = async (forceRefresh: boolean) => {
+    const headers = await authHeaders(forceRefresh);
+    headers.set('content-type', 'application/json');
+    return fetch(`${WORKER_BASE}${path}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal,
+    });
+  };
+  let res = await doFetch(false);
+  if (res.status === 401) {
+    res = await doFetch(true);
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new UploadError(
@@ -116,16 +135,18 @@ async function uploadPart(
     `&partNumber=${part.partNumber}`;
 
   let lastErr: unknown = null;
+  let lastWas401 = false;
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (signal.aborted) throw new UploadError('aborted');
     try {
-      const headers = authHeaders();
+      const headers = await authHeaders(lastWas401);
       const res = await fetch(url, {
         method: 'PUT',
         headers,
         body: blob,
         signal,
       });
+      lastWas401 = res.status === 401;
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         throw new UploadError(
