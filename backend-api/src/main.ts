@@ -30,6 +30,13 @@ async function bootstrap() {
 
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // Atrás do Cloud Run há exatamente 1 hop confiável (Google Front End).
+  // Sem trust proxy, req.ip é o IP do proxy — todos os usuários caíam no
+  // MESMO bucket do rate limit por IP. Com 1 hop, req.ip vira o IP real do
+  // cliente (última entrada do X-Forwarded-For, escrita pelo Google), sem
+  // aceitar entradas spoofadas prepended pelo cliente.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   // Registra o filtro global só quando o Sentry está ativo — sem DSN, zero
   // mudança no comportamento de erros.
   if (sentryEnabled) {

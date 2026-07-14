@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { USER_THROTTLE_TRACKER } from './shared/throttler/user-throttler.guard';
+import { GlobalIpThrottlerGuard } from './shared/throttler/global-ip-throttler.guard';
 import { UserThrottlerModule } from './shared/throttler/user-throttler.module';
 import { QueueModule } from './shared/queue/queue.module';
 import { AnalyticsModule } from './shared/analytics/analytics.module';
@@ -105,7 +106,9 @@ import { HealthController } from './modules/health/health.controller';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      // Não usar o ThrottlerGuard puro aqui: ele aplicaria também o 'ai-user'
+      // (30/min) em todas as rotas — ver global-ip-throttler.guard.ts.
+      useClass: GlobalIpThrottlerGuard,
     },
     TokenCleanupService,
     QuizOrphanCleanupService,
