@@ -6,6 +6,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { RedeemInviteDto } from './dto/redeem-invite.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -74,6 +75,16 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Solicitação recebida com sucesso' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('auth/invite/redeem')
+  @Throttle({ short: { limit: 3, ttl: 1000 }, medium: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resgatar convite do teste fechado (define a senha)' })
+  @ApiResponse({ status: 200, description: 'Senha definida com sucesso' })
+  @ApiResponse({ status: 401, description: 'Convite inválido, expirado ou já utilizado' })
+  async redeemInvite(@Body() dto: RedeemInviteDto) {
+    return this.authService.redeemInvite(dto.token, dto.newPassword);
   }
 
   @Post('auth/logout')

@@ -73,4 +73,15 @@ export const authService = {
     });
     return response.data;
   },
+
+  /**
+   * Resgata convite do teste fechado (token próprio, 7 dias) definindo a senha
+   */
+  async redeemInvite(token: string, newPassword: string): Promise<{ email: string }> {
+    const response = await apiClient.post<{ email: string }>('/auth/invite/redeem', {
+      token,
+      newPassword,
+    });
+    return response.data;
+  },
 };

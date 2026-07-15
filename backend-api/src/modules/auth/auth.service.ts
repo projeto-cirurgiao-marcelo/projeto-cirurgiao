@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -281,6 +282,66 @@ export class AuthService {
       },
       message: 'Usuário criado com sucesso',
     };
+  }
+
+  /**
+   * Convite do teste fechado — resgate de token próprio (7 dias, uso único).
+   *
+   * O link de reset do Firebase expira em ~1h, inviável pra convite via
+   * WhatsApp. O token de convite é um JWT nosso (mesmo JWT_SECRET, purpose
+   * 'invite') gerado pelo script create-test-students. Uso único via claim
+   * `pv`: amarra o token ao valor atual do campo `password` do User no
+   * Postgres (padrão do reset token do Django) — o resgate troca esse campo,
+   * então o mesmo token não valida uma segunda vez. Todos os erros viram o
+   * mesmo 401 genérico pra não vazar estado da conta.
+   */
+  private inviteBinding(user: { id: string; password: string }): string {
+    return createHash('sha256')
+      .update(`${user.id}:${user.password}`)
+      .digest('hex')
+      .slice(0, 16);
+  }
+
+  async redeemInvite(token: string, newPassword: string) {
+    const invalid = () =>
+      new UnauthorizedException('Convite inválido, expirado ou já utilizado');
+
+    let payload: { sub?: string; purpose?: string; pv?: string };
+    try {
+      payload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+    } catch {
+      throw invalid();
+    }
+    if (payload.purpose !== 'invite' || !payload.sub || !payload.pv) {
+      throw invalid();
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+    if (!user || !user.isActive || this.inviteBinding(user) !== payload.pv) {
+      throw invalid();
+    }
+
+    const firebaseUser = await this.firebaseAdmin.getUserByEmail(user.email);
+    if (!firebaseUser) {
+      this.logger.error(`Invite redeem: usuário ${user.id} sem conta Firebase`);
+      throw invalid();
+    }
+
+    // Ordem importa: primeiro a senha no Firebase (fonte de verdade do
+    // login); só então o convite é marcado como usado. Se o updateUser
+    // lançar, o token continua válido pra nova tentativa.
+    await this.firebaseAdmin.updateUserPassword(firebaseUser.uid, newPassword);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { password: `invite-redeemed:${Date.now()}` },
+    });
+
+    this.logger.log(`Convite resgatado: ${user.email}`);
+    return { email: user.email };
   }
 
   private async generateTokens(userId: string, email: string, role: Role) {

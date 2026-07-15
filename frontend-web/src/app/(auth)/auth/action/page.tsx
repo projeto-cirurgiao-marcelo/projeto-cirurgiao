@@ -10,6 +10,7 @@ import {
   verifyPasswordResetCode,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
+import { authService } from '@/lib/api/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +18,11 @@ import { Loader2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
 /**
- * Custom email action handler do Firebase Auth (action URL do projeto
- * aponta pra cá). Trata mode=resetPassword (usado como convite do teste
- * fechado e no "Esqueceu sua senha?") e mode=verifyEmail.
+ * Handler de ações de conta:
+ * - mode=invite: convite do teste fechado (token JWT próprio, 7 dias,
+ *   resgatado via POST /auth/invite/redeem)
+ * - mode=resetPassword: reset do Firebase ("Esqueceu sua senha?")
+ * - mode=verifyEmail: verificação de e-mail do Firebase
  */
 
 // Mesmas regras de senha do registerSchema (auth-schemas.ts)
@@ -33,10 +36,21 @@ type Screen =
   | 'verified'
   | 'invalid';
 
+/** Decodifica o payload do JWT de convite só pra exibição (email/exp) — a validação real é no backend */
+function decodeInvitePayload(token: string): { email?: string; exp?: number } | null {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
+  } catch {
+    return null;
+  }
+}
+
 function ActionHandler() {
   const params = useSearchParams();
   const mode = params.get('mode');
   const oobCode = params.get('oobCode') ?? '';
+  const inviteToken = params.get('token') ?? '';
 
   const [screen, setScreen] = useState<Screen>('validating');
   const [email, setEmail] = useState('');
@@ -46,6 +60,16 @@ function ActionHandler() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (mode === 'invite') {
+      const payload = inviteToken ? decodeInvitePayload(inviteToken) : null;
+      if (!payload?.email || (payload.exp && payload.exp * 1000 < Date.now())) {
+        setScreen('invalid');
+        return;
+      }
+      setEmail(payload.email);
+      setScreen('form');
+      return;
+    }
     if (!oobCode) {
       setScreen('invalid');
       return;
@@ -67,7 +91,7 @@ function ActionHandler() {
     } else {
       setScreen('invalid');
     }
-  }, [mode, oobCode]);
+  }, [mode, oobCode, inviteToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,14 +108,25 @@ function ActionHandler() {
     }
     setSubmitting(true);
     try {
-      await confirmPasswordReset(auth, oobCode, password);
+      if (mode === 'invite') {
+        await authService.redeemInvite(inviteToken, password);
+      } else {
+        await confirmPasswordReset(auth, oobCode, password);
+      }
       setScreen('success');
     } catch (err: any) {
-      logger.error('[AuthAction] Erro ao definir senha:', err?.code);
-      if (err?.code === 'auth/expired-action-code' || err?.code === 'auth/invalid-action-code') {
+      logger.error('[AuthAction] Erro ao definir senha:', err?.code ?? err?.response?.status);
+      if (
+        err?.code === 'auth/expired-action-code' ||
+        err?.code === 'auth/invalid-action-code' ||
+        err?.response?.status === 401
+      ) {
         setScreen('invalid');
-      } else if (err?.code === 'auth/weak-password') {
-        setFormError('Senha muito fraca. Escolha uma senha mais forte.');
+      } else if (err?.code === 'auth/weak-password' || err?.response?.status === 400) {
+        setFormError(
+          err?.response?.data?.message?.[0] ??
+            'Senha muito fraca. Escolha uma senha mais forte.',
+        );
       } else {
         setFormError('Não foi possível salvar a senha. Tente novamente.');
       }

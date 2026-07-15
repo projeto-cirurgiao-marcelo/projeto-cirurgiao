@@ -12,11 +12,12 @@
  *   npx tsx scripts/create-test-students.ts               # só cria as contas
  *   npx tsx scripts/create-test-students.ts --send-invites # cria + envia e-mails
  *   npx tsx scripts/create-test-students.ts --print-links  # cria + imprime link
- *       de definição de senha por aluno (pra mandar por WhatsApp; uso único,
- *       validade limitada — se expirar, o aluno usa "Esqueceu sua senha?").
- *       Gerar um link novo invalida o anterior do mesmo aluno.
+ *       de convite por aluno (token JWT próprio, VALIDADE 7 DIAS, uso único
+ *       — resgatado em /auth/action?mode=invite via POST /auth/invite/redeem).
+ *       O link de reset do Firebase (~1h) mostrou-se inviável pra WhatsApp.
  *
  * Credenciais: GOOGLE_APPLICATION_CREDENTIALS ou scripts/firebase-service-account.json.
+ * --print-links exige JWT_SECRET no ambiente (Secret Manager: JWT_SECRET).
  * Envio de e-mail exige FIREBASE_API_KEY no ambiente (mesma key do backend).
  */
 import { PrismaClient } from '@prisma/client';
@@ -24,6 +25,7 @@ import * as admin from 'firebase-admin';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as jwt from 'jsonwebtoken';
 
 const TEST_STUDENT_EMAILS = [
   'lucas.aquinor@gmail.com',
@@ -111,6 +113,28 @@ async function ensurePostgresUser(email: string, name: string): Promise<string> 
   return 'criado (STUDENT)';
 }
 
+/**
+ * Token de convite próprio — MESMO formato validado por
+ * AuthService.redeemInvite (JWT_SECRET, purpose 'invite', claim `pv`
+ * amarrado ao campo password atual do User = uso único).
+ */
+async function generateInviteLink(email: string): Promise<string> {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET não definida — necessária pra gerar convites');
+  }
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const pv = crypto
+    .createHash('sha256')
+    .update(`${user.id}:${user.password}`)
+    .digest('hex')
+    .slice(0, 16);
+  const token = jwt.sign({ sub: user.id, email, purpose: 'invite', pv }, secret, {
+    expiresIn: '7d',
+  });
+  return `https://www.projetocirurgiao.app/auth/action?mode=invite&token=${token}`;
+}
+
 /** Mesmo endpoint que o backend usa no forgot-password (firebase-admin.service.ts) */
 async function sendPasswordSetupEmail(email: string): Promise<void> {
   const apiKey = process.env.FIREBASE_API_KEY;
@@ -150,17 +174,7 @@ async function main() {
         invite = ' | convite enviado';
       }
       if (PRINT_LINKS) {
-        const raw = await admin
-          .auth()
-          .generatePasswordResetLink(email, { url: CONTINUE_URL });
-        // Reescreve pro handler próprio (/auth/action no front). O action URL
-        // do Console não é editável via API (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED)
-        // e o oobCode funciona igual em qualquer handler.
-        const link = raw.replace(
-          /^https:\/\/[^/]+\/__\/auth\/action/,
-          'https://www.projetocirurgiao.app/auth/action',
-        );
-        links.push({ email, link });
+        links.push({ email, link: await generateInviteLink(email) });
       }
       console.log(`✅ ${email} — firebase: ${fb} | postgres: ${pg}${invite}`);
     } catch (err) {
@@ -170,7 +184,7 @@ async function main() {
   }
 
   if (links.length > 0) {
-    console.log('\n=== Links de definição de senha (uso único, validade limitada) ===\n');
+    console.log('\n=== Links de convite (uso único, validade 7 dias) ===\n');
     for (const { email, link } of links) {
       console.log(`${email}\n${link}\n`);
     }

@@ -153,6 +153,16 @@ export class FirebaseAdminService implements OnModuleInit {
   }
 
   /**
+   * Define a senha de um usuário (Admin SDK). Usado no resgate de convite
+   * do teste fechado — lança em caso de falha pra que o caller não marque
+   * o convite como usado sem a senha ter sido realmente definida.
+   */
+  async updateUserPassword(uid: string, password: string): Promise<void> {
+    await admin.auth().updateUser(uid, { password });
+    this.logger.log(`Password set via invite redeem for uid ${uid}`);
+  }
+
+  /**
    * Deleta um usuário do Firebase Auth
    */
   async deleteUser(uid: string): Promise<boolean> {
