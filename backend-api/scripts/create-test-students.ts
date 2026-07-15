@@ -150,9 +150,16 @@ async function main() {
         invite = ' | convite enviado';
       }
       if (PRINT_LINKS) {
-        const link = await admin
+        const raw = await admin
           .auth()
           .generatePasswordResetLink(email, { url: CONTINUE_URL });
+        // Reescreve pro handler próprio (/auth/action no front). O action URL
+        // do Console não é editável via API (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED)
+        // e o oobCode funciona igual em qualquer handler.
+        const link = raw.replace(
+          /^https:\/\/[^/]+\/__\/auth\/action/,
+          'https://www.projetocirurgiao.app/auth/action',
+        );
         links.push({ email, link });
       }
       console.log(`✅ ${email} — firebase: ${fb} | postgres: ${pg}${invite}`);
