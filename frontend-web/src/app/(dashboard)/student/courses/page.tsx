@@ -10,6 +10,13 @@ import { getCourseWeightedPercent } from '@/lib/course-progress';
 import { Library, Search, Filter, ArrowDownUp } from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   AtlasButton,
   AtlasCourseCard,
   AtlasEmptyState,
@@ -69,6 +76,31 @@ const FILTER_CHIPS: FilterChip[] = [
   { id: 'available', label: 'Disponíveis' },
 ];
 
+type StatusFilter = 'all' | 'in-progress' | 'completed' | 'not-started';
+type SortBy = 'default' | 'title' | 'lessons' | 'progress';
+
+const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
+  { value: 'all', label: 'Todos os status' },
+  { value: 'in-progress', label: 'Em andamento' },
+  { value: 'completed', label: 'Concluídos' },
+  { value: 'not-started', label: 'Não iniciados' },
+];
+
+const SORT_OPTIONS: Array<{ value: SortBy; label: string }> = [
+  { value: 'default', label: 'Ordem do catálogo' },
+  { value: 'title', label: 'Título (A–Z)' },
+  { value: 'lessons', label: 'Mais aulas' },
+  { value: 'progress', label: 'Maior progresso' },
+];
+
+function courseStatus(course: CourseRow): StatusFilter {
+  if (course.enrollment === null) return 'not-started';
+  if (course.enrollment.completedAt || course.progress.percentage >= 100) {
+    return 'completed';
+  }
+  return 'in-progress';
+}
+
 export default function CoursesPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -81,6 +113,8 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeChip, setActiveChip] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('default');
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -173,6 +207,10 @@ export default function CoursesPage() {
       list = list.filter((c) => c.enrollment === null);
     }
 
+    if (statusFilter !== 'all') {
+      list = list.filter((c) => courseStatus(c) === statusFilter);
+    }
+
     if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
       list = list.filter(
@@ -182,8 +220,21 @@ export default function CoursesPage() {
       );
     }
 
+    if (sortBy !== 'default') {
+      list = [...list].sort((a, b) => {
+        switch (sortBy) {
+          case 'title':
+            return a.title.localeCompare(b.title, 'pt-BR');
+          case 'lessons':
+            return b.progress.totalVideos - a.progress.totalVideos;
+          case 'progress':
+            return getCourseWeightedPercent(b) - getCourseWeightedPercent(a);
+        }
+      });
+    }
+
     return list;
-  }, [allCourses, activeChip, searchTerm]);
+  }, [allCourses, activeChip, searchTerm, statusFilter, sortBy]);
 
   const chips: FilterChip[] = useMemo(
     () => [
@@ -210,14 +261,56 @@ export default function CoursesPage() {
         titleEm="cursos disponíveis"
         actions={
           <>
-            <AtlasButton variant="outline" size="md">
-              <Filter strokeWidth={1.75} />
-              Filtros
-            </AtlasButton>
-            <AtlasButton variant="outline" size="md">
-              <ArrowDownUp strokeWidth={1.75} />
-              Ordenar
-            </AtlasButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <AtlasButton
+                  variant={statusFilter !== 'all' ? 'primary' : 'outline'}
+                  size="md"
+                >
+                  <Filter strokeWidth={1.75} />
+                  {statusFilter === 'all'
+                    ? 'Filtros'
+                    : STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label}
+                </AtlasButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup
+                  value={statusFilter}
+                  onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+                >
+                  {STATUS_OPTIONS.map((o) => (
+                    <DropdownMenuRadioItem key={o.value} value={o.value}>
+                      {o.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <AtlasButton
+                  variant={sortBy !== 'default' ? 'primary' : 'outline'}
+                  size="md"
+                >
+                  <ArrowDownUp strokeWidth={1.75} />
+                  {sortBy === 'default'
+                    ? 'Ordenar'
+                    : SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
+                </AtlasButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup
+                  value={sortBy}
+                  onValueChange={(v) => setSortBy(v as SortBy)}
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <DropdownMenuRadioItem key={o.value} value={o.value}>
+                      {o.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         }
       >
@@ -259,30 +352,42 @@ export default function CoursesPage() {
             </div>
           </>
         ) : filteredCourses.length === 0 ? (
-          <AtlasEmptyState
-            icon={searchTerm ? Search : Library}
-            title={
-              searchTerm
-                ? 'Nenhum curso encontrado'
-                : 'Nenhum curso disponível'
-            }
-            description={
-              searchTerm
-                ? `Nenhum resultado para "${searchTerm}". Tente outros termos.`
-                : 'Novos cursos serão adicionados em breve.'
-            }
-            action={
-              searchTerm ? (
-                <AtlasButton
-                  variant="outline"
-                  size="md"
-                  onClick={() => setSearchTerm('')}
-                >
-                  Limpar busca
-                </AtlasButton>
-              ) : undefined
-            }
-          />
+          (() => {
+            const hasActiveFilter =
+              searchTerm.trim() !== '' ||
+              statusFilter !== 'all' ||
+              activeChip !== 'all';
+            return (
+              <AtlasEmptyState
+                icon={hasActiveFilter ? Search : Library}
+                title={
+                  hasActiveFilter
+                    ? 'Nenhum curso encontrado'
+                    : 'Nenhum curso disponível'
+                }
+                description={
+                  hasActiveFilter
+                    ? 'Nenhum curso corresponde aos filtros atuais. Ajuste a busca ou os filtros.'
+                    : 'Novos cursos serão adicionados em breve.'
+                }
+                action={
+                  hasActiveFilter ? (
+                    <AtlasButton
+                      variant="outline"
+                      size="md"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setStatusFilter('all');
+                        setActiveChip('all');
+                      }}
+                    >
+                      Limpar filtros
+                    </AtlasButton>
+                  ) : undefined
+                }
+              />
+            );
+          })()
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
             {filteredCourses.map((course) => {
