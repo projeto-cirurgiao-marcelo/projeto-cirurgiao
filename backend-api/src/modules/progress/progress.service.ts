@@ -643,9 +643,13 @@ export class ProgressService {
    * Buscar cursos em que o usuário está matriculado com progresso
    */
   async getEnrolledCourses(userId: string): Promise<any[]> {
-    // Buscar todas as matrículas do usuário com dados do curso
+    // Buscar todas as matrículas do usuário com dados do curso.
+    // Cursos soft-deletados ficam de fora: a matrícula sobrevive ao delete,
+    // mas o curso some das listagens e o detalhe dele responde 404 — sem o
+    // filtro o aluno via um "curso fantasma" em Meus cursos que quebrava ao
+    // clicar (ex.: Ortopedia e Neurocirurgia, deletado em 2026-06-15).
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { userId },
+      where: { userId, course: { deletedAt: null } },
       include: {
         course: {
           select: {
