@@ -185,34 +185,41 @@ export class AiChatService {
       },
     });
 
-    // Determinar contexto de busca
+    // Determinar contexto de busca. Sem vídeo E sem curso = widget aberto
+    // fora de uma rota de aula → modo geral (dúvidas de plataforma), sem
+    // RAG — buscar em TODAS as transcrições do catálogo só gera respostas
+    // erradas ("não encontrei nas transcrições") e latência.
     const videoId = dto.videoId || conversation.videoId;
     const courseId = dto.courseId || conversation.courseId;
+    const isGeneral = !videoId && !courseId;
 
     // Buscar chunks relevantes (ou transcrição direta se não houver chunks)
-    let relevantChunks = await this.embeddingsService.searchSimilarChunks(
-      dto.message,
-      {
-        videoId: videoId || undefined,
-        courseId: courseId || undefined,
-        limit: 5,
-        minSimilarity: 0.3,
-      },
-    );
-
-    // Se não houver chunks indexados, buscar transcrição diretamente
+    let relevantChunks: SearchResult[] = [];
     let chunksWithInfo: any[] = [];
-    if (relevantChunks.length === 0 && videoId) {
-      this.logger.log(`No indexed chunks found, fetching transcript directly for video ${videoId}`);
-      const transcriptChunks = await this.getTranscriptDirectly(videoId);
-      chunksWithInfo = transcriptChunks;
-    } else {
-      // Buscar informações adicionais dos vídeos
-      chunksWithInfo = await this.enrichChunksWithVideoInfo(relevantChunks);
+    if (!isGeneral) {
+      relevantChunks = await this.embeddingsService.searchSimilarChunks(
+        dto.message,
+        {
+          videoId: videoId || undefined,
+          courseId: courseId || undefined,
+          limit: 5,
+          minSimilarity: 0.3,
+        },
+      );
+
+      // Se não houver chunks indexados, buscar transcrição diretamente
+      if (relevantChunks.length === 0 && videoId) {
+        this.logger.log(`No indexed chunks found, fetching transcript directly for video ${videoId}`);
+        chunksWithInfo = await this.getTranscriptDirectly(videoId);
+      } else {
+        // Buscar informações adicionais dos vídeos
+        chunksWithInfo = await this.enrichChunksWithVideoInfo(relevantChunks);
+      }
     }
 
     // Preparar contexto para o chat
     const context: ChatContext = {
+      mode: isGeneral ? 'general' : 'lesson',
       videoTitle: await this.getVideoTitle(videoId),
       courseTitle: await this.getCourseTitle(courseId),
       relevantChunks: chunksWithInfo,
@@ -344,6 +351,15 @@ export class AiChatService {
    * Obtém sugestões de perguntas para um vídeo
    */
   async getSuggestions(videoId?: string, courseId?: string): Promise<string[]> {
+    // Modo geral (sem aula aberta): sugestões fixas de plataforma, sem
+    // embedding call nem varredura global de chunks.
+    if (!videoId && !courseId) {
+      return this.chatService.generateSuggestions({
+        mode: 'general',
+        relevantChunks: [],
+      });
+    }
+
     // Buscar alguns chunks para contexto
     const chunks = await this.embeddingsService.searchSimilarChunks(
       'principais conceitos da aula',

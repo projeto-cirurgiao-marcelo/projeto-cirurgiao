@@ -48,6 +48,9 @@ export default function StudentLayout({
   );
   // Mesma rota também esconde tab bar global (bottom bar contextual da aula assume)
   const tabBarHiddenOnMobile = headerHiddenOnMobile;
+  // Na rota de aula quem renderiza chat é o VideoChatWidget da própria página
+  // (com videoId/courseId). Fora dela, o ChatWidget global em modo geral.
+  const isLessonRoute = headerHiddenOnMobile;
 
   const TAB_BAR_ITEMS: TabBarItem[] = [
     {
@@ -157,8 +160,8 @@ export default function StudentLayout({
           hidden={tabBarHiddenOnMobile}
         />
 
-        {/* Chatbot IA flutuante */}
-        <ChatWidget />
+        {/* Chatbot IA flutuante (modo geral — na aula o VideoChatWidget assume) */}
+        {!isLessonRoute && <ChatWidget />}
       </div>
     </GamificationProvider>
   );

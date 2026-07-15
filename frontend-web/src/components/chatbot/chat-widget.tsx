@@ -57,13 +57,24 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
       setSuggestions(sug);
     } catch (err) {
       logger.error('Erro ao carregar sugestões:', err);
-      setSuggestions([
-        'Quais são os principais tópicos desta aula?',
-        'Pode explicar os conceitos mais importantes?',
-        'Quais são os pontos de atenção mencionados?',
-      ]);
+      setSuggestions(
+        videoId || courseId
+          ? [
+              'Quais são os principais tópicos desta aula?',
+              'Pode explicar os conceitos mais importantes?',
+              'Quais são os pontos de atenção mencionados?',
+            ]
+          : [
+              'Como encontro aulas sobre um tema específico?',
+              'Onde acompanho meu progresso nos cursos?',
+              'O que é a Biblioteca IA?',
+            ],
+      );
     }
   };
+
+  // Sem vídeo/curso = modo geral (dúvidas de plataforma)
+  const isGeneralMode = !videoId && !courseId;
 
   const createOrGetConversation = async (): Promise<ChatConversation> => {
     if (conversation) return conversation;
@@ -229,7 +240,11 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
                 <div>
                   <h3 className="font-semibold">Assistente IA</h3>
                   <p className="text-xs text-white/80">
-                    {videoTitle ? `Sobre: ${videoTitle.substring(0, 30)}...` : 'Tire suas dúvidas sobre as aulas'}
+                    {videoTitle
+                      ? `Sobre: ${videoTitle.substring(0, 30)}...`
+                      : isGeneralMode
+                        ? 'Dúvidas sobre a plataforma e os cursos'
+                        : 'Tire suas dúvidas sobre as aulas'}
                   </p>
                 </div>
               </div>
@@ -247,7 +262,9 @@ export function ChatWidget({ videoId, courseId, videoTitle, onSeekToTimestamp }:
                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-emerald-500/50" />
                     <p className="font-medium">Olá! Como posso ajudar?</p>
                     <p className="text-sm mt-1">
-                      Pergunte sobre o conteúdo das aulas
+                      {isGeneralMode
+                        ? 'Pergunte sobre a plataforma ou os cursos'
+                        : 'Pergunte sobre o conteúdo das aulas'}
                     </p>
                   </div>
 

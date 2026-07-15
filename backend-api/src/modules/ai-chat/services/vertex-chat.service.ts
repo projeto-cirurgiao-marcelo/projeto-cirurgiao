@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { VertexAI, GenerativeModel } from '@google-cloud/vertexai';
 
 export interface ChatContext {
+  // 'lesson' (default): RAG sobre transcrições da aula/curso aberto.
+  // 'general': widget aberto fora de rota de aula — dúvidas de plataforma
+  // e orientação geral, sem busca em transcrições.
+  mode?: 'lesson' | 'general';
   videoTitle?: string;
   courseTitle?: string;
   relevantChunks: {
@@ -12,6 +16,12 @@ export interface ChatContext {
     endTime: number;
   }[];
 }
+
+export const GENERAL_SUGGESTIONS = [
+  'Como encontro aulas sobre um tema específico?',
+  'Onde acompanho meu progresso nos cursos?',
+  'O que é a Biblioteca IA?',
+];
 
 export interface ChatResponse {
   content: string;
@@ -113,6 +123,9 @@ export class VertexChatService {
    * Constrói o prompt do sistema
    */
   private buildSystemPrompt(context: ChatContext): string {
+    if (context.mode === 'general') {
+      return this.buildGeneralSystemPrompt();
+    }
     let contextInfo = '';
     
     if (context.videoTitle) {
@@ -150,6 +163,38 @@ ${contextInfo}
   }
 
   /**
+   * System prompt do modo geral — aluno fora de uma aula. Guia de
+   * plataforma + orientação de estudo, sem transcrições.
+   */
+  private buildGeneralSystemPrompt(): string {
+    return `
+Você é o assistente da plataforma Projeto Cirurgião, uma plataforma de cursos de cirurgia veterinária.
+
+## Seu Papel
+- Ajudar o aluno a usar a plataforma e encontrar o que precisa
+- Responder perguntas gerais sobre os cursos e sobre como estudar na plataforma
+- Ser claro, objetivo e acolhedor
+
+## Guia da Plataforma (use para orientar o aluno)
+- **Meus cursos**: página inicial do aluno, mostra cursos matriculados e progresso
+- **Explorar**: catálogo completo de cursos, com busca por título e descrição
+- **Busca**: barra no topo da tela ("Buscar cursos, aulas...") encontra cursos e aulas por nome
+- **Em progresso / Concluídos**: filtros rápidos dos cursos na barra lateral
+- **Biblioteca IA**: assistente de estudo baseado em livros-texto de medicina veterinária
+- **Fórum**: espaço de dúvidas e discussão entre alunos e instrutores
+- **Conquistas**: gamificação — XP e conquistas por assistir aulas, fazer quizzes etc.
+- Dentro de uma aula o aluno encontra: vídeo com legendas, resumo, quiz, materiais complementares e este assistente com acesso à transcrição da aula
+
+## Regras Importantes
+1. Para dúvidas sobre o CONTEÚDO de uma aula específica, oriente o aluno a abrir a aula e usar o assistente lá dentro (ele tem acesso à transcrição)
+2. Perguntas gerais de medicina veterinária: responda brevemente e sugira as aulas da plataforma para aprofundamento
+3. Se não souber algo sobre a plataforma, diga claramente e sugira o suporte
+4. Use linguagem acessível e profissional
+5. Formate suas respostas em Markdown para melhor legibilidade
+`;
+  }
+
+  /**
    * Constrói o prompt com contexto e histórico
    */
   private buildPrompt(
@@ -159,7 +204,9 @@ ${contextInfo}
   ): string {
     // Formatar chunks relevantes
     let contextText = '';
-    if (context.relevantChunks.length > 0) {
+    if (context.mode === 'general') {
+      // Modo geral não usa transcrições — sem seção de contexto.
+    } else if (context.relevantChunks.length > 0) {
       contextText = '## Trechos Relevantes das Aulas\n\n';
       context.relevantChunks.forEach((chunk, index) => {
         const timestamp = this.formatTimestamp(chunk.startTime);
@@ -188,7 +235,11 @@ ${historyText}
 ${userMessage}
 
 ## Sua Resposta
-Responda de forma clara e didática, baseando-se nos trechos das aulas fornecidos acima.
+${
+  context.mode === 'general'
+    ? 'Responda de forma clara e prestativa, seguindo o guia da plataforma.'
+    : 'Responda de forma clara e didática, baseando-se nos trechos das aulas fornecidos acima.'
+}
 `;
   }
 
@@ -205,6 +256,9 @@ Responda de forma clara e didática, baseando-se nos trechos das aulas fornecido
    * Gera sugestões de perguntas baseadas no contexto
    */
   async generateSuggestions(context: ChatContext): Promise<string[]> {
+    if (context.mode === 'general') {
+      return GENERAL_SUGGESTIONS;
+    }
     if (context.relevantChunks.length === 0) {
       return [
         'Quais são os principais tópicos desta aula?',
