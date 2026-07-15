@@ -88,6 +88,101 @@ export class CoursesService {
   }
 
   /**
+   * Busca de catálogo pro aluno (topbar "Buscar cursos, aulas...").
+   * ILIKE em título/descrição de curso e título de aula; só conteúdo
+   * publicado e não deletado.
+   * ponytail: contains/insensitive resolve pro catálogo atual; se crescer
+   * pra dezenas de milhares de aulas, trocar por full-text/pg_trgm.
+   */
+  async searchCatalog(query: string) {
+    const q = (query ?? '').trim();
+    if (q.length < 2) {
+      return { courses: [], videos: [] };
+    }
+
+    const [courses, videos] = await Promise.all([
+      this.prisma.course.findMany({
+        where: {
+          deletedAt: null,
+          isPublished: true,
+          OR: [
+            { title: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          thumbnail: true,
+          thumbnailHorizontal: true,
+          thumbnailVertical: true,
+          instructor: { select: { name: true } },
+        },
+        orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+        take: 20,
+      }),
+      this.prisma.video.findMany({
+        where: {
+          deletedAt: null,
+          isPublished: true,
+          title: { contains: q, mode: 'insensitive' },
+          module: {
+            deletedAt: null,
+            course: { deletedAt: null, isPublished: true },
+          },
+        },
+        select: {
+          id: true,
+          title: true,
+          duration: true,
+          module: {
+            select: {
+              id: true,
+              title: true,
+              course: { select: { id: true, title: true } },
+            },
+          },
+        },
+        orderBy: { title: 'asc' },
+        take: 30,
+      }),
+    ]);
+
+    // Contagem de aulas publicadas por curso (pro card de resultado)
+    const lessonCounts = new Map<string, number>();
+    if (courses.length > 0) {
+      const modules = await this.prisma.module.findMany({
+        where: { deletedAt: null, courseId: { in: courses.map((c) => c.id) } },
+        select: {
+          courseId: true,
+          _count: {
+            select: { videos: { where: { deletedAt: null, isPublished: true } } },
+          },
+        },
+      });
+      for (const m of modules) {
+        lessonCounts.set(m.courseId, (lessonCounts.get(m.courseId) ?? 0) + m._count.videos);
+      }
+    }
+
+    return {
+      courses: courses.map((c) => ({
+        ...c,
+        lessonsCount: lessonCounts.get(c.id) ?? 0,
+      })),
+      videos: videos.map((v) => ({
+        id: v.id,
+        title: v.title,
+        duration: v.duration,
+        moduleTitle: v.module.title,
+        courseId: v.module.course.id,
+        courseTitle: v.module.course.title,
+      })),
+    };
+  }
+
+  /**
    * Listar todos os cursos
    */
   async findAll(includeUnpublished = false): Promise<Course[]> {

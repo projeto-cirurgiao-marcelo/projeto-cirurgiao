@@ -6,10 +6,41 @@ import type {
   PaginatedResponse,
 } from '../types/course.types';
 
+export interface CatalogSearchResult {
+  courses: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    thumbnail: string | null;
+    thumbnailHorizontal: string | null;
+    thumbnailVertical: string | null;
+    instructor: { name: string } | null;
+    lessonsCount: number;
+  }>;
+  videos: Array<{
+    id: string;
+    title: string;
+    duration: number;
+    moduleTitle: string;
+    courseId: string;
+    courseTitle: string;
+  }>;
+}
+
 /**
  * Serviço para gerenciamento de cursos
  */
 export const coursesService = {
+  /**
+   * Busca de catálogo (cursos + aulas publicados) — topbar do aluno
+   */
+  async searchCatalog(q: string): Promise<CatalogSearchResult> {
+    const response = await apiClient.get<CatalogSearchResult>('/courses/search', {
+      params: { q },
+    });
+    return response.data;
+  },
+
   /**
    * Criar um novo curso
    */

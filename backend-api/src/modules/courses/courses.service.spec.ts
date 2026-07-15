@@ -360,4 +360,50 @@ describe('CoursesService', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('searchCatalog', () => {
+    it('retorna vazio sem tocar no banco quando a query é curta', async () => {
+      expect(await service.searchCatalog('a')).toEqual({ courses: [], videos: [] });
+      expect(await service.searchCatalog('  ')).toEqual({ courses: [], videos: [] });
+      expect(prisma.course.findMany).not.toHaveBeenCalled();
+      expect(prisma.video.findMany).not.toHaveBeenCalled();
+    });
+
+    it('só busca conteúdo publicado e não deletado, com lessonsCount', async () => {
+      prisma.course.findMany.mockResolvedValue([
+        { id: 'course-1', title: 'Ortopedia', instructor: { name: 'Dr. A' } } as any,
+      ]);
+      prisma.video.findMany.mockResolvedValue([
+        {
+          id: 'video-1',
+          title: 'Aula de Ortopedia',
+          duration: 600,
+          module: { id: 'm1', title: 'Módulo 1', course: { id: 'course-1', title: 'Ortopedia' } },
+        } as any,
+      ]);
+      prisma.module.findMany.mockResolvedValue([
+        { courseId: 'course-1', _count: { videos: 7 } } as any,
+        { courseId: 'course-1', _count: { videos: 3 } } as any,
+      ]);
+
+      const result = await service.searchCatalog('orto');
+
+      const courseWhere = prisma.course.findMany.mock.calls[0][0]!.where as any;
+      expect(courseWhere.deletedAt).toBeNull();
+      expect(courseWhere.isPublished).toBe(true);
+      const videoWhere = prisma.video.findMany.mock.calls[0][0]!.where as any;
+      expect(videoWhere.isPublished).toBe(true);
+      expect(videoWhere.module.course.isPublished).toBe(true);
+
+      expect(result.courses[0].lessonsCount).toBe(10);
+      expect(result.videos[0]).toEqual({
+        id: 'video-1',
+        title: 'Aula de Ortopedia',
+        duration: 600,
+        moduleTitle: 'Módulo 1',
+        courseId: 'course-1',
+        courseTitle: 'Ortopedia',
+      });
+    });
+  });
 });

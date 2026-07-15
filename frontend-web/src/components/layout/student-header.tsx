@@ -66,6 +66,10 @@ export function StudentHeader() {
           breadcrumbs={[]}
           searchValue={searchValue}
           onSearchChange={setSearchValue}
+          onSearchSubmit={(v) => {
+            const q = v.trim();
+            if (q) router.push(`/student/search?q=${encodeURIComponent(q)}`);
+          }}
           searchPlaceholder="Buscar cursos, aulas..."
           trailing={<NotificationCenter />}
         />

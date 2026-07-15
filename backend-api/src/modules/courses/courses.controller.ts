@@ -61,6 +61,15 @@ export class CoursesController {
   }
 
   /**
+   * Busca de catálogo (cursos + aulas publicados) pela topbar do aluno.
+   * Precisa vir antes de @Get(':id') pra rota estática ganhar do param.
+   */
+  @Get('search')
+  search(@Query('q') q?: string) {
+    return this.coursesService.searchCatalog(q ?? '');
+  }
+
+  /**
    * Buscar curso por ID
    */
   @Get(':id')
