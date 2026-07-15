@@ -9,8 +9,12 @@
  * o aluno só consegue entrar depois de definir a dele pelo link.
  *
  * Uso (do diretório backend-api, DATABASE_URL apontando pro banco alvo):
- *   npx tsx scripts/create-test-students.ts              # só cria as contas
- *   npx tsx scripts/create-test-students.ts --send-invites  # cria + envia e-mails
+ *   npx tsx scripts/create-test-students.ts               # só cria as contas
+ *   npx tsx scripts/create-test-students.ts --send-invites # cria + envia e-mails
+ *   npx tsx scripts/create-test-students.ts --print-links  # cria + imprime link
+ *       de definição de senha por aluno (pra mandar por WhatsApp; uso único,
+ *       validade limitada — se expirar, o aluno usa "Esqueceu sua senha?").
+ *       Gerar um link novo invalida o anterior do mesmo aluno.
  *
  * Credenciais: GOOGLE_APPLICATION_CREDENTIALS ou scripts/firebase-service-account.json.
  * Envio de e-mail exige FIREBASE_API_KEY no ambiente (mesma key do backend).
@@ -43,6 +47,11 @@ const TEST_STUDENT_EMAILS = [
 ];
 
 const SEND_INVITES = process.argv.includes('--send-invites');
+const PRINT_LINKS = process.argv.includes('--print-links');
+
+// Depois de definir a senha, o botão "continuar" da página do Firebase
+// leva o aluno direto pro login da plataforma.
+const CONTINUE_URL = 'https://www.projetocirurgiao.app/login';
 
 const prisma = new PrismaClient();
 
@@ -125,9 +134,11 @@ async function sendPasswordSetupEmail(email: string): Promise<void> {
 async function main() {
   initFirebase();
   console.log(`=== Alunos do teste fechado (${TEST_STUDENT_EMAILS.length}) ===`);
-  console.log(`Envio de convites: ${SEND_INVITES ? 'SIM (--send-invites)' : 'não (só criação)'}\n`);
+  console.log(`Envio de convites por e-mail: ${SEND_INVITES ? 'SIM (--send-invites)' : 'não'}`);
+  console.log(`Impressão de links: ${PRINT_LINKS ? 'SIM (--print-links)' : 'não'}\n`);
 
   let failures = 0;
+  const links: Array<{ email: string; link: string }> = [];
   for (const email of TEST_STUDENT_EMAILS) {
     const name = nameFromEmail(email);
     try {
@@ -138,10 +149,23 @@ async function main() {
         await sendPasswordSetupEmail(email);
         invite = ' | convite enviado';
       }
+      if (PRINT_LINKS) {
+        const link = await admin
+          .auth()
+          .generatePasswordResetLink(email, { url: CONTINUE_URL });
+        links.push({ email, link });
+      }
       console.log(`✅ ${email} — firebase: ${fb} | postgres: ${pg}${invite}`);
     } catch (err) {
       failures += 1;
       console.error(`❌ ${email} — ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  if (links.length > 0) {
+    console.log('\n=== Links de definição de senha (uso único, validade limitada) ===\n');
+    for (const { email, link } of links) {
+      console.log(`${email}\n${link}\n`);
     }
   }
 
