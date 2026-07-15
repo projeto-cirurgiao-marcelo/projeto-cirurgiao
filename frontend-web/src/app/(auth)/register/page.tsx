@@ -1,17 +1,11 @@
-import { RegisterForm } from '@/components/auth/register-form';
-
-export const metadata = {
-  title: 'Criar Conta | Projeto Cirurgião',
-  description: 'Crie sua conta na plataforma Projeto Cirurgião',
-};
+import { redirect } from 'next/navigation';
 
 /**
- * Página de registro
+ * Registro público desativado — acesso à plataforma é por convite
+ * (teste fechado). Contas são pré-criadas via backend
+ * (scripts/create-test-students.ts). Pra reabrir o registro, restaurar
+ * esta página (git log) e o auto-create no backend.
  */
 export default function RegisterPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <RegisterForm />
-    </div>
-  );
+  redirect('/login');
 }

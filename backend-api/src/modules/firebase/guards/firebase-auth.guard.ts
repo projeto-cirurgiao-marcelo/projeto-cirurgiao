@@ -39,8 +39,10 @@ export class FirebaseAuthGuard implements CanActivate {
         throw new UnauthorizedException('Token Firebase inválido');
       }
 
-      // Busca ou cria o usuário no banco de dados local
-      let user = await this.prisma.user.findFirst({
+      // Busca o usuário no banco de dados local. Acesso por convite:
+      // token Firebase válido sem User no Postgres NÃO auto-cria conta
+      // (mesma regra do firebaseLogin em auth.service.ts).
+      const user = await this.prisma.user.findFirst({
         where: {
           OR: [
             { email: decodedToken.email },
@@ -49,20 +51,6 @@ export class FirebaseAuthGuard implements CanActivate {
           ],
         },
       });
-
-      // Se o usuário não existe no banco local, cria automaticamente
-      if (!user && decodedToken.email) {
-        this.logger.log(`Creating new user from Firebase: ${decodedToken.email}`);
-        user = await this.prisma.user.create({
-          data: {
-            email: decodedToken.email,
-            name: decodedToken.name || decodedToken.email.split('@')[0],
-            password: '', // Sem senha local, usa Firebase
-            role: 'STUDENT', // Default role
-            isActive: true,
-          },
-        });
-      }
 
       if (!user) {
         throw new UnauthorizedException('Usuário não encontrado');

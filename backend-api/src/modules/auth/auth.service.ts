@@ -197,24 +197,15 @@ export class AuthService {
       where: { email: decodedToken.email },
     });
 
-    // Auto-cria usuário se existe no Firebase mas não no PostgreSQL
-    // (mesmo comportamento do FirebaseAuthGuard)
-    if (!user && decodedToken.email) {
-      this.logger.log(`Auto-criando usuário a partir do Firebase: ${decodedToken.email}`);
-      user = await this.prisma.user.create({
-        data: {
-          email: decodedToken.email,
-          name: decodedToken.name || decodedToken.email.split('@')[0],
-          password: '',
-          role: Role.STUDENT,
-          isActive: true,
-        },
-      });
-    }
-
+    // Acesso por convite: contas são pré-criadas (secureRegister / script
+    // create-test-students). Token Firebase válido sem User no Postgres NÃO
+    // cria conta — qualquer um consegue criar conta Firebase com a API key
+    // pública do bundle, então auto-create aqui = registro aberto por fora.
     if (!user) {
-      this.logger.warn(`Login negado: não foi possível autenticar - ${decodedToken.email}`);
-      throw new UnauthorizedException('Não foi possível autenticar o usuário.');
+      this.logger.warn(`Login negado: conta não cadastrada - ${decodedToken.email}`);
+      throw new UnauthorizedException(
+        'Conta não encontrada. O acesso à plataforma é por convite.',
+      );
     }
 
     if (!user.isActive) {

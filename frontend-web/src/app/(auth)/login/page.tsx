@@ -22,7 +22,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
   const {
     register,
@@ -71,10 +70,6 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleRegisterClick = () => {
-    router.push('/register');
   };
 
   return (
@@ -130,30 +125,16 @@ export default function LoginPage() {
             </h1>
           </div>
 
-          {/* Tabs */}
+          {/* Acesso por convite — registro público desativado (teste fechado).
+               Pra reabrir: restaurar as tabs deste bloco (git log) e o
+               auto-create no backend (auth.service.ts / firebase-auth.guard.ts). */}
           <div className="flex mb-8 border-b border-gray-700">
-            <button
-              onClick={() => setActiveTab('login')}
-              className={`flex-1 pb-4 text-center transition-colors ${
-                activeTab === 'login'
-                  ? 'border-b-2'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-              style={activeTab === 'login' ? { color: '#FF0000', borderColor: '#FF0000' } : {}}
+            <span
+              className="flex-1 pb-4 text-center border-b-2"
+              style={{ color: '#FF0000', borderColor: '#FF0000' }}
             >
               Acessar sua conta
-            </button>
-            <button
-              onClick={handleRegisterClick}
-              className={`flex-1 pb-4 text-center transition-colors ${
-                activeTab === 'register'
-                  ? 'border-b-2'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-              style={activeTab === 'register' ? { color: '#FF0000', borderColor: '#FF0000' } : {}}
-            >
-              Crie sua conta
-            </button>
+            </span>
           </div>
 
           {/* Formulário */}
