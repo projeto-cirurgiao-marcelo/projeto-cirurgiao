@@ -12,7 +12,7 @@ import {
 import { auth } from '@/lib/firebase/config';
 import { authService } from '@/lib/api/auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
@@ -189,9 +189,8 @@ function ActionHandler() {
                 <Label htmlFor="password" className="text-gray-300">
                   Nova senha
                 </Label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={submitting}
@@ -207,9 +206,8 @@ function ActionHandler() {
                 <Label htmlFor="confirm" className="text-gray-300">
                   Confirmar senha
                 </Label>
-                <Input
+                <PasswordInput
                   id="confirm"
-                  type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   disabled={submitting}

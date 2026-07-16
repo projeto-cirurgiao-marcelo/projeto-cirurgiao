@@ -19,6 +19,7 @@ import {
   atlasToast,
 } from '@/components/atlas';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2,
@@ -29,12 +30,9 @@ import {
   MapPin,
   Lock,
   Save,
-  Eye,
-  EyeOff,
   Shield,
   Calendar,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function StudentProfilePage() {
   const setGlobalPhotoUrl = useAvatarStore((s) => s.setPhotoUrl);
@@ -56,8 +54,6 @@ export default function StudentProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     void loadProfile();
@@ -403,10 +399,9 @@ export default function StudentProfilePage() {
             <FieldLabel label="Senha atual">
               <PasswordInput
                 value={currentPassword}
-                onChange={setCurrentPassword}
-                show={showCurrentPassword}
-                onToggleShow={() => setShowCurrentPassword((v) => !v)}
+                onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Digite sua senha atual"
+                className="border-atlas-line focus-visible:border-atlas-ink-2"
               />
             </FieldLabel>
 
@@ -414,15 +409,13 @@ export default function StudentProfilePage() {
               <FieldLabel label="Nova senha">
                 <PasswordInput
                   value={newPassword}
-                  onChange={setNewPassword}
-                  show={showNewPassword}
-                  onToggleShow={() => setShowNewPassword((v) => !v)}
+                  onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
+                  className="border-atlas-line focus-visible:border-atlas-ink-2"
                 />
               </FieldLabel>
               <FieldLabel label="Confirmar nova senha">
-                <Input
-                  type="password"
+                <PasswordInput
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repita a nova senha"
@@ -485,47 +478,6 @@ function FieldLabel({
       {hint && (
         <p className="text-[11.5px] text-atlas-muted-2">{hint}</p>
       )}
-    </div>
-  );
-}
-
-function PasswordInput({
-  value,
-  onChange,
-  show,
-  onToggleShow,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  show: boolean;
-  onToggleShow: () => void;
-  placeholder?: string;
-}) {
-  return (
-    <div className="relative">
-      <Input
-        type={show ? 'text' : 'password'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="border-atlas-line focus-visible:border-atlas-ink-2 pr-10"
-      />
-      <button
-        type="button"
-        onClick={onToggleShow}
-        aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}
-        className={cn(
-          'absolute right-2.5 top-1/2 -translate-y-1/2',
-          'text-atlas-muted hover:text-atlas-ink transition-colors',
-        )}
-      >
-        {show ? (
-          <EyeOff className="size-4" strokeWidth={1.75} />
-        ) : (
-          <Eye className="size-4" strokeWidth={1.75} />
-        )}
-      </button>
     </div>
   );
 }
