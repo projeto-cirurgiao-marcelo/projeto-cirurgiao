@@ -26,6 +26,7 @@ interface HubVideo {
   id: string;
   title: string;
   isPublished?: boolean;
+  thumbnailUrl?: string | null;
 }
 
 interface HubModule {
@@ -168,6 +169,7 @@ export function AreaHub({ metaLabel, title, titleEm, sections }: AreaHubProps) {
                     key={v.id}
                     href={`/student/courses/${course.id}/watch/${v.id}`}
                     title={v.title}
+                    thumb={v.thumbnailUrl ?? undefined}
                     icon={PlayCircle}
                   />
                 ))}
@@ -183,15 +185,19 @@ export function AreaHub({ metaLabel, title, titleEm, sections }: AreaHubProps) {
               <section key={i}>
                 {section.title && <CarouselTitle>{section.title}</CarouselTitle>}
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-[14px] sm:gap-[18px]">
-                  {mods.map((m) => (
-                    <GridCard
-                      key={m.id}
-                      href={`/student/courses/${course.id}/modules/${m.id}`}
-                      title={m.title}
-                      meta={`${moduleLessonCount(course, m)} aulas`}
-                      thumb={moduleThumb(m)}
-                    />
-                  ))}
+                  {mods.map((m) => {
+                    const count = moduleLessonCount(course, m);
+                    return (
+                      <GridCard
+                        key={m.id}
+                        href={`/student/courses/${course.id}/modules/${m.id}`}
+                        title={m.title}
+                        meta={`${count} aulas`}
+                        thumb={moduleThumb(m)}
+                        comingSoon={count === 0}
+                      />
+                    );
+                  })}
                 </div>
               </section>
             );
@@ -199,15 +205,19 @@ export function AreaHub({ metaLabel, title, titleEm, sections }: AreaHubProps) {
 
           return (
             <Carousel key={i} title={section.title ?? course.title}>
-              {mods.map((m) => (
-                <CarouselCard
-                  key={m.id}
-                  href={`/student/courses/${course.id}/modules/${m.id}`}
-                  title={m.title}
-                  meta={`${moduleLessonCount(course, m)} aulas`}
-                  thumb={moduleThumb(m)}
-                />
-              ))}
+              {mods.map((m) => {
+                const count = moduleLessonCount(course, m);
+                return (
+                  <CarouselCard
+                    key={m.id}
+                    href={`/student/courses/${course.id}/modules/${m.id}`}
+                    title={m.title}
+                    meta={`${count} aulas`}
+                    thumb={moduleThumb(m)}
+                    comingSoon={count === 0}
+                  />
+                );
+              })}
             </Carousel>
           );
         })}
@@ -242,24 +252,31 @@ function Carousel({
   );
 }
 
+function ComingSoonBadge() {
+  return (
+    <span className="inline-block rounded-full bg-atlas-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-atlas-muted">
+      Em breve
+    </span>
+  );
+}
+
 function CarouselCard({
   href,
   title,
   meta,
   thumb,
   icon: Icon,
+  comingSoon = false,
 }: {
   href: string;
   title: string;
   meta?: string;
   thumb?: string;
   icon?: typeof PlayCircle;
+  comingSoon?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className="snap-start shrink-0 w-40 sm:w-44 rounded-xl border border-atlas-line bg-atlas-surface hover:border-atlas-line-strong transition-colors overflow-hidden"
-    >
+  const inner = (
+    <>
       <div className="aspect-video bg-atlas-surface-2 flex items-center justify-center overflow-hidden">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -274,8 +291,27 @@ function CarouselCard({
         <p className="text-[12.5px] font-medium text-atlas-ink leading-snug line-clamp-2">
           {title}
         </p>
-        {meta && <p className="text-[11px] text-atlas-muted mt-1">{meta}</p>}
+        <p className="text-[11px] text-atlas-muted mt-1">
+          {comingSoon ? <ComingSoonBadge /> : meta}
+        </p>
       </div>
+    </>
+  );
+
+  const base =
+    'snap-start shrink-0 w-40 sm:w-44 rounded-xl border border-atlas-line bg-atlas-surface overflow-hidden';
+
+  // Módulo sem aula publicada: card informativo, não navegável
+  if (comingSoon) {
+    return <div className={`${base} opacity-60`}>{inner}</div>;
+  }
+
+  return (
+    <Link
+      href={href}
+      className={`${base} hover:border-atlas-line-strong transition-colors`}
+    >
+      {inner}
     </Link>
   );
 }
@@ -285,17 +321,16 @@ function GridCard({
   title,
   meta,
   thumb,
+  comingSoon = false,
 }: {
   href: string;
   title: string;
   meta?: string;
   thumb?: string;
+  comingSoon?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-xl border border-atlas-line bg-atlas-surface hover:border-atlas-line-strong transition-colors overflow-hidden"
-    >
+  const inner = (
+    <>
       <div className="aspect-video bg-atlas-surface-2 flex items-center justify-center overflow-hidden">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -308,8 +343,27 @@ function GridCard({
         <p className="text-[14px] font-medium text-atlas-ink leading-snug line-clamp-2">
           {title}
         </p>
-        {meta && <p className="text-xs text-atlas-muted mt-1">{meta}</p>}
+        <p className="text-xs text-atlas-muted mt-1">
+          {comingSoon ? <ComingSoonBadge /> : meta}
+        </p>
       </div>
+    </>
+  );
+
+  const base =
+    'rounded-xl border border-atlas-line bg-atlas-surface overflow-hidden';
+
+  // Módulo sem aula publicada: card informativo, não navegável
+  if (comingSoon) {
+    return <div className={`${base} opacity-60`}>{inner}</div>;
+  }
+
+  return (
+    <Link
+      href={href}
+      className={`${base} hover:border-atlas-line-strong transition-colors`}
+    >
+      {inner}
     </Link>
   );
 }

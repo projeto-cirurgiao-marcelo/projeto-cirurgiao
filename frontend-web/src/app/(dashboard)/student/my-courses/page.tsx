@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
@@ -11,10 +10,9 @@ import {
   progressService,
   EnrolledCourseWithProgress,
 } from '@/lib/api/progress.service';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
 import {
-  AtlasButton,
   AtlasCourseCard,
   AtlasEmptyState,
   AtlasLoadingBar,
@@ -34,24 +32,23 @@ import { logger } from '@/lib/logger';
  * cursos sem match (ex: Pós-graduação, Ciclo Avançado) ficam fora da home
  * (seguem acessíveis via busca/URL direta).
  */
-const HOME_DIVISIONS: { title: string; match: RegExp }[] = [
-  { title: 'Comece por aqui', match: /comece por aqui/i },
-  { title: 'Posicionamento e atração', match: /posicionamento/i },
-  { title: 'Tecidos moles', match: /tecidos moles|treinamentos premium/i },
-  { title: 'Ortopedia e Neurocirurgia', match: /ortopedia|neurocirurgia/i },
-];
-
-/** Divisões com página-hub própria: home mostra card único de área */
-const DIVISION_HUBS: Record<string, { href: string; cardTitle: string }> = {
-  'Tecidos moles': {
+const HOME_DIVISIONS: { title: string; match: RegExp; href: string }[] = [
+  {
+    title: 'Posicionamento e atração',
+    match: /posicionamento/i,
+    href: '/student/areas/posicionamento-atracao',
+  },
+  {
+    title: 'Tecidos Moles',
+    match: /tecidos moles|treinamentos premium/i,
     href: '/student/areas/tecidos-moles',
-    cardTitle: 'Cirurgias de tecidos moles',
   },
-  'Ortopedia e Neurocirurgia': {
+  {
+    title: 'Ortopedia e Neurocirurgia',
+    match: /ortopedia|neurocirurgia/i,
     href: '/student/areas/ortopedia-neurocirurgia',
-    cardTitle: 'Ortopedia e Neurocirurgias',
   },
-};
+];
 
 const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
   'default',
@@ -60,27 +57,6 @@ const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
   'alt3',
   'alt4',
 ];
-
-function pickThumbVariant(id: string): AtlasCourseThumbVariant {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  const idx = Math.abs(hash) % THUMB_VARIANTS.length;
-  return THUMB_VARIANTS[idx];
-}
-
-function formatCompletedDate(date: string | null): string | undefined {
-  if (!date) return undefined;
-  try {
-    const d = new Date(date);
-    const months = [
-      'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
-      'jul', 'ago', 'set', 'out', 'nov', 'dez',
-    ];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-  } catch {
-    return undefined;
-  }
-}
 
 interface NewCourseRow {
   kind: 'new';
@@ -243,6 +219,7 @@ export default function MyCoursesPage() {
       .filter((r): r is EnrolledCourseRow | NewCourseRow => !!r);
     return HOME_DIVISIONS.map((d) => ({
       title: d.title,
+      href: d.href,
       rows: ordered.filter((r) => d.match.test(r.title)),
     })).filter((d) => d.rows.length > 0);
   }, [enrolled, available, catalogIds]);
@@ -302,142 +279,37 @@ export default function MyCoursesPage() {
           />
         ) : (
           <>
-            {inProgress.length > 0 && (
-              <Section
-                title="Continue de onde parou"
-                hint="Retome os cursos que você começou"
-              >
-                {inProgress.slice(0, 3).map((c) => (
-                  <CourseRowCard key={c.id} row={c} />
-                ))}
-              </Section>
-            )}
-
-            {divisions.map((d) => {
-              const hub = DIVISION_HUBS[d.title];
-              return hub ? (
-                /* Divisão com página-hub própria (layout do cliente):
-                   card único de área em vez dos cards por curso */
-                <Section key={d.title} title={d.title}>
-                  <AtlasCourseCard
-                    href={hub.href}
-                    title={hub.cardTitle}
-                    category="Área completa"
-                    lessonsCount={d.rows.reduce(
-                      (sum, r) =>
-                        sum + (r.kind === 'enrolled' ? r.total : r.totalVideos),
-                      0,
-                    )}
-                    status="new"
-                    thumbVariant="alt2"
-                    thumbImageUrl={
-                      d.rows
-                        .map(
-                          (r) =>
-                            r.thumbnailHorizontal ||
-                            r.thumbnailVertical ||
-                            r.thumbnail,
-                        )
-                        .find(Boolean) || undefined
-                    }
-                  />
-                </Section>
-              ) : (
-                <Section key={d.title} title={d.title}>
-                  {d.rows.map((r) => (
-                    <CourseRowCard key={r.id} row={r} />
-                  ))}
-                </Section>
-              );
-            })}
+            {/* Home enxuta (pedido do dono): só os 3 cards de área, lado a lado */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px] sm:gap-[18px]">
+              {divisions.map((d, i) => (
+                <AtlasCourseCard
+                  key={d.title}
+                  href={d.href}
+                  title={d.title}
+                  category="Área completa"
+                  lessonsCount={d.rows.reduce(
+                    (sum, r) =>
+                      sum + (r.kind === 'enrolled' ? r.total : r.totalVideos),
+                    0,
+                  )}
+                  status="new"
+                  thumbVariant={THUMB_VARIANTS[i % THUMB_VARIANTS.length]}
+                  thumbImageUrl={
+                    d.rows
+                      .map(
+                        (r) =>
+                          r.thumbnailHorizontal ||
+                          r.thumbnailVertical ||
+                          r.thumbnail,
+                      )
+                      .find(Boolean) || undefined
+                  }
+                />
+              ))}
+            </div>
           </>
         )}
       </div>
     </>
-  );
-}
-
-/** Card unificado — linha matriculada (com progresso) ou curso novo */
-function CourseRowCard({ row }: { row: EnrolledCourseRow | NewCourseRow }) {
-  const thumbImageUrl =
-    row.thumbnailHorizontal || row.thumbnailVertical || row.thumbnail || undefined;
-
-  if (row.kind === 'enrolled') {
-    return (
-      <AtlasCourseCard
-        href={`/student/courses/${row.id}`}
-        title={row.title}
-        category="Cirurgia veterinária"
-        instructor={row.instructor?.name}
-        lessonsCount={row.total}
-        status={row.status}
-        progressPercent={row.status === 'completed' ? 100 : row.progressPercent}
-        lessonsProgress={
-          row.status === 'new' ? undefined : `${row.watched} / ${row.total}`
-        }
-        completedAt={
-          row.status === 'completed'
-            ? formatCompletedDate(row.completedAt)
-            : undefined
-        }
-        thumbVariant={pickThumbVariant(row.id)}
-        thumbImageUrl={thumbImageUrl}
-      />
-    );
-  }
-
-  return (
-    <AtlasCourseCard
-      href={`/student/courses/${row.id}`}
-      title={row.title}
-      category="Cirurgia veterinária"
-      instructor={row.instructor?.name}
-      lessonsCount={row.totalVideos}
-      status="new"
-      thumbVariant={pickThumbVariant(row.id)}
-      thumbImageUrl={thumbImageUrl}
-    />
-  );
-}
-
-function Section({
-  title,
-  hint,
-  linkLabel,
-  linkHref,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  /** Opcional — a home do aluno não usa links de catálogo (pedido do dono) */
-  linkLabel?: string;
-  linkHref?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 sm:gap-4 mb-[14px]">
-        <div className="min-w-0">
-          <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink">
-            {title}
-          </h2>
-          {hint && (
-            <p className="text-xs text-atlas-muted mt-0.5">{hint}</p>
-          )}
-        </div>
-        {linkLabel && linkHref && (
-          <Link
-            href={linkHref}
-            className="text-xs font-medium text-atlas-primary-2 hover:text-atlas-primary inline-flex items-center gap-1 shrink-0 self-start sm:self-auto"
-          >
-            {linkLabel}
-            <ArrowRight className="size-3" strokeWidth={2} />
-          </Link>
-        )}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
-        {children}
-      </div>
-    </section>
   );
 }
