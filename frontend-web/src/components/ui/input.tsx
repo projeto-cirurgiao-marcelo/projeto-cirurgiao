@@ -8,7 +8,9 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "h-10 w-full min-w-0 rounded-md border-2 border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none",
+        // text-base em mobile: iOS Safari dá auto-zoom na página ao focar
+        // inputs com fonte < 16px (pior dentro de painéis fixed, ex: tutor da aula)
+        "h-10 w-full min-w-0 rounded-md border-2 border-gray-200 bg-white px-4 py-2 text-base md:text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 outline-none",
         "placeholder:text-gray-400 placeholder:font-normal",
         "hover:border-gray-300",
         "focus:border-blue-500 focus:ring-4 focus:ring-blue-100",

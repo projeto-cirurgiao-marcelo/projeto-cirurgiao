@@ -360,24 +360,55 @@ export class AiChatService {
       });
     }
 
-    // Buscar alguns chunks para contexto
-    const chunks = await this.embeddingsService.searchSimilarChunks(
-      'principais conceitos da aula',
-      {
-        videoId,
-        courseId,
-        limit: 3,
-      },
-    );
+    // Sugestões nascem dos chunks REAIS da transcrição (começo/meio/fim do
+    // vídeo), não de busca semântica com frase meta ("principais conceitos
+    // da aula") — esta raramente cruzava o threshold 0.3 e caía no trio
+    // fallback genérico, cujas perguntas o RAG depois não sustentava
+    // (aluno clicava na sugestão e o tutor respondia "não encontrei").
+    let chunks: { text: string; startTime: number; endTime: number }[] = [];
+
+    if (videoId) {
+      const rows = await this.prisma.transcriptEmbedding.findMany({
+        where: { videoId },
+        orderBy: { chunkIndex: 'asc' },
+        select: { chunkText: true, startTime: true, endTime: true },
+      });
+      const sampled =
+        rows.length <= 3
+          ? rows
+          : [rows[0], rows[Math.floor(rows.length / 2)], rows[rows.length - 1]];
+      chunks = sampled.map((r) => ({
+        text: r.chunkText,
+        startTime: r.startTime,
+        endTime: r.endTime,
+      }));
+
+      // Vídeo sem chunks indexados — mesma via alternativa do sendMessage
+      if (chunks.length === 0) {
+        const direct = await this.getTranscriptDirectly(videoId);
+        chunks = direct.slice(0, 3).map((c) => ({
+          text: c.text,
+          startTime: c.startTime,
+          endTime: c.endTime,
+        }));
+      }
+    } else if (courseId) {
+      // Sem vídeo específico: mantém busca escopada no curso
+      const found = await this.embeddingsService.searchSimilarChunks(
+        'principais conceitos da aula',
+        { courseId, limit: 3 },
+      );
+      chunks = found.map((c) => ({
+        text: c.chunkText,
+        startTime: c.startTime,
+        endTime: c.endTime,
+      }));
+    }
 
     const context: ChatContext = {
       videoTitle: await this.getVideoTitle(videoId),
       courseTitle: await this.getCourseTitle(courseId),
-      relevantChunks: chunks.map((c) => ({
-        text: c.chunkText,
-        startTime: c.startTime,
-        endTime: c.endTime,
-      })),
+      relevantChunks: chunks,
     };
 
     return this.chatService.generateSuggestions(context);
