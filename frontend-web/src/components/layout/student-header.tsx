@@ -9,6 +9,7 @@ import {
 import { useSidebarStore } from '@/lib/stores/sidebar-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { NotificationCenter } from '@/components/layout/notification-center';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { cn } from '@/lib/utils';
 
 /**
@@ -71,7 +72,12 @@ export function StudentHeader() {
             if (q) router.push(`/student/search?q=${encodeURIComponent(q)}`);
           }}
           searchPlaceholder="Buscar cursos, aulas..."
-          trailing={<NotificationCenter />}
+          trailing={
+            <>
+              <ThemeToggle />
+              <NotificationCenter />
+            </>
+          }
         />
       </header>
     </>

@@ -101,6 +101,14 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     const hlsRef = useRef<Hls | null>(null);
     const hasRestoredPosition = useRef(false);
 
+    // Touch: tap no vídeo NÃO pausa (media-chrome pausa por padrão) — aluno
+    // toca pra revelar os controles (ex: mudar velocidade) e o vídeo parava.
+    // Tap continua revelando a control bar; play/pause fica nos botões.
+    const [coarsePointer, setCoarsePointer] = useState(false);
+    useEffect(() => {
+      setCoarsePointer(window.matchMedia('(pointer: coarse)').matches);
+    }, []);
+
     // Callback refs to avoid stale closures
     const onTimeUpdateRef = useRef(onTimeUpdate);
     const onReadyRef = useRef(onReady);
@@ -337,6 +345,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     return (
       <MediaController
         className={`relative w-full h-full bg-black ${className ?? ''}`}
+        gesturesDisabled={coarsePointer || undefined}
       >
         <video
           slot="media"

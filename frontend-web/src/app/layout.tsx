@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals-premium.css";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { AtlasToaster } from "@/components/atlas";
 
@@ -14,12 +15,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    // suppressHydrationWarning: next-themes injeta a classe do tema no <html> antes da hidratação
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className="antialiased font-sans">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-        <AtlasToaster />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+          <AtlasToaster />
+        </ThemeProvider>
       </body>
     </html>
   );
