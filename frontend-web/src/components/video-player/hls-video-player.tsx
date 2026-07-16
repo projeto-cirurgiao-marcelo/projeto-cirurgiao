@@ -53,6 +53,8 @@ interface QualityLevel {
 interface HlsVideoPlayerProps {
   src: string;
   initialTime?: number;
+  /** Dá play sozinho ao carregar (modo autoplay/maratona da watch page) */
+  autoPlay?: boolean;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onReady?: (duration: number) => void;
   onEnded?: () => void;
@@ -82,6 +84,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     {
       src,
       initialTime = 0,
+      autoPlay = false,
       onTimeUpdate,
       onReady,
       onEnded,
@@ -340,6 +343,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           ref={videoRef}
           className="w-full h-full object-contain"
           playsInline
+          autoPlay={autoPlay}
           crossOrigin="anonymous"
         >
           {hasSubtitles && (

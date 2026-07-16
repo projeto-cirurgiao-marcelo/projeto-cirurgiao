@@ -9,7 +9,7 @@ import { videosService } from '@/lib/api/videos.service';
 import { progressService, CourseProgress } from '@/lib/api/progress.service';
 import { getCourseWeightedPercent } from '@/lib/course-progress';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock, PlayCircle } from 'lucide-react';
+import { ArrowLeft, SkipForward, SkipBack, ListVideo, Loader2, AlertCircle, CheckCircle, Circle, Clock, PlayCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 import {
   AtlasButton,
   AtlasLessonHeader,
@@ -78,6 +78,28 @@ export default function VideoPlayerPage() {
 
   // Mobile bottom sheet de módulos
   const [modulesSheetOpen, setModulesSheetOpen] = useState(false);
+
+  // Autoplay "modo maratona" — opt-in persistido. No fim do vídeo emenda na
+  // próxima aula sem o aluno precisar sair da imersão. Refs pra escapar do
+  // closure stale do handleVideoEnded (padrão já usado no arquivo).
+  const [autoplayEnabled, setAutoplayEnabled] = useState(false);
+  const autoplayRef = useRef(false);
+  const nextVideoIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('watch-autoplay') === '1';
+    setAutoplayEnabled(saved);
+    autoplayRef.current = saved;
+  }, []);
+
+  const toggleAutoplay = () => {
+    setAutoplayEnabled((v) => {
+      const next = !v;
+      autoplayRef.current = next;
+      localStorage.setItem('watch-autoplay', next ? '1' : '0');
+      return next;
+    });
+  };
 
   const saveProgressOnExit = useCallback(async () => {
     const timeToSave = currentWatchTimeRef.current;
@@ -302,6 +324,12 @@ export default function VideoPlayerPage() {
     } finally {
       setSavingProgress(false);
     }
+
+    // Autoplay: emenda na próxima aula sem o aluno clicar em nada
+    if (autoplayRef.current && nextVideoIdRef.current) {
+      router.push(`/student/courses/${courseId}/watch/${nextVideoIdRef.current}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId, courseId]);
 
   // Carrega legendas VTT quando o backend envia playback.captionsUrl separado
@@ -466,6 +494,7 @@ export default function VideoPlayerPage() {
 
   const hasPreviousVideo = !!getPreviousVideo();
   const hasNextVideo = !!getNextVideo();
+  nextVideoIdRef.current = getNextVideo()?.id ?? null;
 
   if (!hasHydrated || loading) {
     return (
@@ -672,6 +701,7 @@ export default function VideoPlayerPage() {
                   ref={hlsPlayerRef}
                   src={currentVideo.playback.playbackUrl}
                   initialTime={savedWatchTime}
+                  autoPlay={autoplayEnabled}
                   onTimeUpdate={handleHlsTimeUpdate}
                   onReady={handleHlsReady}
                   onEnded={handleVideoEnded}
@@ -710,6 +740,7 @@ export default function VideoPlayerPage() {
                   ref={hlsPlayerRef}
                   src={streamData.hlsUrl}
                   initialTime={savedWatchTime}
+                  autoPlay={autoplayEnabled}
                   onTimeUpdate={handleHlsTimeUpdate}
                   onReady={handleHlsReady}
                   onEnded={handleVideoEnded}
@@ -756,6 +787,24 @@ export default function VideoPlayerPage() {
                 /* Botões só em md+ — em mobile bottom bar contextual já cobre */
                 <div className="hidden sm:flex flex-wrap items-center gap-2">
                   <VideoLikeButton videoId={videoId} size="default" />
+                  <AtlasButton
+                    variant="outline"
+                    size="md"
+                    onClick={toggleAutoplay}
+                    title={
+                      autoplayEnabled
+                        ? 'Desativar reprodução automática da próxima aula'
+                        : 'Reproduzir a próxima aula automaticamente ao terminar'
+                    }
+                    className={autoplayEnabled ? 'text-atlas-primary' : ''}
+                  >
+                    {autoplayEnabled ? (
+                      <ToggleRight strokeWidth={1.75} />
+                    ) : (
+                      <ToggleLeft strokeWidth={1.75} />
+                    )}
+                    Autoplay
+                  </AtlasButton>
                   {hasPreviousVideo && (
                     <AtlasButton
                       variant="outline"
@@ -914,6 +963,13 @@ export default function VideoPlayerPage() {
             onClick: handleMarkAsComplete,
             disabled: savingProgress,
             tone: isCompleted ? 'success' : 'default',
+          },
+          {
+            id: 'autoplay',
+            icon: autoplayEnabled ? ToggleRight : ToggleLeft,
+            label: 'Autoplay',
+            onClick: toggleAutoplay,
+            tone: autoplayEnabled ? 'primary' : 'default',
           },
           {
             id: 'next',
