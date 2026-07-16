@@ -766,7 +766,9 @@ export default function VideoPlayerPage() {
                       Anterior
                     </AtlasButton>
                   )}
-                  {hasNextVideo && !isCompleted ? (
+                  {/* Sempre que houver próxima aula — sumir ao concluir era
+                      exatamente quando o aluno mais precisava do botão */}
+                  {hasNextVideo ? (
                     <AtlasButton
                       variant="outline"
                       size="md"
