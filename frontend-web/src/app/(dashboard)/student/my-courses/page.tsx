@@ -301,13 +301,42 @@ export default function MyCoursesPage() {
               </Section>
             )}
 
-            {divisions.map((d) => (
-              <Section key={d.title} title={d.title}>
-                {d.rows.map((r) => (
-                  <CourseRowCard key={r.id} row={r} />
-                ))}
-              </Section>
-            ))}
+            {divisions.map((d) =>
+              d.title === 'Tecidos moles' ? (
+                /* Tecidos moles tem página-hub própria (layout do cliente):
+                   card único de área em vez dos cards por curso */
+                <Section key={d.title} title={d.title}>
+                  <AtlasCourseCard
+                    href="/student/areas/tecidos-moles"
+                    title="Cirurgias de tecidos moles"
+                    category="Área completa"
+                    lessonsCount={d.rows.reduce(
+                      (sum, r) =>
+                        sum + (r.kind === 'enrolled' ? r.total : r.totalVideos),
+                      0,
+                    )}
+                    status="new"
+                    thumbVariant="alt2"
+                    thumbImageUrl={
+                      d.rows
+                        .map(
+                          (r) =>
+                            r.thumbnailHorizontal ||
+                            r.thumbnailVertical ||
+                            r.thumbnail,
+                        )
+                        .find(Boolean) || undefined
+                    }
+                  />
+                </Section>
+              ) : (
+                <Section key={d.title} title={d.title}>
+                  {d.rows.map((r) => (
+                    <CourseRowCard key={r.id} row={r} />
+                  ))}
+                </Section>
+              ),
+            )}
           </>
         )}
       </div>
