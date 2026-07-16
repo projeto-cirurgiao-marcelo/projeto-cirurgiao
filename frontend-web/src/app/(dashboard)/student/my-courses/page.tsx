@@ -26,6 +26,21 @@ import {
 } from '@/components/atlas';
 import { logger } from '@/lib/logger';
 
+/**
+ * Divisões fixas da home do aluno (pedido do dono, jul/2026).
+ * Matching por título de curso — se renomearem cursos no admin, atualizar
+ * aqui (upgrade path: campo `category` no Course).
+ * "Treinamentos Premium" agrupa visualmente dentro de "Tecidos moles";
+ * cursos sem match (ex: Pós-graduação, Ciclo Avançado) ficam fora da home
+ * (seguem acessíveis via busca/URL direta).
+ */
+const HOME_DIVISIONS: { title: string; match: RegExp }[] = [
+  { title: 'Comece por aqui', match: /comece por aqui/i },
+  { title: 'Posicionamento e atração', match: /posicionamento/i },
+  { title: 'Tecidos moles', match: /tecidos moles|treinamentos premium/i },
+  { title: 'Ortopedia e Neurocirurgia', match: /ortopedia|neurocirurgia/i },
+];
+
 const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
   'default',
   'alt',
@@ -91,6 +106,8 @@ export default function MyCoursesPage() {
 
   const [enrolled, setEnrolled] = useState<EnrolledCourseRow[]>([]);
   const [available, setAvailable] = useState<NewCourseRow[]>([]);
+  // Ordem oficial do catálogo (Course.position) — ordena os cards nas divisões
+  const [catalogIds, setCatalogIds] = useState<string[]>([]);
   const [totalCatalog, setTotalCatalog] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -120,6 +137,7 @@ export default function MyCoursesPage() {
         : ((allCoursesData as any).data as Course[]) || [];
 
       setTotalCatalog(allCoursesArray.length);
+      setCatalogIds(allCoursesArray.map((c) => c.id));
 
       const enrolledIds = new Set(
         (enrolledData as EnrolledCourseWithProgress[]).map((c) => c.id),
@@ -195,22 +213,27 @@ export default function MyCoursesPage() {
     [enrolled],
   );
 
-  const awaitingStart = useMemo(
-    () => enrolled.filter((c) => c.status === 'new'),
+  const completedCountMemo = useMemo(
+    () => enrolled.filter((c) => c.status === 'completed').length,
     [enrolled],
   );
 
-  const recentlyCompleted = useMemo(
-    () =>
-      enrolled
-        .filter((c) => c.status === 'completed')
-        .sort((a, b) => {
-          const dA = new Date(a.completedAt || 0).getTime();
-          const dB = new Date(b.completedAt || 0).getTime();
-          return dB - dA;
-        }),
-    [enrolled],
-  );
+  // Divisões fixas: todos os cursos (matriculado ou não) em ordem de catálogo,
+  // agrupados por HOME_DIVISIONS. Matriculados mostram progresso; novos, badge.
+  const divisions = useMemo(() => {
+    const rowById = new Map<string, EnrolledCourseRow | NewCourseRow>();
+    enrolled.forEach((r) => rowById.set(r.id, r));
+    available.forEach((r) => {
+      if (!rowById.has(r.id)) rowById.set(r.id, r);
+    });
+    const ordered = catalogIds
+      .map((id) => rowById.get(id))
+      .filter((r): r is EnrolledCourseRow | NewCourseRow => !!r);
+    return HOME_DIVISIONS.map((d) => ({
+      title: d.title,
+      rows: ordered.filter((r) => d.match.test(r.title)),
+    })).filter((d) => d.rows.length > 0);
+  }, [enrolled, available, catalogIds]);
 
   if (!hasHydrated || !user) {
     return (
@@ -222,7 +245,7 @@ export default function MyCoursesPage() {
 
   const enrolledCount = enrolled.length;
   const inProgressCount = inProgress.length;
-  const completedCount = recentlyCompleted.length;
+  const completedCount = completedCountMemo;
   const availableCount = available.length;
 
   const showEmpty =
@@ -271,125 +294,67 @@ export default function MyCoursesPage() {
               <Section
                 title="Continue de onde parou"
                 hint="Retome os cursos que você começou"
-                linkLabel="Ver todos em andamento"
-                linkHref="/student/in-progress"
               >
                 {inProgress.slice(0, 3).map((c) => (
-                  <AtlasCourseCard
-                    key={c.id}
-                    href={`/student/courses/${c.id}`}
-                    title={c.title}
-                    category="Cirurgia veterinária"
-                    instructor={c.instructor?.name}
-                    lessonsCount={c.total}
-                    status="in-progress"
-                    progressPercent={c.progressPercent}
-                    lessonsProgress={`${c.watched} / ${c.total}`}
-                    thumbVariant={pickThumbVariant(c.id)}
-                    thumbImageUrl={
-                      c.thumbnailHorizontal ||
-                      c.thumbnailVertical ||
-                      c.thumbnail ||
-                      undefined
-                    }
-                  />
+                  <CourseRowCard key={c.id} row={c} />
                 ))}
               </Section>
             )}
 
-            {awaitingStart.length > 0 && (
-              <Section
-                title="Aguardando início"
-                hint="Matriculados que ainda não começaram"
-                linkLabel="Explorar catálogo"
-                linkHref="/student/courses"
-              >
-                {awaitingStart.slice(0, 4).map((c) => (
-                  <AtlasCourseCard
-                    key={c.id}
-                    href={`/student/courses/${c.id}`}
-                    title={c.title}
-                    category="Cirurgia veterinária"
-                    instructor={c.instructor?.name}
-                    lessonsCount={c.total}
-                    status="new"
-                    thumbVariant={pickThumbVariant(c.id)}
-                    thumbImageUrl={
-                      c.thumbnailHorizontal ||
-                      c.thumbnailVertical ||
-                      c.thumbnail ||
-                      undefined
-                    }
-                  />
+            {divisions.map((d) => (
+              <Section key={d.title} title={d.title}>
+                {d.rows.map((r) => (
+                  <CourseRowCard key={r.id} row={r} />
                 ))}
               </Section>
-            )}
-
-            {recentlyCompleted.length > 0 && (
-              <Section
-                title="Concluídos recentemente"
-                hint="Sua trajetória até aqui"
-                linkLabel="Ver histórico completo"
-                linkHref="/student/completed"
-              >
-                {recentlyCompleted.slice(0, 4).map((c) => (
-                  <AtlasCourseCard
-                    key={c.id}
-                    href={`/student/courses/${c.id}`}
-                    title={c.title}
-                    category="Cirurgia veterinária"
-                    instructor={c.instructor?.name}
-                    lessonsCount={c.total}
-                    status="completed"
-                    progressPercent={100}
-                    lessonsProgress={`${c.total} / ${c.total}`}
-                    completedAt={formatCompletedDate(c.completedAt)}
-                    thumbVariant={pickThumbVariant(c.id)}
-                    thumbImageUrl={
-                      c.thumbnailHorizontal ||
-                      c.thumbnailVertical ||
-                      c.thumbnail ||
-                      undefined
-                    }
-                  />
-                ))}
-              </Section>
-            )}
-
-            {inProgress.length === 0 &&
-              awaitingStart.length === 0 &&
-              recentlyCompleted.length === 0 &&
-              available.length > 0 && (
-                <Section
-                  title="Comece por aqui"
-                  hint="Você ainda não está matriculado em nenhum curso"
-                  linkLabel="Ver catálogo completo"
-                  linkHref="/student/courses"
-                >
-                  {available.slice(0, 4).map((c) => (
-                    <AtlasCourseCard
-                      key={c.id}
-                      href={`/student/courses/${c.id}`}
-                      title={c.title}
-                      category="Cirurgia veterinária"
-                      instructor={c.instructor?.name}
-                      lessonsCount={c.totalVideos}
-                      status="new"
-                      thumbVariant={pickThumbVariant(c.id)}
-                      thumbImageUrl={
-                        c.thumbnailHorizontal ||
-                        c.thumbnailVertical ||
-                        c.thumbnail ||
-                        undefined
-                      }
-                    />
-                  ))}
-                </Section>
-              )}
+            ))}
           </>
         )}
       </div>
     </>
+  );
+}
+
+/** Card unificado — linha matriculada (com progresso) ou curso novo */
+function CourseRowCard({ row }: { row: EnrolledCourseRow | NewCourseRow }) {
+  const thumbImageUrl =
+    row.thumbnailHorizontal || row.thumbnailVertical || row.thumbnail || undefined;
+
+  if (row.kind === 'enrolled') {
+    return (
+      <AtlasCourseCard
+        href={`/student/courses/${row.id}`}
+        title={row.title}
+        category="Cirurgia veterinária"
+        instructor={row.instructor?.name}
+        lessonsCount={row.total}
+        status={row.status}
+        progressPercent={row.status === 'completed' ? 100 : row.progressPercent}
+        lessonsProgress={
+          row.status === 'new' ? undefined : `${row.watched} / ${row.total}`
+        }
+        completedAt={
+          row.status === 'completed'
+            ? formatCompletedDate(row.completedAt)
+            : undefined
+        }
+        thumbVariant={pickThumbVariant(row.id)}
+        thumbImageUrl={thumbImageUrl}
+      />
+    );
+  }
+
+  return (
+    <AtlasCourseCard
+      href={`/student/courses/${row.id}`}
+      title={row.title}
+      category="Cirurgia veterinária"
+      instructor={row.instructor?.name}
+      lessonsCount={row.totalVideos}
+      status="new"
+      thumbVariant={pickThumbVariant(row.id)}
+      thumbImageUrl={thumbImageUrl}
+    />
   );
 }
 
@@ -402,8 +367,9 @@ function Section({
 }: {
   title: string;
   hint?: string;
-  linkLabel: string;
-  linkHref: string;
+  /** Opcional — a home do aluno não usa links de catálogo (pedido do dono) */
+  linkLabel?: string;
+  linkHref?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -417,13 +383,15 @@ function Section({
             <p className="text-xs text-atlas-muted mt-0.5">{hint}</p>
           )}
         </div>
-        <Link
-          href={linkHref}
-          className="text-xs font-medium text-atlas-primary-2 hover:text-atlas-primary inline-flex items-center gap-1 shrink-0 self-start sm:self-auto"
-        >
-          {linkLabel}
-          <ArrowRight className="size-3" strokeWidth={2} />
-        </Link>
+        {linkLabel && linkHref && (
+          <Link
+            href={linkHref}
+            className="text-xs font-medium text-atlas-primary-2 hover:text-atlas-primary inline-flex items-center gap-1 shrink-0 self-start sm:self-auto"
+          >
+            {linkLabel}
+            <ArrowRight className="size-3" strokeWidth={2} />
+          </Link>
+        )}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
         {children}
