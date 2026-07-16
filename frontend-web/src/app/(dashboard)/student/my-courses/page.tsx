@@ -41,6 +41,18 @@ const HOME_DIVISIONS: { title: string; match: RegExp }[] = [
   { title: 'Ortopedia e Neurocirurgia', match: /ortopedia|neurocirurgia/i },
 ];
 
+/** Divisões com página-hub própria: home mostra card único de área */
+const DIVISION_HUBS: Record<string, { href: string; cardTitle: string }> = {
+  'Tecidos moles': {
+    href: '/student/areas/tecidos-moles',
+    cardTitle: 'Cirurgias de tecidos moles',
+  },
+  'Ortopedia e Neurocirurgia': {
+    href: '/student/areas/ortopedia-neurocirurgia',
+    cardTitle: 'Ortopedia e Neurocirurgias',
+  },
+};
+
 const THUMB_VARIANTS: AtlasCourseThumbVariant[] = [
   'default',
   'alt',
@@ -301,14 +313,15 @@ export default function MyCoursesPage() {
               </Section>
             )}
 
-            {divisions.map((d) =>
-              d.title === 'Tecidos moles' ? (
-                /* Tecidos moles tem página-hub própria (layout do cliente):
+            {divisions.map((d) => {
+              const hub = DIVISION_HUBS[d.title];
+              return hub ? (
+                /* Divisão com página-hub própria (layout do cliente):
                    card único de área em vez dos cards por curso */
                 <Section key={d.title} title={d.title}>
                   <AtlasCourseCard
-                    href="/student/areas/tecidos-moles"
-                    title="Cirurgias de tecidos moles"
+                    href={hub.href}
+                    title={hub.cardTitle}
                     category="Área completa"
                     lessonsCount={d.rows.reduce(
                       (sum, r) =>
@@ -335,8 +348,8 @@ export default function MyCoursesPage() {
                     <CourseRowCard key={r.id} row={r} />
                   ))}
                 </Section>
-              ),
-            )}
+              );
+            })}
           </>
         )}
       </div>
