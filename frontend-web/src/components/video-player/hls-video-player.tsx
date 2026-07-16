@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import Hls from 'hls.js';
+import { Settings } from 'lucide-react';
 import {
   MediaController,
   MediaControlBar,
@@ -148,6 +149,11 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           enableWorker: true,
           lowLatencyMode: false,
           startLevel: -1,
+          // ABR ciente de CPU/tela: nao subir alem do tamanho do player e
+          // rebaixar nivel quando o decode derruba frames (notebooks fracos
+          // travavam em 1080p+ porque a banda permitia mas a CPU nao).
+          capLevelToPlayerSize: true,
+          capLevelOnFPSDrop: true,
         });
         // Nota: o desligamento da legenda por padrao e feito pelo efeito de
         // force-off mais abaixo (poe as text tracks em `disabled` na janela
@@ -361,10 +367,11 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="media-control-btn px-2 py-1 text-xs font-semibold cursor-pointer select-none"
-                  title="Qualidade"
+                  className="media-control-btn flex items-center gap-1 px-2 py-1 text-xs font-semibold cursor-pointer select-none"
+                  title="Qualidade do vídeo"
                 >
-                  {currentQualityLabel}
+                  <Settings className="h-3.5 w-3.5" aria-hidden />
+                  <span>{currentQualityLabel === 'Auto' ? 'Qualidade' : currentQualityLabel}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
