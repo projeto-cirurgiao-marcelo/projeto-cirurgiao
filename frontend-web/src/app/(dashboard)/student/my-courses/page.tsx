@@ -32,21 +32,32 @@ import { logger } from '@/lib/logger';
  * cursos sem match (ex: Pós-graduação, Ciclo Avançado) ficam fora da home
  * (seguem acessíveis via busca/URL direta).
  */
-const HOME_DIVISIONS: { title: string; match: RegExp; href: string }[] = [
+const HOME_DIVISIONS: {
+  title: string;
+  match: RegExp;
+  href: string;
+  /** Prioridade de qual curso empresta a arte do card de área —
+      sem isso, a ordem de catálogo escolhia a imagem errada
+      (ex: banner do Treinamentos Premium no card Tecidos Moles) */
+  thumbFrom: RegExp[];
+}[] = [
   {
     title: 'Posicionamento e atração',
     match: /posicionamento/i,
     href: '/student/areas/posicionamento-atracao',
+    thumbFrom: [/posicionamento/i],
   },
   {
     title: 'Tecidos Moles',
     match: /tecidos moles|treinamentos premium/i,
     href: '/student/areas/tecidos-moles',
+    thumbFrom: [/^tecidos\s+moles\s+na\s+pr[aá]tica/i, /aprofundamento\s+tecidos/i],
   },
   {
     title: 'Ortopedia e Neurocirurgia',
     match: /ortopedia|neurocirurgia/i,
     href: '/student/areas/ortopedia-neurocirurgia',
+    thumbFrom: [/aprofundamento\s+ortopedia/i, /^neurocirurgia/i, /^ortopedia/i],
   },
 ];
 
@@ -217,11 +228,20 @@ export default function MyCoursesPage() {
     const ordered = catalogIds
       .map((id) => rowById.get(id))
       .filter((r): r is EnrolledCourseRow | NewCourseRow => !!r);
-    return HOME_DIVISIONS.map((d) => ({
-      title: d.title,
-      href: d.href,
-      rows: ordered.filter((r) => d.match.test(r.title)),
-    })).filter((d) => d.rows.length > 0);
+    return HOME_DIVISIONS.map((d) => {
+      const rows = ordered.filter((r) => d.match.test(r.title));
+      const rowThumb = (r: (typeof rows)[number]) =>
+        r.thumbnailHorizontal || r.thumbnailVertical || r.thumbnail;
+      // Arte do card: segue a prioridade thumbFrom; fallback = qualquer curso da divisão
+      const preferred = d.thumbFrom
+        .map((re) => rows.find((r) => re.test(r.title) && rowThumb(r)))
+        .find(Boolean);
+      const thumbImageUrl =
+        (preferred && rowThumb(preferred)) ||
+        rows.map(rowThumb).find(Boolean) ||
+        undefined;
+      return { title: d.title, href: d.href, rows, thumbImageUrl };
+    }).filter((d) => d.rows.length > 0);
   }, [enrolled, available, catalogIds]);
 
   if (!hasHydrated || !user) {
@@ -294,16 +314,7 @@ export default function MyCoursesPage() {
                   )}
                   status="new"
                   thumbVariant={THUMB_VARIANTS[i % THUMB_VARIANTS.length]}
-                  thumbImageUrl={
-                    d.rows
-                      .map(
-                        (r) =>
-                          r.thumbnailHorizontal ||
-                          r.thumbnailVertical ||
-                          r.thumbnail,
-                      )
-                      .find(Boolean) || undefined
-                  }
+                  thumbImageUrl={d.thumbImageUrl}
                 />
               ))}
             </div>
