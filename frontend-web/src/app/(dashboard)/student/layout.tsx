@@ -46,8 +46,13 @@ export default function StudentLayout({
   const headerHiddenOnMobile = /^\/student\/courses\/[^/]+\/watch\/[^/]+/.test(
     pathname ?? '',
   );
-  // Mesma rota também esconde tab bar global (bottom bar contextual da aula assume)
-  const tabBarHiddenOnMobile = headerHiddenOnMobile;
+  // Mesma rota também esconde tab bar global (bottom bar contextual da aula assume).
+  // Quiz idem: flow focado com saídas próprias (Voltar / Sair do quiz) — a bar
+  // sobrepunha o rodapé do quiz em telas baixas e um mis-tap perdia o progresso.
+  const isQuizRoute = /^\/student\/courses\/[^/]+\/quiz\/[^/]+/.test(
+    pathname ?? '',
+  );
+  const tabBarHiddenOnMobile = headerHiddenOnMobile || isQuizRoute;
   // Na rota de aula quem renderiza chat é o VideoChatWidget da própria página
   // (com videoId/courseId). Fora dela, o ChatWidget global em modo geral.
   const isLessonRoute = headerHiddenOnMobile;
