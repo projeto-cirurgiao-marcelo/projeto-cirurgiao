@@ -24,6 +24,8 @@ export interface CatalogSearchResult {
     moduleTitle: string;
     courseId: string;
     courseTitle: string;
+    /** 'content' = termo não está no título, foi citado na transcrição da aula */
+    matchedIn?: 'title' | 'content';
   }>;
 }
 

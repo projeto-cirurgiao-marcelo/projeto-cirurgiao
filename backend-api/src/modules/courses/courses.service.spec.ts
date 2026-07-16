@@ -370,6 +370,7 @@ describe('CoursesService', () => {
     });
 
     it('só busca conteúdo publicado e não deletado, com lessonsCount', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
       prisma.course.findMany.mockResolvedValue([
         { id: 'course-1', title: 'Ortopedia', instructor: { name: 'Dr. A' } } as any,
       ]);
@@ -403,7 +404,42 @@ describe('CoursesService', () => {
         moduleTitle: 'Módulo 1',
         courseId: 'course-1',
         courseTitle: 'Ortopedia',
+        matchedIn: 'title',
       });
+    });
+
+    it('acha aula pelo termo citado na transcrição e ordena após matches de título', async () => {
+      // "TPLO" não está em nenhum título, mas a transcrição do video-2 menciona
+      prisma.$queryRaw.mockResolvedValue([{ videoId: 'video-2' }]);
+      prisma.course.findMany.mockResolvedValue([]);
+      prisma.video.findMany.mockResolvedValue([
+        {
+          id: 'video-2',
+          title: 'Osteotomia de nivelamento',
+          duration: 900,
+          module: { id: 'm1', title: 'Módulo 1', course: { id: 'course-1', title: 'Ortopedia' } },
+        } as any,
+        {
+          id: 'video-3',
+          title: 'Técnica TPLO passo a passo',
+          duration: 1200,
+          module: { id: 'm1', title: 'Módulo 1', course: { id: 'course-1', title: 'Ortopedia' } },
+        } as any,
+      ]);
+
+      const result = await service.searchCatalog('TPLO');
+
+      // where do vídeo inclui os IDs vindos da transcrição
+      const videoWhere = prisma.video.findMany.mock.calls[0][0]!.where as any;
+      expect(videoWhere.OR).toEqual(
+        expect.arrayContaining([{ id: { in: ['video-2'] } }]),
+      );
+
+      // título primeiro, menção na transcrição depois (com matchedIn)
+      expect(result.videos.map((v) => [v.id, v.matchedIn])).toEqual([
+        ['video-3', 'title'],
+        ['video-2', 'content'],
+      ]);
     });
   });
 });

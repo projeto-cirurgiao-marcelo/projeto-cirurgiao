@@ -100,6 +100,18 @@ export class CoursesService {
       return { courses: [], videos: [] };
     }
 
+    // Aulas que MENCIONAM o termo no conteúdo falado (transcrição Whisper).
+    // Aluno raramente sabe o título exato da aula ("TPLO" não está no título,
+    // mas está na transcrição). ILIKE seq-scan é ok no volume atual
+    // (pg_trgm index se crescer).
+    const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
+    const transcriptRows = await this.prisma.$queryRaw<{ videoId: string }[]>`
+      SELECT DISTINCT "videoId" FROM transcript_embeddings
+      WHERE "chunkText" ILIKE ${pattern}
+      LIMIT 50
+    `;
+    const transcriptVideoIds = transcriptRows.map((r) => r.videoId);
+
     const [courses, videos] = await Promise.all([
       this.prisma.course.findMany({
         where: {
@@ -126,7 +138,13 @@ export class CoursesService {
         where: {
           deletedAt: null,
           isPublished: true,
-          title: { contains: q, mode: 'insensitive' },
+          OR: [
+            { title: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
+            ...(transcriptVideoIds.length > 0
+              ? [{ id: { in: transcriptVideoIds } }]
+              : []),
+          ],
           module: {
             deletedAt: null,
             course: { deletedAt: null, isPublished: true },
@@ -135,6 +153,7 @@ export class CoursesService {
         select: {
           id: true,
           title: true,
+          description: true,
           duration: true,
           module: {
             select: {
@@ -171,14 +190,28 @@ export class CoursesService {
         ...c,
         lessonsCount: lessonCounts.get(c.id) ?? 0,
       })),
-      videos: videos.map((v) => ({
-        id: v.id,
-        title: v.title,
-        duration: v.duration,
-        moduleTitle: v.module.title,
-        courseId: v.module.course.id,
-        courseTitle: v.module.course.title,
-      })),
+      videos: videos
+        .map((v) => {
+          const ql = q.toLowerCase();
+          const matchedIn =
+            v.title.toLowerCase().includes(ql) ||
+            (v.description ?? '').toLowerCase().includes(ql)
+              ? ('title' as const)
+              : ('content' as const);
+          return {
+            id: v.id,
+            title: v.title,
+            duration: v.duration,
+            moduleTitle: v.module.title,
+            courseId: v.module.course.id,
+            courseTitle: v.module.course.title,
+            matchedIn,
+          };
+        })
+        // Matches de título primeiro; menções na transcrição depois
+        .sort((a, b) =>
+          a.matchedIn === b.matchedIn ? 0 : a.matchedIn === 'title' ? -1 : 1,
+        ),
     };
   }
 

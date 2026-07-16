@@ -148,6 +148,9 @@ function SearchResults() {
                       <p className="truncate text-sm font-medium">{video.title}</p>
                       <p className="truncate text-xs text-muted-foreground">
                         {video.courseTitle} · {video.moduleTitle}
+                        {video.matchedIn === 'content' && (
+                          <span className="text-atlas-primary"> · citado na aula</span>
+                        )}
                       </p>
                     </div>
                     {formatDuration(video.duration) && (
