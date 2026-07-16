@@ -11,6 +11,7 @@ import { profileService } from '@/lib/api/profile.service';
 import { loginSchema, type LoginFormData } from '@/lib/schemas/auth-schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { logger } from '@/lib/logger';
@@ -176,9 +177,8 @@ export default function LoginPage() {
               <Label htmlFor="password" className="text-gray-300">
                 Senha
               </Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder=""
                 {...register('password')}
                 disabled={isLoading}
