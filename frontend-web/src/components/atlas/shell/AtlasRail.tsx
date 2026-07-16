@@ -101,7 +101,8 @@ export function AtlasRail({
                   width={32}
                   height={32}
                   priority
-                  className="size-8 shrink-0 object-contain rounded-md"
+                  // dark: silhueta branca via filtro (marca azul vira branca; SVG já sem fundo)
+                  className="size-8 shrink-0 object-contain rounded-md dark:brightness-0 dark:invert"
                 />
               </motion.div>
             ) : (
@@ -113,13 +114,22 @@ export function AtlasRail({
                 transition={{ duration: 0.22, ease: "easeOut" }}
                 className="flex items-center"
               >
+                {/* Versões claro/escuro da marca (SVGs oficiais), swap por CSS — sem flash de tema */}
                 <Image
-                  src="/ProjetoCirurgiaotxt.png"
+                  src="/logo-horizontal.svg"
                   alt="Projeto Cirurgião"
                   width={200}
-                  height={40}
+                  height={28}
                   priority
-                  className="h-9 w-auto object-contain"
+                  className="h-9 w-auto object-contain dark:hidden"
+                />
+                <Image
+                  src="/logo-horizontal-dark.svg"
+                  alt="Projeto Cirurgião"
+                  width={200}
+                  height={28}
+                  priority
+                  className="hidden h-9 w-auto object-contain dark:block"
                 />
               </motion.div>
             )}
