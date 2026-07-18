@@ -51,7 +51,7 @@ const HOME_DIVISIONS: {
     title: 'Tecidos Moles',
     match: /tecidos moles|treinamentos premium/i,
     href: '/student/areas/tecidos-moles',
-    thumbFrom: [/^tecidos\s+moles\s+na\s+pr[aá]tica/i, /aprofundamento\s+tecidos/i],
+    thumbFrom: [/^tecidos\s+moles$/i, /aprofundamento\s+tecidos/i],
   },
   {
     title: 'Ortopedia e Neurocirurgia',
