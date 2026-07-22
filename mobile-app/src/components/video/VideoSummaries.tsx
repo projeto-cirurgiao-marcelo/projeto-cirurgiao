@@ -82,9 +82,17 @@ export function VideoSummaries({ videoId }: VideoSummariesProps) {
       setRemaining((prev) =>
         prev ? { ...prev, remaining: newSummary.remainingGenerations } : null
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Erro ao gerar resumo:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o resumo. Tente novamente.');
+      // Mensagem do backend: 400 inline (axios) ou Error do polling de job.
+      // Cobre o caso de resumo incompleto ("nenhuma geração foi consumida").
+      const backendMessage =
+        error?.response?.data?.message ??
+        (error?.isAxiosError ? undefined : error?.message);
+      Alert.alert(
+        'Erro',
+        backendMessage || 'Não foi possível gerar o resumo. Tente novamente.'
+      );
     } finally {
       setGenerating(false);
     }

@@ -107,9 +107,13 @@ export function VideoSummaries({ videoId, hasTranscript }: VideoSummariesProps) 
       // Sem success toast — síntese aparece imediato no card (feedback inline silencioso, nível 0)
     } catch (error: any) {
       logger.error('Erro ao gerar resumo:', error);
+      // Mensagem do backend: 400 inline (axios) ou JobFailedError (modo fila).
+      // Cobre o caso de resumo incompleto ("nenhuma geração foi consumida").
+      const backendMessage =
+        error.response?.data?.message ??
+        (error.isAxiosError ? undefined : error.message);
       atlasToast.error('Falha ao gerar síntese', {
-        description:
-          error.response?.data?.message ?? 'Tente novamente em alguns segundos.',
+        description: backendMessage || 'Tente novamente em alguns segundos.',
       });
     } finally {
       setIsGenerating(false);
