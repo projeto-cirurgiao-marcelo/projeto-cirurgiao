@@ -12,7 +12,19 @@ export interface GenerateSummaryParams {
 export interface SummaryResult {
   content: string;
   tokenCount?: number;
+  finishReason?: string;
+  promptTokenCount?: number;
+  candidatesTokenCount?: number;
+  totalTokenCount?: number;
+  modelName: string;
 }
+
+/**
+ * Sentinela que o modelo é instruído a emitir no fim do resumo.
+ * Ausência dela = resposta cortada (MAX_TOKENS, filtro, etc.) —
+ * o resumo não deve ser salvo nem consumir geração.
+ */
+export const SUMMARY_COMPLETE_SENTINEL = '<!-- SUMMARY_COMPLETE -->';
 
 @Injectable()
 export class VertexAiService {
@@ -22,11 +34,14 @@ export class VertexAiService {
   private readonly projectId: string;
   private readonly location: string;
   private readonly modelName: string;
+  private readonly summaryMaxOutputTokens: number;
 
   constructor(private configService: ConfigService) {
     this.projectId = this.configService.get<string>('GOOGLE_CLOUD_PROJECT_ID') || 'projeto-cirurgiao-e8df7';
     this.location = this.configService.get<string>('GOOGLE_CLOUD_LOCATION') || 'southamerica-east1';
     this.modelName = this.configService.get<string>('VERTEX_AI_MODEL') || 'gemini-2.5-flash';
+    this.summaryMaxOutputTokens =
+      Number(this.configService.get<string>('VERTEX_SUMMARY_MAX_OUTPUT_TOKENS')) || 8192;
 
     // Configurar credenciais do Google Cloud
     const credentialsPath = this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIALS');
@@ -73,23 +88,33 @@ export class VertexAiService {
           },
         ],
         generationConfig: {
-          maxOutputTokens: 4096,
+          maxOutputTokens: this.summaryMaxOutputTokens,
           temperature: 0.7,
           topP: 0.9,
         },
       });
 
       const response = result.response;
-      const content = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      
-      // Tentar obter contagem de tokens (se disponível)
-      const tokenCount = response.usageMetadata?.totalTokenCount;
+      const candidate = response.candidates?.[0];
+      // Junta todas as parts — respostas longas podem vir fragmentadas
+      const content =
+        candidate?.content?.parts?.map((p) => p.text ?? '').join('') || '';
+      const finishReason = candidate?.finishReason;
+      const usage = response.usageMetadata;
 
-      this.logger.log(`Summary generated successfully. Token count: ${tokenCount || 'N/A'}`);
+      this.logger.log(
+        `Summary generated. finishReason=${finishReason ?? 'N/A'}, ` +
+          `tokens=${usage?.totalTokenCount ?? 'N/A'} (prompt=${usage?.promptTokenCount ?? 'N/A'}, output=${usage?.candidatesTokenCount ?? 'N/A'})`,
+      );
 
       return {
         content,
-        tokenCount,
+        tokenCount: usage?.totalTokenCount,
+        finishReason,
+        promptTokenCount: usage?.promptTokenCount,
+        candidatesTokenCount: usage?.candidatesTokenCount,
+        totalTokenCount: usage?.totalTokenCount,
+        modelName: this.modelName,
       };
     } catch (error) {
       this.logger.error('Error generating summary with Vertex AI:', error);
@@ -125,6 +150,7 @@ Gere um resumo estruturado e personalizado da aula "${videoTitle}", integrando a
 - Mantenha o foco em Medicina Veterinária
 - Use emojis para melhorar a legibilidade
 - O resumo deve ser útil para revisão antes de provas
+- Finalize obrigatoriamente a resposta com a linha exata: ${SUMMARY_COMPLETE_SENTINEL}
 
 ## Formato de Saída (Markdown)
 
@@ -160,6 +186,10 @@ ${transcription}
 
 ## Anotações do Aluno
 ${notesSection}
+
+---
+
+Lembrete final: após concluir o resumo completo, escreva a linha exata ${SUMMARY_COMPLETE_SENTINEL} como última linha da resposta.
 `;
   }
 

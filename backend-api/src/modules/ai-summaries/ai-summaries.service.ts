@@ -6,12 +6,18 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
-import { VertexAiService } from './vertex-ai.service';
+import {
+  VertexAiService,
+  SUMMARY_COMPLETE_SENTINEL,
+} from './vertex-ai.service';
 import { VttTextService } from '../../shared/vtt/vtt-text.service';
 import { GenerateSummaryDto } from './dto/generate-summary.dto';
 import { UpdateSummaryDto } from './dto/update-summary.dto';
 
 const MAX_SUMMARIES_PER_VIDEO = 3;
+
+export const INCOMPLETE_SUMMARY_MESSAGE =
+  'Não foi possível gerar um resumo completo. Tente novamente; nenhuma geração foi consumida.';
 
 @Injectable()
 export class AiSummariesService {
@@ -107,6 +113,27 @@ export class AiSummariesService {
       contentSource, // Informar a fonte do conteúdo
     });
 
+    // 6.1 Validar completude ANTES de salvar/consumir geração.
+    // Resposta cortada (MAX_TOKENS, filtro, vazio, sentinela ausente)
+    // não é salva e não conta contra o limite.
+    const rawContent = (result.content || '').trim();
+    const hasSentinel = rawContent.includes(SUMMARY_COMPLETE_SENTINEL);
+    const isComplete =
+      rawContent.length > 0 && result.finishReason === 'STOP' && hasSentinel;
+
+    if (!isComplete) {
+      this.logger.warn(
+        `Incomplete summary rejected for video ${videoId} user ${userId}: ` +
+          `finishReason=${result.finishReason ?? 'N/A'}, chars=${rawContent.length}, ` +
+          `sentinel=${hasSentinel}, model=${result.modelName}, ` +
+          `tokens=${result.totalTokenCount ?? 'N/A'} (prompt=${result.promptTokenCount ?? 'N/A'}, output=${result.candidatesTokenCount ?? 'N/A'})`,
+      );
+      throw new BadRequestException(INCOMPLETE_SUMMARY_MESSAGE);
+    }
+
+    // Sentinela é marcador interno — nunca persistir
+    const content = rawContent.replaceAll(SUMMARY_COMPLETE_SENTINEL, '').trim();
+
     // 7. Determinar a próxima versão disponível e incrementar generationCount
     // Se houver "buracos" nas versões (ex: 1, 3 após deletar 2), preencher o buraco
     // Caso contrário, usar o próximo número sequencial
@@ -130,10 +157,10 @@ export class AiSummariesService {
       data: {
         videoId,
         userId,
-        content: result.content,
+        content,
         version: nextVersion,
         generationCount: nextGenerationCount,
-        tokenCount: result.tokenCount,
+        tokenCount: result.totalTokenCount ?? result.tokenCount,
       },
     });
 
@@ -165,11 +192,14 @@ export class AiSummariesService {
       },
     });
 
+    // Gerações consumidas = maior generationCount (deletar resumo não devolve geração)
+    const used = Math.max(0, ...summaries.map((s) => s.generationCount || 0));
+
     return {
       summaries,
       count: summaries.length,
       maxAllowed: MAX_SUMMARIES_PER_VIDEO,
-      remainingGenerations: MAX_SUMMARIES_PER_VIDEO - summaries.length,
+      remainingGenerations: MAX_SUMMARIES_PER_VIDEO - used,
     };
   }
 
@@ -294,16 +324,26 @@ atualizado_em: ${summary.updatedAt.toISOString()}
    * Verifica quantos resumos o usuário ainda pode gerar
    */
   async getRemainingGenerations(videoId: string, userId: string) {
-    const count = await this.prisma.videoSummary.count({
+    // Mesmo critério do gate de geração: maior generationCount.
+    // Deletar resumo não devolve geração.
+    const maxGeneration = await this.prisma.videoSummary.findFirst({
       where: {
         videoId,
         userId,
       },
+      orderBy: {
+        generationCount: 'desc',
+      },
+      select: {
+        generationCount: true,
+      },
     });
 
+    const used = maxGeneration?.generationCount || 0;
+
     return {
-      used: count,
-      remaining: MAX_SUMMARIES_PER_VIDEO - count,
+      used,
+      remaining: MAX_SUMMARIES_PER_VIDEO - used,
       maxAllowed: MAX_SUMMARIES_PER_VIDEO,
     };
   }
