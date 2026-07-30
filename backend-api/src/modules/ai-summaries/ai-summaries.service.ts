@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
 import {
@@ -167,10 +168,37 @@ export class AiSummariesService {
             throw new BadRequestException(GENERATION_LIMIT_MESSAGE);
           }
 
-          // ponytail: o unique composto derruba o segundo criador concorrente
-          await tx.videoSummaryGenerationQuota.create({
-            data: { userId, videoId, generationCount: 1 },
-          });
+          try {
+            // SAVEPOINT: no Postgres um erro aborta a transação inteira, e o
+            // retry do catch morreria com "current transaction is aborted".
+            await tx.$executeRawUnsafe('SAVEPOINT quota_create');
+            await tx.videoSummaryGenerationQuota.create({
+              data: { userId, videoId, generationCount: 1 },
+            });
+          } catch (err) {
+            if (
+              !(err instanceof Prisma.PrismaClientKnownRequestError) ||
+              err.code !== 'P2002'
+            ) {
+              throw err;
+            }
+
+            // Primeira geração concorrente: a outra requisição criou a linha
+            // entre o nosso findUnique e o create. Refaz o bump condicional.
+            await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT quota_create');
+            const retried = await tx.videoSummaryGenerationQuota.updateMany({
+              where: {
+                userId,
+                videoId,
+                generationCount: { lt: MAX_SUMMARIES_PER_VIDEO },
+              },
+              data: { generationCount: { increment: 1 } },
+            });
+
+            if (retried.count === 0) {
+              throw new BadRequestException(GENERATION_LIMIT_MESSAGE);
+            }
+          }
         }
 
         const quota = await tx.videoSummaryGenerationQuota.findUnique({
