@@ -19,6 +19,8 @@ const MAX_SUMMARIES_PER_VIDEO = 3;
 export const INCOMPLETE_SUMMARY_MESSAGE =
   'Não foi possível gerar um resumo completo. Tente novamente; nenhuma geração foi consumida.';
 
+export const GENERATION_LIMIT_MESSAGE = `Você já atingiu o limite de ${MAX_SUMMARIES_PER_VIDEO} gerações para este vídeo. Não é possível gerar mais resumos.`;
+
 @Injectable()
 export class AiSummariesService {
   private readonly logger = new Logger(AiSummariesService.name);
@@ -59,26 +61,15 @@ export class AiSummariesService {
       );
     }
 
-    // 3. Verificar o máximo de gerações já realizadas (não diminui ao deletar)
-    const maxGenerationCount = await this.prisma.videoSummary.findFirst({
-      where: {
-        videoId,
-        userId,
-      },
-      orderBy: {
-        generationCount: 'desc',
-      },
-      select: {
-        generationCount: true,
-      },
-    });
-
-    const currentGenerationCount = maxGenerationCount?.generationCount || 0;
+    // 3. Gate de quota (pré-Vertex). A quota vive fora de VideoSummary, então
+    // deletar resumos não devolve geração.
+    const currentGenerationCount = await this.getUsedGenerations(
+      videoId,
+      userId,
+    );
 
     if (currentGenerationCount >= MAX_SUMMARIES_PER_VIDEO) {
-      throw new BadRequestException(
-        `Você já atingiu o limite de ${MAX_SUMMARIES_PER_VIDEO} gerações para este vídeo. Não é possível gerar mais resumos.`,
-      );
+      throw new BadRequestException(GENERATION_LIMIT_MESSAGE);
     }
 
     // 4. Buscar resumos existentes para determinar a próxima versão
@@ -148,21 +139,60 @@ export class AiSummariesService {
       }
     }
 
-    const nextGenerationCount = currentGenerationCount + 1;
+    this.logger.log(`Next available version: ${nextVersion}`);
 
-    this.logger.log(`Next available version: ${nextVersion}, generationCount: ${nextGenerationCount}`);
+    // 8. Consumir a quota e salvar o resumo na mesma transação — nunca persiste
+    // resumo sem quota nem quota sem resumo.
+    const { summary, nextGenerationCount } = await this.prisma.$transaction(
+      async (tx) => {
+        // Incremento condicional: fecha a corrida entre requisições simultâneas.
+        const bumped = await tx.videoSummaryGenerationQuota.updateMany({
+          where: {
+            userId,
+            videoId,
+            generationCount: { lt: MAX_SUMMARIES_PER_VIDEO },
+          },
+          data: { generationCount: { increment: 1 } },
+        });
 
-    // 8. Salvar no banco
-    const summary = await this.prisma.videoSummary.create({
-      data: {
-        videoId,
-        userId,
-        content,
-        version: nextVersion,
-        generationCount: nextGenerationCount,
-        tokenCount: result.totalTokenCount ?? result.tokenCount,
+        if (bumped.count === 0) {
+          const existing = await tx.videoSummaryGenerationQuota.findUnique({
+            where: { userId_videoId: { userId, videoId } },
+            select: { generationCount: true },
+          });
+
+          // Linha existe e não passou no guard => outra requisição consumiu a
+          // última geração enquanto o Vertex respondia.
+          if (existing) {
+            throw new BadRequestException(GENERATION_LIMIT_MESSAGE);
+          }
+
+          // ponytail: o unique composto derruba o segundo criador concorrente
+          await tx.videoSummaryGenerationQuota.create({
+            data: { userId, videoId, generationCount: 1 },
+          });
+        }
+
+        const quota = await tx.videoSummaryGenerationQuota.findUnique({
+          where: { userId_videoId: { userId, videoId } },
+          select: { generationCount: true },
+        });
+        const used = quota?.generationCount ?? currentGenerationCount + 1;
+
+        const created = await tx.videoSummary.create({
+          data: {
+            videoId,
+            userId,
+            content,
+            version: nextVersion,
+            generationCount: used,
+            tokenCount: result.totalTokenCount ?? result.tokenCount,
+          },
+        });
+
+        return { summary: created, nextGenerationCount: used };
       },
-    });
+    );
 
     this.logger.log(`Summary created with id ${summary.id}, version ${nextVersion}, generationCount ${nextGenerationCount}`);
 
@@ -192,8 +222,8 @@ export class AiSummariesService {
       },
     });
 
-    // Gerações consumidas = maior generationCount (deletar resumo não devolve geração)
-    const used = Math.max(0, ...summaries.map((s) => s.generationCount || 0));
+    // Gerações consumidas vêm da quota — deletar resumo não devolve geração.
+    const used = await this.getUsedGenerations(videoId, userId);
 
     return {
       summaries,
@@ -324,27 +354,22 @@ atualizado_em: ${summary.updatedAt.toISOString()}
    * Verifica quantos resumos o usuário ainda pode gerar
    */
   async getRemainingGenerations(videoId: string, userId: string) {
-    // Mesmo critério do gate de geração: maior generationCount.
-    // Deletar resumo não devolve geração.
-    const maxGeneration = await this.prisma.videoSummary.findFirst({
-      where: {
-        videoId,
-        userId,
-      },
-      orderBy: {
-        generationCount: 'desc',
-      },
-      select: {
-        generationCount: true,
-      },
-    });
-
-    const used = maxGeneration?.generationCount || 0;
+    const used = await this.getUsedGenerations(videoId, userId);
 
     return {
       used,
       remaining: MAX_SUMMARIES_PER_VIDEO - used,
       maxAllowed: MAX_SUMMARIES_PER_VIDEO,
     };
+  }
+
+  /** Gerações já consumidas pelo aluno nesta aula. Sem linha de quota = 0. */
+  private async getUsedGenerations(videoId: string, userId: string) {
+    const quota = await this.prisma.videoSummaryGenerationQuota.findUnique({
+      where: { userId_videoId: { userId, videoId } },
+      select: { generationCount: true },
+    });
+
+    return quota?.generationCount ?? 0;
   }
 }

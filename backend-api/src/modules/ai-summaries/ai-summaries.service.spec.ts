@@ -5,6 +5,7 @@ import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import {
   AiSummariesService,
   INCOMPLETE_SUMMARY_MESSAGE,
+  GENERATION_LIMIT_MESSAGE,
 } from './ai-summaries.service';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
@@ -28,6 +29,36 @@ describe('AiSummariesService', () => {
   let vertex: DeepMockProxy<VertexAiService>;
   let vtt: DeepMockProxy<VttTextService>;
   let gamification: DeepMockProxy<GamificationService>;
+  /** true enquanto o callback de prisma.$transaction está rodando */
+  let inTransaction = false;
+  /** valor de `inTransaction` no momento em que a quota foi incrementada */
+  let quotaBumpedInTransaction: boolean | null = null;
+
+  /**
+   * Fake em memória da tabela de quota (uma linha user×video), incluindo o
+   * guard `generationCount < 3` do incremento condicional.
+   * `used = null` => aluno ainda não tem linha de quota.
+   */
+  const stubQuota = (used: number | null) => {
+    let row: { generationCount: number } | null =
+      used === null ? null : { generationCount: used };
+
+    prisma.videoSummaryGenerationQuota.findUnique.mockImplementation(
+      (async () => row) as any,
+    );
+    prisma.videoSummaryGenerationQuota.updateMany.mockImplementation((async () => {
+      if (row && row.generationCount < 3) {
+        row = { generationCount: row.generationCount + 1 };
+        quotaBumpedInTransaction = inTransaction;
+        return { count: 1 };
+      }
+      return { count: 0 };
+    }) as any);
+    prisma.videoSummaryGenerationQuota.create.mockImplementation((async () => {
+      row = { generationCount: 1 };
+      return row;
+    }) as any);
+  };
 
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
@@ -44,6 +75,19 @@ describe('AiSummariesService', () => {
       ],
     }).compile();
     service = module.get(AiSummariesService);
+
+    // $transaction executa o callback com o próprio mock como `tx`; a flag
+    // permite assertar que uma escrita aconteceu dentro da transação.
+    inTransaction = false;
+    quotaBumpedInTransaction = null;
+    prisma.$transaction.mockImplementation((async (cb: any) => {
+      inTransaction = true;
+      try {
+        return await cb(prisma);
+      } finally {
+        inTransaction = false;
+      }
+    }) as any);
   });
 
   describe('generateSummary', () => {
@@ -64,23 +108,35 @@ describe('AiSummariesService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rejects generation when the user already hit the cap (generationCount >= 3)', async () => {
+    it('rejects generation when the user already hit the cap (quota >= 3)', async () => {
       prisma.video.findUnique.mockResolvedValue({ id: 'v1', title: 't' } as any);
       vtt.getPlainText.mockResolvedValue('transcript');
-      prisma.videoSummary.findFirst.mockResolvedValue({
-        generationCount: 3,
-      } as any);
+      stubQuota(3);
+
+      await expect(
+        service.generateSummary('v1', 'u1', {} as any),
+      ).rejects.toThrow(GENERATION_LIMIT_MESSAGE);
+      expect(vertex.generateSummary).not.toHaveBeenCalled();
+    });
+
+    it('blocks the 4th generation even with zero summaries left (quota survives delete)', async () => {
+      prisma.video.findUnique.mockResolvedValue({ id: 'v1', title: 't' } as any);
+      vtt.getPlainText.mockResolvedValue('transcript');
+      // Aluno gerou 3x e deletou todos os resumos: nenhuma linha viva, quota cheia.
+      stubQuota(3);
+      prisma.videoSummary.findMany.mockResolvedValue([]);
 
       await expect(
         service.generateSummary('v1', 'u1', {} as any),
       ).rejects.toThrow(BadRequestException);
       expect(vertex.generateSummary).not.toHaveBeenCalled();
+      expect(prisma.videoSummary.create).not.toHaveBeenCalled();
     });
 
     it('assigns next sequential version when no holes exist', async () => {
       prisma.video.findUnique.mockResolvedValue({ id: 'v1', title: 't' } as any);
       vtt.getPlainText.mockResolvedValue('transcript');
-      prisma.videoSummary.findFirst.mockResolvedValue({ generationCount: 1 } as any);
+      stubQuota(1);
       prisma.videoSummary.findMany.mockResolvedValue([{ version: 1 }] as any);
       prisma.videoNote.findMany.mockResolvedValue([]);
       vertex.generateSummary.mockResolvedValue(completeResult() as any);
@@ -104,7 +160,7 @@ describe('AiSummariesService', () => {
     it('fills a version hole (reuses deleted version slot)', async () => {
       prisma.video.findUnique.mockResolvedValue({ id: 'v1', title: 't' } as any);
       vtt.getPlainText.mockResolvedValue('transcript');
-      prisma.videoSummary.findFirst.mockResolvedValue({ generationCount: 2 } as any);
+      stubQuota(2);
       // User had v1 and v3, deleted v2 — new generation slots back into v2.
       prisma.videoSummary.findMany.mockResolvedValue([
         { version: 1 },
@@ -128,7 +184,7 @@ describe('AiSummariesService', () => {
     it('swallows gamification errors (summary still returned)', async () => {
       prisma.video.findUnique.mockResolvedValue({ id: 'v1', title: 't' } as any);
       vtt.getPlainText.mockResolvedValue('transcript');
-      prisma.videoSummary.findFirst.mockResolvedValue({ generationCount: 0 } as any);
+      stubQuota(null);
       prisma.videoSummary.findMany.mockResolvedValue([]);
       prisma.videoNote.findMany.mockResolvedValue([]);
       vertex.generateSummary.mockResolvedValue(completeResult('summary') as any);
@@ -147,7 +203,7 @@ describe('AiSummariesService', () => {
       beforeEach(() => {
         prisma.video.findUnique.mockResolvedValue({ id: 'v1', title: 't' } as any);
         vtt.getPlainText.mockResolvedValue('transcript');
-        prisma.videoSummary.findFirst.mockResolvedValue({ generationCount: 1 } as any);
+        stubQuota(1);
         prisma.videoSummary.findMany.mockResolvedValue([{ version: 1 }] as any);
         prisma.videoNote.findMany.mockResolvedValue([]);
       });
@@ -158,6 +214,13 @@ describe('AiSummariesService', () => {
         ).rejects.toThrow(INCOMPLETE_SUMMARY_MESSAGE);
         expect(prisma.videoSummary.create).not.toHaveBeenCalled();
         expect(gamification.processAction).not.toHaveBeenCalled();
+        // Quota intacta: nem incremento nem criação de linha.
+        expect(
+          prisma.videoSummaryGenerationQuota.updateMany,
+        ).not.toHaveBeenCalled();
+        expect(
+          prisma.videoSummaryGenerationQuota.create,
+        ).not.toHaveBeenCalled();
       };
 
       it('finishReason MAX_TOKENS does not save nor consume a generation', async () => {
@@ -205,14 +268,97 @@ describe('AiSummariesService', () => {
         expect(gamification.processAction).toHaveBeenCalled();
       });
     });
+
+    describe('persistent quota', () => {
+      beforeEach(() => {
+        prisma.video.findUnique.mockResolvedValue({
+          id: 'v1',
+          title: 't',
+        } as any);
+        vtt.getPlainText.mockResolvedValue('transcript');
+        prisma.videoSummary.findMany.mockResolvedValue([]);
+        prisma.videoNote.findMany.mockResolvedValue([]);
+        vertex.generateSummary.mockResolvedValue(completeResult() as any);
+      });
+
+      it('creates the summary and bumps the quota inside the same transaction', async () => {
+        stubQuota(1);
+        let summaryCreatedInTransaction: boolean | null = null;
+        prisma.videoSummary.create.mockImplementation((async () => {
+          summaryCreatedInTransaction = inTransaction;
+          return { id: 'sum-2', version: 2, generationCount: 2 };
+        }) as any);
+
+        const out = await service.generateSummary('v1', 'u1', {} as any);
+
+        expect(prisma.$transaction).toHaveBeenCalled();
+        expect(quotaBumpedInTransaction).toBe(true);
+        expect(summaryCreatedInTransaction).toBe(true);
+        // Quota 1 -> 2: o resumo grava o mesmo contador e sobra 1 geração.
+        expect(
+          (prisma.videoSummary.create.mock.calls[0][0].data as any)
+            .generationCount,
+        ).toBe(2);
+        expect(out.remainingGenerations).toBe(1);
+      });
+
+      it('propagates a failed summary write so the quota bump rolls back with it', async () => {
+        stubQuota(1);
+        prisma.videoSummary.create.mockRejectedValue(new Error('db down'));
+
+        await expect(
+          service.generateSummary('v1', 'u1', {} as any),
+        ).rejects.toThrow('db down');
+        // A escrita da quota aconteceu dentro da mesma transação que falhou —
+        // o rollback é do Postgres, nada é confirmado fora dela.
+        expect(prisma.$transaction).toHaveBeenCalled();
+        expect(gamification.processAction).not.toHaveBeenCalled();
+      });
+
+      it('creates the quota row on the first generation', async () => {
+        stubQuota(null);
+        prisma.videoSummary.create.mockResolvedValue({
+          id: 'sum-1',
+          version: 1,
+          generationCount: 1,
+        } as any);
+
+        const out = await service.generateSummary('v1', 'u1', {} as any);
+
+        const quotaData = prisma.videoSummaryGenerationQuota.create.mock
+          .calls[0][0].data as any;
+        expect(quotaData).toEqual({
+          userId: 'u1',
+          videoId: 'v1',
+          generationCount: 1,
+        });
+        expect(out.remainingGenerations).toBe(2);
+      });
+
+      it('loses the race when a concurrent request consumed the last generation', async () => {
+        // Gate passa com 2/3, mas o incremento condicional (lt: 3) não casa:
+        // a outra requisição já levou a terceira geração.
+        stubQuota(2);
+        prisma.videoSummaryGenerationQuota.updateMany.mockResolvedValue({
+          count: 0,
+        } as any);
+
+        await expect(
+          service.generateSummary('v1', 'u1', {} as any),
+        ).rejects.toThrow(GENERATION_LIMIT_MESSAGE);
+        expect(vertex.generateSummary).toHaveBeenCalled();
+        expect(prisma.videoSummary.create).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('listSummaries', () => {
-    it('returns counts + remainingGenerations based on generationCount', async () => {
+    it('returns counts + remainingGenerations based on the quota', async () => {
       prisma.videoSummary.findMany.mockResolvedValue([
         { version: 1, generationCount: 1 },
         { version: 2, generationCount: 2 },
       ] as any);
+      stubQuota(2);
 
       const out = await service.listSummaries('v1', 'u1');
       expect(out.count).toBe(2);
@@ -225,9 +371,20 @@ describe('AiSummariesService', () => {
       prisma.videoSummary.findMany.mockResolvedValue([
         { version: 1, generationCount: 3 },
       ] as any);
+      stubQuota(3);
 
       const out = await service.listSummaries('v1', 'u1');
       expect(out.count).toBe(1);
+      expect(out.remainingGenerations).toBe(0);
+    });
+
+    it('deleting ALL summaries does not give generations back', async () => {
+      // Caso-limite que motivou a quota persistente: nenhuma linha viva.
+      prisma.videoSummary.findMany.mockResolvedValue([]);
+      stubQuota(3);
+
+      const out = await service.listSummaries('v1', 'u1');
+      expect(out.count).toBe(0);
       expect(out.remainingGenerations).toBe(0);
     });
   });
@@ -306,21 +463,45 @@ describe('AiSummariesService', () => {
       expect(out.filename).toBe('resumo-curso-x-v2.md');
     });
 
-    it('getRemainingGenerations uses the max generationCount, not row count', async () => {
-      prisma.videoSummary.findFirst.mockResolvedValue({
-        generationCount: 2,
-      } as any);
+    it('getRemainingGenerations reads the quota, not the summary rows', async () => {
+      stubQuota(2);
 
       const out = await service.getRemainingGenerations('v1', 'u1');
       expect(out).toEqual({ used: 2, remaining: 1, maxAllowed: 3 });
       expect(prisma.videoSummary.count).not.toHaveBeenCalled();
+      expect(prisma.videoSummary.findFirst).not.toHaveBeenCalled();
     });
 
-    it('getRemainingGenerations returns full quota when user has no summaries', async () => {
-      prisma.videoSummary.findFirst.mockResolvedValue(null);
+    it('getRemainingGenerations returns full quota when user never generated', async () => {
+      stubQuota(null);
 
       const out = await service.getRemainingGenerations('v1', 'u1');
       expect(out).toEqual({ used: 0, remaining: 3, maxAllowed: 3 });
+    });
+
+    it('getRemainingGenerations keeps used=3 after every summary was deleted', async () => {
+      stubQuota(3);
+      prisma.videoSummary.findMany.mockResolvedValue([]);
+
+      const out = await service.getRemainingGenerations('v1', 'u1');
+      expect(out).toEqual({ used: 3, remaining: 0, maxAllowed: 3 });
+    });
+
+    it('deleteSummary never touches the quota', async () => {
+      stubQuota(3);
+      prisma.videoSummary.findFirst.mockResolvedValue({ id: 's1' } as any);
+      prisma.videoSummary.delete.mockResolvedValue({} as any);
+
+      await service.deleteSummary('s1', 'u1');
+
+      expect(
+        prisma.videoSummaryGenerationQuota.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(prisma.videoSummaryGenerationQuota.update).not.toHaveBeenCalled();
+      expect(prisma.videoSummaryGenerationQuota.delete).not.toHaveBeenCalled();
+      expect(
+        await service.getRemainingGenerations('v1', 'u1'),
+      ).toEqual({ used: 3, remaining: 0, maxAllowed: 3 });
     });
   });
 });
