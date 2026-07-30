@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 
 import {
@@ -333,6 +334,68 @@ describe('AiSummariesService', () => {
           generationCount: 1,
         });
         expect(out.remainingGenerations).toBe(2);
+      });
+
+      it('recovers from P2002 when a concurrent request creates the quota row first', async () => {
+        stubQuota(null);
+        // A outra requisição criou a linha entre o findUnique e o create.
+        prisma.videoSummaryGenerationQuota.create.mockRejectedValue(
+          new Prisma.PrismaClientKnownRequestError('unique violation', {
+            code: 'P2002',
+            clientVersion: 'test',
+          }),
+        );
+        prisma.videoSummaryGenerationQuota.updateMany
+          .mockResolvedValueOnce({ count: 0 } as any) // bump inicial: sem linha
+          .mockResolvedValueOnce({ count: 1 } as any); // retry: linha já existe
+        prisma.videoSummaryGenerationQuota.findUnique
+          .mockResolvedValueOnce(null as any) // gate
+          .mockResolvedValueOnce(null as any) // dentro da tx, antes do create
+          .mockResolvedValueOnce({ generationCount: 1 } as any); // após o retry
+        prisma.videoSummary.create.mockResolvedValue({
+          id: 'sum-1',
+          version: 1,
+          generationCount: 1,
+        } as any);
+
+        const out = await service.generateSummary('v1', 'u1', {} as any);
+
+        expect(
+          (prisma.videoSummary.create.mock.calls[0][0].data as any)
+            .generationCount,
+        ).toBe(1);
+        expect(out.remainingGenerations).toBe(2);
+      });
+
+      it('fails with the limit message when the P2002 retry cannot bump either', async () => {
+        stubQuota(null);
+        prisma.videoSummaryGenerationQuota.create.mockRejectedValue(
+          new Prisma.PrismaClientKnownRequestError('unique violation', {
+            code: 'P2002',
+            clientVersion: 'test',
+          }),
+        );
+        // Retry não casa: a corrida foi resolvida como limite, nunca como 500.
+        prisma.videoSummaryGenerationQuota.updateMany.mockResolvedValue({
+          count: 0,
+        } as any);
+
+        await expect(
+          service.generateSummary('v1', 'u1', {} as any),
+        ).rejects.toThrow(GENERATION_LIMIT_MESSAGE);
+        expect(prisma.videoSummary.create).not.toHaveBeenCalled();
+      });
+
+      it('rethrows non-P2002 errors from the quota create', async () => {
+        stubQuota(null);
+        prisma.videoSummaryGenerationQuota.create.mockRejectedValue(
+          new Error('connection reset'),
+        );
+
+        await expect(
+          service.generateSummary('v1', 'u1', {} as any),
+        ).rejects.toThrow('connection reset');
+        expect(prisma.videoSummary.create).not.toHaveBeenCalled();
       });
 
       it('loses the race when a concurrent request consumed the last generation', async () => {
