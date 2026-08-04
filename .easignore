@@ -1,40 +1,103 @@
-# Git history (2.3 GB)
-.git/
+# =============================================================================
+# .easignore — o que o EAS Build empacota e envia para os servidores da Expo.
+#
+# LEIA ANTES DE EDITAR:
+#
+# 1. O eas-cli resolve ESTE arquivo (raiz do repo git), não o de mobile-app/.
+#    Ref: eas-cli `vcs/clients/git.js` → path.join(getRootPathAsync(), '.easignore').
+#
+# 2. A EXISTÊNCIA deste arquivo DESLIGA todos os .gitignore do empacotamento:
+#    "if .easignore exists, .gitignore files are not used" (eas-cli vcs/local.js).
+#    Ou seja: tudo que o .gitignore protege contra commit — dumps de banco,
+#    chaves de service account, .env — volta a ser enviado, a menos que esteja
+#    repetido AQUI. Foi exatamente assim que dumps de produção e a chave GCP
+#    entraram nos tarballs de build (ver docs/plans/2026-07-30-android-parity-study.md).
+#    => Ao adicionar um caminho sensível ao .gitignore, adicione-o aqui também.
+#
+# 3. Verificar o efeito SEM disparar build (não consome build minutes):
+#      cd mobile-app && eas build:inspect --platform android --stage archive \
+#        --output <dir> && find <dir> -type f | wc -l
+#
+# 4. NÃO ignorar mobile-app/.env, mobile-app/google-services.json nem
+#    mobile-app/GoogleService-Info.plist: é deles que o build tira a config do
+#    Firebase enquanto não houver EAS env vars. Ignorá-los quebra iOS e Android.
+# =============================================================================
 
-# All node_modules everywhere
-**/node_modules/
+# --- Segredos e dados: nunca saem desta máquina ---------------------------
+# (duplica o que o .gitignore já protege — ver nota 2 acima)
+.env
+.env.*
+!.env.example
+!.env.local.example
+!*.env.example
+# (com e sem barra: `foo/` casa o conteúdo, `foo` casa também o diretório em si,
+#  senão sobra um diretório vazio no tarball)
+db-backups
+db-backups/
+*.sql.gz
+*.dump
+*.backup
+gcp-service-account-key
+gcp-service-account-key/
+*-service-account*.json
+ruvector.db
+.history/
+.git
 
-# Backend (11 GB)
+# --- Outros componentes do monorepo (não entram no build mobile) ----------
 backend-api/
-
-# Frontend (1.1 GB)
 frontend-web/
-
-# Other project folders
+video-pipeline/
+cloudflare-workers/
 android-app/
 iOS/
 infrastructure/
 knowledge/
-.history/
 docs/
 workflows/
-.autoforge/
 scripts/
+firebase-hosting/
+.github/
+.autoforge/
 
-# Build artifacts
+# --- Ferramentaria local de agentes / IDE ---------------------------------
+.agent-bus/
+.agents/
+.claude/
+.claude-flow/
+.codex/
+.superpowers/
+.swarm/
+.worktrees/
+.playwright-mcp/
+.idea/
+.vscode/
+.mcp.json
+
+# --- Dependências e artefatos de build ------------------------------------
+**/node_modules/
 **/.expo/
 **/dist/
 **/web-build/
 **/.next/
 **/out/
 **/coverage/
-
-# IDE and OS
-.idea/
-.vscode/
 **/.DS_Store
 **/*.log
 
-# Documentation
+# --- Documentação solta na raiz -------------------------------------------
 *.md
+
+# --- O app: tudo de mobile-app/ entra ... ---------------------------------
 !mobile-app/**
+
+# --- ... exceto o que é gerado localmente ou pesado -----------------------
+# (estas regras vêm DEPOIS do `!mobile-app/**` de propósito: em sintaxe
+#  gitignore, a última regra que casa é a que vale)
+mobile-app/node_modules/
+mobile-app/android/
+mobile-app/ios/
+mobile-app/.expo/
+mobile-app/coverage/
+mobile-app/dist/
+mobile-app/web-build/

@@ -54,6 +54,14 @@ Os outros três achados relevantes:
 - **O gotcha do monorepo (copiar `mobile-app/` para pasta temp) não vale mais.** O repo
   canônico tem 898 arquivos rastreados / 3,2 MB e `.git` com 9,9 MiB de pack. Não há nada
   perto do limite de upload do EAS. Detalhes e ressalva em §5.1.
+
+> ⚠️ **Correção posterior (2026-08-04) — §5.1 e AND-2 foram revistos.** A análise de
+> empacotamento desta primeira versão estava **errada em um ponto material**: eu afirmei
+> que o `.easignore` aplicado era o de `mobile-app/`. Não é — o eas-cli lê o da **raiz do
+> repo**, e a existência dele **desliga todos os `.gitignore`** no empacotamento. O efeito
+> foi que dumps de banco de produção e uma chave de service account GCP entraram nos
+> tarballs de build. Diagnóstico completo, correção e prova em
+> **`docs/plans/2026-08-04-eas-packaging-leak.md`**.
 - **`ios-tests.yml` não está órfão.** O conteúdo já foi corrigido: é um job Jest
   agnóstico de plataforma (`name: Mobile Tests`) rodando em `mobile-app/`. Só o **nome do
   arquivo** ficou legado. É rename, não trabalho.
@@ -387,12 +395,19 @@ próximo do limite de upload do EAS. A anotação antiga (repo >10 GB, `.git` de
 descrevia outro estado ou outra cópia em disco — não o repo canônico de hoje.
 
 **Ressalva que substitui o gotcha:** o que importa agora não é tamanho, é **quais arquivos
-sobem**. Como existe `.easignore`, ele substitui o `.gitignore` na hora do upload — e o
-`.easignore` atual (`node_modules .expo dist android ios web-build coverage .idea .vscode *.log`)
-**não** ignora `.env`, `google-services.json` nem `GoogleService-Info.plist`. É por isso
-que os builds funcionam sem EAS secrets. Se alguém "consertar" o `.easignore` para ignorar
-esses arquivos sem antes migrar para EAS secrets, **o build quebra** — inclusive o iOS.
-Isso é o gotcha que merece ficar documentado no lugar do antigo.
+sobem**. Como existe `.easignore`, ele substitui o `.gitignore` na hora do upload, e
+`mobile-app/.env`, `google-services.json` e `GoogleService-Info.plist` continuam subindo —
+é por isso que os builds funcionam sem EAS secrets. Se alguém "consertar" o `.easignore`
+para ignorar esses arquivos sem antes migrar para EAS secrets, **o build quebra** —
+inclusive o iOS.
+
+> ⚠️ **Corrigido em 2026-08-04.** Este parágrafo dizia que o `.easignore` aplicado era o de
+> `mobile-app/`. **Está errado:** o eas-cli usa o da **raiz do repo**
+> (`vcs/clients/git.js` → `path.join(getRootPathAsync(), '.easignore')`), e o de
+> `mobile-app/` nunca é lido. A conclusão prática sobre os arquivos Firebase continua
+> valendo (por outro caminho: a regra `!mobile-app/**` do arquivo raiz), mas a consequência
+> que eu não vi na primeira passada é séria — ver
+> `docs/plans/2026-08-04-eas-packaging-leak.md`.
 
 ### 5.2 Prebuild e compilação local do Android
 

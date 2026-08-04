@@ -1,3 +1,9 @@
+# NOTA: este arquivo NÃO é usado pelo EAS Build.
+# O eas-cli resolve o .easignore a partir da RAIZ do repositório git
+# (`vcs/clients/git.js` → `path.join(getRootPathAsync(), '.easignore')`),
+# que aqui é a raiz do monorepo. As regras de empacotamento vivem em
+# `../.easignore`. Mantido só para `expo`/ferramentas que leiam daqui.
+
 node_modules
 .expo
 dist
