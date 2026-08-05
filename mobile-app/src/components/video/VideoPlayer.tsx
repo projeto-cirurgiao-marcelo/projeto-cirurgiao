@@ -604,8 +604,17 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
                   </TouchableOpacity>
                 </View>
 
-                {/* Seek bar glass na base */}
-                <View style={styles.bottomControls}>
+                {/* Seek bar glass na base. Com legenda ligada ela sobe: a
+                    legenda é desenhada pelo player NATIVO no rodapé do vídeo
+                    (não é view RN, não dá para reposicionar por estilo), então
+                    quem sai da frente é a barra. Em fullscreen isto não se
+                    aplica — o overlay RN nem é montado. */}
+                <View
+                  style={[
+                    styles.bottomControls,
+                    ccEnabled && styles.bottomControlsWithCaptions,
+                  ]}
+                >
                   <BlurView intensity={35} tint="dark" style={styles.glassSeekBar}>
                     <Text style={styles.timeText}>{formatTime(displayTime)}</Text>
                     <Slider
@@ -855,6 +864,11 @@ const styles = StyleSheet.create({
     bottom: 10,
     left: 10,
     right: 10,
+  },
+  // Espaço para até duas linhas de legenda + respiro. Sem isto o texto da
+  // legenda cai por cima do slider e dos timestamps (bug R4 do smoke Android).
+  bottomControlsWithCaptions: {
+    bottom: 72,
   },
   glassSeekBar: {
     flexDirection: 'row',
