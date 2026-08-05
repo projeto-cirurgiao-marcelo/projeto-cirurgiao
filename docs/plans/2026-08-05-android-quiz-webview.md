@@ -1,0 +1,124 @@
+# R9 — quiz travado no Android: causa raiz, fix e o que ficou aberto
+
+> **Branch:** `fix/android-quiz-webview` (a partir de `c47580e`)
+> **Data:** 2026-08-05
+> **Bloco:** Ciclo 2, Bloco 1 — bloqueador de paridade Android
+
+---
+
+## 1. Causa raiz do travamento
+
+**O único caminho de avanço do quiz passava por dentro da WebView.**
+
+- `QuizPlayer.handleContinue` (`QuizPlayer.tsx:383`) guarda em
+  `if (!quiz || selectedOption === null || !selectedConfidence) return;`
+- `selectedConfidence` só era setado por `handleConfidenceTap`, chamado pela prop
+  `onSelectConfidence` do **`GelpiCelebrateModalDOM`** — ou seja, de dentro da WebView.
+- `onContinue` idem.
+- Não havia timeout, botão nativo ou qualquer outra saída. Com a WebView muda, `playStep`
+  ficava em `'awaitingConfidence'` **para sempre**.
+
+Nada disso gera exceção: o app apenas espera um toque que nunca pode acontecer. Bate com
+as evidências do smoke — nenhum `ReactNativeJS` de erro em 20.676 linhas de logcat — e com
+`QuizAttempt`/`QuizAnswer` = 0 no banco, já que `handleSubmit` só é chamado por
+`handleContinue`.
+
+### Hipótese do adendo, corrigida
+
+O adendo apontava o `onDone` (`setTimeout` de 1800 ms) do `GelpiFeedback`. **Esse
+componente não participa do fluxo do QuizPlayer** — `grep` por `GelpiFeedback` fora do
+próprio arquivo retorna vazio; ele está órfão no código. Por isso não existia timer algum
+para salvar o avanço: o QuizPlayer usa o `GelpiCelebrateModal`, que não tinha nenhum.
+
+---
+
+## 2. ⚠️ Achado que reabre a investigação: é release-only
+
+Ao validar o fix com um **build debug local** (`expo run:android`, sem EAS), o DOM
+component **renderizou perfeitamente**: Dr. Gelpi, card de celebração, XP, opções de
+confiança e botão "Continuar →" — e o fallback **não** disparou, como deve ser quando a
+WebView responde.
+
+| Build | DOM component | Quiz |
+|---|---|---|
+| **Preview/release (EAS `d132b5c1`)** | não pinta | trava na Q1 |
+| **Debug local (`expo run:android`)** | renderiza normal | completa as 5 questões |
+
+Ou seja: **não é "WebView quebrada no Android"** — é algo específico do build de release.
+A diferença estrutural é a origem dos assets do DOM component:
+
+- **debug:** servidos pelo **Metro**, via HTTP
+- **release:** lidos do APK, em `file:///android_asset/www.bundle/…`
+
+Duas hipóteses foram **descartadas** com evidência:
+
+- *Assets não embarcados:* falso. O APK preview contém
+  `assets/www.bundle/` com HTML shell (1.517 B), 3 CSS e `entry.js` de 545 KB.
+- *Bloqueio de `file://`:* improvável. O bundle contém `allowFileAccessFromFileURLs`, ou
+  seja, o expo-dom já configura o acesso.
+
+**O que falta:** inspecionar o console da WebView num build **release** (`chrome://inspect`)
+para ver se o `entry.js` lança erro ao rodar a partir de `file://`. Não foi possível neste
+ciclo porque o build debug — o único que consigo gerar sem EAS — não reproduz a falha.
+
+---
+
+## 3. Fix aplicado (nível robustez)
+
+Vale para todas as plataformas e independe da causa raiz do release:
+
+- `GelpiCelebrateModalDOM` ganhou `onReady`, chamado no mount **dentro** da WebView. É o
+  único sinal confiável de que a ponte DOM→nativo está viva.
+- `GelpiCelebrateModal` (wrapper nativo) roda um timer de **2,5 s**. Sem handshake,
+  renderiza um **fallback nativo** equivalente — título, subtítulo, XP, o
+  `ConfidenceRating` que já existia e o botão Continuar — preservando inclusive a coleta de
+  confiança, que é dado pedagógico.
+- iOS inalterado: o handshake chega em ~200 ms e o fallback nunca aparece.
+
+**Limitação declarada:** cobre WebView que **não monta**. WebView viva porém
+**não-interativa** não é coberta — exigiria watchdog temporal, que dispararia falso
+positivo com aluno pensando na resposta.
+
+---
+
+## 4. Evidências de validação
+
+| O que | Resultado |
+|---|---|
+| Quiz completo de 5 questões (debug local) | ✅ Resultado 60%, 3/5 — `smoke/44-quiz-fim.png` |
+| `QuizAttempt` no backend | ✅ 1 registro (score 60, passed false) + 5 `QuizAnswer` — contra **0/0** no smoke anterior |
+| DOM component renderizando | ✅ `smoke/42-FIX-fallback.png` (Dr. Gelpi + card completo) |
+| Caminho feliz sem regressão | ✅ fallback não dispara quando a WebView responde |
+| `npm test` | ✅ 17 suites / 59 testes |
+| Testes novos | 3 casos: WebView viva → sem fallback; muda → fallback; fallback coleta confiança e avança |
+
+**O fallback não pôde ser exercitado em runtime**, porque o único build que reproduz a
+falha é o release e o debug não a reproduz. Está coberto por teste unitário; a validação
+end-to-end do fallback exige um build release novo (EAS — precisa de autorização — ou
+`assembleRelease` local com keystore).
+
+---
+
+## 5. Recomendação de sequência
+
+1. **Mergear este PR.** O fallback remove o bloqueador independentemente da causa raiz:
+   mesmo que a WebView continue muda no release, o aluno completa o quiz.
+2. **Build release + smoke** para (a) confirmar que o fallback aparece de fato e (b)
+   inspecionar o console da WebView e fechar a causa raiz do release-only.
+3. Se a causa raiz for de compatibilidade profunda do WebView Android com assets `file://`,
+   avaliar degradar graciosamente (pular a animação no Android) e registrar como item de
+   acabamento no AND-5 — conforme o prompt do bloco.
+
+---
+
+## 6. Notas de execução
+
+- Nenhum `eas build` foi disparado. O build local usou `expo run:android`.
+- O `.env` do `mobile-app` aponta a API para `192.168.0.13:3000` (backend local, fora do
+  ar), o que fazia o login falhar com `AxiosError: Network Error`. Contornado rodando o
+  Metro com `EXPO_PUBLIC_API_URL` de produção **via ambiente**, sem alterar o arquivo.
+- O emulador ficou sem espaço com os dois APKs; o preview foi desinstalado para instalar o
+  debug. O `.apk` do preview está preservado no scratchpad.
+- Dados de teste em produção foram removidos ao final (transação; `QuizAttempt`,
+  `QuizAnswer`, `Quiz`, `QuizQuestion`, `XpLog`, `GamificationEvent`, `UserStreak`), com as
+  2 matrículas pré-existentes preservadas.
