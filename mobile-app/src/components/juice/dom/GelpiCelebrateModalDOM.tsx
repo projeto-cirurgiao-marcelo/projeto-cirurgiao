@@ -4,7 +4,7 @@ import './styles.css';
 import './styles-error.css';
 import './styles-card.css';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import DrGelpi from './DrGelpiSVG';
 import { Confetti, Halo, Sparkles, XPBurst } from './ConfettiSVG';
 import { HeartPulse, CalmWaves, InsightPops } from './ErrorEffectsSVG';
@@ -30,6 +30,12 @@ interface Props {
   selectedConfidence?: ConfidenceLevel;
   onSelectConfidence: (level: ConfidenceLevel) => Promise<void>;
   onContinue: () => Promise<void>;
+  /**
+   * Avisa o lado nativo que este componente montou DENTRO da WebView. É o
+   * único sinal confiável de que a ponte DOM→nativo está viva: se não chegar,
+   * o wrapper nativo assume que a WebView está muda e mostra o fallback.
+   */
+  onReady?: () => Promise<void>;
   dom?: import('expo/dom').DOMProps;
 }
 
@@ -45,7 +51,13 @@ export default function GelpiCelebrateModalDOM({
   selectedConfidence,
   onSelectConfidence,
   onContinue,
+  onReady,
 }: Props) {
+  // Handshake com o lado nativo. Roda uma vez, no mount da WebView.
+  useEffect(() => {
+    void onReady?.();
+  }, []);
+
   const isCelebrate = visible && state === 'celebrate';
   const isWrong = visible && state === 'wrong';
   const overlayClass = [
