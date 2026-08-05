@@ -99,6 +99,64 @@ end-to-end do fallback exige um build release novo (EAS — precisa de autoriza�
 
 ---
 
+## 4-bis. Validação em build release (2026-08-05, build `2be96b44`)
+
+### O modo de falha, caracterizado
+
+Antes do build novo, ataquei o release-only no APK preview antigo (`d132b5c1`), que
+reproduzia a falha. `uiautomator dump` mostrou que **a WebView não estava muda**:
+
+```
+android.webkit.WebView  bounds="[0,0][1080,2400]"     ← a view ocupa a tela inteira
+text="Excelente, doutor!"        bounds="[0,0][0,0]"  ← mas o conteúdo tem 0x0
+text="COMO VOCÊ SE SENTIU?"      bounds="[0,0][0,0]"
+text="✓ Sabia"                   bounds="[0,0][0,0]"
+text="Continuar →"               bounds="[0,0][0,0]"
+```
+
+O React montava, o conteúdo existia inteiro na árvore de acessibilidade, mas o **layout
+colapsava para altura zero** — invisível e não-clicável. Daí o logcat silencioso: não havia
+erro, só ausência de espaço. Mecanismo: quem dá altura é o `styles.css` do componente
+(`min-height:100vh`), carregado por `<link>` de `file:///android_asset/www.bundle/`; o shell
+inline do expo-dom só declara `#root { display:flex; flex:1 }`. No debug o CSS vem do Metro
+por HTTP e aplica.
+
+### O resultado do build novo — e o que ele NÃO permite concluir
+
+| Build | Resultado |
+|---|---|
+| `d132b5c1` (04/08, sem o fix) | card invisível, bounds 0x0, quiz travado |
+| `2be96b44` (05/08, branch com fix v1) | **card renderiza normal, quiz completa 5/5** |
+
+No build da branch o quiz foi até o fim: resultado 40% (2/5), com `QuizAttempt` = 1 e
+`QuizAnswer` = 5 confirmados no banco. O fallback **não** apareceu — corretamente, já que a
+WebView estava funcional.
+
+**Honestidade sobre a atribuição:** não é possível creditar essa melhora ao fix v1. O v1
+adicionou apenas o handshake `onReady` — que **não toca em layout**. A explicação mais
+provável é que a falha original **não era determinística**, ou dependia de algo do ambiente
+do build de 04/08 (resolução de dependências, cache de assets do EAS). Ou seja:
+
+- ✅ O bloqueador **não se manifesta** no build atual da branch.
+- ❌ Não está provado que o fix o corrigiu, nem que a falha não volta.
+- ❌ O fallback continua **sem validação em runtime**, porque não houve falha para acioná-lo.
+
+### Consequência para o fix
+
+O v1 dependia de `onReady` **não chegar**. Como o React monta mesmo no caso colapsado, o
+handshake chegaria e o fallback nunca dispararia — ou seja, **o v1 não teria coberto o modo
+de falha real**. Corrigido no commit seguinte:
+
+- **Raiz:** altura por estilo **inline** no elemento raiz do DOM component
+  (`position:fixed; inset:0; min-height:100vh`), sem depender de CSS externo via `file://`.
+- **Robustez:** `onReady` passa a reportar a **altura medida** (após `requestAnimationFrame`);
+  o nativo só confia na WebView se ela ocupa ≥ 80px.
+
+Essa versão (v2) está na branch e passa nos testes, mas **não foi exercitada em release** —
+o build testado é o da v1, e a falha não reproduz mais para exercitar o fallback.
+
+---
+
 ## 5. Recomendação de sequência
 
 1. **Mergear este PR.** O fallback remove o bloqueador independentemente da causa raiz:
