@@ -452,7 +452,14 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   // nativo do iOS/Android (AVPlayerViewController / ExoPlayer fullscreen) —
   // aí o contentFit nativo (aspect-fit/contain) toma conta e respeita o
   // aspect ratio do vídeo. Sem JS overlay misturado evita crop/zoom.
-  // Sair fullscreen ao voltar pra portrait (mesmo flow do botão X nativo).
+  // Divisão de responsabilidade: o ENTER por rotação é feito aqui, em JS (a
+  // MainActivity está em foco e recebe o evento normalmente). O EXIT fica com
+  // o nativo, via `autoExitOnRotate` (ver fullscreenOptions no VideoView) —
+  // em JS ele não funciona no Android, porque a Activity de fullscreen do
+  // ExoPlayer assume o primeiro plano e o evento de orientação nunca chega
+  // aqui. O ramo de exit abaixo é mantido como rede de segurança para o caso
+  // de a janela nativa não estar ativa; quando ela está, quem resolve é o
+  // nativo.
   useEffect(() => {
     const subscription = ScreenOrientation.addOrientationChangeListener((evt) => {
       const o = evt.orientationInfo.orientation;
@@ -533,6 +540,21 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
           allowsPictureInPicture
           startsPictureInPictureAutomatically
           nativeControls={isFullscreen}
+          // Sair do fullscreen ao girar de volta pra portrait é resolvido pelo
+          // NATIVO, não por JS. No Android o fullscreen abre uma Activity
+          // própria (`FullscreenPlayerActivity`); com ela em primeiro plano a
+          // MainActivity não recebe mudança de configuração, então o listener
+          // JS de orientação não dispara e o usuário ficava preso — só o botão
+          // voltar resolvia.
+          //
+          // `autoExitOnRotate` só tem efeito com `orientation` != 'default'
+          // (documentado em VideoView.types.d.ts), por isso o par abaixo anda
+          // junto.
+          fullscreenOptions={{
+            enable: true,
+            orientation: 'landscape',
+            autoExitOnRotate: true,
+          }}
           onFullscreenEnter={handleFullscreenEnter}
           onFullscreenExit={handleFullscreenExit}
         />
