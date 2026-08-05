@@ -180,3 +180,42 @@ o build testado é o da v1, e a falha não reproduz mais para exercitar o fallba
 - Dados de teste em produção foram removidos ao final (transação; `QuizAttempt`,
   `QuizAnswer`, `Quiz`, `QuizQuestion`, `XpLog`, `GamificationEvent`, `UserStreak`), com as
   2 matrículas pré-existentes preservadas.
+
+---
+
+## 7. Tentativa de validação com colapso induzido (2026-08-05, encerrada por time-box)
+
+Para exercitar o fallback em runtime — a lacuna que restou —, o colapso foi **induzido**:
+edição temporária, não-commitada, neutralizando o `min-height` do `styles.css` e o estilo
+inline da v2, reproduzindo o estado "monta colapsada".
+
+**Não foi possível concluir. Ambos os caminhos falharam por ambiente, não por código:**
+
+1. **Debug + Metro:** o app ficou preso em `Loading from 10.0.2.2:8081` indefinidamente.
+   Diagnóstico: Metro vivo escutando em `0.0.0.0:8081` com bundle quente (247 ms),
+   `adb reverse tcp:8081 tcp:8081` ativo, `ping 10.0.2.2` respondendo em 12 ms, e troca do
+   bundle location para `localhost:8081` pelo dev menu sem efeito. O mesmo fluxo funcionara
+   duas vezes mais cedo no mesmo dia — instabilidade do host após reinícios do Metro.
+2. **Release local (`assembleRelease`):** falha dura do **Windows MAX_PATH**:
+
+```
+ninja: error: Stat(...react-native-safe-area-context/.../safeareacontextJSI-generated.cpp.o):
+Filename longer than 260 characters
+```
+
+O build **debug** passa porque `buildCMakeDebug` gera caminhos mais curtos que
+`buildCMakeRelWithDebInfo`. Resolver exigiria habilitar long paths no registro do Windows
+ou mover o repositório para um caminho raso — mudanças no ambiente do desenvolvedor, fora
+do escopo do bloco. (Falha secundária: plugin do Sentry pedindo `--org` para upload de
+source maps, que no EAS é neutralizado por `SENTRY_DISABLE_AUTO_UPLOAD=true`.)
+
+**Consequência aceita:** o fallback permanece coberto por **teste unitário** (4 casos,
+incluindo o que reproduz "monta colapsada em 0px"), e a validação em campo fica para o
+próximo build EAS natural do Ciclo 2. O risco dessa escolha é limitado: se o fallback
+falhar, o comportamento volta a ser o atual — o quiz travado —, não um estado pior.
+
+**Bug encontrado na preparação deste teste (e corrigido):** a medida de altura usava
+`Math.max(altura do #root, documentElement.clientHeight)`. No modo de falha a WebView ocupa
+a tela inteira enquanto o conteúdo colapsa — o `clientHeight` voltaria ~2400 e mascararia
+exatamente o caso a detectar. Corrigido para medir só o `#root` (commit `6c2b1b8`). Sem
+isso, o fallback não dispararia nem com a v2.
