@@ -60,12 +60,12 @@ export default function GelpiCelebrateModalDOM({
   // fallback.
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      const el = document.getElementById('root');
-      const height = Math.max(
-        el?.getBoundingClientRect().height ?? 0,
-        document.documentElement?.clientHeight ?? 0,
-      );
-      void onReady?.(height);
+      // Medir o CONTEÚDO, não o viewport. No modo de falha a WebView ocupa a
+      // tela inteira (bounds [0,0][1080,2400]) enquanto o conteúdo colapsa para
+      // 0px — usar `documentElement.clientHeight` aqui mascararia exatamente o
+      // caso que precisamos detectar.
+      const el = document.getElementById('root') ?? document.body;
+      void onReady?.(el?.getBoundingClientRect().height ?? 0);
     });
     return () => cancelAnimationFrame(id);
   }, []);
