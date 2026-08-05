@@ -31,11 +31,13 @@ interface Props {
   onSelectConfidence: (level: ConfidenceLevel) => Promise<void>;
   onContinue: () => Promise<void>;
   /**
-   * Avisa o lado nativo que este componente montou DENTRO da WebView. É o
-   * único sinal confiável de que a ponte DOM→nativo está viva: se não chegar,
-   * o wrapper nativo assume que a WebView está muda e mostra o fallback.
+   * Avisa o lado nativo que este componente montou DENTRO da WebView, com a
+   * ALTURA que ele efetivamente ocupa. Montar não basta: no release o conteúdo
+   * chega a montar mas colapsa para 0px de altura (CSS externo não aplicado),
+   * ficando invisível e não-clicável. Por isso o nativo decide pelo número, não
+   * pela simples chegada do callback.
    */
-  onReady?: () => Promise<void>;
+  onReady?: (height: number) => Promise<void>;
   dom?: import('expo/dom').DOMProps;
 }
 
@@ -53,9 +55,19 @@ export default function GelpiCelebrateModalDOM({
   onContinue,
   onReady,
 }: Props) {
-  // Handshake com o lado nativo. Roda uma vez, no mount da WebView.
+  // Handshake com o lado nativo. Mede a altura real depois da primeira pintura
+  // — se o CSS não tiver sido aplicado, isto volta ~0 e o nativo assume o
+  // fallback.
   useEffect(() => {
-    void onReady?.();
+    const id = requestAnimationFrame(() => {
+      const el = document.getElementById('root');
+      const height = Math.max(
+        el?.getBoundingClientRect().height ?? 0,
+        document.documentElement?.clientHeight ?? 0,
+      );
+      void onReady?.(height);
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const isCelebrate = visible && state === 'celebrate';
@@ -85,7 +97,17 @@ export default function GelpiCelebrateModalDOM({
   };
 
   return (
-    <div className={overlayClass} key={`${visible ? 1 : 0}-${triggerKey}`}>
+    <div
+      className={overlayClass}
+      key={`${visible ? 1 : 0}-${triggerKey}`}
+      // Altura via estilo INLINE, não via CSS externo. No build de release os
+      // arquivos de `<link rel="stylesheet">` são carregados de
+      // `file:///android_asset/www.bundle/...` e não chegam a ser aplicados; o
+      // shell do expo-dom só declara `#root { display:flex; flex:1 }`, sem
+      // altura. Sem isto o conteúdo monta no DOM (a árvore de acessibilidade o
+      // enxerga) mas colapsa para 0x0: invisível e não-clicável.
+      style={{ position: 'fixed', inset: 0, minHeight: '100vh' }}
+    >
       {/* Background effects */}
       <Halo active={isCelebrate} />
       <Sparkles active={isCelebrate} />

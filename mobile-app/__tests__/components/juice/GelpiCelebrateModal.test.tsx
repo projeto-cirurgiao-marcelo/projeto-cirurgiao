@@ -8,14 +8,15 @@ import { GelpiCelebrateModal } from '../../../src/components/juice/GelpiCelebrat
  * (WebView viva) ou não (WebView muda — o caso que travava o quiz no Android).
  */
 let mockDomShouldSignalReady = true;
+let mockDomHeight = 800;
 
 jest.mock('../../../src/components/juice/dom/GelpiCelebrateModalDOM', () => {
   const React = require('react');
   return {
     __esModule: true,
-    default: ({ onReady }: { onReady?: () => Promise<void> }) => {
+    default: ({ onReady }: { onReady?: (h: number) => Promise<void> }) => {
       React.useEffect(() => {
-        if (mockDomShouldSignalReady) void onReady?.();
+        if (mockDomShouldSignalReady) void onReady?.(mockDomHeight);
       }, []);
       return null;
     },
@@ -35,6 +36,7 @@ describe('GelpiCelebrateModal — fallback quando a WebView não responde', () =
   beforeEach(() => {
     jest.useFakeTimers();
     mockDomShouldSignalReady = true;
+    mockDomHeight = 800;
     jest.clearAllMocks();
   });
 
@@ -48,6 +50,15 @@ describe('GelpiCelebrateModal — fallback quando a WebView não responde', () =
       jest.advanceTimersByTime(5000);
     });
     expect(screen.queryByText('Continuar →')).toBeNull();
+  });
+
+  it('mostra o fallback quando a WebView monta COLAPSADA (0px) — o caso real do release', () => {
+    mockDomHeight = 0; // monta e responde, mas sem altura: invisível e não-clicável
+    render(<GelpiCelebrateModal {...baseProps} />);
+    act(() => {
+      jest.advanceTimersByTime(2600);
+    });
+    expect(screen.getByText('Continuar →')).toBeTruthy();
   });
 
   it('mostra o fallback nativo quando a WebView fica muda', () => {

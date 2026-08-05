@@ -30,6 +30,15 @@ const SUBTITLE_WRONG = 'Vamos revisar essa juntos.';
  */
 const DOM_READY_TIMEOUT_MS = 2500;
 
+/**
+ * Altura mínima, em px CSS, para considerar que a WebView está de fato usável.
+ * O modo de falha real no Android release não é "não monta" — é montar com o
+ * layout colapsado em 0px (verificado via `uiautomator dump`: os elementos
+ * internos vinham com bounds `[0,0][0,0]`). Qualquer coisa abaixo disto não dá
+ * para ver nem tocar, então vale o fallback nativo.
+ */
+const MIN_USABLE_DOM_HEIGHT = 80;
+
 export function GelpiCelebrateModal({
   kind,
   xpGained,
@@ -123,8 +132,11 @@ export function GelpiCelebrateModal({
         comboValue={comboValue}
         accuracyPct={accuracyPct}
         selectedConfidence={selectedConfidence}
-        onReady={async () => {
-          setDomReady(true);
+        onReady={async (height) => {
+          // Montar não basta: no release o conteúdo monta mas colapsa para 0px
+          // (CSS externo não aplicado), ficando invisível e não-clicável. Só
+          // confiamos na WebView se ela realmente ocupa espaço na tela.
+          if (height >= MIN_USABLE_DOM_HEIGHT) setDomReady(true);
         }}
         onSelectConfidence={async (level) => {
           onSelectConfidence(level);
