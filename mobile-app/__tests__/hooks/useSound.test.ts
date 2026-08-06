@@ -11,7 +11,17 @@ jest.mock('expo-audio', () => ({
 }));
 
 describe('useSound', () => {
-  beforeEach(() => jest.clearAllMocks());
+  // Fake timers: play() agenda a liberação do player com setTimeout; sem isso
+  // os timers pendentes seguram o worker do Jest depois da suite.
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
 
   it('não toca nada com preferência NEVER', async () => {
     const { result } = renderHook(() => useSound('NEVER'));
@@ -26,22 +36,36 @@ describe('useSound', () => {
    * costumava exigir fone conectado, o que no Android silenciava tudo porque a
    * detecção era iOS-only. Agora AUTO toca — quem não quer som usa NEVER.
    */
-  it('AUTO não depende mais de fone conectado', async () => {
+  it('AUTO toca sem depender de fone conectado', async () => {
     const { result } = renderHook(() => useSound('AUTO'));
     await act(async () => {
       await result.current.play('correct');
     });
-    // Sem assets em SOURCES o hook é no-op por design; o que se garante aqui é
-    // que AUTO não é bloqueado por ausência de fone antes mesmo de olhar o asset.
-    expect(mockCreateAudioPlayer).not.toHaveBeenCalled();
+    expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(1);
+    expect(mockPlay).toHaveBeenCalledTimes(1);
   });
 
-  it('é no-op silencioso enquanto os assets de som não existirem', async () => {
-    const { result } = renderHook(() => useSound('ALWAYS'));
-    await act(async () => {
-      await result.current.play('levelup');
-    });
-    expect(mockCreateAudioPlayer).not.toHaveBeenCalled();
-    expect(mockPlay).not.toHaveBeenCalled();
-  });
+  it.each(['correct', 'wrong', 'combo', 'levelup'] as const)(
+    'toca o asset de %s',
+    async (key) => {
+      const { result } = renderHook(() => useSound('ALWAYS'));
+      await act(async () => {
+        await result.current.play(key);
+      });
+      expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(1);
+      expect(mockPlay).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(['badge', 'streak'] as const)(
+    'é no-op silencioso para %s (sem asset aprovado)',
+    async (key) => {
+      const { result } = renderHook(() => useSound('ALWAYS'));
+      await act(async () => {
+        await result.current.play(key);
+      });
+      expect(mockCreateAudioPlayer).not.toHaveBeenCalled();
+      expect(mockPlay).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -3,15 +3,17 @@ import { createAudioPlayer } from 'expo-audio';
 
 type SoundKey = 'correct' | 'wrong' | 'combo' | 'levelup' | 'badge' | 'streak';
 
-// Stub paths — assets ficam em mobile-app/src/assets/sounds/.
-// Manter undefined até arquivos chegarem (Sprint asset). useSound vira no-op se source=undefined.
+// Fonte: Kenney Interface Sounds (https://kenney.nl/assets/interface-sounds),
+// CC0 1.0 — ver src/assets/sounds/LICENSE.md. MP3 mono 96 kbps.
+// Mapeamento aprovado: correct=confirmation_001, wrong=error_007,
+// combo=pluck_002, levelup=maximize_004.
+// badge e streak seguem sem som (sem asset aprovado) — useSound é no-op
+// para chaves sem source.
 const SOURCES: Partial<Record<SoundKey, number>> = {
-  // correct: require('../assets/sounds/correct.mp3'),
-  // wrong:   require('../assets/sounds/wrong.mp3'),
-  // combo:   require('../assets/sounds/combo.mp3'),
-  // levelup: require('../assets/sounds/levelup.mp3'),
-  // badge:   require('../assets/sounds/badge.mp3'),
-  // streak:  require('../assets/sounds/streak.mp3'),
+  correct: require('../assets/sounds/correct.mp3'),
+  wrong: require('../assets/sounds/wrong.mp3'),
+  combo: require('../assets/sounds/combo.mp3'),
+  levelup: require('../assets/sounds/levelup.mp3'),
 };
 
 type AudioPref = 'AUTO' | 'ALWAYS' | 'NEVER';
@@ -30,9 +32,6 @@ type AudioPref = 'AUTO' | 'ALWAYS' | 'NEVER';
  * reimplementada de forma multiplataforma. `AUTO` passa a significar **"toca,
  * respeitando volume e silencioso do sistema"**, que é o controle que o usuário
  * já tem no aparelho. Quem não quiser som em hipótese alguma usa `NEVER`.
- *
- * ponytail: sem os assets em `SOURCES` isto é no-op em qualquer plataforma — o
- * efeito prático da mudança só aparece quando os sons forem fornecidos.
  */
 export function useSound(audioPreference: AudioPref = 'AUTO') {
   const playingRef = useRef(false);
