@@ -23,7 +23,11 @@ initSentry();
 export default function RootLayout() {
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      {/* `dark` = ícones escuros. Fixo, não "auto": o app é light-only por
+          design, e o `auto` resolve pelo tema do SISTEMA — com o aparelho em
+          dark mode ele pintava os ícones de branco sobre o nosso fundo claro,
+          deixando hora/bateria/sinal ilegíveis (bug R7 do smoke Android). */}
+      <StatusBar style="dark" />
       <OfflineBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
