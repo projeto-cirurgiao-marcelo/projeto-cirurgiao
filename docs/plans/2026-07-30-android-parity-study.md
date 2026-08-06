@@ -96,7 +96,58 @@ Cada item abaixo foi verificado no código ou na config gerada, não presumido.
 
 ---
 
+## 2-bis. 🏁 Status pós-Ciclo 2 (atualizado em 2026-08-05)
+
+O Ciclo 2 executou os blocos abaixo. Detalhe de cada um nos docs indicados.
+
+| Bloco | Status | Onde |
+|---|---|---|
+| **AND-1** toolchain (4 deps → SDK 54) | ✅ **concluído** — sem regressão no auto-fullscreen | `2026-08-05-android-player-bloco2.md` |
+| **AND-2** credenciais/build EAS | ✅ **concluído** — keystore reusado, builds preview saindo da branch | — |
+| **AND-3** player (R2b + R4) | ✅ **concluído** — sai do fullscreen ao girar; legenda sem colisão | `2026-08-05-android-player-bloco2.md` |
+| **AND-4** permissões + `expo-av`→`expo-audio` | ✅ **concluído** — 5 permissões removidas do APK | `2026-08-05-android-audio-permissions-bloco4.md` |
+| **R9** quiz travado (fora da numeração AND) | ✅ **concluído** — causa raiz + fallback | `2026-08-05-android-quiz-webview.md` |
+| **R7** status bar em dark mode | ✅ **concluído** — validado em debug e release | PR #62 |
+| **AND-8** CI/OTA | 🟡 **parcial** — o rename do workflow segue pendente; OTA continua fora de escopo | — |
+| **AND-5** acabamento | ⏳ **Ciclo 3** — herda o **R5** (blur ausente), edge-to-edge, back, WebView |
+| **AND-6** assets/rebranding | ⏳ **Ciclo 3** — bloqueado por **G7** (aprovação das logos) |
+| **AND-7** Play Store | ⏳ depende de G5/G6; o manifest de permissões já é insumo pronto do Data Safety |
+
+### Correções ao baseline deste estudo
+
+- **`SYSTEM_ALERT_WINDOW` nunca esteve no release.** Este estudo a listou entre as
+  permissões problemáticas, mas ela vem de `android/app/src/debug/AndroidManifest.xml` — o
+  manifest de **debug** do template RN. O baseline mediu o manifest de origem/debug, não o
+  do APK. Método correto: `aapt2 dump permissions <apk-release>`.
+- **R3b (som do quiz) não é bug de Android.** Reclassificado para **item de conteúdo**: o
+  `SOURCES` do `useSound` está inteiramente comentado e `src/assets/sounds/` não existe —
+  o som nunca tocou em nenhuma plataforma. Faltam os 6 arquivos de áudio (`correct`,
+  `wrong`, `combo`, `levelup`, `badge`, `streak`). O bug de detecção de fone era real, mas
+  silenciava algo inexistente; foi removido junto com o `useAudioOutput`.
+- **R2 (auto-fullscreen por rotação) foi refutado** ainda na fase de smoke: funciona no
+  Android apesar do `screenOrientation="portrait"`. O que existia era o **R2b** — não sair
+  do fullscreen —, corrigido no Ciclo 2.
+
+### 🔴 Gate acumulado para o próximo build iOS
+
+Três mudanças do Ciclo 2 só afetam o iOS no próximo build iOS (o TestFlight atual segue
+intacto). Esse build **exige re-smoke**:
+
+1. **AND-1** — `expo-screen-orientation` mudou de major; é o módulo do fullscreen.
+2. **Bloco 2** — `fullscreenOptions` (`autoExitOnRotate` + `orientation: 'landscape'`)
+   vale para iOS também e altera o comportamento de rotação em fullscreen.
+3. **AND-4** — `expo-av` → `expo-audio` e a nova semântica de `AUTO` (que no iOS
+   **muda** comportamento: antes `AUTO` exigia fone).
+
+**Escopo do re-smoke iOS:** player (entrar/sair de fullscreen, rotação, legendas) e
+verificação de que nada depende do `expo-av` removido.
+
+---
+
 ## 3. Gap list priorizada (blocos independentes)
+
+> ⚠️ A gap list abaixo é o **retrato original de 2026-07-30**, preservado como registro.
+> Para o estado atual, ver **§2-bis**.
 
 Cada bloco é candidato a branch/ciclo próprio. A ordem é de dependência real: **AND-1 e
 AND-2 destravam todo o resto**; AND-3..AND-5 são paralelizáveis entre si; AND-6..AND-8
