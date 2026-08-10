@@ -1,5 +1,13 @@
 # Review Pré-Live — 2026-08-06
 
+> **🔄 Atualização 2026-08-10 — execução dos findings (sessão com Gustavo):**
+> - **R3 ✅ RESOLVIDO** — `app.projetocirurgiao.app` adicionado ao projeto Vercel + CNAME no Cloudflare (DNS only). Verificado ao vivo: DNS autoritativo OK, HTTPS 200, security headers completos, app servido. Apex `projetocirurgiao.app` segue sem registro DNS (cosmético, 307→www já configurado na Vercel; registro `A @ 76.76.21.21` quando quiser).
+> - **R1 ✅ MITIGADO (commit)** — `docs/cademi-api/` adicionado ao `.gitignore` (EAS já cobria via `docs/`). Credenciais seguem válidas em disco; **rotação descartada por decisão do Gustavo (2026-08-10)** — risco aceito.
+> - **R2 ⚠️ RISCO ACEITO** — rotação da senha do Postgres descartada por decisão do Gustavo (2026-08-10). Senha segue no histórico git; reavaliação obrigatória antes de adicionar colaboradores ao repo ou torná-lo público.
+> - **A1 ✅ MITIGADO POR CONFIG** — verificado no console Firebase (prints em sessão): inscrição estava ATIVA com E-mail/senha + Google habilitados = vetor explorável confirmado. **Gustavo desativou "Ativar criação (inscrição)"** (2026-08-10); vinculação já estava em "Vincular contas que usam o mesmo e-mail" (correto). Criação de conta via API pública bloqueada; fluxo de convite (Admin SDK) não é afetado. **⚠️ CONDIÇÃO FUTURA: antes de reativar a inscrição (registro público pós-V1), o fix de código é obrigatório** — `firebaseUid @unique` no modelo User + guard resolvendo por UID (fallback por e-mail só com `email_verified`).
+> - **M10 ⬇️ rebaixado a cosmético** — com a inscrição desativada, a tela "Criar conta" do app falha no servidor; esconder o fluxo vira ajuste de UX, não segurança.
+> - **Smoke em device físico:** descartado por decisão do Gustavo (sem aparelho disponível).
+
 > **Natureza:** review read-only de código, configuração e produção (sondas HTTP). Nenhum fix aplicado, nenhum deploy, nenhum dado criado em prod. Nenhum valor de segredo aparece neste documento — apenas nomes e localizações.
 >
 > **Método:** 4 subagentes de escopo fechado (backend, web, mobile, varredura transversal de segredos) + sondas em produção + smoke automatizado em emulador Android (build debug local `expo run:android`). Findings consolidados e deduplicados pelo agente principal.
@@ -165,7 +173,7 @@
 
 1. **Smoke em device físico Android** — só emulador (e apenas boot não-autenticado).
 2. **Re-smoke iOS em device** — fora do escopo desta rodada.
-3. **Vídeo-pipeline** (encode, Whisper, worker trigger) — não revisado nesta rodada.
+3. **Vídeo-pipeline** (encode, Whisper, worker trCerto! Agora preciso de um relatório público que será apresentado ao professor, dono, proprietário, cliente da plataforma. Quero um overview do status do projeto que mostra ele em linguagem não técnica, ou seja, em linguagem natural. O status do projeto com uma linha do tempo simplificada que simboliza o inicio do projeto até o estado atual. É possível que você construa isso para mim, por favor? igger) — não revisado nesta rodada.
 4. **Login autenticado mobile** — bloqueado por política (sem credencial de teste em prod).
 5. **Estado real das env vars no Cloud Run** (A7) e **EAS env vars remotas** (A6) — bloqueados por auth expirada / login EAS.
 6. **Console do Firebase** (signup aberto? proteção one-account-per-email?) — decide a severidade real de A1.

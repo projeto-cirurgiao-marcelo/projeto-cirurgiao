@@ -170,6 +170,9 @@ android-app/*.iml
 
 # Sensitive data
 gcp-service-account-key/
+# Cademi API exploration scripts — contain live R2/Cademi credentials hardcoded
+# (pre-live review 2026-08-06, finding R1). Never commit.
+docs/cademi-api/
 *.pem
 *.key
 credentials/
