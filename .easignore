@@ -101,3 +101,12 @@ mobile-app/.expo/
 mobile-app/coverage/
 mobile-app/dist/
 mobile-app/web-build/
+
+# --- ... e credenciais que NUNCA devem subir pro EAS ----------------------
+# eas.json aponta serviceAccountKeyPath pra ./playstore-service-account.json;
+# sem estas regras, o `!mobile-app/**` acima reincluiria a chave no tarball
+# (mesma classe do incidente de 2026-08-04). Submit deve usar EAS secret.
+mobile-app/*-service-account*.json
+mobile-app/*.keystore
+mobile-app/*.jks
+mobile-app/.env.production

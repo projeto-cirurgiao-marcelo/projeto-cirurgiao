@@ -37,6 +37,12 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env.production
+
+# Store credentials — never commit (pre-live review 2026-08-06, finding A4)
+# eas.json references ./playstore-service-account.json; prefer EAS secret
+*-service-account*.json
+*.keystore
 
 # Firebase config (contains credentials)
 google-services.json
