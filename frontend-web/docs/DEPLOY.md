@@ -19,8 +19,19 @@ corretamente (`vercel.json` declara `framework: nextjs`, região `gru1`).
 > O projeto Firebase (`projeto-cirurgiao-e8df7`) segue em uso **apenas** para
 > Auth (Web SDK), não para hosting.
 
-Domínios: `app.projetocirurgiao.app` = app (Vercel); `projetocirurgiao.app` /
-`www` = marketing.
+**Domínios — estado real verificado em 2026-08-11** (a descrição anterior
+"`www` = marketing" estava divergente da infra; corrigido após o review pré-live):
+
+| Host | Estado | Papel |
+|---|---|---|
+| `app.projetocirurgiao.app` | 200 | **Canônico.** Adicionado ao projeto Vercel em 2026-08-10 (antes: NXDOMAIN) + CNAME no Cloudflare, **DNS only** (sem proxy laranja). |
+| `www.projetocirurgiao.app` | 200 | Serve **o mesmo app**. É o host que os alunos do cohort vinham usando — não desligar sem avisar. |
+| `projetocirurgiao.app` (apex) | 307 | Redireciona para `www`. |
+
+> ⚠️ Nenhum host serve página de marketing hoje. Se um dia houver, decidir
+> explicitamente qual host cede — e atualizar esta tabela **e** o
+> `docs/RUNBOOK-ROLLBACK.md` junto, porque a divergência doc×infra é
+> exatamente o que morde durante um incidente.
 
 ## §1 Build local
 

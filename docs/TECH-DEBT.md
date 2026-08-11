@@ -9,6 +9,23 @@ here, link the commit / PR / audit doc that surfaced it.
 
 ## SECURITY-CRITICAL — Ações obrigatórias no go-live
 
+> **🔄 Atualização 2026-08-10 — decisão do Gustavo: a rotação foi DESCARTADA
+> para o go-live do cohort fechado.** Vale para todos os itens desta seção
+> (senha do Postgres, token Cloudflare/R2, token Cademí, `WEBHOOK_SECRET`,
+> chave SA do GCP). Passa de "ação obrigatória" a **risco aceito, consciente**.
+>
+> A senha do `app_cirurgiao` segue no histórico git
+> (`docs/HANDOFF-2026-05-09-prod-stabilization.md:182` e `:185`, commit `24a77de`)
+> — apagar o arquivo hoje **não** resolve; só rotação resolve.
+>
+> **Gatilhos que reabrem a obrigatoriedade** (qualquer um deles):
+> adicionar colaborador ao repo · tornar o repo público · abertura ao público
+> amplo além do cohort de convite · qualquer novo indício de vazamento.
+>
+> Contexto e evidências: `docs/plans/2026-08-06-pre-live-review.md` §3 e
+> `docs/HANDOFF-2026-08-11-pre-live-execucao.md` §5.2. Os procedimentos abaixo
+> seguem válidos e testados — é só executá-los quando a decisão mudar.
+
 Credenciais reais comitadas no repo desde o initial commit (~6 meses).
 Risco aceito durante o sprint porque repo é privado, colaboradores são
 conhecidos, e zero usuários reais em prod. **Rotação mandatória antes

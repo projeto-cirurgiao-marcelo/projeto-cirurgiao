@@ -1,5 +1,11 @@
 # Projeto Cirurgião — Contexto do Agent Team
 
+> **📍 Estado atual do projeto → `docs/HANDOFF-2026-08-11-pre-live-execucao.md`.**
+> Pré-V1, em cohort fechado (18 alunos). Esse handoff lista o que está em
+> produção, o que mudou **nos consoles** (Firebase/Vercel/Cloudflare/EAS — não
+> descobrível pelo git log), o que ficou aberto e quais riscos foram **aceitos**.
+> Findings com evidência: `docs/plans/2026-08-06-pre-live-review.md`.
+
 ## O que é
 SaaS de educação em cirurgia veterinária. Monorepo manual (sem workspaces; scripts na raiz só fazem `cd`) com quatro componentes que sobem em serviços separados.
 
@@ -37,6 +43,9 @@ Auth: JWT (access 15min / refresh 7d) + Firebase ID token. Estado em Zustand + p
 
 ## 🔴 Gotchas operacionais (ignore = quebra deploy/processo)
 - **Vercel Hobby trava deploy por autoria.** Commitar como `xoiurp <102543650+xoiurp@users.noreply.github.com>` (`git commit --author=...`) e mergear PR com `gh pr merge --rebase` (não squash, que sobrescreve autoria). Sem isso o build do frontend não dispara.
+- **`.easignore` da raiz desliga TODOS os `.gitignore` no empacotamento do EAS.** O `eas-cli` lê o da **raiz do repo**, não o de `mobile-app/`. Tudo que o `.gitignore` protegia volta a subir pros servidores da Expo a menos que esteja repetido lá — foi assim que um dump de banco de prod e a chave SA do GCP vazaram (04/08/2026). Agravante: `!mobile-app/**` re-inclui o que veio antes, então **re-exclusões de arquivo sensível têm que vir depois dessa linha**. Validar sem gastar build minutes: `eas build:inspect --platform android --stage archive`.
+- **Registro público de conta está DESATIVADO no console Firebase** (acesso é por convite/Admin SDK). Reativar exige antes o fix de `firebaseUid @unique` no guard — hoje a identidade é vinculada só por e-mail (`firebase-auth.guard.ts:44-56`), e reabrir sem o fix permite takeover de conta, inclusive ADMIN. Detalhe no handoff §5.3.
+- **Domínios web:** `app.projetocirurgiao.app` (canônico) **e** `www.projetocirurgiao.app` servem o app; apex faz 307 → `www`. Os alunos vinham usando `www` — não assumir que só o canônico está em uso.
 - **`video-pipeline/` está no `.gitignore` raiz.** Arquivos desse dir só entram com `git add -f`. (Débito de processo conhecido — idealmente mover o código rastreado pra fora ou remover a regra.)
 - **Prisma:** rodar `npx prisma generate` após qualquer mudança de schema. Migrations aplicam sozinhas no cold start do backend (`prisma migrate deploy` na CMD do Dockerfile + Cloud Run Job `cirurgiao-api-migrator`).
 - **Reorder de listas** (Module/Video/Course): sempre dentro de `prisma.$transaction`, com offset gigante temporário (`-1_000_000_000`) na fase 1. Partial unique indexes `WHERE deletedAt IS NULL` evitam soft-deletes ocupando slot.
