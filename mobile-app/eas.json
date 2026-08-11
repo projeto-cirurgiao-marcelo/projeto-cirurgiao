@@ -23,6 +23,7 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "environment": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
@@ -38,6 +39,7 @@
     "production": {
       "channel": "production",
       "autoIncrement": true,
+      "environment": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
