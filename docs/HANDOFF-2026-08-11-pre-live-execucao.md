@@ -178,7 +178,7 @@ Complementam os do `CLAUDE.md` — todos custaram tempo real.
    deploy: `firebase-service-account.json` e — pior — o **dump completo do
    banco de produção** (`backend-api/db-backups/prod-full-*.sql`, 133 MB, PII
    de aluno). O `.gitignore` cobria os dois; o `.gcloudignore`, nenhum. Era o
-   grosso dos 209,9 MiB do tarball. Corrigido em `b7e9985` e `2a0f88f`.
+   grosso dos 209,9 MiB do tarball. Corrigido em `b7e9985` e `07f83b6`.
    Terceira ocorrência da mesma classe de bug, depois do `.easignore` (04/08)
    e do `.gitignore` de `video-pipeline/`: **ao adicionar arquivo sensível,
    enumerar todos os ignore-files que o empacotam.**
