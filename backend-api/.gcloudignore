@@ -19,3 +19,17 @@ firebase-service-account.json
 *service-account*.json
 *.pem
 *.key
+
+# Dumps de banco — PII de aluno. NAO subir pro Cloud Build. (O .gitignore ja
+# cobre db-backups/, mas o `gcloud builds submit` nao le o .gitignore: ate
+# 2026-08-12 um dump de prod de 133 MB ia junto em todo deploy.)
+#
+# NAO usar `*.sql` aqui: pegaria prisma/migrations/*/migration.sql e a imagem
+# subiria sem migrations, quebrando o `prisma migrate deploy` do Job e do
+# cold start. Dump novo vai em db-backups/.
+db-backups/
+*.dump
+
+# Peso morto no contexto de build (nao sensivel, so lento)
+cloud-sql-proxy.exe
+*.csv

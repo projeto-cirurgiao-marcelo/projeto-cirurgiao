@@ -174,11 +174,21 @@ Complementam os do `CLAUDE.md` — todos custaram tempo real.
    O primeiro controla o que entra na **imagem**; o segundo, o que sobe no
    **tarball do `gcloud builds submit`** pro bucket de staging
    (`gs://<project>_cloudbuild/source/`). Cobrir só um deixa o segredo em
-   repouso no GCS mesmo com a imagem limpa — foi o caso de
-   `firebase-service-account.json` até 2026-08-12 (`b7e9985`). Terceira
-   ocorrência da mesma classe de bug no projeto, depois do `.easignore`
-   (04/08) e do `.gitignore` de `video-pipeline/`: **ao adicionar arquivo
-   sensível, enumerar todos os ignore-files que o empacotam.**
+   repouso no GCS mesmo com a imagem limpa. Até 2026-08-12 iam junto em todo
+   deploy: `firebase-service-account.json` e — pior — o **dump completo do
+   banco de produção** (`backend-api/db-backups/prod-full-*.sql`, 133 MB, PII
+   de aluno). O `.gitignore` cobria os dois; o `.gcloudignore`, nenhum. Era o
+   grosso dos 209,9 MiB do tarball. Corrigido em `b7e9985` e `2a0f88f`.
+   Terceira ocorrência da mesma classe de bug, depois do `.easignore` (04/08)
+   e do `.gitignore` de `video-pipeline/`: **ao adicionar arquivo sensível,
+   enumerar todos os ignore-files que o empacotam.**
+   - Chave rotaciona; dump de banco **não**. Priorizar nessa ordem.
+   - **Não usar `*.sql` no `.gcloudignore`/`.dockerignore`** — pega
+     `prisma/migrations/*/migration.sql` e a imagem sobe sem migrations,
+     quebrando o `migrate deploy` do Job e do cold start. Excluir `db-backups/`.
+   - Validar sem gastar build: `gcloud meta list-files-for-upload` **rodado de
+     dentro de `backend-api/`** lista exatamente o que o `builds submit` envia.
+     Esperado hoje: 292 arquivos, 40 `migration.sql`, zero dump/chave.
 
 ---
 

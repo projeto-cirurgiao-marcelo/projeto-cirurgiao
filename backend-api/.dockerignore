@@ -22,3 +22,13 @@ firebase-service-account.json
 *service-account*.json
 *.pem
 *.key
+
+# Dumps de banco — PII de aluno. Nao entram nem na stage builder.
+# (Sem isto, o `COPY . .` do builder levava o dump pra dentro de uma layer
+# intermediaria; a imagem final e multi-stage e so copia dist/, mas nao ha
+# razao pro dump chegar la.) Manter em paridade com o .gcloudignore.
+# NAO usar `*.sql`: pegaria prisma/migrations/*/migration.sql.
+db-backups/
+*.dump
+cloud-sql-proxy.exe
+*.csv
