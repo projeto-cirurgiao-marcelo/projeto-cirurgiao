@@ -5,7 +5,13 @@ Checklist operacional pra Gustav submeter o **Projeto Cirurgiao** pra TestFlight
 nem escrevo descricao de loja — voce executa essa parte; meu papel e o
 checklist + templates.**
 
-Bundle: `com.projetocirurgiao.app` (iOS + Android)
+Bundle **por plataforma** (são diferentes — ver `docs/DEPLOY.md` §0):
+- Android: `com.projetocirurgiao.app`
+- iOS: `app.projetocirurgiao.mobile` (`com.projetocirurgiao.app` ficou
+  indisponível para o Apple Team `2PLJU3QXNH` — commit `b611476`)
+
+⚠️ Usar o identificador errado ao criar o app na App Store Connect / Play
+Console é **irreversível**. Conferir contra `app.json:12` e `:24` antes de criar.
 Nome publico: Projeto Cirurgiao
 Versao target: 1.0.0 (golive)
 

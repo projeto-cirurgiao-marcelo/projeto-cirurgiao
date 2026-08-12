@@ -99,6 +99,7 @@ Sem urgência de horas: o vetor é menos exploitável que o do Next, que já sub
 |---|---|
 | **Rotação de segredos** (par R2, token Cademí, senha do Postgres de prod, `WEBHOOK_SECRET`, chave SA do GCP) | **Descartada** (2026-08-10). A senha do Postgres segue no histórico git (`docs/HANDOFF-2026-05-09-prod-stabilization.md:182` e `:185`, commit `24a77de`) — remover o arquivo hoje **não** resolve. ⚠️ **Reavaliação obrigatória antes de**: adicionar colaboradores ao repo, tornar o repo público, ou abertura ampla ao público. |
 | **Smoke em device físico** | **Descartado** — sem aparelho disponível. O boot em emulador Android passou (§5 do review). |
+| **M7 — `applicationId` do Android** | **Decidido em 2026-08-12: mantém `com.projetocirurgiao.app`.** O review tratou a assimetria iOS×Android como pendência, mas ela é **forçada**: `com.projetocirurgiao.app` ficou indisponível para o Apple Team `2PLJU3QXNH` (commit `b611476`, 01/07/2026), daí o iOS ser `app.projetocirurgiao.mobile`. Apple e Google têm namespaces independentes — não há requisito de igualdade. Ambos os `googleServicesFile` já declaram o identificador correto da sua plataforma (verificado). Alinhar custaria novo app no Firebase Console + `google-services.json` novo + `expo prebuild --clean`, com ganho funcional zero. Janela confirmada aberta no momento da decisão: `eas build:list --profile production` vazio — nenhum build de produção jamais existiu (não cobre upload manual fora do EAS). |
 
 ### 5.3 Condição futura obrigatória (não é opcional, é um gate)
 
@@ -118,11 +119,11 @@ Hoje o guard vincula identidade **só por e-mail**. Com a inscrição desativada
 
 ### 5.4 Médios documentados para "primeira semana" (nenhum iniciado)
 
-Ordenados por custo/benefício, com localização exata:
+Ordenados por custo/benefício, com localização exata. (**M7 saiu desta lista** —
+foi decidido, ver §5.2.)
 
 | # | Item | Onde |
 |---|---|---|
-| **M7** | **Decidir `applicationId` do Android** — iOS `app.projetocirurgiao.mobile` vs Android `com.projetocirurgiao.app`. Imutável após o 1º upload na Play Console. **Última janela.** | `mobile-app/app.json:12` e `:24` |
 | **M1** | Paridade dos helpers de progresso — portar as funções do web (com `Math.round` + clamp) pro mobile e trocar os filtros de "concluído" de weighted para binário | `mobile-app/src/lib/course-progress.ts:17`; consumo em `mobile-app/app/(tabs)/index.tsx:106` e `app/courses/in-progress.tsx:51` |
 | **M5** | Scrub de token nos loggers — hoje o `AxiosError` inteiro (com header `Bearer`) vai pro logcat e pro console do navegador. O caminho Sentry já rediga; o console não | `mobile-app/src/lib/logger.ts:38-41`, `quizzes.service.ts:126`; `frontend-web/src/lib/logger.ts:30-33`, `auth-store.ts:169/230/304` |
 | **M2** | Hash dos refresh tokens (`sha256`) + revogar a família inteira ao detectar reuso + evento no AuditService | `backend-api/src/modules/auth/auth.service.ts:371-375`, `:104-105`, `:120-126` |

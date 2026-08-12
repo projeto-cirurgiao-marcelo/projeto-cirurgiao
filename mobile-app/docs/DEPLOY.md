@@ -5,7 +5,18 @@ sou agente headless — nao rodo `eas build` diretamente.** Este doc e o
 checklist pra voce executar localmente quando quiser gerar um binario.
 
 Projeto EAS: `c048ea29-2617-43af-a299-059c5d53b016` (slug `projeto-cirurgiao`,
-owner `projetocirurgiao`). Bundle identifier iOS/Android: `com.projetocirurgiao.app`.
+owner `projetocirurgiao`). **Os identificadores das duas plataformas são
+diferentes** — Apple e Google têm namespaces independentes:
+
+| Plataforma | Identificador | Onde |
+|---|---|---|
+| Android | `com.projetocirurgiao.app` | `app.json:24` (`android.package`) |
+| iOS | `app.projetocirurgiao.mobile` | `app.json:12` (`ios.bundleIdentifier`) |
+
+> ⚠️ Não "corrigir" a assimetria. `com.projetocirurgiao.app` ficou **indisponível
+> para o Apple Team `2PLJU3QXNH`** (commit `b611476`, 01/07/2026) — o iOS foi
+> forçado a mudar. Cada `googleServicesFile` já declara o identificador correto
+> da sua plataforma. Ambos são imutáveis após o 1º upload na respectiva loja.
 
 ---
 
