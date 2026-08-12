@@ -42,7 +42,7 @@ abandono, estratégias de retenção). Não vive no repo — é material de clie
 | `projetocirurgiao.app` (apex) | **HTTP 307** | Redireciona para `www`. |
 | Backend `/api/v1/health` | **HTTP 200** | Cloud Run `southamerica-east1`. Path canônico é com prefixo — `/health` dá 404 (finding M3, aberto). |
 | Deploy web | **`b6d10f9` em Production** | Vercel: `Deployment has completed / success`, 2026-08-11T14:42:35Z. Next 15.5.23 servindo. |
-| Deploy backend | **⚠️ NÃO deployado** | Os fixes de `npm audit` estão no repo, não em runtime. Ver §5.1. |
+| Deploy backend | **`b7e9985` → revisão `00102-s5s`** | Deployado em 2026-08-12, 100% do tráfego. `/api/v1/health` 200, `/api/v1/auth/me` sem token 401. Migração `cirurgiao-api-migrator-fxgl4` completou (no-op). O `npm ci` do Cloud Build reportou 4 low / 22 moderate / 15 high e **zero critical** — a CRITICAL do `websocket-driver` saiu de runtime. |
 | Build mobile | **⚠️ Nenhum build novo** | As mudanças de `eas.json` só valem no próximo `eas build`. |
 
 ---
@@ -86,12 +86,15 @@ Esta seção é a razão pela qual ler só o `git log` engana.
 
 ## 5. O que ficou em aberto
 
-### 5.1 Ação imediata pendente do Gustavo
+### 5.1 ~~Ação imediata pendente do Gustavo~~ — **RESOLVIDA em 2026-08-12**
 
-**Deploy do backend no Cloud Run.** Os fixes de `axios`/`websocket-driver`/`form-data`
-estão commitados mas não em runtime — não há CI/CD de backend (débito conhecido).
-Enquanto não houver deploy, a CRITICAL do `websocket-driver` segue viva em prod.
-Sem urgência de horas: o vetor é menos exploitável que o do Next, que já subiu.
+**Deploy do backend no Cloud Run: feito.** Revisão `00102-s5s`, verificada em
+produção (ver §2). A CRITICAL do `websocket-driver` não está mais em runtime.
+
+Segue valendo que **não há CI/CD de backend** — o deploy é manual via
+`backend-api/deploy-artifact-registry.ps1`, e o script exige `gcloud` com token
+válido (`gcloud auth login`; o token expira e falha com
+`Reauthentication failed. cannot prompt during non-interactive execution`).
 
 ### 5.2 Riscos **aceitos** por decisão do Gustavo (não são pendências — são decisões)
 
@@ -132,7 +135,7 @@ foi decidido, ver §5.2.)
 | **M9** | Higiene: deletar `app.json` espúrio da **raiz** (`{"expo": {}}`, 16 bytes, untracked — qualquer `expo`/`eas` rodado por engano na raiz lê config vazia), `.agent-bus/` no gitignore, placeholders no `.env.local.example` | raiz do repo |
 | **M10** | Esconder "Criar conta" no app mobile — **cosmético** desde que a inscrição foi desativada (o fluxo falha no servidor, não vaza nada) | tela de login do mobile |
 | **M8** | Mover os `.sql` manuais para `prisma/manual/` com README (o `migrate deploy` os ignora; sem drift hoje) | `backend-api/prisma/migrations/*.sql` |
-| **A7** | Conferir se sobraram env vars diretas mascarando o Secret Manager na revisão atual do Cloud Run. **Não verificado** no review — `gcloud` estava com auth expirado (`invalid_rapt`) | `backend-api/src/config/secrets/secrets-loader.ts:33-46` e `:113-116` |
+| ~~**A7**~~ | **VERIFICADO em 2026-08-12 — nada a corrigir.** 9 segredos (`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, tokens Cloudflare/R2, `VERTEX_AI_API_KEY`, `VIDEO_WEBHOOK_SECRET`) são secret refs do Secret Manager. As 15 env vars plaintext são config não-sensível (IDs de projeto, URLs de bucket/CDN, expirations, `CORS_ORIGINS`). Nenhuma mascara o Secret Manager. | — |
 
 ### 5.5 Oferecido, não pedido
 
@@ -167,6 +170,15 @@ Complementam os do `CLAUDE.md` — todos custaram tempo real.
 5. **Antes de pedir cliques ao usuário, tentar a CLI.** `vercel whoami` /
    `vercel projects ls` / `wrangler whoami` respondem em segundos. (Feedback
    direto do Gustavo nesta sessão.)
+6. **`.dockerignore` e `.gcloudignore` são dois arquivos com dois consumidores.**
+   O primeiro controla o que entra na **imagem**; o segundo, o que sobe no
+   **tarball do `gcloud builds submit`** pro bucket de staging
+   (`gs://<project>_cloudbuild/source/`). Cobrir só um deixa o segredo em
+   repouso no GCS mesmo com a imagem limpa — foi o caso de
+   `firebase-service-account.json` até 2026-08-12 (`b7e9985`). Terceira
+   ocorrência da mesma classe de bug no projeto, depois do `.easignore`
+   (04/08) e do `.gitignore` de `video-pipeline/`: **ao adicionar arquivo
+   sensível, enumerar todos os ignore-files que o empacotam.**
 
 ---
 
