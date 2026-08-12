@@ -9,3 +9,13 @@ coverage/
 uploads/*
 test/
 *.spec.ts
+
+# Secrets — nao subir pro bucket de staging do Cloud Build
+# (gs://<project>_cloudbuild/source/). O .dockerignore ja impedia que
+# entrassem na imagem, mas o tarball do `gcloud builds submit` usa ESTE
+# arquivo — sem estas linhas a chave privada do Firebase Admin ficava em
+# repouso no GCS a cada deploy. Manter em paridade com o .dockerignore.
+firebase-service-account.json
+*service-account*.json
+*.pem
+*.key

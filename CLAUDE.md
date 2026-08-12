@@ -57,7 +57,7 @@ Auth: JWT (access 15min / refresh 7d) + Firebase ID token. Estado em Zustand + p
 4. **Antes de mudar contrato de API**, avisar o time.
 5. **Commits pequenos e descritivos:** `feat(área): descrição`, `fix(área): …`, `chore(área): …`.
 6. **Console.log:** remover ou converter pra logger dedicado antes de marcar tarefa como pronta.
-7. **Credenciais:** migrar pra Secret Manager (rotação efetiva fica pro go-live).
+7. **Credenciais:** já estão no Secret Manager (verificado 2026-08-12). Segredo novo entra como secret ref, nunca como env var plaintext. E ao adicionar arquivo de credencial no `backend-api/`, repetir a regra **nos dois** ignore-files — `.dockerignore` (imagem) **e** `.gcloudignore` (tarball do Cloud Build); cobrir só um deixa a chave em repouso no bucket de staging.
 
 ## Comandos frequentes
 ```bash
@@ -80,7 +80,7 @@ cd video-pipeline/cloud-run && python -m pytest test_encode_fallback.py
 ## Débito técnico consciente
 - `noImplicitAny: false` / `strictBindCallApply: false` no backend — relaxados (strictNullChecks já está ligado).
 - `KnowledgeChunk.embedding` em JSON (alvo: pgvector, track backend).
-- Credenciais ainda em env var plaintext no Cloud Run — migrar pra Secret Manager pré go-live.
+- ~~Credenciais em env var plaintext no Cloud Run~~ — **feito.** Verificado em 2026-08-12 (finding A7): os 9 segredos (`DATABASE_URL`, JWT, tokens Cloudflare/R2, Vertex, webhook) são secret refs do Secret Manager. As 15 env vars plaintext restantes são config não-sensível (IDs de projeto, URLs de bucket/CDN, `CORS_ORIGINS`). O que segue aberto é a **rotação**, que é risco aceito — ver `docs/TECH-DEBT.md`.
 - Sem CI/CD de backend (deploy manual via PowerShell; idealmente GitHub Actions + Cloud Build em push pra `main`).
 - Cobertura de testes baixa — meta do sprint é cobertura mínima por camada, não 100%. (Já existe `video-pipeline/cloud-run/test_encode_fallback.py`.)
 
