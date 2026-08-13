@@ -81,6 +81,7 @@ Esta seção é a razão pela qual ler só o `git log` engana.
 | **Cloudflare DNS** | CNAME `app` → Vercel, **DNS only** (sem proxy laranja) | Par do item acima. |
 | **EAS** (projeto mobile) | Env var `EXPO_PUBLIC_SENTRY_DSN` criada nos environments `production` **e** `preview` | Resolve A6. O código mobile já estava instrumentado (`mobile-app/src/config/sentry.ts`) — faltava só o DSN. |
 | **Sentry** | Projeto criado (org `o4511889897095168`, projeto `4511889952342016`) | Só **mobile**. Web e backend não têm projeto Sentry — ver §5.4. |
+| **GCS** (`gs://projeto-cirurgiao-e8df7_cloudbuild`) | 2026-08-13: **80 tarballs apagados** (1,76 GiB) + regra de ciclo de vida `Delete age=30` | Passivo do bug do `.gcloudignore` (§6.6): 79 pacotes de staging, o mais antigo de 06/01/2026, cada um com o dump de produção (PII de aluno) e a chave do Firebase Admin. Nada em runtime depende deles — o Cloud Build só lê o tarball durante o build. A regra impede acúmulo novo. Prova de que o fix pegou: o tarball pós-fix caiu de 82 MB comprimidos para <10 MB. |
 | **Cloud Run** (`CORS_ORIGINS`) | 2026-08-13: adicionado `https://app.projetocirurgiao.app` | **Corrige bug silencioso de produção.** O domínio canônico entrou na Vercel em 10/08 (R3) mas nunca no `CORS_ORIGINS` do backend — login em `app.` falhava com `Network Error` desde então. Ninguém percebeu porque o cohort usa `www.`. Valor atual: `app.` + `www.` + apex + a URL do Cloud Run do web legado. |
 
 ---
