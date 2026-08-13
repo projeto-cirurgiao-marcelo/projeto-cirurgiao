@@ -120,6 +120,9 @@ describe('AuthService.redeemInvite', () => {
     expect(firebaseAdmin.updateUserPassword).toHaveBeenCalledWith('fb-1', 'SenhaForte1');
     const update = prisma.user.update.mock.calls[0][0] as any;
     expect(update.data.password).toMatch(/^invite-redeemed:/);
+    // Sem o UID gravado aqui o aluno cairia no fallback por e-mail — e o
+    // resgate de convite não marca email_verified, então seria 401.
+    expect(update.data.firebaseUid).toBe('fb-1');
   });
 
   it('rejeita token já utilizado (binding não bate após o primeiro resgate)', async () => {
