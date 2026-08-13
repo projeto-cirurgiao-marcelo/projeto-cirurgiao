@@ -42,7 +42,7 @@ abandono, estratégias de retenção). Não vive no repo — é material de clie
 | `projetocirurgiao.app` (apex) | **HTTP 307** | Redireciona para `www`. |
 | Backend `/api/v1/health` | **HTTP 200** | Cloud Run `southamerica-east1`. Path canônico é com prefixo — `/health` dá 404 (finding M3, aberto). |
 | Deploy web | **`b6d10f9` em Production** | Vercel: `Deployment has completed / success`, 2026-08-11T14:42:35Z. Next 15.5.23 servindo. |
-| Deploy backend | **`b7e9985` → revisão `00102-s5s`** | Deployado em 2026-08-12, 100% do tráfego. `/api/v1/health` 200, `/api/v1/auth/me` sem token 401. Migração `cirurgiao-api-migrator-fxgl4` completou (no-op). O `npm ci` do Cloud Build reportou 4 low / 22 moderate / 15 high e **zero critical** — a CRITICAL do `websocket-driver` saiu de runtime. |
+| Deploy backend | **revisão `00104-vw2`** | 2026-08-13, 100% do tráfego. Carrega o `npm audit fix` (zero critical), o guard por `firebaseUid` e o modelo de vitrines. Login verificado em `app.` e `www.`. Histórico: `00102-s5s` (audit fix) → `00103-q2w` (auth+vitrines, revertida por alarme falso, ver §6.9) → `00104-vw2` (mesma imagem + `CORS_ORIGINS` corrigido). |
 | Build mobile | **⚠️ Nenhum build novo** | As mudanças de `eas.json` só valem no próximo `eas build`. |
 
 ---
@@ -81,6 +81,7 @@ Esta seção é a razão pela qual ler só o `git log` engana.
 | **Cloudflare DNS** | CNAME `app` → Vercel, **DNS only** (sem proxy laranja) | Par do item acima. |
 | **EAS** (projeto mobile) | Env var `EXPO_PUBLIC_SENTRY_DSN` criada nos environments `production` **e** `preview` | Resolve A6. O código mobile já estava instrumentado (`mobile-app/src/config/sentry.ts`) — faltava só o DSN. |
 | **Sentry** | Projeto criado (org `o4511889897095168`, projeto `4511889952342016`) | Só **mobile**. Web e backend não têm projeto Sentry — ver §5.4. |
+| **Cloud Run** (`CORS_ORIGINS`) | 2026-08-13: adicionado `https://app.projetocirurgiao.app` | **Corrige bug silencioso de produção.** O domínio canônico entrou na Vercel em 10/08 (R3) mas nunca no `CORS_ORIGINS` do backend — login em `app.` falhava com `Network Error` desde então. Ninguém percebeu porque o cohort usa `www.`. Valor atual: `app.` + `www.` + apex + a URL do Cloud Run do web legado. |
 
 ---
 
@@ -189,6 +190,30 @@ Complementam os do `CLAUDE.md` — todos custaram tempo real.
    - Validar sem gastar build: `gcloud meta list-files-for-upload` **rodado de
      dentro de `backend-api/`** lista exatamente o que o `builds submit` envia.
      Esperado hoje: 292 arquivos, 40 `migration.sql`, zero dump/chave.
+7. **O token do `gcloud` expira em menos de 2h nesta conta.** Não é o
+   `invalid_rapt` do review — é reauth de sessão. Bloqueou duas ações em
+   2026-08-13. `Reauthentication failed. cannot prompt during non-interactive
+   execution` = rodar `gcloud auth login`.
+8. **`cloud-sql-proxy` não morre quando o token expira: vira zumbi segurando a
+   porta.** O sintoma engana — o Prisma reporta `Can't reach database server at
+   127.0.0.1:5434` como se nada escutasse, quando há um proxy ocupando a porta
+   com credencial morta. Cura no Windows:
+   `Get-Process cloud-sql-proxy | Stop-Process -Force`.
+9. **Domínio novo exige atualização em DOIS sistemas.** Vercel/Cloudflare
+   publica o host; `CORS_ORIGINS` no Cloud Run é o que permite o front falar
+   com a API. Fazer só o primeiro produz um domínio que **carrega e falha em
+   toda chamada autenticada**, sem nenhum erro no backend — porque a
+   requisição não chega lá. Foi o caso de `app.projetocirurgiao.app` entre
+   10/08 e 13/08 (ver §4).
+   - **`Network Error` no axios nunca é resposta do servidor.** Se aparecer, é
+     CORS/CSP/rede; ler o código do backend é perda de tempo. Em 13/08 isso
+     custou um rollback desnecessário da revisão `00103`: a hipótese foi
+     atrás do guard recém-alterado enquanto o sinal real — um `204` **sem**
+     `access-control-allow-origin` — já estava no primeiro log lido.
+   - Teste de 1 comando:
+     `curl -i -X OPTIONS <api>/api/v1/auth/firebase-login -H "Origin: <host>" -H "Access-Control-Request-Method: POST"`
+     — sem o header `access-control-allow-origin` na resposta, a origem não
+     está na allowlist.
 
 ---
 
