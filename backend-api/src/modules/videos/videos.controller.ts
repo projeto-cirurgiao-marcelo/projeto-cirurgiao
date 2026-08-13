@@ -20,6 +20,7 @@ import { extname } from 'path';
 import { VideosService } from './videos.service';
 import { CoursesService } from '../courses/courses.service';
 import { ModulesService } from '../modules/modules.service';
+import { AccessService } from '../showcases/access.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { CreateVideoFromR2HlsDto } from './dto/create-video-from-r2-hls.dto';
 import { ExtractThumbnailFromHlsDto } from './dto/extract-thumbnail-from-hls.dto';
@@ -38,6 +39,7 @@ export class VideosController {
     private readonly videosService: VideosService,
     private readonly modulesService: ModulesService,
     private readonly coursesService: CoursesService,
+    private readonly accessService: AccessService,
   ) {}
 
   private async checkInstructorPermission(moduleId: string, userId: string, userRole: Role) {
@@ -307,8 +309,10 @@ export class VideosController {
   }
 
   @Get('videos/:id')
-  findOne(@Param('id') id: string) {
-    return this.videosService.findOneWithPlayback(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    const video = await this.videosService.findOneWithPlayback(id);
+    // hasAccess informa; o corte é no player (nível 1). A URL continua indo.
+    return this.accessService.decorateVideo(video, req.user);
   }
 
   @Patch('videos/:id')

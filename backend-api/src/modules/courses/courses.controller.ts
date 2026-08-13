@@ -22,12 +22,16 @@ import { ReorderCoursesDto } from './dto/reorder-courses.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { AccessService } from '../showcases/access.service';
 import { Role } from '@prisma/client';
 
 @Controller('courses')
 @UseGuards(FirebaseAuthGuard)
 export class CoursesController {
-  constructor(private readonly coursesService: CoursesService) {}
+  constructor(
+    private readonly coursesService: CoursesService,
+    private readonly accessService: AccessService,
+  ) {}
 
   /**
    * Criar novo curso (apenas ADMIN e INSTRUCTOR)
@@ -43,11 +47,15 @@ export class CoursesController {
    * Listar todos os cursos
    */
   @Get()
-  findAll(@Request() req, @Query('includeUnpublished') includeUnpublished?: string) {
+  async findAll(@Request() req, @Query('includeUnpublished') includeUnpublished?: string) {
     // ADMIN sempre vê todos os cursos (publicados e não publicados)
     // Outros usuários veem apenas publicados
     const showUnpublished = req.user.role === Role.ADMIN;
-    return this.coursesService.findAll(showUnpublished);
+    const [courses, access] = await Promise.all([
+      this.coursesService.findAll(showUnpublished),
+      this.accessService.getAccess(req.user),
+    ]);
+    return courses.map((c) => this.accessService.annotateCourseVideos(c as any, access));
   }
 
   /**
@@ -73,16 +81,24 @@ export class CoursesController {
    * Buscar curso por ID
    */
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    const [course, access] = await Promise.all([
+      this.coursesService.findOne(id),
+      this.accessService.getAccess(req.user),
+    ]);
+    return this.accessService.annotateCourseVideos(course as any, access);
   }
 
   /**
    * Buscar curso por slug
    */
   @Get('slug/:slug')
-  findBySlug(@Param('slug') slug: string) {
-    return this.coursesService.findBySlug(slug);
+  async findBySlug(@Param('slug') slug: string, @Request() req) {
+    const [course, access] = await Promise.all([
+      this.coursesService.findBySlug(slug),
+      this.accessService.getAccess(req.user),
+    ]);
+    return this.accessService.annotateCourseVideos(course as any, access);
   }
 
   /**
