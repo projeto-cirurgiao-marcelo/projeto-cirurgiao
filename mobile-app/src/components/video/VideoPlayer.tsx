@@ -32,6 +32,14 @@ interface VideoPlayerProps {
   onProgressUpdate?: (currentTime: number, duration: number) => void;
   autoPlay?: boolean;
   initialPosition?: number;
+  /**
+   * Modo preview (aluno sem acesso à aula): pausa e trava o player neste
+   * segundo, com overlay de oferta. Só passar quando `hasAccess === false` —
+   * undefined = reprodução normal. Corte nível 1 (§11 do design).
+   */
+  previewSeconds?: number;
+  /** Título da vitrine ofertada no overlay (offerShowcase.title). */
+  offerTitle?: string;
 }
 
 export interface VideoPlayerRef {
@@ -70,7 +78,7 @@ function formatTime(seconds: number): string {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
-  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0 },
+  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle },
   ref
 ) {
   const videoViewRef = useRef<VideoView>(null);
@@ -96,6 +104,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   const [displayDuration, setDisplayDuration] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
   const overlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Preview: uma vez encerrada, o player trava (play bloqueado + overlay).
+  const [previewEnded, setPreviewEnded] = useState(false);
+  const previewEndedRef = useRef(false);
 
   // Source com contentType explícito para HLS.
   // Prioridade: contrato backend playbackKind > regex .m3u8 (fallback defensivo
@@ -164,12 +176,24 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
 
   // Play/Pause handler
   const handlePlayPause = useCallback(() => {
-    if (!player) return;
+    if (!player || previewEndedRef.current) return;
     // @ts-ignore
     if (player.playing) {
       player.pause();
     } else {
       player.play();
+    }
+  }, [player]);
+
+  // Corte do preview: encerra uma única vez — pausa, sai do fullscreen
+  // nativo (o overlay RN não existe lá dentro) e trava o player.
+  const endPreview = useCallback(() => {
+    if (previewEndedRef.current) return;
+    previewEndedRef.current = true;
+    setPreviewEnded(true);
+    player?.pause();
+    if (isFullscreenRef.current) {
+      videoViewRef.current?.exitFullscreen();
     }
   }, [player]);
 
@@ -184,12 +208,14 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
 
   const handleSeekComplete = useCallback((value: number) => {
     if (player) {
+      const clamped =
+        previewSeconds !== undefined ? Math.min(value, previewSeconds) : value;
       // @ts-ignore
-      player.currentTime = value;
-      currentTimeRef.current = value;
+      player.currentTime = clamped;
+      currentTimeRef.current = clamped;
     }
     isSeeking.current = false;
-  }, [player]);
+  }, [player, previewSeconds]);
 
   // Skip forward/backward 10s
   const handleSkip = useCallback((seconds: number) => {
@@ -198,12 +224,13 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     const current = player.currentTime || 0;
     // @ts-ignore
     const dur = player.duration || 0;
-    const newTime = Math.max(0, Math.min(dur, current + seconds));
+    let newTime = Math.max(0, Math.min(dur, current + seconds));
+    if (previewSeconds !== undefined) newTime = Math.min(newTime, previewSeconds);
     // @ts-ignore
     player.currentTime = newTime;
     currentTimeRef.current = newTime;
     setDisplayTime(newTime);
-  }, [player]);
+  }, [player, previewSeconds]);
 
   // Overlay auto-hide
   const resetOverlayTimeout = useCallback(() => {
@@ -362,11 +389,28 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (player) {
+        // Prévia encerrada não retoma — nem pelos controles nativos do fullscreen.
+        if (previewEndedRef.current) {
+          // @ts-ignore
+          if (player.playing) player.pause();
+          return;
+        }
         // @ts-ignore
         const time = player.currentTime || 0;
         // @ts-ignore
         const dur = player.duration || 0;
         currentTimeRef.current = time;
+
+        // Corte do preview (checagem no mesmo polling de 500ms do progresso)
+        if (previewSeconds !== undefined && time >= previewSeconds) {
+          if (time > previewSeconds) {
+            // @ts-ignore
+            player.currentTime = previewSeconds;
+            currentTimeRef.current = previewSeconds;
+          }
+          endPreview();
+          return;
+        }
 
         if (!isSeeking.current) {
           setDisplayTime(time);
@@ -391,7 +435,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     }, 500);
 
     return () => clearInterval(intervalId);
-  }, [player, onProgressUpdate, markAsCompleted, displayDuration]);
+  }, [player, onProgressUpdate, markAsCompleted, displayDuration, previewSeconds, endPreview]);
 
   // Listener para quando o vídeo termina
   useEffect(() => {
@@ -635,6 +679,20 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
               </View>
             )}
           </Pressable>
+        )}
+
+        {/* Overlay de fim de prévia: cobre player e controles (zIndex acima
+            do overlay de controles). CTA de compra é a leva do checkout. */}
+        {previewEnded && (
+          <View style={styles.previewEndedOverlay}>
+            <Ionicons name="lock-closed" size={28} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.previewEndedTitle}>Prévia encerrada</Text>
+            <Text style={styles.previewEndedText}>
+              {offerTitle
+                ? `Esta aula faz parte de "${offerTitle}". Adquira o acesso para continuar assistindo.`
+                : 'Adquira o acesso para continuar assistindo esta aula.'}
+            </Text>
+          </View>
         )}
       </View>
 
@@ -892,6 +950,28 @@ const styles = StyleSheet.create({
     minWidth: 36,
     textAlign: 'center',
     letterSpacing: 0.3,
+  },
+  // Preview ended
+  previewEndedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 50,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 8,
+  },
+  previewEndedTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  previewEndedText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 300,
   },
   // Error
   errorContainer: {

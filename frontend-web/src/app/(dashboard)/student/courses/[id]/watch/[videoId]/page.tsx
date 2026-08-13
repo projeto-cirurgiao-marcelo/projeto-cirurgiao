@@ -710,6 +710,12 @@ export default function VideoPlayerPage() {
                       ? captionsBlobUrl ?? undefined
                       : undefined
                   }
+                  previewSeconds={
+                    currentVideo.hasAccess === false
+                      ? currentVideo.previewSeconds
+                      : undefined
+                  }
+                  offerTitle={currentVideo.offerShowcase?.title}
                 />
               ) : currentVideo.playback && currentVideo.playback.kind === 'iframe' && currentVideo.playback.playbackUrl && !currentVideo.playback.playbackUrl.includes('.m3u8') ? (
                 <iframe
@@ -744,6 +750,12 @@ export default function VideoPlayerPage() {
                   onTimeUpdate={handleHlsTimeUpdate}
                   onReady={handleHlsReady}
                   onEnded={handleVideoEnded}
+                  previewSeconds={
+                    currentVideo.hasAccess === false
+                      ? currentVideo.previewSeconds
+                      : undefined
+                  }
+                  offerTitle={currentVideo.offerShowcase?.title}
                 />
               ) : streamData?.type === 'embed' && streamData.embedUrl ? (
                 <iframe

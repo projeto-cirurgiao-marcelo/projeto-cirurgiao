@@ -90,6 +90,15 @@ export interface Video {
    * isso ao branching manual por videoSource.
    */
   playback?: VideoPlaybackUrls;
+  /**
+   * Gate de vitrines (leva 2). `hasAccess` vem em todos os endpoints de
+   * curso/vídeo; `previewSeconds` e `offerShowcase` só no endpoint de vídeo
+   * quando `hasAccess === false`. Ausente = backend anterior ao gate —
+   * tratar como liberado.
+   */
+  hasAccess?: boolean;
+  previewSeconds?: number;
+  offerShowcase?: { id: string; title: string; slug: string } | null;
 }
 
 export interface CreateCourseDto {

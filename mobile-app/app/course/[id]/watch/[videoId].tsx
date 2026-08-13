@@ -346,6 +346,8 @@ export default function WatchVideoScreen() {
               onEnded={handleVideoEnded}
               onProgressUpdate={handleProgressUpdate}
               initialPosition={initialPosition}
+              previewSeconds={video.hasAccess === false ? video.previewSeconds : undefined}
+              offerTitle={video.offerShowcase?.title}
             />
           );
         }

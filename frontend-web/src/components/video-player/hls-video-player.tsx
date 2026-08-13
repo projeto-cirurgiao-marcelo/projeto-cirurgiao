@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import Hls from 'hls.js';
-import { Settings } from 'lucide-react';
+import { Lock, Settings } from 'lucide-react';
 import {
   MediaController,
   MediaControlBar,
@@ -74,6 +74,15 @@ interface HlsVideoPlayerProps {
   externalCaptionsUrl?: string;
   externalCaptionsLang?: string; // default 'pt'
   externalCaptionsLabel?: string; // default 'Portugues'
+  /**
+   * Modo preview (aluno sem acesso à aula): pausa e trava o player neste
+   * segundo, com overlay de oferta. Só passar quando `hasAccess === false` —
+   * undefined = reprodução normal. Corte nível 1 (§11 do design): a URL
+   * completa continua no cliente; o gate real é comercial, não técnico.
+   */
+  previewSeconds?: number;
+  /** Título da vitrine ofertada no overlay (offerShowcase.title). */
+  offerTitle?: string;
 }
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -94,12 +103,26 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       externalCaptionsUrl,
       externalCaptionsLang = 'pt',
       externalCaptionsLabel = 'Portugues',
+      previewSeconds,
+      offerTitle,
     },
     ref
   ) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
     const hasRestoredPosition = useRef(false);
+
+    // Preview: refs pra escapar de stale closure nos listeners (padrão do arquivo)
+    const [previewEnded, setPreviewEnded] = useState(false);
+    const previewEndedRef = useRef(false);
+    const previewSecondsRef = useRef(previewSeconds);
+    useEffect(() => {
+      previewSecondsRef.current = previewSeconds;
+      if (previewSeconds === undefined) {
+        previewEndedRef.current = false;
+        setPreviewEnded(false);
+      }
+    }, [previewSeconds]);
 
     // Touch: tap no vídeo NÃO pausa (media-chrome pausa por padrão) — aluno
     // toca pra revelar os controles (ex: mudar velocidade) e o vídeo parava.
@@ -237,6 +260,17 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       if (!video) return;
 
       const handleTimeUpdate = () => {
+        // Corte do preview: clamp cobre também seek pra além do limite.
+        const limit = previewSecondsRef.current;
+        if (limit !== undefined && video.currentTime >= limit) {
+          if (video.currentTime > limit) video.currentTime = limit;
+          video.pause();
+          if (!previewEndedRef.current) {
+            previewEndedRef.current = true;
+            setPreviewEnded(true);
+          }
+          return;
+        }
         onTimeUpdateRef.current?.(video.currentTime, video.duration || 0);
       };
 
@@ -257,7 +291,14 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
         onEndedRef.current?.();
       };
 
-      const handlePlay = () => { onPlayRef.current?.(); };
+      const handlePlay = () => {
+        // Prévia encerrada não retoma — nem pelo play do media-chrome.
+        if (previewEndedRef.current) {
+          video.pause();
+          return;
+        }
+        onPlayRef.current?.();
+      };
       const handlePause = () => { onPauseRef.current?.(); };
 
       video.addEventListener('timeupdate', handleTimeUpdate);
@@ -343,8 +384,9 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     }, [derivedSubtitleUrl, externalCaptionsUrl]);
 
     return (
+      <div className={`relative w-full h-full ${className ?? ''}`}>
       <MediaController
-        className={`relative w-full h-full bg-black ${className ?? ''}`}
+        className="relative w-full h-full bg-black"
         gesturesDisabled={coarsePointer || undefined}
       >
         <video
@@ -427,6 +469,21 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           <MediaFullscreenButton />
         </MediaControlBar>
       </MediaController>
+
+      {/* Overlay de fim de prévia: cobre player e controles. CTA de compra
+          é a leva do webhook/checkout — aqui é só a oferta. */}
+      {previewEnded && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/90 px-6 text-center">
+          <Lock className="size-8 text-white/80" strokeWidth={1.5} />
+          <p className="text-white text-base font-semibold">Prévia encerrada</p>
+          <p className="text-white/70 text-sm max-w-sm leading-relaxed">
+            {offerTitle
+              ? `Esta aula faz parte de "${offerTitle}". Adquira o acesso para continuar assistindo.`
+              : 'Adquira o acesso para continuar assistindo esta aula.'}
+          </p>
+        </div>
+      )}
+      </div>
     );
   }
 );
