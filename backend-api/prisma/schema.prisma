@@ -27,6 +27,7 @@ model User {
 
   auditLogs              AuditLog[]
   chatConversations      ChatConversation[]
+  entitlements           Entitlement[]
   coursesInstructor      Course[]                @relation("InstructorCourses")
   enrollments            Enrollment[]
   forumReplies           ForumReply[]
@@ -187,6 +188,7 @@ model Video {
   progress        Progress[]
   summaries       VideoSummary[]
   summaryQuotas   VideoSummaryGenerationQuota[]
+  showcases       ShowcaseVideo[]
   transcript      VideoTranscript?
   module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
@@ -811,6 +813,99 @@ model AuditLog {
   @@index([entityType, entityId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+/// Vitrine = recorte comercial do catálogo (um produto do professor).
+/// Coleção curada de vídeos, montada pelo admin: lista EXPLÍCITA, nunca
+/// regra de inclusão dinâmica — "por que esse aluno vê isso?" tem que ter
+/// resposta com um SELECT. O atalho de UI "adicionar módulo inteiro"
+/// materializa as linhas no clique.
+model Showcase {
+  id                String    @id @default(uuid())
+  title             String
+  slug              String    @unique
+  description       String?
+  thumbnail         String?
+  isPublished       Boolean   @default(false)
+  position          Int       @default(0)
+  /// product.id do TheMembers. Nullable: vitrine e produto nascem em
+  /// momentos diferentes; sem vínculo ela só serve a cortesia/migração.
+  externalProductId String?   @unique
+  /// Libera TODO o catálogo, inclusive aula publicada depois. É como a
+  /// pós-graduação é modelada sem materializar 1.394 linhas.
+  grantsAllContent  Boolean   @default(false)
+  /// Override do default global de preview (segundos).
+  previewSeconds    Int?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  videos            ShowcaseVideo[]
+  entitlements      Entitlement[]
+
+  @@index([deletedAt])
+  @@map("showcases")
+}
+
+model ShowcaseVideo {
+  showcaseId String
+  videoId    String
+  addedAt    DateTime @default(now())
+
+  showcase   Showcase @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([showcaseId, videoId])
+  @@index([videoId])
+  @@map("showcase_videos")
+}
+
+/// Direito de acesso. Separado de Enrollment de propósito: Enrollment é
+/// telemetria ("começou a assistir") e continua sendo criado sozinho;
+/// Entitlement é "tem direito". Recompra reaproveita a linha (unique
+/// userId+showcaseId) — o histórico completo vive em WebhookEvent.
+model Entitlement {
+  id              String            @id @default(uuid())
+  userId          String
+  showcaseId      String
+  grantedAt       DateTime          @default(now())
+  /// null = vitalício
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revokedReason   String?
+  source          EntitlementSource
+  /// order.id que gerou o direito
+  externalOrderId String?
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showcase        Showcase @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, showcaseId])
+  @@index([userId, revokedAt, expiresAt])
+  @@map("entitlements")
+}
+
+enum EntitlementSource {
+  PURCHASE
+  GRANDFATHER
+  COURTESY
+  ADMIN
+}
+
+/// Log bruto dos webhooks de checkout. `externalId` é a chave de
+/// idempotência (payload.id): reenvio colide no unique e vira no-op.
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  externalId  String    @unique
+  provider    String
+  event       String
+  payload     Json
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  error       String?
+
+  @@index([provider, event, receivedAt])
+  @@map("webhook_events")
 }
 
 model question_bank_items {
