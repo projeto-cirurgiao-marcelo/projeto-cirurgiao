@@ -372,7 +372,10 @@ export class ShowcasesService {
       where: {
         deletedAt: null,
         isPublished: true,
-        showcases: { none: {} },
+        // "Sem vitrine que conte" — linha materializada numa vitrine
+        // grantsAllContent não é cobertura (none:{} contaria e esconderia
+        // a aula do painel).
+        showcases: { none: { showcase: { grantsAllContent: false } } },
         ...(courseId ? { module: { courseId } } : {}),
       },
       orderBy: [{ module: { course: { title: 'asc' } } }, { title: 'asc' }],
