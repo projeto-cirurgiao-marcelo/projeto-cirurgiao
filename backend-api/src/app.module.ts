@@ -36,6 +36,7 @@ import { AiLibraryModule } from './modules/ai-library/ai-library.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { MediaFoldersModule } from './modules/media-folders/media-folders.module';
+import { ShowcasesModule } from './modules/showcases/showcases.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -101,6 +102,7 @@ import { HealthController } from './modules/health/health.controller';
     JobsModule,
     AdminDashboardModule,
     MediaFoldersModule,
+    ShowcasesModule,
   ],
   controllers: [HealthController],
   providers: [

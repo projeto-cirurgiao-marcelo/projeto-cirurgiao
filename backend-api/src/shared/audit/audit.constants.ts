@@ -18,8 +18,16 @@ export const AUDIT_ACTIONS = {
   USER_SOFT_DELETE: 'user.soft_delete',
   USER_RESTORE: 'user.restore',
   USER_ROLE_CHANGED: 'user.role_changed',
+
+  SHOWCASE_ARCHIVE: 'showcase.archive',
+  SHOWCASE_RESTORE: 'showcase.restore',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
-export type AuditEntityType = 'courses' | 'modules' | 'videos' | 'users';
+export type AuditEntityType =
+  | 'courses'
+  | 'modules'
+  | 'videos'
+  | 'users'
+  | 'showcases';
