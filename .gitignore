@@ -226,6 +226,7 @@ backend-api/scripts/*.ts
 !backend-api/scripts/set-hls-urls.ts
 !backend-api/scripts/backfill-embeddings.ts
 !backend-api/scripts/backfill-firebase-uid.ts
+!backend-api/scripts/grandfather-entitlements.ts
 
 # Large data exports (GitHub file limit 100MB)
 *.csv
