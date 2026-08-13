@@ -9,6 +9,13 @@ import type { NextConfig } from "next";
  * por compatibilidade com Next (hydration/styled-jsx) e libs — APERTAR em rodada
  * futura (nonces). Ver frontend-web/docs/DEPLOY.md §7.
  */
+// Em dev o backend roda em http://localhost:3000 — outra origem, em http.
+// Sem esta exceção o `connect-src 'self' https:' bloqueia TODA chamada à API
+// local (login, admin, gamification) e o `npm run dev` fica inutilizável.
+// Produção não é afetada: a allowlist abaixo continua idêntica.
+const devConnectSrc =
+  process.env.NODE_ENV === 'production' ? '' : ' http://localhost:* ws://localhost:*';
+
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
@@ -16,7 +23,7 @@ const csp = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
   "media-src 'self' blob: https:",
-  "connect-src 'self' https: wss:",
+  `connect-src 'self' https: wss:${devConnectSrc}`,
   "frame-src 'self' https://iframe.videodelivery.net https://*.cloudflarestream.com https://www.youtube.com https://player.vimeo.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
