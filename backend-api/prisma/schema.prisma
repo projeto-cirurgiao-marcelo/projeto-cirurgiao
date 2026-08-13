@@ -12,6 +12,9 @@ datasource db {
 model User {
   id              String    @id @default(uuid())
   email           String    @unique
+  // Identidade canônica no Firebase Auth. Nullable enquanto existir User
+  // sem conta Firebase correspondente (ver scripts/backfill-firebase-uid.ts).
+  firebaseUid     String?   @unique
   password        String
   name            String
   role            Role      @default(STUDENT)

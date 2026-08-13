@@ -81,10 +81,13 @@ function nameFromEmail(email: string): string {
     .join(' ');
 }
 
-async function ensureFirebaseUser(email: string, name: string): Promise<string> {
+async function ensureFirebaseUser(
+  email: string,
+  name: string,
+): Promise<{ uid: string; status: string }> {
   try {
     const existing = await admin.auth().getUserByEmail(email);
-    return `já existia (uid ${existing.uid.slice(0, 8)}…)`;
+    return { uid: existing.uid, status: `já existia (uid ${existing.uid.slice(0, 8)}…)` };
   } catch {
     const created = await admin.auth().createUser({
       email,
@@ -92,13 +95,23 @@ async function ensureFirebaseUser(email: string, name: string): Promise<string> 
       // Senha descartável — o aluno define a dele pelo link do e-mail.
       password: crypto.randomBytes(24).toString('base64url'),
     });
-    return `criado (uid ${created.uid.slice(0, 8)}…)`;
+    return { uid: created.uid, status: `criado (uid ${created.uid.slice(0, 8)}…)` };
   }
 }
 
-async function ensurePostgresUser(email: string, name: string): Promise<string> {
+async function ensurePostgresUser(
+  email: string,
+  name: string,
+  firebaseUid: string,
+): Promise<string> {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
+    // O guard resolve identidade por firebaseUid; sem ele o aluno depende do
+    // fallback por e-mail verificado, que o resgate de convite não produz.
+    if (!existing.firebaseUid) {
+      await prisma.user.update({ where: { id: existing.id }, data: { firebaseUid } });
+      return `já existia (${existing.role}${existing.isActive ? '' : ', INATIVO'}) — firebaseUid gravado`;
+    }
     return `já existia (${existing.role}${existing.isActive ? '' : ', INATIVO'})`;
   }
   await prisma.user.create({
@@ -108,6 +121,7 @@ async function ensurePostgresUser(email: string, name: string): Promise<string> 
       password: '', // Firebase gerencia a senha
       role: 'STUDENT',
       isActive: true,
+      firebaseUid,
     },
   });
   return 'criado (STUDENT)';
@@ -167,7 +181,7 @@ async function main() {
     const name = nameFromEmail(email);
     try {
       const fb = await ensureFirebaseUser(email, name);
-      const pg = await ensurePostgresUser(email, name);
+      const pg = await ensurePostgresUser(email, name, fb.uid);
       let invite = '';
       if (SEND_INVITES) {
         await sendPasswordSetupEmail(email);
@@ -176,7 +190,7 @@ async function main() {
       if (PRINT_LINKS) {
         links.push({ email, link: await generateInviteLink(email) });
       }
-      console.log(`✅ ${email} — firebase: ${fb} | postgres: ${pg}${invite}`);
+      console.log(`✅ ${email} — firebase: ${fb.status} | postgres: ${pg}${invite}`);
     } catch (err) {
       failures += 1;
       console.error(`❌ ${email} — ${err instanceof Error ? err.message : err}`);

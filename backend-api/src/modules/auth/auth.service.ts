@@ -10,6 +10,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { Role } from '@prisma/client';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
+import { resolveFirebaseUser } from '../firebase/resolve-firebase-user';
 
 @Injectable()
 export class AuthService {
@@ -193,10 +194,9 @@ export class AuthService {
 
     this.logger.log(`Token Firebase válido para: ${decodedToken.email}`);
 
-    // Busca o usuário no PostgreSQL
-    let user = await this.prisma.user.findUnique({
-      where: { email: decodedToken.email },
-    });
+    // Busca o usuário no PostgreSQL por firebaseUid (identidade canônica),
+    // com fallback por e-mail verificado enquanto durar o backfill.
+    const user = await resolveFirebaseUser(this.prisma, decodedToken, this.logger);
 
     // Acesso por convite: contas são pré-criadas (secureRegister / script
     // create-test-students). Token Firebase válido sem User no Postgres NÃO
@@ -268,6 +268,7 @@ export class AuthService {
         password: '', // Firebase gerencia a senha
         name: registerDto.name,
         role: Role.STUDENT,
+        firebaseUid: firebaseUser.uid,
       },
     });
 
@@ -335,9 +336,12 @@ export class AuthService {
     // login); só então o convite é marcado como usado. Se o updateUser
     // lançar, o token continua válido pra nova tentativa.
     await this.firebaseAdmin.updateUserPassword(firebaseUser.uid, newPassword);
+    // Grava o firebaseUid aqui: definir senha pelo Admin SDK não marca
+    // email_verified, então sem o UID o aluno cairia no fallback e seria
+    // barrado no primeiro login.
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { password: `invite-redeemed:${Date.now()}` },
+      data: { password: `invite-redeemed:${Date.now()}`, firebaseUid: firebaseUser.uid },
     });
 
     this.logger.log(`Convite resgatado: ${user.email}`);

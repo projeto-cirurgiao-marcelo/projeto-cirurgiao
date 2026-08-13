@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { FirebaseAdminService } from '../firebase-admin.service';
+import { resolveFirebaseUser } from '../resolve-firebase-user';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 
 @Injectable()
@@ -39,18 +40,10 @@ export class FirebaseAuthGuard implements CanActivate {
         throw new UnauthorizedException('Token Firebase inválido');
       }
 
-      // Busca o usuário no banco de dados local. Acesso por convite:
-      // token Firebase válido sem User no Postgres NÃO auto-cria conta
-      // (mesma regra do firebaseLogin em auth.service.ts).
-      const user = await this.prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: decodedToken.email },
-            // Se quiser vincular pelo Firebase UID no futuro:
-            // { firebaseUid: decodedToken.uid }
-          ],
-        },
-      });
+      // Busca o usuário no banco de dados local por firebaseUid, com fallback
+      // por e-mail verificado. Acesso por convite: token Firebase válido sem
+      // User no Postgres NÃO auto-cria conta (mesma regra do firebaseLogin).
+      const user = await resolveFirebaseUser(this.prisma, decodedToken, this.logger);
 
       if (!user) {
         throw new UnauthorizedException('Usuário não encontrado');
