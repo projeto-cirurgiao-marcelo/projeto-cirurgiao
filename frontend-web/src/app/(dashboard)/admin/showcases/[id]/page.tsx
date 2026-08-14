@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { showcasesService } from '@/lib/api/showcases.service';
+import { ThumbnailUpload } from '@/components/admin/thumbnail-upload';
 import type { ShowcaseDetail } from '@/lib/types/showcase.types';
 import { AddVideosDialog } from '../_components/add-videos-dialog';
 import { AddModuleDialog } from '../_components/add-module-dialog';
@@ -53,6 +54,7 @@ export default function ShowcaseDetailPage() {
   const [form, setForm] = useState({
     title: '',
     description: '',
+    thumbnail: '',
     externalProductId: '',
     previewSeconds: '',
     grantsAllContent: false,
@@ -70,6 +72,7 @@ export default function ShowcaseDetailPage() {
       setForm({
         title: data.title,
         description: data.description ?? '',
+        thumbnail: data.thumbnail ?? '',
         externalProductId: data.externalProductId ?? '',
         previewSeconds: data.previewSeconds?.toString() ?? '',
         grantsAllContent: data.grantsAllContent,
@@ -94,6 +97,7 @@ export default function ShowcaseDetailPage() {
       await showcasesService.update(showcaseId, {
         title: form.title.trim(),
         description: form.description.trim(),
+        thumbnail: form.thumbnail,
         externalProductId: form.externalProductId.trim(),
         previewSeconds: form.previewSeconds ? Number(form.previewSeconds) : undefined,
         grantsAllContent: form.grantsAllContent,
@@ -198,6 +202,20 @@ export default function ShowcaseDetailPage() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={3}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Capa</Label>
+            <ThumbnailUpload
+              value={form.thumbnail}
+              onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))}
+              aspectRatio="horizontal"
+              label="Capa da vitrine"
+            />
+            <p className="text-xs text-muted-foreground">
+              Sem capa própria, o card do aluno usa a arte do módulo da
+              primeira aula da vitrine.
+            </p>
           </div>
 
           <div className="space-y-1.5">
