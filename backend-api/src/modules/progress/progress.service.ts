@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
+import { AccessService } from '../showcases/access.service';
 import { SaveProgressDto, UpdateProgressDto } from './dto/save-progress.dto';
 import { Progress } from '@prisma/client';
+
+/** Shape do req.user montado pelo FirebaseAuthGuard. */
+export interface ProgressActor {
+  userId: string;
+  role: string;
+}
 
 // Interface para resposta de progresso do curso
 export interface CourseProgressResponse {
@@ -36,13 +43,28 @@ export class ProgressService {
   constructor(
     private prisma: PrismaService,
     private gamificationService: GamificationService,
+    private accessService: AccessService,
   ) {}
+
+  /**
+   * Preview NÃO é progresso: sem acesso à aula, salvar aqui criava
+   * Enrollment/Progress de curso não comprado ("Meus cursos" enchia de
+   * preview). A checagem do cliente é conveniência — esta é a que vale,
+   * porque mobile antigo em campo continua mandando.
+   */
+  private async assertVideoAccess(actor: ProgressActor, videoId: string): Promise<void> {
+    const access = await this.accessService.getAccess(actor);
+    if (!this.accessService.hasAccess(access, videoId)) {
+      throw new ForbiddenException('Sem acesso a esta aula');
+    }
+  }
 
   /**
    * Salvar ou atualizar progresso de um vídeo
    * Também cria matrícula automaticamente se não existir
    */
-  async saveProgress(userId: string, saveProgressDto: SaveProgressDto): Promise<Progress> {
+  async saveProgress(actor: ProgressActor, saveProgressDto: SaveProgressDto): Promise<Progress> {
+    const userId = actor.userId;
     try {
       const { videoId, watchTime, completed, videoDuration } = saveProgressDto;
 
@@ -61,6 +83,8 @@ export class ProgressService {
       if (!video) {
         throw new NotFoundException('Vídeo não encontrado');
       }
+
+      await this.assertVideoAccess(actor, videoId);
 
       // Atualizar duração do vídeo se reportada pelo player e ainda não definida
       if (videoDuration && videoDuration > 0 && (!video.duration || video.duration === 0)) {
@@ -375,10 +399,11 @@ export class ProgressService {
   /**
    * Marcar vídeo como completo
    */
-  async markAsCompleted(userId: string, videoId: string): Promise<Progress> {
+  async markAsCompleted(actor: ProgressActor, videoId: string): Promise<Progress> {
+    const userId = actor.userId;
     try {
       this.logger.log(`markAsCompleted called - userId: ${userId}, videoId: ${videoId}`);
-      
+
       // Validar parâmetros
       if (!userId) {
         throw new Error('userId é obrigatório');
@@ -403,6 +428,8 @@ export class ProgressService {
       if (!video) {
         throw new NotFoundException('Vídeo não encontrado');
       }
+
+      await this.assertVideoAccess(actor, videoId);
 
       // Criar matrícula automaticamente se não existir
       const courseId = video.module.courseId;

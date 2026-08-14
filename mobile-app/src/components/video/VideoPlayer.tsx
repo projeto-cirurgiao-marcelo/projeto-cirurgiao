@@ -331,6 +331,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
 
   // Função para salvar progresso
   const saveProgress = useCallback(async (forceCompleted = false) => {
+    // Preview (previewSeconds só vem quando hasAccess === false) não reporta
+    // progresso — salvar criava Enrollment de curso não comprado. O backend
+    // também recusa; aqui só evitamos a chamada.
+    if (previewSeconds !== undefined) return;
     const currentTime = currentTimeRef.current;
 
     if (!forceCompleted && Math.abs(currentTime - lastSavedTimeRef.current) < MIN_PROGRESS_DIFF) {
@@ -347,7 +351,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     } catch (error) {
       logger.error('[VideoPlayer] Erro ao salvar progresso:', error);
     }
-  }, [video.id]);
+  }, [video.id, previewSeconds]);
 
   // Restaurar posição inicial
   useEffect(() => {
@@ -371,6 +375,8 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
 
   // Marca o vídeo como concluído
   const markAsCompleted = useCallback(async () => {
+    // Preview nunca conclui aula (e concluir criava Enrollment indevido)
+    if (previewSeconds !== undefined) return;
     if (hasMarkedCompleted.current) return;
     hasMarkedCompleted.current = true;
     try {
@@ -383,7 +389,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     if (onEnded) {
       onEnded();
     }
-  }, [video.id, saveProgress, onEnded]);
+  }, [video.id, saveProgress, onEnded, previewSeconds]);
 
   // Polling para atualização de tempo + detecção de conclusão
   useEffect(() => {

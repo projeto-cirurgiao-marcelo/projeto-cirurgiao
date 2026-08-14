@@ -8,7 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ProgressService } from './progress.service';
+import { ProgressService, ProgressActor } from './progress.service';
 import { SaveProgressDto } from './dto/save-progress.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -25,10 +25,10 @@ export class ProgressController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async saveProgress(
-    @GetUser('id') userId: string,
+    @GetUser() user: ProgressActor,
     @Body() saveProgressDto: SaveProgressDto,
   ) {
-    return this.progressService.saveProgress(userId, saveProgressDto);
+    return this.progressService.saveProgress(user, saveProgressDto);
   }
 
   /**
@@ -63,10 +63,10 @@ export class ProgressController {
   @Post('video/:videoId/complete')
   @HttpCode(HttpStatus.OK)
   async markAsCompleted(
-    @GetUser('id') userId: string,
+    @GetUser() user: ProgressActor,
     @Param('videoId') videoId: string,
   ) {
-    return this.progressService.markAsCompleted(userId, videoId);
+    return this.progressService.markAsCompleted(user, videoId);
   }
 
   /**

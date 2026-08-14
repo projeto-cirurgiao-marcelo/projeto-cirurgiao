@@ -72,6 +72,11 @@ export default function VideoPlayerPage() {
   const hlsPlayerRef = useRef<HlsPlayerRef>(null);
   const hasRestoredPosition = useRef(false);
   const playerDurationRef = useRef(0);
+  // Preview (hasAccess === false) não reporta progresso — o backend recusa,
+  // mas nem vale gastar a chamada: salvar preview criava Enrollment de curso
+  // não comprado. Ref porque os saves rodam em closures antigas (interval,
+  // beforeunload, cleanup do effect).
+  const hasAccessRef = useRef(true);
 
   // Blob URL das legendas quando o backend envia playback.captionsUrl separado
   const [captionsBlobUrl, setCaptionsBlobUrl] = useState<string | null>(null);
@@ -102,6 +107,7 @@ export default function VideoPlayerPage() {
   };
 
   const saveProgressOnExit = useCallback(async () => {
+    if (!hasAccessRef.current) return;
     const timeToSave = currentWatchTimeRef.current;
     logger.log('[Progress] saveProgressOnExit - timeToSave:', timeToSave, 'lastSaved:', lastSavedTimeRef.current);
     if (timeToSave > lastSavedTimeRef.current) {
@@ -147,6 +153,7 @@ export default function VideoPlayerPage() {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (!hasAccessRef.current) return;
       const timeToSave = currentWatchTimeRef.current;
       const lastSaved = lastSavedTimeRef.current;
       logger.log('[Progress] beforeunload - timeToSave:', timeToSave, 'lastSaved:', lastSaved);
@@ -244,6 +251,8 @@ export default function VideoPlayerPage() {
         return;
       }
 
+      hasAccessRef.current = videoData.hasAccess !== false;
+
       const streamInfo = videosService.getStreamDataFromVideo(videoData);
 
       if (progressData) {
@@ -284,6 +293,7 @@ export default function VideoPlayerPage() {
     logger.log('[AutoSave] Iniciando auto-save a cada 10 segundos');
 
     saveIntervalRef.current = setInterval(async () => {
+      if (!hasAccessRef.current) return;
       const currentTime = currentWatchTimeRef.current;
       const lastSaved = lastSavedTimeRef.current;
       logger.log('[AutoSave] Verificando... currentTime:', Math.floor(currentTime), 'lastSaved:', Math.floor(lastSaved));
@@ -313,6 +323,7 @@ export default function VideoPlayerPage() {
   }, [currentWatchTime]);
 
   const handleVideoEnded = useCallback(async () => {
+    if (!hasAccessRef.current) return;
     try {
       setSavingProgress(true);
       await progressService.markAsCompleted(videoId);
@@ -369,6 +380,7 @@ export default function VideoPlayerPage() {
   }, [currentVideo?.playback?.captionsUrl, currentVideo?.playback?.kind, currentVideo?.playback?.captionsEmbedded]);
 
   const handleMarkAsComplete = async () => {
+    if (!hasAccessRef.current) return;
     try {
       setSavingProgress(true);
       if (isCompleted) {
