@@ -17,6 +17,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { coursesService } from '../../src/services/api/courses.service';
 import { progressService } from '../../src/services/api/progress.service';
+import { showcasesService, type MyShowcases } from '../../src/services/api/showcases.service';
+import { ShowcaseCard } from '../../src/components/course/ShowcaseCard';
 import { logger } from '../../src/lib/logger';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { CatalogCourseCard } from '../../src/components/course/CatalogCourseCard';
@@ -54,6 +56,9 @@ function getProgress(course: AnyCourse): number {
 export default function CatalogScreen() {
   const router = useRouter();
   const [allCourses, setAllCourses] = useState<AnyCourse[]>([]);
+  // Vitrines com entitlement ativo — seção "Meus Cursos" acima do catálogo.
+  // grantsAllContent não vira card; sem entitlement, sem seção.
+  const [myShowcases, setMyShowcases] = useState<MyShowcases | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -62,10 +67,12 @@ export default function CatalogScreen() {
 
   const loadCourses = useCallback(async () => {
     try {
-      const [coursesData, enrolledData] = await Promise.all([
+      const [coursesData, enrolledData, mine] = await Promise.all([
         coursesService.findAll({ limit: 100 }),
         progressService.getEnrolledCourses(),
+        showcasesService.myShowcases().catch(() => null),
       ]);
+      setMyShowcases(mine);
 
       const courses = Array.isArray(coursesData) ? coursesData : coursesData.data;
       const enrolledMap = new Map(enrolledData.map((c) => [c.id, c]));
@@ -251,6 +258,18 @@ export default function CatalogScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
           }
+          ListHeaderComponent={
+            myShowcases && !myShowcases.grantsAllContent && myShowcases.showcases.length > 0 && !search ? (
+              <View style={styles.myShowcasesSection}>
+                <Text style={styles.myShowcasesTitle}>Meus Cursos</Text>
+                <View style={{ gap: 10 }}>
+                  {myShowcases.showcases.map((s) => (
+                    <ShowcaseCard key={s.id} showcase={s} />
+                  ))}
+                </View>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <CatalogCourseCard
               course={item}
@@ -319,6 +338,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingHorizontal: 16, paddingBottom: 40 },
+  myShowcasesSection: { marginBottom: 20 },
+  myShowcasesTitle: { fontSize: 15, fontWeight: '700', color: '#1E293B', marginBottom: 10 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: '#1E293B' },
   emptyText: { fontSize: 14, color: '#64748B', textAlign: 'center' },

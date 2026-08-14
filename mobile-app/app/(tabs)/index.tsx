@@ -23,6 +23,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { progressService } from '../../src/services/api/progress.service';
 import { coursesService } from '../../src/services/api/courses.service';
+import { showcasesService, type MyShowcases } from '../../src/services/api/showcases.service';
+import { ShowcaseCard } from '../../src/components/course/ShowcaseCard';
 import { logger } from '../../src/lib/logger';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ProgressCardSkeleton, CourseCardSkeleton } from '../../src/components/ui/Skeleton';
@@ -58,6 +60,9 @@ export default function HomeScreen() {
   const { unreadCount, startPolling, stopPolling } = useGamificationStore();
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+  // Vitrines com entitlement ativo ("o que é meu"). grantsAllContent não
+  // vira card — quem tem acesso total vê a home como sempre.
+  const [myShowcases, setMyShowcases] = useState<MyShowcases | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +77,8 @@ export default function HomeScreen() {
       // A API pode retornar PaginatedResponse ou array direto
       const courses = Array.isArray(catalog) ? catalog : (catalog.data || []);
       setAvailableCourses(courses);
+
+      setMyShowcases(await showcasesService.myShowcases().catch(() => null));
     } catch (error) {
       logger.error('[HomeTab] Erro ao carregar cursos:', error);
     } finally {
@@ -431,7 +438,23 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* ============================================ */}
-        {/* MEUS CURSOS (cards full-width verticais)     */}
+        {/* MEUS CURSOS (vitrines com entitlement)       */}
+        {/* ============================================ */}
+        {myShowcases && !myShowcases.grantsAllContent && myShowcases.showcases.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Meus Cursos</Text>
+            </View>
+            <View style={styles.coursesList}>
+              {myShowcases.showcases.map((s) => (
+                <ShowcaseCard key={s.id} showcase={s} />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ============================================ */}
+        {/* CURSOS (cards full-width verticais)          */}
         {/* ============================================ */}
         {filteredCourses.length > 0 && (
           <View style={styles.section}>
