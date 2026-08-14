@@ -6,6 +6,8 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService } from '@/lib/api/progress.service';
+import { showcasesService } from '@/lib/api/showcases.service';
+import type { MyShowcase } from '@/lib/types/showcase.types';
 import { getCourseWeightedPercent } from '@/lib/course-progress';
 import { Library, Search, Filter, ArrowDownUp } from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
@@ -109,6 +111,9 @@ export default function CoursesPage() {
   const { isAdminViewingAsStudent } = useViewModeStore();
 
   const [allCourses, setAllCourses] = useState<CourseRow[]>([]);
+  // Vitrines com entitlement ativo. grantsAllContent não vira card (rótulo
+  // interno); sem entitlement específico a seção simplesmente não existe.
+  const [myShowcases, setMyShowcases] = useState<MyShowcase[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -132,10 +137,13 @@ export default function CoursesPage() {
 
   const loadCourses = async () => {
     try {
-      const [enrolledData, allCoursesData] = await Promise.all([
+      const [enrolledData, allCoursesData, mine] = await Promise.all([
         progressService.getEnrolledCourses().catch(() => []),
         coursesService.findAll({ page: 1, limit: 100 }),
+        showcasesService.myShowcases().catch(() => null),
       ]);
+
+      setMyShowcases(mine && !mine.grantsAllContent ? mine.showcases : []);
 
       const allCoursesArray = Array.isArray(allCoursesData)
         ? allCoursesData
@@ -333,6 +341,29 @@ export default function CoursesPage() {
       </AtlasPageHeader>
 
       <div className="px-5 sm:px-7 py-5 sm:py-6">
+        {myShowcases.length > 0 && (
+          <section className="mb-8">
+            <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink mb-[14px]">
+              Meus Cursos
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
+              {myShowcases.map((s) => (
+                <AtlasCourseCard
+                  key={s.id}
+                  href={`/student/showcases/${s.slug}`}
+                  title={s.title}
+                  category="Meu curso"
+                  lessonsCount={s.videoCount}
+                  status="new"
+                  progressPercent={0}
+                  thumbVariant={pickThumbVariant(s.id)}
+                  thumbImageUrl={s.thumbnail || undefined}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         <AtlasFiltersRow
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}

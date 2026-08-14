@@ -447,6 +447,125 @@ export class ShowcasesService {
     }));
   }
 
+  /**
+   * Vitrines do aluno — entitlement ativo (mesma regra do gate), excluindo
+   * grantsAllContent: "Acesso completo (legado)" é rótulo interno, não
+   * produto; quem o tem vê a plataforma como sempre, sem cards de vitrine.
+   * Vitrine arquivada continua aparecendo: arquivar tira do admin, não de
+   * quem pagou (mesma decisão do AccessService).
+   */
+  async listMine(userId: string) {
+    const ents = await this.prisma.entitlement.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      select: {
+        showcase: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            description: true,
+            thumbnail: true,
+            grantsAllContent: true,
+            position: true,
+            // Conta só o que o aluno de fato consegue assistir
+            _count: {
+              select: {
+                videos: { where: { video: { deletedAt: null, isPublished: true } } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const grantsAllContent = ents.some((e) => e.showcase.grantsAllContent);
+    const showcases = ents
+      .filter((e) => !e.showcase.grantsAllContent)
+      .sort(
+        (a, b) =>
+          a.showcase.position - b.showcase.position ||
+          a.showcase.title.localeCompare(b.showcase.title),
+      )
+      .map(({ showcase: s }) => ({
+        id: s.id,
+        title: s.title,
+        slug: s.slug,
+        description: s.description,
+        thumbnail: s.thumbnail,
+        videoCount: s._count.videos,
+      }));
+
+    return { grantsAllContent, showcases };
+  }
+
+  /**
+   * Aulas de uma vitrine do aluno. 404 tanto pra slug inexistente quanto pra
+   * vitrine sem entitlement ativo — não vazar o catálogo de produtos por URL.
+   */
+  async findMineBySlug(userId: string, slug: string) {
+    const ent = await this.prisma.entitlement.findFirst({
+      where: {
+        userId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        showcase: { slug, grantsAllContent: false },
+      },
+      select: {
+        showcase: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            description: true,
+            thumbnail: true,
+            videos: {
+              orderBy: { addedAt: 'asc' },
+              where: { video: { deletedAt: null, isPublished: true } },
+              select: {
+                video: {
+                  select: {
+                    id: true,
+                    title: true,
+                    duration: true,
+                    thumbnailUrl: true,
+                    module: {
+                      select: {
+                        id: true,
+                        title: true,
+                        course: { select: { id: true, title: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!ent) throw new NotFoundException('Vitrine não encontrada');
+
+    const { videos, ...rest } = ent.showcase;
+    return {
+      ...rest,
+      videos: videos.map(({ video: v }) => ({
+        id: v.id,
+        title: v.title,
+        duration: v.duration,
+        thumbnailUrl: v.thumbnailUrl,
+        moduleId: v.module.id,
+        moduleTitle: v.module.title,
+        courseId: v.module.course.id,
+        courseTitle: v.module.course.title,
+      })),
+    };
+  }
+
   private async assertExists(id: string) {
     const showcase = await this.prisma.showcase.findFirst({
       where: { id, deletedAt: null },

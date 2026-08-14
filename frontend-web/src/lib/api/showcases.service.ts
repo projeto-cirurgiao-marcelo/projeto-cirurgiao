@@ -5,6 +5,8 @@
 import { apiClient } from './client';
 import type {
   CourseTreeItem,
+  MyShowcaseDetail,
+  MyShowcases,
   OrphanVideo,
   Showcase,
   ShowcaseDetail,
@@ -13,6 +15,17 @@ import type {
 } from '@/lib/types/showcase.types';
 
 export const showcasesService = {
+  /** Lado do aluno: vitrines com entitlement ativo (sem exigir ADMIN). */
+  async myShowcases(): Promise<MyShowcases> {
+    const res = await apiClient.get<MyShowcases>('/showcases/mine');
+    return res.data;
+  },
+
+  async myShowcaseDetail(slug: string): Promise<MyShowcaseDetail> {
+    const res = await apiClient.get<MyShowcaseDetail>(`/showcases/mine/${slug}`);
+    return res.data;
+  },
+
   async list(includeArchived = false): Promise<Showcase[]> {
     const res = await apiClient.get<Showcase[]>('/admin/showcases', {
       params: includeArchived ? { includeArchived: 'true' } : undefined,

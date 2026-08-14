@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
+import { showcasesService } from '@/lib/api/showcases.service';
+import type { MyShowcases } from '@/lib/types/showcase.types';
 import { getCourseWeightedPercent } from '@/lib/course-progress';
 import {
   progressService,
@@ -105,6 +107,12 @@ export default function MyCoursesPage() {
 
   const [enrolled, setEnrolled] = useState<EnrolledCourseRow[]>([]);
   const [available, setAvailable] = useState<NewCourseRow[]>([]);
+  // "Meus cursos" = o que o aluno tem DIREITO, não o que começou a assistir
+  // (isso mora em "Em progresso"). Com grantsAllContent (grandfather/pós) o
+  // catálogo inteiro é dele e a home por áreas permanece; com entitlement de
+  // vitrine, a página lista as vitrines. null = ainda carregando/erro →
+  // comportamento antigo, pra não piscar tela errada.
+  const [mine, setMine] = useState<MyShowcases | null>(null);
   // Ordem oficial do catálogo (Course.position) — ordena os cards nas divisões
   const [catalogIds, setCatalogIds] = useState<string[]>([]);
   const [totalCatalog, setTotalCatalog] = useState(0);
@@ -126,10 +134,13 @@ export default function MyCoursesPage() {
 
   const loadCourses = async () => {
     try {
-      const [enrolledData, allCoursesData] = await Promise.all([
+      const [enrolledData, allCoursesData, mineData] = await Promise.all([
         progressService.getEnrolledCourses().catch(() => []),
         coursesService.findAll({ page: 1, limit: 100 }),
+        showcasesService.myShowcases().catch(() => null),
       ]);
+
+      setMine(mineData);
 
       const allCoursesArray: Course[] = Array.isArray(allCoursesData)
         ? (allCoursesData as Course[])
@@ -249,6 +260,48 @@ export default function MyCoursesPage() {
       <main className="px-7 py-7">
         <AtlasLoadingBar />
       </main>
+    );
+  }
+
+  // Comprador de vitrine: a página lista o que ele TEM, não o catálogo
+  if (!loading && mine !== null && !mine.grantsAllContent) {
+    const totalLessons = mine.showcases.reduce((sum, s) => sum + s.videoCount, 0);
+    return (
+      <>
+        <AtlasPageHeader metaLabel="Biblioteca" title="Meus" titleEm="cursos">
+          <AtlasStatsInline
+            stats={[
+              { value: String(mine.showcases.length), label: 'Cursos' },
+              { value: String(totalLessons), label: 'Aulas' },
+            ]}
+          />
+        </AtlasPageHeader>
+        <div className="px-5 sm:px-7 py-5 sm:py-6">
+          {mine.showcases.length === 0 ? (
+            <AtlasEmptyState
+              icon={BookOpen}
+              title="Você ainda não tem cursos"
+              description="Quando um curso for liberado para a sua conta, ele aparece aqui."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
+              {mine.showcases.map((s, i) => (
+                <AtlasCourseCard
+                  key={s.id}
+                  href={`/student/showcases/${s.slug}`}
+                  title={s.title}
+                  category="Meu curso"
+                  lessonsCount={s.videoCount}
+                  status="new"
+                  progressPercent={0}
+                  thumbVariant={THUMB_VARIANTS[i % THUMB_VARIANTS.length]}
+                  thumbImageUrl={s.thumbnail || undefined}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </>
     );
   }
 

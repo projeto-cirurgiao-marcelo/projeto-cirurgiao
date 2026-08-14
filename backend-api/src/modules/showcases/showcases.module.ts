@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ShowcasesController } from './showcases.controller';
+import { StudentShowcasesController } from './student-showcases.controller';
 import { ShowcasesService } from './showcases.service';
 import { AccessService } from './access.service';
 import { FirebaseModule } from '../firebase/firebase.module';
@@ -8,7 +9,7 @@ import { AuditModule } from '../../shared/audit/audit.module';
 
 @Module({
   imports: [FirebaseModule, PrismaModule, AuditModule],
-  controllers: [ShowcasesController],
+  controllers: [ShowcasesController, StudentShowcasesController],
   providers: [ShowcasesService, AccessService],
   exports: [ShowcasesService, AccessService],
 })

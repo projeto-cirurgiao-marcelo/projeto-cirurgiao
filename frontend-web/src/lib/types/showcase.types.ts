@@ -78,6 +78,37 @@ export interface CourseTreeItem {
   modules: CourseTreeModule[];
 }
 
+/** Lado do aluno — GET /showcases/mine */
+export interface MyShowcase {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnail: string | null;
+  videoCount: number;
+}
+
+export interface MyShowcases {
+  /** true = acesso total (grandfather/pós) — a UI não mostra cards de vitrine */
+  grantsAllContent: boolean;
+  showcases: MyShowcase[];
+}
+
+export interface MyShowcaseVideo {
+  id: string;
+  title: string;
+  duration: number;
+  thumbnailUrl: string | null;
+  moduleId: string;
+  moduleTitle: string;
+  courseId: string;
+  courseTitle: string;
+}
+
+export interface MyShowcaseDetail extends Omit<MyShowcase, 'videoCount'> {
+  videos: MyShowcaseVideo[];
+}
+
 export interface ShowcaseInput {
   title?: string;
   description?: string;
