@@ -483,6 +483,12 @@ export class ShowcasesService {
     });
 
     const grantsAllContent = ents.some((e) => e.showcase.grantsAllContent);
+
+    const needsFallback = ents
+      .filter((e) => !e.showcase.grantsAllContent && !e.showcase.thumbnail)
+      .map((e) => e.showcase.id);
+    const fallbacks = await this.resolveThumbnailFallbacks(needsFallback);
+
     const showcases = ents
       .filter((e) => !e.showcase.grantsAllContent)
       .sort(
@@ -495,11 +501,71 @@ export class ShowcasesService {
         title: s.title,
         slug: s.slug,
         description: s.description,
-        thumbnail: s.thumbnail,
+        thumbnail: s.thumbnail ?? fallbacks.get(s.id) ?? null,
         videoCount: s._count.videos,
       }));
 
     return { grantsAllContent, showcases };
+  }
+
+  /**
+   * Capa herdada: vitrine sem thumbnail própria usa a arte do módulo da
+   * PRIMEIRA aula (thumbnailHorizontal → thumbnailVertical → thumbnail).
+   * Se o módulo dessa aula não tem arte, o card fica sem imagem — não cai
+   * pra aula seguinte, senão a capa mudaria quando a curadoria mexesse
+   * numa aula do meio.
+   *
+   * "Primeira aula" = mesma ordem da listagem da vitrine (addedAt asc),
+   * com videoId como desempate: o atalho "adicionar módulo inteiro" grava
+   * todas as linhas com o MESMO addedAt (createMany num statement só), e
+   * sem desempate a capa poderia trocar entre dois carregamentos.
+   *
+   * Um lote só pra N vitrines — nunca uma query por vitrine.
+   */
+  private async resolveThumbnailFallbacks(
+    showcaseIds: string[],
+  ): Promise<Map<string, string>> {
+    const fallbacks = new Map<string, string>();
+    if (showcaseIds.length === 0) return fallbacks;
+
+    const rows = await this.prisma.showcaseVideo.findMany({
+      where: {
+        showcaseId: { in: showcaseIds },
+        video: { deletedAt: null, isPublished: true },
+      },
+      orderBy: [{ addedAt: 'asc' }, { videoId: 'asc' }],
+      select: {
+        showcaseId: true,
+        video: {
+          select: {
+            module: {
+              select: {
+                thumbnailHorizontal: true,
+                thumbnailVertical: true,
+                thumbnail: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const seen = new Set<string>();
+    for (const row of rows) {
+      if (seen.has(row.showcaseId)) continue;
+      seen.add(row.showcaseId);
+      const art = this.moduleArt(row.video.module);
+      if (art) fallbacks.set(row.showcaseId, art);
+    }
+    return fallbacks;
+  }
+
+  private moduleArt(module: {
+    thumbnailHorizontal: string | null;
+    thumbnailVertical: string | null;
+    thumbnail: string | null;
+  }): string | null {
+    return module.thumbnailHorizontal ?? module.thumbnailVertical ?? module.thumbnail;
   }
 
   /**
@@ -523,7 +589,9 @@ export class ShowcasesService {
             description: true,
             thumbnail: true,
             videos: {
-              orderBy: { addedAt: 'asc' },
+              // videoId desempata addedAt igual (createMany do atalho de
+              // módulo) — mesma ordem determinística do fallback de capa.
+              orderBy: [{ addedAt: 'asc' }, { videoId: 'asc' }],
               where: { video: { deletedAt: null, isPublished: true } },
               select: {
                 video: {
@@ -536,6 +604,9 @@ export class ShowcasesService {
                       select: {
                         id: true,
                         title: true,
+                        thumbnail: true,
+                        thumbnailVertical: true,
+                        thumbnailHorizontal: true,
                         course: { select: { id: true, title: true } },
                       },
                     },
@@ -551,8 +622,12 @@ export class ShowcasesService {
     if (!ent) throw new NotFoundException('Vitrine não encontrada');
 
     const { videos, ...rest } = ent.showcase;
+    // Mesma herança de capa da listagem — módulo da primeira aula.
+    const firstModule = videos[0]?.video.module;
     return {
       ...rest,
+      thumbnail:
+        rest.thumbnail ?? (firstModule ? this.moduleArt(firstModule) : null),
       videos: videos.map(({ video: v }) => ({
         id: v.id,
         title: v.title,

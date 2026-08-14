@@ -248,6 +248,173 @@ describe('ShowcasesService', () => {
   });
 
   // ============================================
+  // Capa herdada — fallback pro módulo da primeira aula
+  // ============================================
+  describe('listMine — thumbnail herdada', () => {
+    function makeEnt(showcase: Record<string, any>) {
+      return {
+        showcase: {
+          description: null,
+          thumbnail: null,
+          grantsAllContent: false,
+          position: 0,
+          _count: { videos: 5 },
+          ...showcase,
+        },
+      } as any;
+    }
+
+    function makeArtRow(showcaseId: string, module: Record<string, any>) {
+      return {
+        showcaseId,
+        video: {
+          module: {
+            thumbnailHorizontal: null,
+            thumbnailVertical: null,
+            thumbnail: null,
+            ...module,
+          },
+        },
+      } as any;
+    }
+
+    it('herda a arte do módulo da primeira aula, na cascata horizontal → vertical → thumbnail', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        makeEnt({ id: 's1', title: 'A', slug: 'a' }),
+        makeEnt({ id: 's2', title: 'B', slug: 'b' }),
+      ]);
+      prisma.showcaseVideo.findMany.mockResolvedValue([
+        makeArtRow('s1', { thumbnailHorizontal: 'h.png', thumbnailVertical: 'v.png' }),
+        makeArtRow('s2', { thumbnailVertical: 'v2.png', thumbnail: 't2.png' }),
+      ]);
+
+      const result = await service.listMine('user-1');
+
+      expect(result.showcases.find((s) => s.id === 's1')!.thumbnail).toBe('h.png');
+      expect(result.showcases.find((s) => s.id === 's2')!.thumbnail).toBe('v2.png');
+    });
+
+    it('resolve N vitrines num lote só — nunca uma query por vitrine', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        makeEnt({ id: 's1', title: 'A', slug: 'a' }),
+        makeEnt({ id: 's2', title: 'B', slug: 'b' }),
+        makeEnt({ id: 's3', title: 'C', slug: 'c', thumbnail: 'propria.png' }),
+      ]);
+      prisma.showcaseVideo.findMany.mockResolvedValue([]);
+
+      await service.listMine('user-1');
+
+      expect(prisma.showcaseVideo.findMany).toHaveBeenCalledTimes(1);
+      const args = prisma.showcaseVideo.findMany.mock.calls[0][0] as any;
+      // Só as sem capa própria entram no lote…
+      expect(args.where.showcaseId.in).toEqual(['s1', 's2']);
+      // …e a ordem é determinística: addedAt com videoId de desempate
+      // (createMany de módulo inteiro grava tudo com o mesmo addedAt).
+      expect(args.orderBy).toEqual([{ addedAt: 'asc' }, { videoId: 'asc' }]);
+    });
+
+    it('capa própria vence — vitrine com thumbnail nem entra no lote', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        makeEnt({ id: 's1', title: 'A', slug: 'a', thumbnail: 'propria.png' }),
+      ]);
+      prisma.showcaseVideo.findMany.mockResolvedValue([
+        makeArtRow('s1', { thumbnailHorizontal: 'modulo.png' }),
+      ]);
+
+      const result = await service.listMine('user-1');
+
+      expect(result.showcases[0].thumbnail).toBe('propria.png');
+      expect(prisma.showcaseVideo.findMany).not.toHaveBeenCalled();
+    });
+
+    it('primeira aula com módulo sem arte → sem imagem (NÃO cai pra aula seguinte)', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        makeEnt({ id: 's1', title: 'A', slug: 'a' }),
+      ]);
+      prisma.showcaseVideo.findMany.mockResolvedValue([
+        makeArtRow('s1', {}),
+        makeArtRow('s1', { thumbnailHorizontal: 'segunda-aula.png' }),
+      ]);
+
+      const result = await service.listMine('user-1');
+
+      // Se caísse pra segunda aula, a capa mudaria quando a curadoria
+      // mexesse numa aula do meio.
+      expect(result.showcases[0].thumbnail).toBeNull();
+    });
+
+    it('vitrine sem aula nenhuma não quebra — thumbnail null', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        makeEnt({ id: 's1', title: 'A', slug: 'a', _count: { videos: 0 } }),
+      ]);
+      prisma.showcaseVideo.findMany.mockResolvedValue([]);
+
+      const result = await service.listMine('user-1');
+
+      expect(result.showcases[0].thumbnail).toBeNull();
+    });
+  });
+
+  describe('findMineBySlug — thumbnail herdada', () => {
+    function makeDetailEnt(showcase: Record<string, any>) {
+      return {
+        showcase: {
+          id: 's1',
+          title: 'A',
+          slug: 'a',
+          description: null,
+          thumbnail: null,
+          videos: [],
+          ...showcase,
+        },
+      } as any;
+    }
+
+    const videoWithModuleArt = (module: Record<string, any>) => ({
+      video: {
+        id: 'v1',
+        title: 'Aula',
+        duration: 60,
+        thumbnailUrl: null,
+        module: {
+          id: 'm1',
+          title: 'Módulo',
+          thumbnail: null,
+          thumbnailVertical: null,
+          thumbnailHorizontal: null,
+          course: { id: 'c1', title: 'Curso' },
+          ...module,
+        },
+      },
+    });
+
+    it('herda do módulo da primeira aula quando não há capa própria', async () => {
+      prisma.entitlement.findFirst.mockResolvedValue(
+        makeDetailEnt({
+          videos: [videoWithModuleArt({ thumbnailHorizontal: 'modulo.png' })],
+        }),
+      );
+
+      const result = await service.findMineBySlug('user-1', 'a');
+
+      expect(result.thumbnail).toBe('modulo.png');
+    });
+
+    it('capa própria sobrescreve a herdada', async () => {
+      prisma.entitlement.findFirst.mockResolvedValue(
+        makeDetailEnt({
+          thumbnail: 'propria.png',
+          videos: [videoWithModuleArt({ thumbnailHorizontal: 'modulo.png' })],
+        }),
+      );
+
+      const result = await service.findMineBySlug('user-1', 'a');
+
+      expect(result.thumbnail).toBe('propria.png');
+    });
+  });
+
+  // ============================================
   // archive / restore — soft-delete preservando composição
   // ============================================
   describe('archive / restore', () => {
