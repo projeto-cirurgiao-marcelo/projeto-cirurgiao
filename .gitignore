@@ -227,6 +227,7 @@ backend-api/scripts/*.ts
 !backend-api/scripts/backfill-embeddings.ts
 !backend-api/scripts/backfill-firebase-uid.ts
 !backend-api/scripts/grandfather-entitlements.ts
+!backend-api/scripts/cleanup-preview-enrollments.ts
 
 # Large data exports (GitHub file limit 100MB)
 *.csv
