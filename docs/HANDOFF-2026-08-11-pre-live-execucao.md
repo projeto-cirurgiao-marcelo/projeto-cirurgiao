@@ -1,5 +1,10 @@
 # HANDOFF — 2026-08-06/11 · Review pré-live e execução dos findings
 
+> **⚠️ Este não é mais o documento de entrada.** O estado atual do projeto está
+> em **`docs/HANDOFF-2026-08-14-vitrines.md`**. Este handoff segue válido para
+> tudo que a rodada de vitrines não alterou — em especial os gotchas da §6 e as
+> pendências da §5.4 (M1–M10, menos A7 e M7, que foram fechados).
+
 > **Para quem pega o projeto daqui:** este é o documento de entrada. Ele descreve
 > **o estado atual verificado** (não o estado desejado), o que mudou dentro e
 > **fora** do repositório, e o que sobrou em aberto com localização exata.
