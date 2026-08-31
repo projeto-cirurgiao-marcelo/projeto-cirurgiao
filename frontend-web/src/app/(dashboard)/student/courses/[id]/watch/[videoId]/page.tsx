@@ -728,6 +728,7 @@ export default function VideoPlayerPage() {
                       : undefined
                   }
                   offerTitle={currentVideo.offerShowcase?.title}
+                  offerCheckoutUrl={currentVideo.offerShowcase?.checkoutUrl ?? undefined}
                 />
               ) : currentVideo.playback && currentVideo.playback.kind === 'iframe' && currentVideo.playback.playbackUrl && !currentVideo.playback.playbackUrl.includes('.m3u8') ? (
                 <iframe
@@ -768,6 +769,7 @@ export default function VideoPlayerPage() {
                       : undefined
                   }
                   offerTitle={currentVideo.offerShowcase?.title}
+                  offerCheckoutUrl={currentVideo.offerShowcase?.checkoutUrl ?? undefined}
                 />
               ) : streamData?.type === 'embed' && streamData.embedUrl ? (
                 <iframe

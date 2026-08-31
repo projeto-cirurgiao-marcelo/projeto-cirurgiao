@@ -94,6 +94,22 @@ export interface MyShowcases {
   showcases: MyShowcase[];
 }
 
+/** Upsell — GET /showcases/available (vitrines publicadas que o aluno NÃO possui) */
+export interface AvailableShowcase {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnail: string | null;
+  videoCount: number;
+  /** URL de checkout TheMembers derivada do produto; null se sem produto vinculado. */
+  checkoutUrl: string | null;
+}
+
+export interface AvailableShowcases {
+  showcases: AvailableShowcase[];
+}
+
 export interface MyShowcaseVideo {
   id: string;
   title: string;
