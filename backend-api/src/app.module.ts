@@ -37,6 +37,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { MediaFoldersModule } from './modules/media-folders/media-folders.module';
 import { ShowcasesModule } from './modules/showcases/showcases.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -103,6 +104,7 @@ import { HealthController } from './modules/health/health.controller';
     AdminDashboardModule,
     MediaFoldersModule,
     ShowcasesModule,
+    WebhooksModule,
   ],
   controllers: [HealthController],
   providers: [

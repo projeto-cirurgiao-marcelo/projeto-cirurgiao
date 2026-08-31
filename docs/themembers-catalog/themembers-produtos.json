@@ -1,0 +1,569 @@
+[
+  {
+    "name": "Aula Magna | Castração e Mastectomia",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Cirurgias do Sistema Urinário -  Upsell Tecidos Moles",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Cirurgias do Trato Gastrointestinal - Upsell Tecidos Moles",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Cirurgias Oftalmicas Básicas",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Combo | Projeto Cirurgião + Oncologia | Oferta Especial",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 1
+  },
+  {
+    "name": "Como Dominar Castração e Mastectomia de Forma Descomplicada",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Congresso Brasileiro do Projeto Cirurgião",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Curso Castração Descomplicada",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Curso Cistotomia Descomplicada",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "E-book Como vender os nossos serviços",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 1
+  },
+  {
+    "name": "Imersão Cirurgião de Referência",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 2
+  },
+  {
+    "name": "Imersão Presencial de Refinamento Cirurgico",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 2
+  },
+  {
+    "name": "Kit de Planejamento Cirúrgico",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 2
+  },
+  {
+    "name": "Kit de Precificação e Argumentação",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 2
+  },
+  {
+    "name": "Livro: Da Graduação ao Milhão",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 2
+  },
+  {
+    "name": "Neurocirurgias na Pratica",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 2
+  },
+  {
+    "name": "Ortopedia na Prática",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 2
+  },
+  {
+    "name": "Plataforma Projeto Cirurgião",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 2
+  },
+  {
+    "name": "Plataforma Projeto Cirurgião | Oferta Especial",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 3
+  },
+  {
+    "name": "Protocolo 72H | Workshop ao vivo de Enterotomia",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 3
+  },
+  {
+    "name": "Protocolo de Complicações",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "One-time Sale",
+    "page": 3
+  },
+  {
+    "name": "Tecidos Moles Na Prática",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 3
+  },
+  {
+    "name": "Top 10 Cirurgias de Rotina | Super Oferta",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 3
+  },
+  {
+    "name": "Treinamento Mastectomia Descomplicada",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 3
+  },
+  {
+    "name": "alunos faltantes",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 3
+  },
+  {
+    "name": "Aula Magma- Castração Descomplicada",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 3
+  },
+  {
+    "name": "Combo - Cursos de Aprofudamento",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 3
+  },
+  {
+    "name": "Como se Tornarum cirurgião Volante",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 3
+  },
+  {
+    "name": "Curso Cirurgia de Cabeça e Pescoço",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "Curso Cirurgia Reconstrutiva",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "Curso Cirurgias do Sistema Urinário - 1 ano",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "Curso Cirurgias do Trato Gastrointestinal",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "Curso Neurocirurgias na Prática",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "E-book Como se tornar um Cirurgião Volante",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "E-book Direcionamento para a Residência",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "OFERTA ESPECIAL",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 4
+  },
+  {
+    "name": "Plataforma Cirurgião de Valor",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "teste",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "Total",
+    "status": "Active",
+    "freq": "Sem expiração",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "Treinamento Ortopedia na Prática",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "Treinamento Ruptura Diafragmática Descomplicada",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "Treinamento Tecidos Moles na Prática",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "Treinamento Top 10 Cirurgias",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "Treinamento Uretrostomia Perineal em Felinos",
+    "status": "Active",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 5
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Belo Horizonte | Super Oferta | Sem Juros",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 5
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Brasília | Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Brasília | Super Oferta | Sem Juros",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Fortaleza | Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Natal | Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Porto Alegre | Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Recife | Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Recife | Super Oferta |",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - Recife | Super Oferta | Sem Juros",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - São José do Rio Preto | Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 6
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - São José do Rio Preto | Super Oferta | Sem Juros",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 7
+  },
+  {
+    "name": "Imersão Cirurgião de Referência - São José dos Campos - Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 7
+  },
+  {
+    "name": "Imersão Presencial - Cirurgião de Referência | Super Oferta",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 7
+  },
+  {
+    "name": "Ortopedia na Prática - Oferta Especial",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 7
+  },
+  {
+    "name": "Plataforma Projeto Cirurgião + Imersão Presencial",
+    "status": "Inactive",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 7
+  },
+  {
+    "name": "Plataforma Projeto Cirurgião | Oferta Especial | Mai26 - COM",
+    "status": "Inactive",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 7
+  },
+  {
+    "name": "Plataforma Projeto Cirurgião | Oferta Especial | Maio26 LOTE 01",
+    "status": "Inactive",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 7
+  },
+  {
+    "name": "Plataforma Projeto Cirurgião | Oferta Especial | Maio26 LOTE 03",
+    "status": "Inactive",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 7
+  },
+  {
+    "name": "Projeto Cirurgião -  Oferta Especial",
+    "status": "Inactive",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 7
+  },
+  {
+    "name": "Projeto Cirurgião | Renovações | Oferta Especial",
+    "status": "Inactive",
+    "freq": "Sem expiração",
+    "checkout": "Recurring",
+    "page": 7
+  },
+  {
+    "name": "Webnário | Olho Clinico",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 8
+  },
+  {
+    "name": "Acesso total",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 8
+  },
+  {
+    "name": "Beta app",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 8
+  },
+  {
+    "name": "Beta app correto",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 8
+  },
+  {
+    "name": "Castração Descomplicada - Gravado",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 8
+  },
+  {
+    "name": "Como se tornar um cirurgião volante",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 8
+  },
+  {
+    "name": "Completo",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "One-time Sale",
+    "page": 8
+  },
+  {
+    "name": "CPC - Comunidade Projeto Cirurgião (Formados)",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 9
+  },
+  {
+    "name": "CPC Estudantes - antigos",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 9
+  },
+  {
+    "name": "Curso app",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 9
+  },
+  {
+    "name": "Experiência",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 10
+  },
+  {
+    "name": "Experiência - João Pedro",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 10
+  },
+  {
+    "name": "Projeto Cirurgião de Valor",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 10
+  },
+  {
+    "name": "Tecidos moles na pratica",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 10
+  },
+  {
+    "name": "Teoria da Imersão Presencial",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 10
+  },
+  {
+    "name": "Teste completo",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 10
+  },
+  {
+    "name": "Upgrade Acesso Total",
+    "status": "",
+    "freq": "1 year",
+    "checkout": "",
+    "page": 11
+  }
+]

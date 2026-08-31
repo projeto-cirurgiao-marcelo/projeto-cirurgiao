@@ -1,7 +1,7 @@
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { json, urlencoded } from 'express';
+import { json, urlencoded, raw } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { loadSecretsIntoEnv } from './config/secrets';
@@ -48,6 +48,12 @@ async function bootstrap() {
   // CSP fica desligado fora de produção pra não quebrar a UI do Swagger (dev-only).
   // ponytail: CSP default só em prod; se precisar CSP na API em prod, ajustar as directives aqui.
   app.use(helmet(isProduction ? undefined : { contentSecurityPolicy: false }));
+
+  // Webhook TheMembers precisa do CORPO CRU para validar o HMAC X-Signature.
+  // Registrado ANTES do json parser e restrito ao path: o raw() marca req._body,
+  // então o json() abaixo o ignora para esta rota. O path inclui o global prefix
+  // (setGlobalPrefix afeta o router do Nest, não o middleware express).
+  app.use('/api/v1/webhooks/themembers', raw({ type: () => true, limit: '2mb' }));
 
   // Aumentar limite de tamanho do body para 50MB (para uploads grandes)
   app.use(json({ limit: '50mb' }));
