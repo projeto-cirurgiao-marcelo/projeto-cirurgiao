@@ -35,16 +35,22 @@ Código: `backend-api/src/modules/webhooks/`. Design de origem: `docs/plans/2026
 Assinatura inválida→403; release.access→200+Entitlement; reenvio→200 deduped;
 produto não mapeado→200+error registrado; revoke.access→200+revokedAt. Todos ✅.
 
-## Pendências para ativar em PRODUÇÃO
+## Status de ativação em PRODUÇÃO (31/08/2026) — ATIVO ✅
 
-1. **Secret:** gerar um `security_token` forte, gravar em Secret Manager como `THEMEMBERS_WEBHOOK_SECRET`
-   e referenciar no Cloud Run. (Local: já há um valor de teste no `.env`.)
-2. **`FIREBASE_API_KEY`** no ambiente do backend — necessário para `sendPasswordResetEmail`
-   (hoje AUSENTE no `.env`; é a mesma web key do frontend, `NEXT_PUBLIC_FIREBASE_API_KEY`).
-3. **Deploy** do backend (a mudança de `rawBody`/middleware está em `main.ts`).
-4. **Configurar o webhook no TheMembers:** Checkout › Ferramentas › Webhooks › +Novo Webhook →
-   URL `https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1/webhooks/themembers`,
-   eventos `release.access` + `revoke.access`, `security_token` = o secret do passo 1, todos os produtos.
-   (Já existem 4 webhooks apontando para n8n/Cademi — este é adicional, não os substitui.)
-5. **Completar `externalProductId`** das vitrines que ainda estão sem (ex.: "Como se tornar um
-   cirurgião volante") — senão a compra desses produtos cai na fila de erro. Ver `MIGRACAO-VITRINES.md`.
+1. ✅ **Secret** `THEMEMBERS_WEBHOOK_SECRET` no Secret Manager (v2 = token do webhook TheMembers),
+   acesso à SA `81746498042-compute@...`, montado no Cloud Run.
+2. ✅ **`FIREBASE_API_KEY`** adicionado ao env do Cloud Run.
+3. ✅ **Deploy** — revisão `projeto-cirurgiao-api-00110-g4m`. Código mergeado na `main` via PR #67 (rebase).
+4. ✅ **Webhook configurado no TheMembers**: "Plataforma Projeto Cirurgião" (id `7500243567910440960`),
+   URL de prod, eventos `release.access` + `revoke.access`, ativo. O `security_token` gerado pelo
+   TheMembers foi sincronizado com o secret do backend.
+   (Coexiste com os 4 webhooks de n8n/Cademi — não os substitui.)
+
+**Teste E2E em produção:** release.access → Entitlement criado; revoke.access → revogado. ✅
+
+## Pendências restantes
+
+- **Completar `externalProductId`** das vitrines sem vínculo (ex.: "Como se tornar um cirurgião
+  volante" — produto sem vendas, sem key numérica ainda). Compra desses cai na fila de erro
+  (`WebhookEvent.error`, `processedAt=null`) até o vínculo existir. Ver `MIGRACAO-VITRINES.md`.
+- **Fila de reprocesso no admin** (Gap: eventos com `error` não têm UI de reprocessamento ainda).
