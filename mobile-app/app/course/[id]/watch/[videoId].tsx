@@ -348,6 +348,7 @@ export default function WatchVideoScreen() {
               initialPosition={initialPosition}
               previewSeconds={video.hasAccess === false ? video.previewSeconds : undefined}
               offerTitle={video.offerShowcase?.title}
+              offerCheckoutUrl={video.offerShowcase?.checkoutUrl ?? undefined}
             />
           );
         }

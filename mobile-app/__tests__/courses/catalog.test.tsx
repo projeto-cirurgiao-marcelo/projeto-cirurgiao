@@ -53,6 +53,15 @@ jest.mock('../../src/services/api/progress.service', () => ({
   },
 }));
 
+// Sem mock, as chamadas de vitrines iriam pra rede real (sobrevivendo só
+// pelo .catch da tela) — mocka pra manter o teste determinístico.
+jest.mock('../../src/services/api/showcases.service', () => ({
+  showcasesService: {
+    myShowcases: jest.fn().mockResolvedValue({ grantsAllContent: false, showcases: [] }),
+    availableShowcases: jest.fn().mockResolvedValue({ showcases: [] }),
+  },
+}));
+
 describe('<CatalogScreen />', () => {
   it('renderiza dois cursos mockados apos load', async () => {
     const { findByText } = render(<CatalogScreen />);

@@ -19,6 +19,21 @@ export interface MyShowcases {
   showcases: MyShowcase[];
 }
 
+export interface AvailableShowcase {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnail: string | null;
+  videoCount: number;
+  /** URL de checkout TheMembers. null = produto ainda não vendável ("Em breve"). */
+  checkoutUrl: string | null;
+}
+
+export interface AvailableShowcases {
+  showcases: AvailableShowcase[];
+}
+
 export interface MyShowcaseVideo {
   id: string;
   title: string;
@@ -42,6 +57,16 @@ export const showcasesService = {
 
   async myShowcaseDetail(slug: string): Promise<MyShowcaseDetail> {
     const response = await apiClient.get<MyShowcaseDetail>(`/showcases/mine/${slug}`);
+    return response.data;
+  },
+
+  /**
+   * Vitrines publicadas que o aluno NÃO possui (superfície de upsell).
+   * Backend devolve lista vazia para admin/instrutor e para quem tem
+   * acesso total (grantsAllContent) — sem guard extra no cliente.
+   */
+  async availableShowcases(): Promise<AvailableShowcases> {
+    const response = await apiClient.get<AvailableShowcases>('/showcases/available');
     return response.data;
   },
 };

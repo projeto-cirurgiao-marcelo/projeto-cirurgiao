@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useState, useMemo } from 'react';
 import {
   StyleSheet, View, Text, AppState, AppStateStatus, TouchableOpacity,
-  Pressable, Platform,
+  Pressable, Platform, Linking, Alert,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { BlurView } from 'expo-blur';
@@ -40,6 +40,12 @@ interface VideoPlayerProps {
   previewSeconds?: number;
   /** Título da vitrine ofertada no overlay (offerShowcase.title). */
   offerTitle?: string;
+  /**
+   * URL de checkout da vitrine ofertada (offerShowcase.checkoutUrl) — vira o
+   * botão "Desbloquear acesso" no overlay de fim de prévia. Sem ela o overlay
+   * é só informativo (produto ainda não vendável).
+   */
+  offerCheckoutUrl?: string;
 }
 
 export interface VideoPlayerRef {
@@ -78,7 +84,7 @@ function formatTime(seconds: number): string {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
-  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle },
+  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle, offerCheckoutUrl },
   ref
 ) {
   const videoViewRef = useRef<VideoView>(null);
@@ -108,6 +114,22 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   // Preview: uma vez encerrada, o player trava (play bloqueado + overlay).
   const [previewEnded, setPreviewEnded] = useState(false);
   const previewEndedRef = useRef(false);
+
+  // CTA do overlay de prévia: abre o checkout TheMembers no navegador externo.
+  const handleOpenCheckout = useCallback(async () => {
+    if (!offerCheckoutUrl) return;
+    try {
+      const supported = await Linking.canOpenURL(offerCheckoutUrl);
+      if (supported) {
+        await Linking.openURL(offerCheckoutUrl);
+      } else {
+        Alert.alert('Erro', 'Não foi possível abrir a página de compra.');
+      }
+    } catch (err) {
+      logger.error('Erro ao abrir checkout:', err);
+      Alert.alert('Erro', 'Ocorreu um erro ao abrir a página de compra.');
+    }
+  }, [offerCheckoutUrl]);
 
   // Source com contentType explícito para HLS.
   // Prioridade: contrato backend playbackKind > regex .m3u8 (fallback defensivo
@@ -688,7 +710,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
         )}
 
         {/* Overlay de fim de prévia: cobre player e controles (zIndex acima
-            do overlay de controles). CTA de compra é a leva do checkout. */}
+            do overlay de controles). */}
         {previewEnded && (
           <View style={styles.previewEndedOverlay}>
             <Ionicons name="lock-closed" size={28} color="rgba(255,255,255,0.85)" />
@@ -698,6 +720,16 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
                 ? `Esta aula faz parte de "${offerTitle}". Adquira o acesso para continuar assistindo.`
                 : 'Adquira o acesso para continuar assistindo esta aula.'}
             </Text>
+            {offerCheckoutUrl && (
+              <TouchableOpacity
+                style={styles.previewCtaButton}
+                onPress={handleOpenCheckout}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.previewCtaText}>Desbloquear acesso</Text>
+                <Ionicons name="open-outline" size={14} color="#fff" />
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -978,6 +1010,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
     maxWidth: 300,
+  },
+  previewCtaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 22,
+    backgroundColor: '#4A6CF7', // Colors.accent
+  },
+  previewCtaText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   // Error
   errorContainer: {

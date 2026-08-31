@@ -87,7 +87,13 @@ export interface Video {
    */
   hasAccess?: boolean;
   previewSeconds?: number;
-  offerShowcase?: { id: string; title: string; slug: string } | null;
+  offerShowcase?: {
+    id: string;
+    title: string;
+    slug: string;
+    /** URL de checkout TheMembers. null = produto ainda não vendável. */
+    checkoutUrl?: string | null;
+  } | null;
 }
 
 export interface PaginatedResponse<T> {

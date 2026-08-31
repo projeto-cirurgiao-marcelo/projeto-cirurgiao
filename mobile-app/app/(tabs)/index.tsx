@@ -23,8 +23,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { progressService } from '../../src/services/api/progress.service';
 import { coursesService } from '../../src/services/api/courses.service';
-import { showcasesService, type MyShowcases } from '../../src/services/api/showcases.service';
+import {
+  showcasesService,
+  type MyShowcases,
+  type AvailableShowcases,
+} from '../../src/services/api/showcases.service';
 import { ShowcaseCard } from '../../src/components/course/ShowcaseCard';
+import { LockedShowcaseCard } from '../../src/components/course/LockedShowcaseCard';
 import { logger } from '../../src/lib/logger';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ProgressCardSkeleton, CourseCardSkeleton } from '../../src/components/ui/Skeleton';
@@ -63,6 +68,9 @@ export default function HomeScreen() {
   // Vitrines com entitlement ativo ("o que é meu"). grantsAllContent não
   // vira card — quem tem acesso total vê a home como sempre.
   const [myShowcases, setMyShowcases] = useState<MyShowcases | null>(null);
+  // Vitrines publicadas não-possuídas ("Continue evoluindo") — upsell.
+  // Backend já devolve vazio para admin/instrutor e acesso total.
+  const [availableShowcases, setAvailableShowcases] = useState<AvailableShowcases | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,7 +86,12 @@ export default function HomeScreen() {
       const courses = Array.isArray(catalog) ? catalog : (catalog.data || []);
       setAvailableCourses(courses);
 
-      setMyShowcases(await showcasesService.myShowcases().catch(() => null));
+      const [mine, available] = await Promise.all([
+        showcasesService.myShowcases().catch(() => null),
+        showcasesService.availableShowcases().catch(() => null),
+      ]);
+      setMyShowcases(mine);
+      setAvailableShowcases(available);
     } catch (error) {
       logger.error('[HomeTab] Erro ao carregar cursos:', error);
     } finally {
@@ -454,6 +467,25 @@ export default function HomeScreen() {
         )}
 
         {/* ============================================ */}
+        {/* CONTINUE EVOLUINDO (vitrines bloqueadas)     */}
+        {/* ============================================ */}
+        {availableShowcases && availableShowcases.showcases.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Continue evoluindo</Text>
+            </View>
+            <Text style={styles.sectionSubtitle}>
+              Áreas ainda bloqueadas — desbloqueie novos treinamentos.
+            </Text>
+            <View style={styles.coursesList}>
+              {availableShowcases.showcases.map((s) => (
+                <LockedShowcaseCard key={s.id} showcase={s} />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ============================================ */}
         {/* CURSOS (cards full-width verticais)          */}
         {/* ============================================ */}
         {filteredCourses.length > 0 && (
@@ -751,6 +783,12 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
     color: Colors.text,
+  },
+  sectionSubtitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    paddingHorizontal: Spacing['2xl'],
+    marginBottom: Spacing.md,
   },
   seeAllButton: {
     flexDirection: 'row',
