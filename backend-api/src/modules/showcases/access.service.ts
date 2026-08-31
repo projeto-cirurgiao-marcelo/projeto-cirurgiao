@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { checkoutUrlFor } from './checkout-url';
 
 /** Default global do preview quando a vitrine não define o dela. */
 export const DEFAULT_PREVIEW_SECONDS = 120;
@@ -16,6 +17,7 @@ export interface OfferShowcase {
   title: string;
   slug: string;
   previewSeconds: number | null;
+  externalProductId: string | null;
 }
 
 const EMPTY = new Set<string>();
@@ -88,7 +90,13 @@ export class AccessService {
       orderBy: { showcase: { position: 'asc' } },
       select: {
         showcase: {
-          select: { id: true, title: true, slug: true, previewSeconds: true },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            previewSeconds: true,
+            externalProductId: true,
+          },
         },
       },
     });
@@ -110,7 +118,12 @@ export class AccessService {
       hasAccess: false as const,
       previewSeconds: this.previewSecondsFor(video.duration, offer?.previewSeconds),
       offerShowcase: offer
-        ? { id: offer.id, title: offer.title, slug: offer.slug }
+        ? {
+            id: offer.id,
+            title: offer.title,
+            slug: offer.slug,
+            checkoutUrl: checkoutUrlFor(offer.externalProductId),
+          }
         : null,
     };
   }

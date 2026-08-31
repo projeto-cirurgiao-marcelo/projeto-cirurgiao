@@ -5,10 +5,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
+import { checkoutUrlFor } from './checkout-url';
 import {
   AddModuleVideosDto,
   AddVideosDto,
@@ -506,6 +507,76 @@ export class ShowcasesService {
       }));
 
     return { grantsAllContent, showcases };
+  }
+
+  /**
+   * Superfície de UPSELL/provocação: vitrines PUBLICADAS que o aluno ainda
+   * NÃO possui (sem entitlement ativo), para exibir com CTA de compra e
+   * promover LTV. Exclui `grantsAllContent` (não é card) e as já possuídas.
+   * ADMIN/INSTRUCTOR acessam tudo — para eles não há nada "a desbloquear".
+   *
+   * `checkoutUrl` é DERIVADA do externalProductId (o TheMembers provê o
+   * checkout em `checkout.thebank.com.br/{productId}`); vitrine sem produto
+   * vinculado vem com checkoutUrl null (card aparece, botão desabilitado).
+   */
+  async listAvailable(userId: string, role?: string) {
+    if (role === Role.ADMIN || role === Role.INSTRUCTOR) return { showcases: [] };
+
+    // Aluno com acesso total (grantsAllContent ativo) já tem tudo — sem upsell.
+    const hasAllAccess = await this.prisma.entitlement.findFirst({
+      where: {
+        userId,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        showcase: { grantsAllContent: true },
+      },
+      select: { id: true },
+    });
+    if (hasAllAccess) return { showcases: [] };
+
+    const showcases = await this.prisma.showcase.findMany({
+      where: {
+        isPublished: true,
+        deletedAt: null,
+        grantsAllContent: false,
+        entitlements: {
+          none: {
+            userId,
+            revokedAt: null,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          },
+        },
+      },
+      orderBy: [{ position: 'asc' }, { title: 'asc' }],
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        thumbnail: true,
+        externalProductId: true,
+        _count: {
+          select: {
+            videos: { where: { video: { deletedAt: null, isPublished: true } } },
+          },
+        },
+      },
+    });
+
+    const needsFallback = showcases.filter((s) => !s.thumbnail).map((s) => s.id);
+    const fallbacks = await this.resolveThumbnailFallbacks(needsFallback);
+
+    return {
+      showcases: showcases.map((s) => ({
+        id: s.id,
+        title: s.title,
+        slug: s.slug,
+        description: s.description,
+        thumbnail: s.thumbnail ?? fallbacks.get(s.id) ?? null,
+        videoCount: s._count.videos,
+        checkoutUrl: checkoutUrlFor(s.externalProductId),
+      })),
+    };
   }
 
   /**

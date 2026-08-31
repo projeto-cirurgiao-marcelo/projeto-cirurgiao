@@ -18,6 +18,12 @@ export class StudentShowcasesController {
     return this.service.listMine(userId);
   }
 
+  /** Upsell: vitrines publicadas que o aluno ainda NÃO possui (com CTA de compra). */
+  @Get('available')
+  available(@GetUser('id') userId: string, @GetUser('role') role: string) {
+    return this.service.listAvailable(userId, role);
+  }
+
   @Get('mine/:slug')
   detail(@GetUser('id') userId: string, @Param('slug') slug: string) {
     return this.service.findMineBySlug(userId, slug);

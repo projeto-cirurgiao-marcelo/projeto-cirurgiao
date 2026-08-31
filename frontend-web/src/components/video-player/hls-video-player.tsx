@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import Hls from 'hls.js';
-import { Lock, Settings } from 'lucide-react';
+import { ArrowUpRight, Lock, Settings } from 'lucide-react';
 import {
   MediaController,
   MediaControlBar,
@@ -83,6 +83,8 @@ interface HlsVideoPlayerProps {
   previewSeconds?: number;
   /** Título da vitrine ofertada no overlay (offerShowcase.title). */
   offerTitle?: string;
+  /** URL de checkout da vitrine ofertada — vira o botão "Desbloquear". */
+  offerCheckoutUrl?: string;
 }
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -105,6 +107,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       externalCaptionsLabel = 'Portugues',
       previewSeconds,
       offerTitle,
+      offerCheckoutUrl,
     },
     ref
   ) {
@@ -471,7 +474,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       </MediaController>
 
       {/* Overlay de fim de prévia: cobre player e controles. CTA de compra
-          é a leva do webhook/checkout — aqui é só a oferta. */}
+          abre o checkout TheMembers da vitrine ofertada (quando disponível). */}
       {previewEnded && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/90 px-6 text-center">
           <Lock className="size-8 text-white/80" strokeWidth={1.5} />
@@ -481,6 +484,17 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
               ? `Esta aula faz parte de "${offerTitle}". Adquira o acesso para continuar assistindo.`
               : 'Adquira o acesso para continuar assistindo esta aula.'}
           </p>
+          {offerCheckoutUrl && (
+            <a
+              href={offerCheckoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+            >
+              Desbloquear acesso
+              <ArrowUpRight className="size-4" strokeWidth={2} />
+            </a>
+          )}
         </div>
       )}
       </div>

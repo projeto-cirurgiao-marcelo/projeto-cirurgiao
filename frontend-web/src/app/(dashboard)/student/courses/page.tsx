@@ -7,7 +7,8 @@ import { useViewModeStore } from '@/lib/stores/view-mode-store';
 import { coursesService } from '@/lib/api/courses.service';
 import { progressService } from '@/lib/api/progress.service';
 import { showcasesService } from '@/lib/api/showcases.service';
-import type { MyShowcase } from '@/lib/types/showcase.types';
+import type { MyShowcase, AvailableShowcase } from '@/lib/types/showcase.types';
+import { AtlasLockedShowcaseCard } from '@/components/atlas/course/AtlasLockedShowcaseCard';
 import { getCourseWeightedPercent } from '@/lib/course-progress';
 import { Library, Search, Filter, ArrowDownUp } from 'lucide-react';
 import { Course } from '@/lib/types/course.types';
@@ -114,6 +115,8 @@ export default function CoursesPage() {
   // Vitrines com entitlement ativo. grantsAllContent não vira card (rótulo
   // interno); sem entitlement específico a seção simplesmente não existe.
   const [myShowcases, setMyShowcases] = useState<MyShowcase[]>([]);
+  // Vitrines publicadas que o aluno ainda NÃO tem — provocação/upsell.
+  const [availableShowcases, setAvailableShowcases] = useState<AvailableShowcase[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,13 +140,15 @@ export default function CoursesPage() {
 
   const loadCourses = async () => {
     try {
-      const [enrolledData, allCoursesData, mine] = await Promise.all([
+      const [enrolledData, allCoursesData, mine, available] = await Promise.all([
         progressService.getEnrolledCourses().catch(() => []),
         coursesService.findAll({ page: 1, limit: 100 }),
         showcasesService.myShowcases().catch(() => null),
+        showcasesService.availableShowcases().catch(() => null),
       ]);
 
       setMyShowcases(mine && !mine.grantsAllContent ? mine.showcases : []);
+      setAvailableShowcases(available?.showcases ?? []);
 
       const allCoursesArray = Array.isArray(allCoursesData)
         ? allCoursesData
@@ -356,6 +361,29 @@ export default function CoursesPage() {
                   lessonsCount={s.videoCount}
                   status="new"
                   progressPercent={0}
+                  thumbVariant={pickThumbVariant(s.id)}
+                  thumbImageUrl={s.thumbnail || undefined}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {availableShowcases.length > 0 && (
+          <section className="mb-8">
+            <h2 className="font-serif text-[17px] font-medium tracking-[-0.005em] text-atlas-ink mb-1">
+              Continue evoluindo
+            </h2>
+            <p className="text-sm text-atlas-muted mb-[14px]">
+              Áreas ainda bloqueadas — desbloqueie novos treinamentos.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px] sm:gap-[18px]">
+              {availableShowcases.map((s) => (
+                <AtlasLockedShowcaseCard
+                  key={s.id}
+                  title={s.title}
+                  lessonsCount={s.videoCount}
+                  checkoutUrl={s.checkoutUrl}
                   thumbVariant={pickThumbVariant(s.id)}
                   thumbImageUrl={s.thumbnail || undefined}
                 />

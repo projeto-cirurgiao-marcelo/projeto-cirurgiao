@@ -4,6 +4,7 @@
  */
 import { apiClient } from './client';
 import type {
+  AvailableShowcases,
   CourseTreeItem,
   MyShowcaseDetail,
   MyShowcases,
@@ -23,6 +24,12 @@ export const showcasesService = {
 
   async myShowcaseDetail(slug: string): Promise<MyShowcaseDetail> {
     const res = await apiClient.get<MyShowcaseDetail>(`/showcases/mine/${slug}`);
+    return res.data;
+  },
+
+  /** Upsell: vitrines publicadas que o aluno ainda NÃO possui (com CTA de compra). */
+  async availableShowcases(): Promise<AvailableShowcases> {
+    const res = await apiClient.get<AvailableShowcases>('/showcases/available');
     return res.data;
   },
 

@@ -98,7 +98,13 @@ export interface Video {
    */
   hasAccess?: boolean;
   previewSeconds?: number;
-  offerShowcase?: { id: string; title: string; slug: string } | null;
+  offerShowcase?: {
+    id: string;
+    title: string;
+    slug: string;
+    /** URL de checkout TheMembers para o CTA de compra; null se sem produto. */
+    checkoutUrl?: string | null;
+  } | null;
 }
 
 export interface CreateCourseDto {
