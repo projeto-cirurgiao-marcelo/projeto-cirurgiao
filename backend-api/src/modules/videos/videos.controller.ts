@@ -266,7 +266,13 @@ export class VideosController {
     return this.videosService.getUploadStatus(id);
   }
 
+  // ADMIN/INSTRUCTOR: entrega a playbackUrl crua de TODAS as aulas do módulo,
+  // sem passar pelo gate de vitrines — não pode ficar aberto ao aluno (vazaria
+  // o catálogo inteiro sem checar acesso). Aluno lista aulas pelo endpoint de
+  // curso (com hasAccess) e assiste via GET /videos/:id (decorateVideo).
   @Get('modules/:moduleId/videos')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
   findAll(@Param('moduleId') moduleId: string) {
     return this.videosService.findAllWithPlayback(moduleId);
   }
