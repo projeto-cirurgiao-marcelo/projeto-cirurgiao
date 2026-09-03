@@ -122,6 +122,7 @@ describe('AccessService', () => {
         id: 's1',
         title: 'Castração Descomplicada',
         slug: 'castracao-descomplicada',
+        checkoutUrl: null,
       });
     });
 
