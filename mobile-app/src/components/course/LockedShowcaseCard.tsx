@@ -1,8 +1,11 @@
 /**
  * Card de vitrine BLOQUEADA (seção "Continue evoluindo") — provocação de
- * compra, espelha o AtlasLockedShowcaseCard do web. Aponta pro checkout
- * TheMembers no navegador externo; sem checkoutUrl o card aparece inerte
- * ("Em breve", produto ainda não vendável). Visual na linha do ShowcaseCard.
+ * compra. Tocar no card abre a vitrine em modo prévia (índice das aulas,
+ * cada uma assistível até `previewSeconds`) — a "visão do curso" antes do
+ * checkout. O CTA "Desbloquear" é um atalho direto pro checkout TheMembers
+ * no navegador externo; sem checkoutUrl o CTA vira "Em breve" (produto
+ * ainda não vendável), mas a prévia continua acessível.
+ * Visual na linha do ShowcaseCard.
  */
 import React from 'react';
 import {
@@ -15,6 +18,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router, type Href } from 'expo-router';
 import {
   Colors,
   FontSize,
@@ -26,29 +30,28 @@ import {
 import { logger } from '../../lib/logger';
 import type { AvailableShowcase } from '../../services/api/showcases.service';
 
-export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }) {
-  const handlePress = async () => {
-    if (!showcase.checkoutUrl) return;
-    try {
-      const supported = await Linking.canOpenURL(showcase.checkoutUrl);
-      if (supported) {
-        await Linking.openURL(showcase.checkoutUrl);
-      } else {
-        Alert.alert('Erro', 'Não foi possível abrir a página de compra.');
-      }
-    } catch (err) {
-      logger.error('[LockedShowcaseCard] Erro ao abrir checkout:', err);
-      Alert.alert('Erro', 'Ocorreu um erro ao abrir a página de compra.');
+/** Abre o checkout TheMembers no navegador. Compartilhado com a tela de prévia. */
+export async function openShowcaseCheckout(checkoutUrl: string): Promise<void> {
+  try {
+    const supported = await Linking.canOpenURL(checkoutUrl);
+    if (supported) {
+      await Linking.openURL(checkoutUrl);
+    } else {
+      Alert.alert('Erro', 'Não foi possível abrir a página de compra.');
     }
+  } catch (err) {
+    logger.error('[LockedShowcaseCard] Erro ao abrir checkout:', err);
+    Alert.alert('Erro', 'Ocorreu um erro ao abrir a página de compra.');
+  }
+}
+
+export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }) {
+  const openPreview = () => {
+    router.push(`/courses/showcase/${showcase.slug}?locked=1` as Href);
   };
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={handlePress}
-      activeOpacity={0.8}
-      disabled={!showcase.checkoutUrl}
-    >
+    <TouchableOpacity style={styles.container} onPress={openPreview} activeOpacity={0.8}>
       <View style={styles.imageWrap}>
         {showcase.thumbnail ? (
           <Image source={{ uri: showcase.thumbnail }} style={styles.image} resizeMode="cover" />
@@ -72,14 +75,20 @@ export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }
           </Text>
         </View>
         {showcase.checkoutUrl ? (
-          <View style={styles.ctaRow}>
+          <TouchableOpacity
+            style={styles.ctaRow}
+            onPress={() => openShowcaseCheckout(showcase.checkoutUrl!)}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityRole="link"
+          >
             <Text style={styles.ctaText}>Desbloquear</Text>
             <Ionicons name="open-outline" size={12} color={Colors.accent} />
-          </View>
+          </TouchableOpacity>
         ) : (
           <Text style={styles.soonText}>Em breve</Text>
         )}
       </View>
+      <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -138,6 +147,7 @@ const styles = StyleSheet.create({
   ctaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: 3,
     marginTop: 4,
   },

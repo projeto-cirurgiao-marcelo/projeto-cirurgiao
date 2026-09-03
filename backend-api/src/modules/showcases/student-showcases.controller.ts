@@ -28,4 +28,10 @@ export class StudentShowcasesController {
   detail(@GetUser('id') userId: string, @Param('slug') slug: string) {
     return this.service.findMineBySlug(userId, slug);
   }
+
+  /** Upsell: índice de aulas de uma vitrine bloqueada (prévia antes do checkout). */
+  @Get('available/:slug')
+  availableDetail(@Param('slug') slug: string) {
+    return this.service.findAvailableBySlug(slug);
+  }
 }

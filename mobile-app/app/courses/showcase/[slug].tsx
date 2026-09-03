@@ -1,6 +1,10 @@
 /**
- * Aulas de uma vitrine do aluno ("Meus Cursos"). Índice do que foi
- * comprado — o play cai no watch normal do curso de origem.
+ * Aulas de uma vitrine. Dois modos:
+ * - possuída ("Meus Cursos"): índice do que foi comprado — o play cai no
+ *   watch normal do curso de origem.
+ * - bloqueada (`?locked=1`, vinda de "Continue evoluindo"): mesmo índice,
+ *   com banner de prévia e CTA de checkout. O play abre o watch, onde o gate
+ *   do vídeo corta em `previewSeconds` e oferece a vitrine.
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -16,9 +20,11 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   showcasesService,
+  type AvailableShowcaseDetail,
   type MyShowcaseDetail,
   type MyShowcaseVideo,
 } from '../../../src/services/api/showcases.service';
+import { openShowcaseCheckout } from '../../../src/components/course/LockedShowcaseCard';
 import { logger } from '../../../src/lib/logger';
 import { Colors as colors } from '../../../src/constants/colors';
 
@@ -29,20 +35,28 @@ function formatTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+type ShowcaseDetail = MyShowcaseDetail | AvailableShowcaseDetail;
+
 export default function ShowcaseLessonsScreen() {
   const router = useRouter();
-  const { slug } = useLocalSearchParams<{ slug: string }>();
-  const [showcase, setShowcase] = useState<MyShowcaseDetail | null>(null);
+  const { slug, locked: lockedParam } = useLocalSearchParams<{ slug: string; locked?: string }>();
+  const locked = lockedParam === '1';
+  const [showcase, setShowcase] = useState<ShowcaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!slug) return;
-    showcasesService
-      .myShowcaseDetail(slug)
+    const request = locked
+      ? showcasesService.availableShowcaseDetail(slug)
+      : showcasesService.myShowcaseDetail(slug);
+    request
       .then(setShowcase)
       .catch((error) => logger.error('[Showcase] Erro ao carregar vitrine:', error))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, locked]);
+
+  const checkoutUrl =
+    locked && showcase && 'checkoutUrl' in showcase ? showcase.checkoutUrl : null;
 
   const renderItem = ({ item, index }: { item: MyShowcaseVideo; index: number }) => (
     <TouchableOpacity
@@ -51,7 +65,11 @@ export default function ShowcaseLessonsScreen() {
       onPress={() => router.push(`/course/${item.courseId}/watch/${item.id}`)}
     >
       <View style={styles.lessonIndex}>
-        <Text style={styles.lessonIndexText}>{String(index + 1).padStart(2, '0')}</Text>
+        {locked ? (
+          <Ionicons name="play-outline" size={16} color={colors.textSecondary} />
+        ) : (
+          <Text style={styles.lessonIndexText}>{String(index + 1).padStart(2, '0')}</Text>
+        )}
       </View>
       <View style={styles.lessonInfo}>
         <Text style={styles.lessonTitle} numberOfLines={2}>
@@ -61,8 +79,49 @@ export default function ShowcaseLessonsScreen() {
           {item.moduleTitle} · {item.courseTitle}
         </Text>
       </View>
-      <Text style={styles.lessonDuration}>{formatTime(item.duration)}</Text>
+      {locked ? (
+        <View style={styles.previewPill}>
+          <Text style={styles.previewPillText}>Prévia</Text>
+        </View>
+      ) : (
+        <Text style={styles.lessonDuration}>{formatTime(item.duration)}</Text>
+      )}
     </TouchableOpacity>
+  );
+
+  const renderHeader = () => (
+    <View>
+      {locked && (
+        <View style={styles.lockedBanner}>
+          <View style={styles.lockedBannerIcon}>
+            <Ionicons name="lock-closed" size={16} color={colors.accent} />
+          </View>
+          <View style={styles.lockedBannerBody}>
+            <Text style={styles.lockedBannerTitle}>Você ainda não tem acesso a este curso</Text>
+            <Text style={styles.lockedBannerText}>
+              Assista a uma prévia de cada aula para conhecer o conteúdo. Desbloqueie para ter
+              acesso completo.
+            </Text>
+            {checkoutUrl ? (
+              <TouchableOpacity
+                style={styles.unlockButton}
+                activeOpacity={0.85}
+                onPress={() => openShowcaseCheckout(checkoutUrl)}
+                accessibilityRole="link"
+              >
+                <Text style={styles.unlockButtonText}>Desbloquear curso</Text>
+                <Ionicons name="open-outline" size={14} color="#fff" />
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.soonText}>Em breve — este curso ainda não está à venda.</Text>
+            )}
+          </View>
+        </View>
+      )}
+      {showcase?.description ? (
+        <Text style={styles.description}>{showcase.description}</Text>
+      ) : null}
+    </View>
   );
 
   return (
@@ -76,7 +135,7 @@ export default function ShowcaseLessonsScreen() {
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {showcase?.title ?? 'Meu curso'}
+          {showcase?.title ?? (locked ? 'Prévia do curso' : 'Meu curso')}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -89,18 +148,18 @@ export default function ShowcaseLessonsScreen() {
         <View style={styles.emptyContainer}>
           <Ionicons name="videocam-off-outline" size={48} color={colors.textMuted} />
           <Text style={styles.emptyTitle}>Curso não encontrado</Text>
-          <Text style={styles.emptyText}>Este conteúdo não está disponível na sua conta.</Text>
+          <Text style={styles.emptyText}>
+            {locked
+              ? 'Este curso não está disponível no momento.'
+              : 'Este conteúdo não está disponível na sua conta.'}
+          </Text>
         </View>
       ) : (
         <FlatList
           data={showcase.videos}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            showcase.description ? (
-              <Text style={styles.description}>{showcase.description}</Text>
-            ) : null
-          }
+          ListHeaderComponent={renderHeader}
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
@@ -134,6 +193,28 @@ const styles = StyleSheet.create({
     fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginBottom: 14,
   },
   listContent: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 40 },
+
+  // ---- Banner de prévia (vitrine bloqueada) ----
+  lockedBanner: {
+    flexDirection: 'row', gap: 12, alignItems: 'flex-start',
+    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 14,
+    borderWidth: 1, borderColor: `${colors.accent}33`,
+  },
+  lockedBannerIcon: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: `${colors.accent}14`,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  lockedBannerBody: { flex: 1, gap: 4 },
+  lockedBannerTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
+  lockedBannerText: { fontSize: 12.5, color: colors.textSecondary, lineHeight: 18 },
+  unlockButton: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6,
+    backgroundColor: colors.accent, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 9, marginTop: 8,
+  },
+  unlockButtonText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  soonText: { fontSize: 12, color: colors.textMuted, marginTop: 6 },
+
   lessonRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: '#fff', borderRadius: 12, padding: 12,
@@ -148,6 +229,11 @@ const styles = StyleSheet.create({
   lessonTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
   lessonSubtitle: { fontSize: 11.5, color: colors.textMuted },
   lessonDuration: { fontSize: 12, color: colors.textMuted, fontVariant: ['tabular-nums'] },
+  previewPill: {
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+    backgroundColor: `${colors.accent}14`,
+  },
+  previewPillText: { fontSize: 11, fontWeight: '600', color: colors.accent },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: '#1E293B' },

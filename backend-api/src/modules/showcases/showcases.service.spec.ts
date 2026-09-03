@@ -415,6 +415,84 @@ describe('ShowcasesService', () => {
   });
 
   // ============================================
+  // findAvailableBySlug — prévia de vitrine bloqueada (antes do checkout)
+  // ============================================
+  describe('findAvailableBySlug', () => {
+    const detailVideo = {
+      video: {
+        id: 'v1',
+        title: 'Aula 1',
+        duration: 600,
+        thumbnailUrl: null,
+        module: {
+          id: 'm1',
+          title: 'Módulo',
+          thumbnail: null,
+          thumbnailVertical: null,
+          thumbnailHorizontal: 'modulo.png',
+          course: { id: 'c1', title: 'Curso' },
+        },
+      },
+    };
+
+    it('404 quando a vitrine não está publicada (mesma regra da listagem)', async () => {
+      prisma.showcase.findFirst.mockResolvedValue(null);
+
+      await expect(service.findAvailableBySlug('rascunho')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.showcase.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            slug: 'rascunho',
+            isPublished: true,
+            deletedAt: null,
+            grantsAllContent: false,
+          }),
+        }),
+      );
+    });
+
+    it('devolve aulas achatadas, capa herdada e checkoutUrl derivada do produto', async () => {
+      prisma.showcase.findFirst.mockResolvedValue(
+        makeShowcase({
+          externalProductId: '7480227495418253312',
+          videos: [detailVideo],
+        }),
+      );
+
+      const result = await service.findAvailableBySlug('castracao-descomplicada');
+
+      expect(result.checkoutUrl).toBe('https://checkout.thebank.com.br/7480227495418253312');
+      expect(result.thumbnail).toBe('modulo.png');
+      expect(result.videos).toEqual([
+        expect.objectContaining({
+          id: 'v1',
+          title: 'Aula 1',
+          duration: 600,
+          moduleId: 'm1',
+          moduleTitle: 'Módulo',
+          courseId: 'c1',
+          courseTitle: 'Curso',
+        }),
+      ]);
+      // externalProductId não vaza pro cliente — só a URL derivada.
+      expect(result).not.toHaveProperty('externalProductId');
+    });
+
+    it('sem produto vinculado, checkoutUrl é null ("Em breve") mas as aulas seguem visíveis', async () => {
+      prisma.showcase.findFirst.mockResolvedValue(
+        makeShowcase({ externalProductId: null, videos: [detailVideo] }),
+      );
+
+      const result = await service.findAvailableBySlug('castracao-descomplicada');
+
+      expect(result.checkoutUrl).toBeNull();
+      expect(result.videos).toHaveLength(1);
+    });
+  });
+
+  // ============================================
   // archive / restore — soft-delete preservando composição
   // ============================================
   describe('archive / restore', () => {

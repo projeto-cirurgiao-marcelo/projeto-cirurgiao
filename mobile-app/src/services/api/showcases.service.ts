@@ -49,6 +49,15 @@ export interface MyShowcaseDetail extends Omit<MyShowcase, 'videoCount'> {
   videos: MyShowcaseVideo[];
 }
 
+/**
+ * Vitrine bloqueada aberta em modo prévia ("Continue evoluindo" → detalhe).
+ * Mesmo índice de aulas do detalhe possuído; cada aula abre no watch, onde
+ * o gate corta em `previewSeconds`.
+ */
+export interface AvailableShowcaseDetail extends MyShowcaseDetail {
+  checkoutUrl: string | null;
+}
+
 export const showcasesService = {
   async myShowcases(): Promise<MyShowcases> {
     const response = await apiClient.get<MyShowcases>('/showcases/mine');
@@ -67,6 +76,14 @@ export const showcasesService = {
    */
   async availableShowcases(): Promise<AvailableShowcases> {
     const response = await apiClient.get<AvailableShowcases>('/showcases/available');
+    return response.data;
+  },
+
+  /** Detalhe (aulas + checkout) de uma vitrine que o aluno ainda não possui. */
+  async availableShowcaseDetail(slug: string): Promise<AvailableShowcaseDetail> {
+    const response = await apiClient.get<AvailableShowcaseDetail>(
+      `/showcases/available/${slug}`,
+    );
     return response.data;
   },
 };

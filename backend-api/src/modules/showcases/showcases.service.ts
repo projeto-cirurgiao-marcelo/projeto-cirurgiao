@@ -17,6 +17,24 @@ import {
   UpdateShowcaseDto,
 } from './dto/showcase.dto';
 
+/** Linha de `ShowcaseVideo` como sai do `detailVideosSelect` (detalhe do aluno). */
+interface ShowcaseDetailVideoRow {
+  video: {
+    id: string;
+    title: string;
+    duration: number;
+    thumbnailUrl: string | null;
+    module: {
+      id: string;
+      title: string;
+      thumbnail: string | null;
+      thumbnailVertical: string | null;
+      thumbnailHorizontal: string | null;
+      course: { id: string; title: string };
+    };
+  };
+}
+
 /**
  * Vitrine = recorte comercial do catálogo. A composição é uma lista
  * EXPLÍCITA de vídeos (ShowcaseVideo); o atalho "adicionar módulo inteiro"
@@ -640,6 +658,60 @@ export class ShowcasesService {
   }
 
   /**
+   * Seleção das aulas de uma vitrine no detalhe (aluno). videoId desempata
+   * addedAt igual (createMany do atalho de módulo) — mesma ordem
+   * determinística do fallback de capa.
+   */
+  private readonly detailVideosSelect = {
+    orderBy: [{ addedAt: 'asc' as const }, { videoId: 'asc' as const }],
+    where: { video: { deletedAt: null, isPublished: true } },
+    select: {
+      video: {
+        select: {
+          id: true,
+          title: true,
+          duration: true,
+          thumbnailUrl: true,
+          module: {
+            select: {
+              id: true,
+              title: true,
+              thumbnail: true,
+              thumbnailVertical: true,
+              thumbnailHorizontal: true,
+              course: { select: { id: true, title: true } },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  /** Achata as linhas de `detailVideosSelect` e resolve a capa herdada. */
+  private toShowcaseDetail<
+    T extends { thumbnail: string | null; videos: ShowcaseDetailVideoRow[] },
+  >(showcase: T) {
+    const { videos, ...rest } = showcase;
+    // Mesma herança de capa da listagem — módulo da primeira aula.
+    const firstModule = videos[0]?.video.module;
+    return {
+      ...rest,
+      thumbnail:
+        rest.thumbnail ?? (firstModule ? this.moduleArt(firstModule) : null),
+      videos: videos.map(({ video: v }) => ({
+        id: v.id,
+        title: v.title,
+        duration: v.duration,
+        thumbnailUrl: v.thumbnailUrl,
+        moduleId: v.module.id,
+        moduleTitle: v.module.title,
+        courseId: v.module.course.id,
+        courseTitle: v.module.course.title,
+      })),
+    };
+  }
+
+  /**
    * Aulas de uma vitrine do aluno. 404 tanto pra slug inexistente quanto pra
    * vitrine sem entitlement ativo — não vazar o catálogo de produtos por URL.
    */
@@ -659,32 +731,7 @@ export class ShowcasesService {
             slug: true,
             description: true,
             thumbnail: true,
-            videos: {
-              // videoId desempata addedAt igual (createMany do atalho de
-              // módulo) — mesma ordem determinística do fallback de capa.
-              orderBy: [{ addedAt: 'asc' }, { videoId: 'asc' }],
-              where: { video: { deletedAt: null, isPublished: true } },
-              select: {
-                video: {
-                  select: {
-                    id: true,
-                    title: true,
-                    duration: true,
-                    thumbnailUrl: true,
-                    module: {
-                      select: {
-                        id: true,
-                        title: true,
-                        thumbnail: true,
-                        thumbnailVertical: true,
-                        thumbnailHorizontal: true,
-                        course: { select: { id: true, title: true } },
-                      },
-                    },
-                  },
-                },
-              },
-            },
+            videos: this.detailVideosSelect,
           },
         },
       },
@@ -692,23 +739,37 @@ export class ShowcasesService {
 
     if (!ent) throw new NotFoundException('Vitrine não encontrada');
 
-    const { videos, ...rest } = ent.showcase;
-    // Mesma herança de capa da listagem — módulo da primeira aula.
-    const firstModule = videos[0]?.video.module;
+    return this.toShowcaseDetail(ent.showcase);
+  }
+
+  /**
+   * Detalhe de uma vitrine que o aluno ainda NÃO possui — a "visão do curso"
+   * antes do checkout. Lista as aulas pra ele abrir cada uma em modo prévia
+   * (o gate do vídeo corta em `previewSeconds`) e traz a `checkoutUrl`.
+   * Só vitrines publicadas: rascunho/arquivada é 404, como na listagem
+   * `listAvailable`. Não checa entitlement de propósito — quem já comprou
+   * e cair aqui só vê o mesmo índice que veria em `mine/:slug`.
+   */
+  async findAvailableBySlug(slug: string) {
+    const showcase = await this.prisma.showcase.findFirst({
+      where: { slug, isPublished: true, deletedAt: null, grantsAllContent: false },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        thumbnail: true,
+        externalProductId: true,
+        videos: this.detailVideosSelect,
+      },
+    });
+
+    if (!showcase) throw new NotFoundException('Vitrine não encontrada');
+
+    const { externalProductId, ...rest } = showcase;
     return {
-      ...rest,
-      thumbnail:
-        rest.thumbnail ?? (firstModule ? this.moduleArt(firstModule) : null),
-      videos: videos.map(({ video: v }) => ({
-        id: v.id,
-        title: v.title,
-        duration: v.duration,
-        thumbnailUrl: v.thumbnailUrl,
-        moduleId: v.module.id,
-        moduleTitle: v.module.title,
-        courseId: v.module.course.id,
-        courseTitle: v.module.course.title,
-      })),
+      ...this.toShowcaseDetail(rest),
+      checkoutUrl: checkoutUrlFor(externalProductId),
     };
   }
 
