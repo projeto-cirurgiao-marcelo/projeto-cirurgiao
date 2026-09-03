@@ -37,12 +37,19 @@ if ($LASTEXITCODE -ne 0) { Write-Host "Erro habilitando APIs" -ForegroundColor R
 Write-Host "OK." -ForegroundColor Green
 
 # 2) Criar repositorio (idempotente)
+#    Windows PowerShell 5.1 + $ErrorActionPreference=Stop: stderr de comando
+#    nativo redirecionado (2>$null) vira erro terminante — o "ALREADY_EXISTS"
+#    esperado aqui abortava o deploy. try/catch engole só este passo.
 Write-Host "`n2. Garantindo repositorio Artifact Registry..." -ForegroundColor Yellow
-gcloud artifacts repositories create $REPO `
-    --repository-format=docker `
-    --location=$REGION `
-    --description="Repositorio Docker para API do Cirurgiao" `
-    --project=$PROJECT 2>$null
+try {
+    gcloud artifacts repositories create $REPO `
+        --repository-format=docker `
+        --location=$REGION `
+        --description="Repositorio Docker para API do Cirurgiao" `
+        --project=$PROJECT 2>$null
+} catch {
+    # ALREADY_EXISTS (ou qualquer stderr) — o build falha adiante se o repo nao existir de fato
+}
 Write-Host "OK." -ForegroundColor Green
 
 # 3) Auth Docker
@@ -65,9 +72,11 @@ Write-Host "OK." -ForegroundColor Green
 Write-Host "`n5. Capturando env vars do service em execucao..." -ForegroundColor Yellow
 $envFile = Join-Path $env:TEMP "$JOB-env-$(Get-Random).yaml"
 $envFlags = @()
-$svcDescribeJson = gcloud run services describe $SERVICE `
-    --region=$REGION --project=$PROJECT `
-    --format=json 2>$null
+try {
+    $svcDescribeJson = gcloud run services describe $SERVICE `
+        --region=$REGION --project=$PROJECT `
+        --format=json 2>$null
+} catch { $svcDescribeJson = $null }
 if ($LASTEXITCODE -ne 0 -or -not $svcDescribeJson) {
     Write-Host "Service ainda nao existe; pulando captura de env. Configure manualmente apos o primeiro deploy." -ForegroundColor Yellow
 } else {
@@ -90,7 +99,9 @@ if ($LASTEXITCODE -ne 0 -or -not $svcDescribeJson) {
 
 # 6) Cria/atualiza Cloud Run Job migrator
 Write-Host "`n6. Criando/atualizando Job de migracao ($JOB)..." -ForegroundColor Yellow
-$jobExists = gcloud run jobs describe $JOB --region=$REGION --project=$PROJECT 2>$null
+try {
+    $jobExists = gcloud run jobs describe $JOB --region=$REGION --project=$PROJECT 2>$null
+} catch { $jobExists = $null; $LASTEXITCODE = 1 }
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Job existe; atualizando imagem + env." -ForegroundColor Gray
     $args = @(
