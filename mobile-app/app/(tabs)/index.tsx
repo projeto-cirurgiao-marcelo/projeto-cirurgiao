@@ -458,7 +458,7 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Meus Cursos</Text>
             </View>
-            <View style={styles.coursesList}>
+            <View style={styles.showcasesList}>
               {myShowcases.showcases.map((s) => (
                 <ShowcaseCard key={s.id} showcase={s} />
               ))}
@@ -477,7 +477,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionSubtitle}>
               Áreas ainda bloqueadas — desbloqueie novos treinamentos.
             </Text>
-            <View style={styles.coursesList}>
+            <View style={styles.showcasesList}>
               {availableShowcases.showcases.map((s) => (
                 <LockedShowcaseCard key={s.id} showcase={s} />
               ))}
@@ -946,6 +946,12 @@ const styles = StyleSheet.create({
   // ---- Courses List (full-width vertical) ----
   coursesList: {
     paddingHorizontal: Spacing['2xl'],
+  },
+  // Vitrines (Meus Cursos / Continue evoluindo): ShowcaseCard e
+  // LockedShowcaseCard não têm margem própria — o espaçamento vem daqui.
+  showcasesList: {
+    paddingHorizontal: Spacing['2xl'],
+    gap: Spacing.md,
   },
 
   // ---- Empty state ----
