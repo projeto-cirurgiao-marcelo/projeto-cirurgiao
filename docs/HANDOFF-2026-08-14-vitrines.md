@@ -184,3 +184,41 @@ backend-api/cloud-sql-proxy.exe --token "$(gcloud auth print-access-token)" \
 
 *Rodada anterior: `docs/HANDOFF-2026-08-11-pre-live-execucao.md`.
 Design desta feature: `docs/plans/2026-08-12-vitrines-controle-acesso-design.md`.*
+
+---
+
+## Adendo 2026-09-03 — prévia da vitrine bloqueada + ordem pedagógica
+
+Rodada feita na máquina nova (pós-furto), a partir de `c359d7f`.
+
+**Produção (backend):** revisão **`00113-htd`** (deploy via
+`deploy-artifact-registry.ps1`, migration job OK, sem migration nova).
+Anterior: `00112-gj8`. Env preservado (16 plaintext + 10 secret refs).
+
+**O que mudou:**
+- `GET /showcases/available/:slug` — detalhe (aulas + `checkoutUrl`) de
+  vitrine publicada que o aluno não possui. 404 pra rascunho/arquivada.
+- **Ordem das aulas no detalhe da vitrine** (`mine/:slug`, `available/:slug`)
+  e no fallback de capa: agora pedagógica (módulo raiz → aulas do raiz →
+  submódulo → `order` da aula). Antes era `addedAt` + UUID, e o atalho
+  "adicionar módulo inteiro" grava tudo com o mesmo `addedAt` — a ordem
+  era sorteio e diferia do player.
+- Web e mobile: tocar num card de "Continue evoluindo" abre a vitrine em
+  modo prévia (`/student/showcases/:slug?locked=1` e
+  `/courses/showcase/:slug?locked=1`) em vez de ir direto ao checkout. O
+  CTA "Desbloquear" continua sendo atalho pro checkout.
+- Home mobile: espaçamento entre cards de vitrine (`showcasesList`).
+
+**Dados/consoles de produção tocados:**
+- Firebase Auth: senha da conta de teste `gustavobressnin6@gmail.com`
+  redefinida via Admin SDK (o Gustavo tem a nova). Entitlements dela
+  inalterados (continua no estado de teste do §3.2).
+
+**Pendente:** a APK `preview` publicada no EAS ainda é a de 31/08
+(`c359d7f`) — sem as mudanças de mobile desta rodada. Gerar nova build
+`eas build --profile preview --platform android` quando for distribuir.
+
+**Gotcha novo:** `deploy-artifact-registry.ps1` no Windows PowerShell 5.1
+aborta se chamado com `2>&1` (stderr informativo do gcloud vira erro com
+`$ErrorActionPreference=Stop`). Chamar sem redirecionar, ou via Git Bash:
+`powershell -NoProfile -File ./deploy-artifact-registry.ps1 > log 2>&1`.
