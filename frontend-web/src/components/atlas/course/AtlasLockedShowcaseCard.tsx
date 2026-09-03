@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Lock, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -10,6 +11,8 @@ import {
 
 interface AtlasLockedShowcaseCardProps {
   title: string;
+  /** Slug da vitrine — o card abre `/student/showcases/[slug]?locked=1` (prévia). */
+  slug: string;
   /** Nº de aulas da vitrine (publicadas). */
   lessonsCount: number;
   /** URL de checkout TheMembers (derivada do produto). null = sem compra ainda. */
@@ -20,20 +23,40 @@ interface AtlasLockedShowcaseCardProps {
 }
 
 /**
- * Card de "provocação": vitrine que o aluno ainda NÃO possui. Aponta para o
- * checkout TheMembers (nova aba). Sem checkoutUrl vinculado, o card aparece
- * mas sem ação (produto ainda não vendável).
+ * Card de "provocação": vitrine que o aluno ainda NÃO possui. O card abre a
+ * vitrine em modo prévia (índice das aulas, cada uma assistível até
+ * `previewSeconds`) — a "visão do curso" antes do checkout. O CTA
+ * "Desbloquear" é atalho direto pro checkout TheMembers (nova aba); sem
+ * checkoutUrl vira "Em breve", mas a prévia continua acessível.
+ * Espelha o LockedShowcaseCard do mobile.
  */
 export function AtlasLockedShowcaseCard({
   title,
+  slug,
   lessonsCount,
   checkoutUrl,
   thumbVariant = "default",
   thumbImageUrl,
   className,
 }: AtlasLockedShowcaseCardProps) {
-  const inner = (
-    <>
+  // <a> dentro de <a> é HTML inválido — o CTA é um span clicável que
+  // interrompe a navegação do card e abre o checkout em nova aba.
+  const openCheckout = (e: React.MouseEvent | React.KeyboardEvent) => {
+    if (!checkoutUrl) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(checkoutUrl, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <Link
+      href={`/student/showcases/${slug}?locked=1`}
+      className={cn(
+        "group bg-atlas-surface border border-atlas-line rounded-md overflow-hidden flex flex-col",
+        "cursor-pointer transition-colors duration-150 hover:bg-atlas-surface-2",
+        className,
+      )}
+    >
       <div className="relative">
         <AtlasCourseThumb
           title={title}
@@ -58,11 +81,17 @@ export function AtlasLockedShowcaseCard({
         </h3>
 
         <div className="mt-auto pt-3 border-t border-atlas-line flex items-center justify-between text-xs">
-          <span className="font-mono text-atlas-muted atlas-num">
-            {lessonsCount} aulas
-          </span>
+          <span className="text-atlas-muted">Ver prévia</span>
           {checkoutUrl ? (
-            <span className="text-atlas-primary-2 font-medium inline-flex items-center gap-1">
+            <span
+              role="link"
+              tabIndex={0}
+              onClick={openCheckout}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") openCheckout(e);
+              }}
+              className="text-atlas-primary-2 font-medium inline-flex items-center gap-1 hover:underline"
+            >
               Desbloquear
               <ArrowUpRight className="size-3" strokeWidth={2} />
             </span>
@@ -71,21 +100,6 @@ export function AtlasLockedShowcaseCard({
           )}
         </div>
       </div>
-    </>
+    </Link>
   );
-
-  const base = cn(
-    "group bg-atlas-surface border border-atlas-line rounded-md overflow-hidden flex flex-col transition-colors duration-150",
-    checkoutUrl && "cursor-pointer hover:bg-atlas-surface-2",
-    className,
-  );
-
-  if (checkoutUrl) {
-    return (
-      <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className={base}>
-        {inner}
-      </a>
-    );
-  }
-  return <div className={base}>{inner}</div>;
 }

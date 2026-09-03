@@ -125,6 +125,15 @@ export interface MyShowcaseDetail extends Omit<MyShowcase, 'videoCount'> {
   videos: MyShowcaseVideo[];
 }
 
+/**
+ * Vitrine bloqueada aberta em modo prévia — GET /showcases/available/:slug.
+ * Mesmo índice de aulas do detalhe possuído; cada aula abre no watch, onde
+ * o gate corta em `previewSeconds`.
+ */
+export interface AvailableShowcaseDetail extends MyShowcaseDetail {
+  checkoutUrl: string | null;
+}
+
 export interface ShowcaseInput {
   title?: string;
   description?: string;

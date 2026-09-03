@@ -1,17 +1,22 @@
 'use client';
 
 /**
- * Aulas de uma vitrine do aluno ("Meus Cursos"). A vitrine é camada de
- * permissão, não de navegação — esta página é só o índice do que foi
- * comprado; o play cai no watch normal do curso de origem.
+ * Aulas de uma vitrine. A vitrine é camada de permissão, não de navegação —
+ * esta página é só o índice; o play cai no watch normal do curso de origem.
+ *
+ * Dois modos:
+ * - possuída ("Meus Cursos"): índice do que foi comprado.
+ * - bloqueada (`?locked=1`, vinda de "Continue evoluindo"): mesmo índice,
+ *   com aviso de prévia e CTA de checkout. No watch, o gate do vídeo corta
+ *   em `previewSeconds` e oferece a vitrine. Espelha a tela do mobile.
  */
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { showcasesService } from '@/lib/api/showcases.service';
-import type { MyShowcaseDetail } from '@/lib/types/showcase.types';
-import { ArrowLeft, Circle, PlayCircle, Video } from 'lucide-react';
+import type { AvailableShowcaseDetail, MyShowcaseDetail } from '@/lib/types/showcase.types';
+import { ArrowLeft, ArrowUpRight, Circle, Lock, PlayCircle, Video } from 'lucide-react';
 import {
   AtlasButton,
   AtlasEmptyState,
@@ -28,14 +33,18 @@ function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export default function MyShowcasePage() {
+type ShowcaseDetail = MyShowcaseDetail | AvailableShowcaseDetail;
+
+function ShowcasePage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const locked = searchParams.get('locked') === '1';
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
 
-  const [showcase, setShowcase] = useState<MyShowcaseDetail | null>(null);
+  const [showcase, setShowcase] = useState<ShowcaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -45,15 +54,17 @@ export default function MyShowcasePage() {
       router.push('/login');
       return;
     }
-    showcasesService
-      .myShowcaseDetail(slug)
+    const request: Promise<ShowcaseDetail> = locked
+      ? showcasesService.availableShowcaseDetail(slug)
+      : showcasesService.myShowcaseDetail(slug);
+    request
       .then(setShowcase)
       .catch((err) => {
         logger.error('Erro ao carregar vitrine:', err);
         setError(true);
       })
       .finally(() => setLoading(false));
-  }, [isAuthenticated, hasHydrated, slug, router]);
+  }, [isAuthenticated, hasHydrated, slug, locked, router]);
 
   if (!hasHydrated || loading) {
     return (
@@ -69,7 +80,11 @@ export default function MyShowcasePage() {
         <AtlasEmptyState
           icon={Video}
           title="Curso não encontrado"
-          description="Este conteúdo não está disponível na sua conta."
+          description={
+            locked
+              ? 'Este curso não está disponível no momento.'
+              : 'Este conteúdo não está disponível na sua conta.'
+          }
           action={
             <AtlasButton variant="outline" size="md" onClick={() => router.push('/student/courses')}>
               <ArrowLeft strokeWidth={1.75} />
@@ -81,13 +96,15 @@ export default function MyShowcasePage() {
     );
   }
 
+  const checkoutUrl =
+    locked && 'checkoutUrl' in showcase ? showcase.checkoutUrl : null;
   const totalSeconds = showcase.videos.reduce((sum, v) => sum + (v.duration || 0), 0);
   const totalHours = totalSeconds > 0 ? `${Math.max(1, Math.round(totalSeconds / 3600))}h` : '—';
 
   return (
     <>
       <AtlasPageHeader
-        metaLabel="Meus Cursos"
+        metaLabel={locked ? 'Prévia do curso' : 'Meus Cursos'}
         title={showcase.title}
         actions={
           <AtlasButton
@@ -109,6 +126,35 @@ export default function MyShowcasePage() {
       </AtlasPageHeader>
 
       <div className="px-5 sm:px-7 py-5 sm:py-6 max-w-4xl">
+        {locked && (
+          <div className="mb-6 bg-atlas-surface border border-atlas-primary/30 rounded-md p-4 sm:p-5 flex gap-3.5 items-start">
+            <div className="size-9 rounded-full bg-atlas-primary/10 flex items-center justify-center shrink-0">
+              <Lock className="size-4 text-atlas-primary-2" strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-serif text-[15px] font-medium tracking-[-0.005em] text-atlas-ink">
+                Você ainda não tem acesso a este curso
+              </h2>
+              <p className="text-atlas-muted text-[13px] leading-[1.55] mt-1 max-w-2xl">
+                Assista a uma prévia de cada aula para conhecer o conteúdo. Desbloqueie para ter
+                acesso completo.
+              </p>
+              {checkoutUrl ? (
+                <AtlasButton variant="primary" size="md" asChild className="mt-3">
+                  <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">
+                    Desbloquear curso
+                    <ArrowUpRight strokeWidth={2} />
+                  </a>
+                </AtlasButton>
+              ) : (
+                <p className="text-atlas-muted text-[12.5px] mt-2">
+                  Em breve — este curso ainda não está à venda.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {showcase.description && (
           <p className="text-atlas-muted text-[13.5px] leading-[1.55] mb-6 max-w-2xl">
             {showcase.description}
@@ -148,13 +194,19 @@ export default function MyShowcasePage() {
                       {video.moduleTitle} · {video.courseTitle}
                     </p>
                   </div>
-                  <div className="atlas-mono text-[11.5px] text-atlas-muted shrink-0 flex items-center gap-1.5 atlas-num">
-                    <Circle
-                      className="size-1 fill-atlas-muted-2 stroke-atlas-muted-2"
-                      aria-hidden
-                    />
-                    {formatDuration(video.duration)}
-                  </div>
+                  {locked ? (
+                    <span className="shrink-0 rounded-full bg-atlas-primary/10 text-atlas-primary-2 text-[11px] font-medium px-2.5 py-0.5">
+                      Prévia
+                    </span>
+                  ) : (
+                    <div className="atlas-mono text-[11.5px] text-atlas-muted shrink-0 flex items-center gap-1.5 atlas-num">
+                      <Circle
+                        className="size-1 fill-atlas-muted-2 stroke-atlas-muted-2"
+                        aria-hidden
+                      />
+                      {formatDuration(video.duration)}
+                    </div>
+                  )}
                 </button>
               </li>
             ))}
@@ -162,5 +214,20 @@ export default function MyShowcasePage() {
         )}
       </div>
     </>
+  );
+}
+
+/** `useSearchParams` exige Suspense no App Router (Next 15). */
+export default function MyShowcasePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="px-7 py-7">
+          <AtlasLoadingBar />
+        </main>
+      }
+    >
+      <ShowcasePage />
+    </Suspense>
   );
 }

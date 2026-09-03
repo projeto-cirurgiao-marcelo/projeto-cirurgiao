@@ -382,6 +382,7 @@ export default function CoursesPage() {
                 <AtlasLockedShowcaseCard
                   key={s.id}
                   title={s.title}
+                  slug={s.slug}
                   lessonsCount={s.videoCount}
                   checkoutUrl={s.checkoutUrl}
                   thumbVariant={pickThumbVariant(s.id)}
