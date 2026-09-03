@@ -415,6 +415,108 @@ describe('ShowcasesService', () => {
   });
 
   // ============================================
+  // Ordem pedagógica das aulas (detalhe + capa herdada)
+  // ============================================
+  describe('ordem pedagógica das aulas', () => {
+    const sameBatch = new Date('2026-08-30T23:57:29.009Z');
+
+    function row(
+      id: string,
+      opts: { videoOrder: number; moduleOrder: number; parentOrder?: number; art?: string },
+    ) {
+      return {
+        addedAt: sameBatch,
+        videoId: id,
+        video: {
+          id,
+          title: id,
+          duration: 60,
+          thumbnailUrl: null,
+          order: opts.videoOrder,
+          module: {
+            id: `m-${opts.moduleOrder}-${opts.parentOrder ?? 'root'}`,
+            title: 'Módulo',
+            order: opts.moduleOrder,
+            parentModule: opts.parentOrder !== undefined ? { order: opts.parentOrder } : null,
+            thumbnail: null,
+            thumbnailVertical: null,
+            thumbnailHorizontal: opts.art ?? null,
+            course: { id: 'c1', title: 'Curso' },
+          },
+        },
+      };
+    }
+
+    it('mesmo lote (addedAt igual): módulo raiz → aulas do raiz → submódulos → aula', async () => {
+      prisma.showcase.findFirst.mockResolvedValue(
+        makeShowcase({
+          externalProductId: null,
+          // Embaralhado de propósito, como o desempate por UUID deixava.
+          videos: [
+            row('sub2-aula1', { videoOrder: 1, moduleOrder: 2, parentOrder: 1 }),
+            row('raiz2-aula1', { videoOrder: 1, moduleOrder: 2 }),
+            row('raiz1-aula3', { videoOrder: 3, moduleOrder: 1 }),
+            row('sub1-aula2', { videoOrder: 2, moduleOrder: 1, parentOrder: 1 }),
+            row('raiz1-aula1', { videoOrder: 1, moduleOrder: 1 }),
+            row('sub1-aula1', { videoOrder: 1, moduleOrder: 1, parentOrder: 1 }),
+          ],
+        }),
+      );
+
+      const result = await service.findAvailableBySlug('a');
+
+      expect(result.videos.map((v) => v.id)).toEqual([
+        'raiz1-aula1',
+        'raiz1-aula3',
+        'sub1-aula1',
+        'sub1-aula2',
+        'sub2-aula1',
+        'raiz2-aula1',
+      ]);
+    });
+
+    it('a capa herdada vem do módulo da primeira aula pedagógica, não da primeira adicionada', async () => {
+      prisma.entitlement.findFirst.mockResolvedValue({
+        showcase: {
+          id: 's1',
+          title: 'A',
+          slug: 'a',
+          description: null,
+          thumbnail: null,
+          videos: [
+            row('tarde', { videoOrder: 5, moduleOrder: 3, art: 'modulo-3.png' }),
+            row('cedo', { videoOrder: 1, moduleOrder: 1, art: 'modulo-1.png' }),
+          ],
+        },
+      } as any);
+
+      const result = await service.findMineBySlug('user-1', 'a');
+
+      expect(result.thumbnail).toBe('modulo-1.png');
+      expect(result.videos[0].id).toBe('cedo');
+    });
+
+    it('listagem: fallback de capa usa o mesmo critério pedagógico', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        {
+          showcase: {
+            id: 's1', title: 'A', slug: 'a', description: null, thumbnail: null,
+            grantsAllContent: false, position: 0, _count: { videos: 2 },
+          },
+        },
+      ] as any);
+      prisma.showcaseVideo.findMany.mockResolvedValue([
+        { showcaseId: 's1', ...row('tarde', { videoOrder: 9, moduleOrder: 2, art: 'm2.png' }) },
+        { showcaseId: 's1', ...row('cedo', { videoOrder: 1, moduleOrder: 1, art: 'm1.png' }) },
+      ] as any);
+
+      const result = await service.listMine('user-1');
+
+      expect(result.showcases[0].thumbnail).toBe('m1.png');
+    });
+  });
+
+  // ============================================
   // findAvailableBySlug — prévia de vitrine bloqueada (antes do checkout)
   // ============================================
   describe('findAvailableBySlug', () => {

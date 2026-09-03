@@ -17,22 +17,84 @@ import {
   UpdateShowcaseDto,
 } from './dto/showcase.dto';
 
+/**
+ * O mínimo que uma linha de `ShowcaseVideo` precisa carregar pra ser
+ * ordenada na sequência pedagógica (ver `compareByCurriculum`).
+ */
+interface CurriculumSortableRow {
+  addedAt?: Date;
+  videoId?: string;
+  video: {
+    order?: number;
+    module: {
+      order?: number;
+      parentModule?: { order: number } | null;
+    };
+  };
+}
+
 /** Linha de `ShowcaseVideo` como sai do `detailVideosSelect` (detalhe do aluno). */
-interface ShowcaseDetailVideoRow {
+interface ShowcaseDetailVideoRow extends CurriculumSortableRow {
   video: {
     id: string;
     title: string;
     duration: number;
     thumbnailUrl: string | null;
+    order?: number;
     module: {
       id: string;
       title: string;
+      order?: number;
+      parentModule?: { order: number } | null;
       thumbnail: string | null;
       thumbnailVertical: string | null;
       thumbnailHorizontal: string | null;
       course: { id: string; title: string };
     };
   };
+}
+
+/** Campos do módulo necessários pra ordenar e pra herdar a capa. */
+const MODULE_CURRICULUM_SELECT = {
+  order: true,
+  parentModule: { select: { order: true } },
+  thumbnail: true,
+  thumbnailVertical: true,
+  thumbnailHorizontal: true,
+} as const;
+
+/**
+ * Sequência pedagógica de uma vitrine: a mesma que o aluno vê no player.
+ * Módulo raiz (pelo `order` do curso) → aulas do próprio raiz antes das dos
+ * submódulos → submódulo (pelo `order` no pai) → aula (`order` no módulo).
+ * `addedAt`/`videoId` ficam só como desempate final.
+ *
+ * Por que não `addedAt` como critério principal: o atalho "adicionar módulo
+ * inteiro" grava tudo num `createMany`, então as aulas de um mesmo lote
+ * empatam e a ordem virava sorteio pelo UUID. Ordenar em memória porque o
+ * Prisma não expressa "raiz antes dos filhos" num `orderBy` (vitrines têm
+ * no máximo algumas centenas de aulas).
+ *
+ * Vitrine que misturasse cursos intercalaria módulos pelo número — hoje
+ * nenhuma mistura, e o admin compõe por módulo.
+ */
+function compareByCurriculum(a: CurriculumSortableRow, b: CurriculumSortableRow): number {
+  const key = (row: CurriculumSortableRow) => {
+    const m = row.video.module;
+    const parent = m.parentModule ?? null;
+    return [
+      parent ? parent.order : (m.order ?? 0), // módulo raiz
+      parent ? (m.order ?? 0) + 1 : 0, // raiz (0) antes dos submódulos (1..n)
+      row.video.order ?? 0,
+      row.addedAt?.getTime() ?? 0,
+    ];
+  };
+  const ka = key(a);
+  const kb = key(b);
+  for (let i = 0; i < ka.length; i++) {
+    if (ka[i] !== kb[i]) return ka[i] - kb[i];
+  }
+  return (a.videoId ?? '').localeCompare(b.videoId ?? '');
 }
 
 /**
@@ -604,10 +666,9 @@ export class ShowcasesService {
    * pra aula seguinte, senão a capa mudaria quando a curadoria mexesse
    * numa aula do meio.
    *
-   * "Primeira aula" = mesma ordem da listagem da vitrine (addedAt asc),
-   * com videoId como desempate: o atalho "adicionar módulo inteiro" grava
-   * todas as linhas com o MESMO addedAt (createMany num statement só), e
-   * sem desempate a capa poderia trocar entre dois carregamentos.
+   * "Primeira aula" = a primeira na sequência pedagógica
+   * (`compareByCurriculum`), a mesma do detalhe — assim a capa do card é a
+   * do módulo por onde o aluno começa, e não muda entre carregamentos.
    *
    * Um lote só pra N vitrines — nunca uma query por vitrine.
    */
@@ -625,22 +686,19 @@ export class ShowcasesService {
       orderBy: [{ addedAt: 'asc' }, { videoId: 'asc' }],
       select: {
         showcaseId: true,
+        addedAt: true,
+        videoId: true,
         video: {
           select: {
-            module: {
-              select: {
-                thumbnailHorizontal: true,
-                thumbnailVertical: true,
-                thumbnail: true,
-              },
-            },
+            order: true,
+            module: { select: MODULE_CURRICULUM_SELECT },
           },
         },
       },
     });
 
     const seen = new Set<string>();
-    for (const row of rows) {
+    for (const row of [...rows].sort(compareByCurriculum)) {
       if (seen.has(row.showcaseId)) continue;
       seen.add(row.showcaseId);
       const art = this.moduleArt(row.video.module);
@@ -658,27 +716,28 @@ export class ShowcasesService {
   }
 
   /**
-   * Seleção das aulas de uma vitrine no detalhe (aluno). videoId desempata
-   * addedAt igual (createMany do atalho de módulo) — mesma ordem
-   * determinística do fallback de capa.
+   * Seleção das aulas de uma vitrine no detalhe (aluno). A ordem final é a
+   * pedagógica (`compareByCurriculum`), aplicada em memória — o `orderBy`
+   * aqui só deixa a entrada determinística pro desempate.
    */
   private readonly detailVideosSelect = {
     orderBy: [{ addedAt: 'asc' as const }, { videoId: 'asc' as const }],
     where: { video: { deletedAt: null, isPublished: true } },
     select: {
+      addedAt: true,
+      videoId: true,
       video: {
         select: {
           id: true,
           title: true,
           duration: true,
           thumbnailUrl: true,
+          order: true,
           module: {
             select: {
               id: true,
               title: true,
-              thumbnail: true,
-              thumbnailVertical: true,
-              thumbnailHorizontal: true,
+              ...MODULE_CURRICULUM_SELECT,
               course: { select: { id: true, title: true } },
             },
           },
@@ -687,11 +746,15 @@ export class ShowcasesService {
     },
   };
 
-  /** Achata as linhas de `detailVideosSelect` e resolve a capa herdada. */
+  /**
+   * Achata as linhas de `detailVideosSelect` na sequência pedagógica e
+   * resolve a capa herdada.
+   */
   private toShowcaseDetail<
     T extends { thumbnail: string | null; videos: ShowcaseDetailVideoRow[] },
   >(showcase: T) {
-    const { videos, ...rest } = showcase;
+    const { videos: unsorted, ...rest } = showcase;
+    const videos = [...unsorted].sort(compareByCurriculum);
     // Mesma herança de capa da listagem — módulo da primeira aula.
     const firstModule = videos[0]?.video.module;
     return {
