@@ -474,6 +474,10 @@ export default function WatchVideoScreen() {
         videoId={videoId || ''}
         courseId={courseId || ''}
         videoTitle={video.title}
+        // Painel parcial: o player segue visível e tocando por cima do chat.
+        presentation="sheet"
+        // Citação "📹 [aula] - MM:SS" na resposta pula o player pro trecho.
+        onCitationPress={(c) => playerRef.current?.seekTo(c.seconds)}
       />
     </SafeAreaView>
   );

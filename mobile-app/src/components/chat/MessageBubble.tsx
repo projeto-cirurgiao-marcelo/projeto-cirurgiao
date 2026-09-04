@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors as colors } from '../../constants/colors';
 import { SourceChip } from './SourceChip';
 import { LibrarySourceChip } from './LibrarySourceChip';
+import { MarkdownText, type VideoCitation } from './MarkdownText';
 import type { ChatMessage, ChatSource, MessageFeedback } from '../../types/chat.types';
 import type { LibraryMessage, LibrarySource } from '../../types/library.types';
 
@@ -13,13 +14,20 @@ interface MessageBubbleProps {
   message: AnyMessage;
   onFeedback: (id: string, feedback: MessageFeedback) => void;
   variant?: 'chat' | 'library';
+  /** Toque numa citação "📹 [aula] - MM:SS" da resposta (ex.: pular o player). */
+  onCitationPress?: (citation: VideoCitation) => void;
 }
 
 function isChatSource(source: ChatSource | LibrarySource): source is ChatSource {
   return 'videoId' in source;
 }
 
-export function MessageBubble({ message, onFeedback, variant = 'chat' }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  onFeedback,
+  variant = 'chat',
+  onCitationPress,
+}: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isTemp = message.id.startsWith('temp-');
   const feedback = 'feedback' in message ? message.feedback : null;
@@ -38,9 +46,15 @@ export function MessageBubble({ message, onFeedback, variant = 'chat' }: Message
           isTemp && styles.bubbleTemp,
         ]}
       >
-        <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>
-          {message.content}
-        </Text>
+        {isUser ? (
+          <Text style={[styles.bubbleText, styles.bubbleTextUser]}>{message.content}</Text>
+        ) : (
+          // O Mentor responde em Markdown (prompt do backend) — renderizar,
+          // não mostrar asteriscos crus.
+          <MarkdownText style={styles.bubbleText} onCitationPress={onCitationPress}>
+            {message.content}
+          </MarkdownText>
+        )}
 
         {/* Sources */}
         {!isUser && message.sources && message.sources.length > 0 && (

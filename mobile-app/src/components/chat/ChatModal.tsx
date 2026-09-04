@@ -11,6 +11,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +20,7 @@ import { chatbotService } from '../../services/api/chatbot.service';
 import { libraryService } from '../../services/api/library.service';
 import { logger } from '../../lib/logger';
 import { MessageBubble } from './MessageBubble';
+import type { VideoCitation } from './MarkdownText';
 import { Colors as colors } from '../../constants/colors';
 import type {
   ChatConversation,
@@ -75,6 +78,19 @@ interface ChatModalProps {
   videoId?: string;
   courseId?: string;
   videoTitle?: string;
+  /**
+   * `sheet`: painel inferior com ~62% da altura e margens laterais, deixando
+   * o player visível e tocando por cima (tela de aula). `fullscreen`: modal
+   * de tela cheia (aba Mentor IA). Padrão: fullscreen.
+   */
+  presentation?: 'fullscreen' | 'sheet';
+  /** Toque numa citação "📹 [aula] - MM:SS" da resposta (ex.: pular o player). */
+  onCitationPress?: (citation: VideoCitation) => void;
+}
+
+/** Altura do painel: 62% da janela, mas nunca menos que 360 (paisagem). */
+function sheetHeightFor(windowHeight: number): number {
+  return Math.min(windowHeight - 24, Math.max(360, Math.round(windowHeight * 0.62)));
 }
 
 export function ChatModal({
@@ -84,7 +100,11 @@ export function ChatModal({
   videoId,
   courseId,
   videoTitle,
+  presentation = 'fullscreen',
+  onCitationPress,
 }: ChatModalProps) {
+  const { height: windowHeight } = useWindowDimensions();
+  const isSheet = presentation === 'sheet';
   const [conversation, setConversation] = useState<AnyConversation | null>(null);
   const [messages, setMessages] = useState<AnyMessage[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -226,15 +246,9 @@ export function ChatModal({
       ? `${quota.tokensUsed}/${quota.dailyLimit} consultas hoje`
       : undefined;
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-      onShow={handleShow}
-    >
-      <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
+  // Conteúdo (header + corpo) é o mesmo nos dois modos; muda só a moldura.
+  const content = (
+    <>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -293,6 +307,7 @@ export function ChatModal({
                     message={item}
                     onFeedback={handleFeedback}
                     variant={variant}
+                    onCitationPress={onCitationPress}
                   />
                 )}
               />
@@ -359,6 +374,56 @@ export function ChatModal({
             </>
           )}
         </KeyboardAvoidingView>
+    </>
+  );
+
+  if (isSheet) {
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={handleClose}
+        onShow={handleShow}
+      >
+        <View style={styles.sheetRoot}>
+          {/* Toque fora fecha — o player continua visível e tocando atrás. */}
+          <Pressable
+            style={styles.sheetBackdrop}
+            onPress={handleClose}
+            accessibilityLabel="Fechar"
+          />
+          {/* Android: o sistema redimensiona a janela do Modal com o teclado
+              (softwareKeyboardLayoutMode resize); só o iOS precisa do padding. */}
+          <KeyboardAvoidingView
+            style={styles.sheetKeyboard}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            pointerEvents="box-none"
+          >
+            <SafeAreaView
+              style={[styles.sheet, { height: sheetHeightFor(windowHeight) }]}
+              edges={['bottom']}
+            >
+              <View style={styles.grabber} />
+              {content}
+            </SafeAreaView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+      onShow={handleShow}
+    >
+      <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
+        {content}
       </SafeAreaView>
     </Modal>
   );
@@ -368,6 +433,44 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+
+  // ---- Modo painel (tela de aula) ----
+  sheetRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(3, 20, 43, 0.35)',
+  },
+  sheetKeyboard: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    // Altura definida (o corpo do chat usa flex:1 dentro dela); maxHeight
+    // deixa encolher quando o teclado reduz a janela.
+    maxHeight: '100%',
+    marginHorizontal: 10,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    overflow: 'hidden',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  grabber: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginTop: 8,
+    marginBottom: 2,
   },
   header: {
     flexDirection: 'row',
