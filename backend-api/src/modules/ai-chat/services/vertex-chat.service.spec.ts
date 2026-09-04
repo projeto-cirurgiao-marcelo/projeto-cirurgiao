@@ -46,4 +46,35 @@ describe('VertexChatService (modo geral vs aula)', () => {
     expect(suggestions).toEqual(GENERAL_SUGGESTIONS);
     expect(generateContent).not.toHaveBeenCalled();
   });
+
+  describe('sugestões do modo aula — parse da resposta do modelo', () => {
+    const chunk = { text: 'trecho', videoId: 'v1', videoTitle: 'Aula', startTime: 0 } as any;
+
+    it('limpa marcadores/aspas e descarta linha cortada (sem "?") e preâmbulo', () => {
+      const raw = [
+        'Aqui estão 3 perguntas:',
+        '1. "Quais são as indicações da castração em fêmeas?"',
+        '- Como se resguardar juridicamente?',
+        '* Quais são as principais', // cortada pelo teto de tokens
+        '',
+      ].join('\n');
+
+      expect(VertexChatService.parseSuggestions(raw)).toEqual([
+        'Quais são as indicações da castração em fêmeas?',
+        'Como se resguardar juridicamente?',
+      ]);
+    });
+
+    it('resposta toda truncada cai nas sugestões padrão', async () => {
+      generateContent.mockResolvedValue({
+        response: { candidates: [{ content: { parts: [{ text: 'Quais são as principais' }] } }] },
+      });
+
+      const suggestions = await service.generateSuggestions({ relevantChunks: [chunk] });
+
+      expect(suggestions[0]).toBe('Quais são os principais tópicos desta aula?');
+      // Teto maior: o Gemini 2.5 gasta thinking tokens dentro dele.
+      expect(generateContent.mock.calls[0][0].generationConfig.maxOutputTokens).toBeGreaterThanOrEqual(1024);
+    });
+  });
 });

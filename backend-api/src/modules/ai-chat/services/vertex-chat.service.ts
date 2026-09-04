@@ -279,13 +279,16 @@ Retorne apenas as 3 perguntas, uma por linha, sem numeração.
       const result = await this.model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
-          maxOutputTokens: 256,
+          // Gemini 2.5 gasta "thinking tokens" dentro deste teto; com 256 a
+          // resposta chegava cortada ("Quais são as principais") e virava
+          // sugestão truncada no app.
+          maxOutputTokens: 1024,
           temperature: 0.8,
         },
       });
 
       const response = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const suggestions = response.split('\n').filter(s => s.trim()).slice(0, 3);
+      const suggestions = VertexChatService.parseSuggestions(response);
 
       return suggestions.length > 0 ? suggestions : [
         'Quais são os principais tópicos desta aula?',
@@ -300,6 +303,26 @@ Retorne apenas as 3 perguntas, uma por linha, sem numeração.
         'Quais são os pontos de atenção mencionados?',
       ];
     }
+  }
+
+  /**
+   * Linhas do modelo → perguntas prontas pra virar chip. Remove marcador de
+   * lista/numeração/aspas que o modelo insiste em pôr, e descarta linha que
+   * não termina em "?" (resposta cortada pelo teto de tokens ou preâmbulo
+   * tipo "Aqui estão 3 perguntas:").
+   */
+  static parseSuggestions(response: string): string[] {
+    return response
+      .split('\n')
+      .map((line) =>
+        line
+          .trim()
+          .replace(/^(?:[-*•]|\d+[.)])\s*/, '')
+          .replace(/^["“']|["”']$/g, '')
+          .trim(),
+      )
+      .filter((line) => line.endsWith('?') && line.length > 8)
+      .slice(0, 3);
   }
 
   /**
