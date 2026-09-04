@@ -1,4 +1,5 @@
 'use client';
+import { courseInstructorName } from '@/lib/course-instructor';
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -126,9 +127,9 @@ export function CourseCardNew({
           </h3>
 
           {/* Instrutor */}
-          {showInstructor && course.instructor && (
+          {showInstructor && courseInstructorName(course) && (
             <p className="text-sm text-muted-foreground mb-3">
-              {course.instructor.name}
+              {courseInstructorName(course)}
             </p>
           )}
 

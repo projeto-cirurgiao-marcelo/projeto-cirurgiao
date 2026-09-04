@@ -283,3 +283,15 @@ de diretório ReadOnly. Limpar o atributo resolve; `EAS_NO_VCS=1` não.
 
 **Pendente:** APK `preview` publicada ainda é a de 31/08 — gerar build
 Android quando o smoke iOS estiver aprovado.
+
+**Adendo 2026-09-04 (tarde) — professor exibido nos cursos.** Backend rev
+**`00116-xvv`** (migration `20260904180000_course_instructor_display`:
+`Course.instructorName`/`instructorTitle`). Todo curso apontava pro usuário
+admin via `instructorId` e os cards mostravam "Admin Projeto Cirurgiao"; os
+professores não têm conta, então o nome virou texto livre editável no admin
+(novo/editar curso), com fallback pro `instructor.name`. **Dados de produção:**
+`UPDATE courses SET "instructorName"='Marcelo Portilho'` nos 10 cursos ativos
+(2026-09-04); `instructorTitle` vazio. Rev `00115-nc4` (antes, mesmo dia):
+sugestões do chat truncadas — `maxOutputTokens` 1024 + `parseSuggestions`.
+Mobile no mesmo dia: chat da aula como painel parcial + Markdown renderizado +
+citação pula o player; acentuação em 60 textos; miniaturas na lista da vitrine.

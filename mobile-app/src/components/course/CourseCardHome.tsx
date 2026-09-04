@@ -1,3 +1,4 @@
+import { courseInstructorName } from '../../lib/course-instructor';
 /**
  * CourseCardHome - Card full-width para a Home Screen
  *
@@ -60,7 +61,7 @@ export function CourseCardHome({ course, onPress }: CourseCardHomeProps) {
         ? `${estimatedMinutes} min`
         : null;
 
-  const instructorName = course.instructor?.name || 'Projeto Cirurgião';
+  const instructorName = courseInstructorName(course) || 'Projeto Cirurgião';
   const enrollmentCount = course._count?.enrollments ?? 0;
 
   return (
