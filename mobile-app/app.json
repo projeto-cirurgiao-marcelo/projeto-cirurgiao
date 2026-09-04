@@ -53,7 +53,8 @@
           "supportsPictureInPicture": true
         }
       ],
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-asset"
     ],
     "newArchEnabled": true,
     "experiments": {
