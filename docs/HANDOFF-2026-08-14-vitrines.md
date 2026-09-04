@@ -222,3 +222,64 @@ Anterior: `00112-gj8`. Env preservado (16 plaintext + 10 secret refs).
 aborta se chamado com `2>&1` (stderr informativo do gcloud vira erro com
 `$ErrorActionPreference=Stop`). Chamar sem redirecionar, ou via Git Bash:
 `powershell -NoProfile -File ./deploy-artifact-registry.ps1 > log 2>&1`.
+
+## Adendo 2026-09-04 — matrículas × acesso (fecha o P3) + iOS de volta
+
+**Produção (backend):** revisão **`00114-9vx`** (migration
+`20260904130000_enrollment_suspended_at` aplicada pelo job; 43 migrations).
+Anterior: `00113-htd`.
+
+**Problema atacado:** `Enrollment` é telemetria ("começou a assistir") e
+sobrevivia à perda de acesso; além disso, assistir um recorte (vitrine
+Castração = 19 aulas dentro do curso Treinamentos Premium, 91 aulas)
+matriculava no curso de origem inteiro. A Home mostrava "Treinamentos
+Premium 2/91" e cursos revogados em "Em andamento". Vale pra qualquer
+comprador de recorte, não só pra conta de teste.
+
+**Camada 1 — leitura (web + mobile):**
+- `AccessService.courseAccessLevel` → `full | partial | none` pelas aulas
+  publicadas do curso.
+- `GET /progress/enrolled-courses` anota `accessLevel`, omite `none` e
+  matrículas suspensas. Os dois clientes descartam `partial` nas listas de
+  matriculados (o progresso do recorte vive no card da vitrine).
+- `GET /showcases/mine` devolve `completedVideos`/`progressPercentage` **só
+  sobre as aulas da vitrine**; o card da vitrine ganhou barra e "X/Y aulas".
+
+**Camada 2 — dados:** `Enrollment.suspendedAt` (nullable, reversível).
+`AccessService.reconcileEnrollments(userId)` suspende matrículas de cursos
+onde o aluno não alcança mais aula nenhuma e restaura na recompra; chamado
+pelo webhook TheMembers em `release.access`/`revoke.access`. Voltar a
+assistir (progresso só é salvo com acesso) também restaura.
+
+**Dados de produção tocados:** `scripts/reconcile-enrollments.ts --apply`
+rodado em 2026-09-04 via proxy. Dry-run: 28 alunos, **só a conta de teste
+`gustavobressnin6@gmail.com`** tinha matrículas órfãs — 6 suspensas
+(Posicionamento e Atração, Tecidos Moles, Aprofundamento Tecidos Moles,
+Comece Por Aqui, Treinamentos | Pós graduação, Neurocirurgia Na Prática).
+Nenhum outro aluno afetado. Re-run: 0/0 (idempotente). Reverter: `UPDATE
+enrollments SET "suspendedAt" = NULL WHERE "suspendedAt" IS NOT NULL`.
+
+**Consumidores de Enrollment ainda não revisados** (gamificação,
+certificados, relatórios de presença): continuam lendo sem filtrar
+`suspendedAt`. Ficou mais barato agora — é um `where: { suspendedAt: null }`.
+
+**iOS:** primeiro build iOS válido no SDK 54 — `e877900f`, profile
+`preview`, bundle `app.projetocirurgiao.mobile`, ad-hoc pro iPhone 8 (UDID
+`940885e3…`) registrado em 2026-09-04. Certificado válido até 2027-07-01.
+O iPhone roubado (`00008110-…`) **ainda não foi removido** do time Apple
+(`eas device:delete`). Os docs anteriores davam o iOS como validado em
+2026-07-02, mas esse build nunca existiu no EAS — provavelmente local, na
+máquina furtada.
+
+**Mobile deps:** `expo-asset` (peer do `expo-audio`) + patches do SDK 54;
+`expo-doctor` 18/18. Aviso `setLayoutAnimationEnabledExperimental` removido
+(no-op na Nova Arquitetura).
+
+**Gotcha novo (Windows):** `eas build` falhava com `EPERM rmdir
+…shallow-clone\.github`. Causa: 128 diretórios do repo com atributo
+**ReadOnly** herdado do OneDrive (a pasta foi movida, não clonada); o
+eas-cli apaga do clone o que o `.easignore` lista e o Windows recusa rmdir
+de diretório ReadOnly. Limpar o atributo resolve; `EAS_NO_VCS=1` não.
+
+**Pendente:** APK `preview` publicada ainda é a de 31/08 — gerar build
+Android quando o smoke iOS estiver aprovado.
