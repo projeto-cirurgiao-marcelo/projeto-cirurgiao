@@ -577,6 +577,71 @@ describe('ShowcasesService', () => {
   });
 
   // ============================================
+  // findPublicBySlug / listPublic — página pública de ajuda (link do checkout)
+  // ============================================
+  describe('findPublicBySlug / listPublic', () => {
+    it('só vitrine publicada E com produto vinculado; devolve checkoutUrl, nunca o externalProductId', async () => {
+      prisma.showcase.findFirst.mockResolvedValue(
+        makeShowcase({
+          thumbnail: 'capa.png',
+          externalProductId: '7480227495418253312',
+          _count: { videos: 19 },
+        }),
+      );
+
+      const result = await service.findPublicBySlug('castracao-descomplicada');
+
+      expect(prisma.showcase.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isPublished: true,
+            deletedAt: null,
+            grantsAllContent: false,
+            externalProductId: { not: null },
+          }),
+        }),
+      );
+      expect(result).toEqual({
+        id: 'showcase-1',
+        title: 'Castração Descomplicada',
+        slug: 'castracao-descomplicada',
+        description: null,
+        thumbnail: 'capa.png',
+        videoCount: 19,
+        checkoutUrl: 'https://checkout.thebank.com.br/7480227495418253312',
+      });
+      expect(result).not.toHaveProperty('externalProductId');
+      // Capa própria: não consulta o lote de fallback.
+      expect(prisma.showcaseVideo.findMany).not.toHaveBeenCalled();
+    });
+
+    it('vitrine sem produto (não vendável) é 404 na rota pública', async () => {
+      prisma.showcase.findFirst.mockResolvedValue(null);
+
+      await expect(service.findPublicBySlug('em-breve')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('listPublic lista só as vendáveis, com checkoutUrl', async () => {
+      prisma.showcase.findMany.mockResolvedValue([
+        makeShowcase({ id: 'a', slug: 'a', externalProductId: '1' }),
+        makeShowcase({ id: 'b', slug: 'b', externalProductId: '2' }),
+      ]);
+
+      const result = await service.listPublic();
+
+      expect(result.showcases.map((s) => s.checkoutUrl)).toEqual([
+        'https://checkout.thebank.com.br/1',
+        'https://checkout.thebank.com.br/2',
+      ]);
+      expect(prisma.showcase.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ externalProductId: { not: null } }),
+        }),
+      );
+    });
+  });
+
+  // ============================================
   // findAvailableBySlug — prévia de vitrine bloqueada (antes do checkout)
   // ============================================
   describe('findAvailableBySlug', () => {

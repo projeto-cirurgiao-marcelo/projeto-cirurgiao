@@ -18,7 +18,9 @@ import type { NextRequest } from 'next/server';
 const protectedPaths = ['/admin', '/student', '/onboarding'];
 
 // Rotas públicas (não precisam de auth)
-const publicPaths = ['/login', '/register', '/forgot-password', '/'];
+// /ajuda: central de ajuda pública — o app mobile abre aqui (com
+// ?desbloquear=slug) em vez de apontar pro checkout diretamente.
+const publicPaths = ['/login', '/register', '/forgot-password', '/', '/ajuda'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

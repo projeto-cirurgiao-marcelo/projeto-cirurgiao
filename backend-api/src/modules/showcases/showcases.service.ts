@@ -860,6 +860,75 @@ export class ShowcasesService {
   }
 
   /**
+   * Vitrine pra página pública de ajuda (`/ajuda?desbloquear=slug`): o app
+   * mostra "Como desbloquear mais cursos?" e é a página web que carrega a
+   * URL do checkout — o app nunca aponta pro checkout diretamente (padrão
+   * Spotify, regra 3.1.1 da App Store). Sem auth: só vitrine publicada e à
+   * venda (com produto vinculado); o resto é 404, sem vazar catálogo.
+   */
+  async findPublicBySlug(slug: string) {
+    const showcase = await this.prisma.showcase.findFirst({
+      where: {
+        slug,
+        isPublished: true,
+        deletedAt: null,
+        grantsAllContent: false,
+        externalProductId: { not: null },
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        thumbnail: true,
+        externalProductId: true,
+        _count: {
+          select: {
+            videos: { where: { video: { deletedAt: null, isPublished: true } } },
+          },
+        },
+      },
+    });
+    if (!showcase) throw new NotFoundException('Vitrine não encontrada');
+
+    const fallbacks = showcase.thumbnail
+      ? new Map<string, string>()
+      : await this.resolveThumbnailFallbacks([showcase.id]);
+
+    return {
+      id: showcase.id,
+      title: showcase.title,
+      slug: showcase.slug,
+      description: showcase.description,
+      thumbnail: showcase.thumbnail ?? fallbacks.get(showcase.id) ?? null,
+      videoCount: showcase._count.videos,
+      checkoutUrl: checkoutUrlFor(showcase.externalProductId)!,
+    };
+  }
+
+  /** Lista pública das vitrines à venda (resposta genérica da página de ajuda). */
+  async listPublic() {
+    const showcases = await this.prisma.showcase.findMany({
+      where: {
+        isPublished: true,
+        deletedAt: null,
+        grantsAllContent: false,
+        externalProductId: { not: null },
+      },
+      orderBy: [{ position: 'asc' }, { title: 'asc' }],
+      select: { id: true, title: true, slug: true, externalProductId: true },
+    });
+    return {
+      showcases: showcases.map((s) => ({
+        id: s.id,
+        title: s.title,
+        slug: s.slug,
+        checkoutUrl: checkoutUrlFor(s.externalProductId)!,
+      })),
+    };
+  }
+
+  /**
    * Detalhe de uma vitrine que o aluno ainda NÃO possui — a "visão do curso"
    * antes do checkout. Lista as aulas pra ele abrir cada uma em modo prévia
    * (o gate do vídeo corta em `previewSeconds`) e traz a `checkoutUrl`.

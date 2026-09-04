@@ -8,8 +8,8 @@
  *
  * Preview (corte nível 1): o polling de 500ms clampa currentTime em
  * previewSeconds, pausa e mostra o overlay "Prévia encerrada"; o CTA
- * "Desbloquear acesso" só aparece com offerCheckoutUrl e abre o checkout
- * via Linking.
+ * "Como acessar este curso?" só aparece com onOfferPress e chama o handler
+ * (Central de Ajuda) — o app não abre o checkout direto.
  *
  * Note que VideoView real foi stubbado em jest.setup.ts.
  */
@@ -76,7 +76,6 @@ describe('<VideoPlayer />', () => {
 
 describe('<VideoPlayer /> — preview (corte nível 1)', () => {
   const STREAM = 'https://cdn.example.com/videos/x/playlist.m3u8';
-  const CHECKOUT = 'https://checkout.thebank.com.br/7480227495418253312';
 
   // Player fake com tempo controlável — o polling de 500ms lê currentTime.
   const makeFakePlayer = (currentTime: number) => ({
@@ -105,7 +104,7 @@ describe('<VideoPlayer /> — preview (corte nível 1)', () => {
     (useVideoPlayer as jest.Mock).mockImplementation(() => makeFakePlayer(0));
   });
 
-  const renderPreview = (props: { offerCheckoutUrl?: string } = {}) =>
+  const renderPreview = (props: { onOfferPress?: () => void } = {}) =>
     render(
       <VideoPlayer
         video={makeVideo()}
@@ -146,34 +145,33 @@ describe('<VideoPlayer /> — preview (corte nível 1)', () => {
     expect(queryByText('Prévia encerrada')).toBeNull();
   });
 
-  it('mostra CTA "Desbloquear acesso" quando há offerCheckoutUrl', () => {
-    const { getByText } = renderPreview({ offerCheckoutUrl: CHECKOUT });
+  it('mostra CTA "Como acessar este curso?" quando há onOfferPress', () => {
+    const { getByText } = renderPreview({ onOfferPress: jest.fn() });
     advancePastCut();
-    expect(getByText('Desbloquear acesso')).toBeTruthy();
+    expect(getByText('Como acessar este curso?')).toBeTruthy();
   });
 
-  it('omite o CTA sem offerCheckoutUrl (produto ainda não vendável)', () => {
+  it('omite o CTA sem onOfferPress (produto ainda não vendável)', () => {
     const { getByText, queryByText } = renderPreview();
     advancePastCut();
     expect(getByText('Prévia encerrada')).toBeTruthy();
-    expect(queryByText('Desbloquear acesso')).toBeNull();
+    expect(queryByText('Como acessar este curso?')).toBeNull();
   });
 
-  it('CTA abre o checkout via Linking', async () => {
-    const canOpen = jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
+  it('CTA chama onOfferPress (Central de Ajuda) — nunca abre o checkout direto', async () => {
+    const onOfferPress = jest.fn();
     const openUrl = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
 
-    const { getByText } = renderPreview({ offerCheckoutUrl: CHECKOUT });
+    const { getByText } = renderPreview({ onOfferPress });
     advancePastCut();
 
     await act(async () => {
-      fireEvent.press(getByText('Desbloquear acesso'));
+      fireEvent.press(getByText('Como acessar este curso?'));
     });
 
-    expect(canOpen).toHaveBeenCalledWith(CHECKOUT);
-    expect(openUrl).toHaveBeenCalledWith(CHECKOUT);
+    expect(onOfferPress).toHaveBeenCalledTimes(1);
+    expect(openUrl).not.toHaveBeenCalled();
 
-    canOpen.mockRestore();
     openUrl.mockRestore();
   });
 });

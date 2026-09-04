@@ -25,7 +25,7 @@ import {
   type MyShowcaseDetail,
   type MyShowcaseVideo,
 } from '../../../src/services/api/showcases.service';
-import { openShowcaseCheckout } from '../../../src/components/course/LockedShowcaseCard';
+import { openUnlockHelp } from '../../../src/components/course/LockedShowcaseCard';
 import { logger } from '../../../src/lib/logger';
 import { Colors as colors } from '../../../src/constants/colors';
 
@@ -116,14 +116,16 @@ export default function ShowcaseLessonsScreen() {
               acesso completo.
             </Text>
             {checkoutUrl ? (
+              // Abre a Central de Ajuda (web) na pergunta de desbloqueio —
+              // o app não aponta pro checkout diretamente.
               <TouchableOpacity
                 style={styles.unlockButton}
                 activeOpacity={0.85}
-                onPress={() => openShowcaseCheckout(checkoutUrl)}
-                accessibilityRole="link"
+                onPress={() => slug && openUnlockHelp(slug)}
+                accessibilityRole="button"
               >
-                <Text style={styles.unlockButtonText}>Desbloquear curso</Text>
-                <Ionicons name="open-outline" size={14} color="#fff" />
+                <Text style={styles.unlockButtonText}>Como acessar este curso?</Text>
+                <Ionicons name="help-circle-outline" size={15} color="#fff" />
               </TouchableOpacity>
             ) : (
               <Text style={styles.soonText}>Em breve — este curso ainda não está à venda.</Text>

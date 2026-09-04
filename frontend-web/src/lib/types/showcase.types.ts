@@ -138,6 +138,24 @@ export interface AvailableShowcaseDetail extends MyShowcaseDetail {
   checkoutUrl: string | null;
 }
 
+/**
+ * Vitrine à venda vista pela página pública de ajuda (`/ajuda?desbloquear=slug`),
+ * sem auth — GET /showcases/public/:slug. Só publicadas e com produto.
+ */
+export interface PublicShowcase {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnail: string | null;
+  videoCount: number;
+  checkoutUrl: string;
+}
+
+export interface PublicShowcases {
+  showcases: Array<Pick<PublicShowcase, 'id' | 'title' | 'slug' | 'checkoutUrl'>>;
+}
+
 export interface ShowcaseInput {
   title?: string;
   description?: string;

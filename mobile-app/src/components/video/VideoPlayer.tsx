@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useState, useMemo } from 'react';
 import {
   StyleSheet, View, Text, AppState, AppStateStatus, TouchableOpacity,
-  Pressable, Platform, Linking, Alert,
+  Pressable, Platform,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { BlurView } from 'expo-blur';
@@ -41,11 +41,11 @@ interface VideoPlayerProps {
   /** Título da vitrine ofertada no overlay (offerShowcase.title). */
   offerTitle?: string;
   /**
-   * URL de checkout da vitrine ofertada (offerShowcase.checkoutUrl) — vira o
-   * botão "Desbloquear acesso" no overlay de fim de prévia. Sem ela o overlay
-   * é só informativo (produto ainda não vendável).
+   * Ação do botão "Como acessar este curso?" no overlay de fim de prévia
+   * (leva à Central de Ajuda da vitrine ofertada — o app não aponta pro
+   * checkout). Sem ela o overlay é só informativo (produto não vendável).
    */
-  offerCheckoutUrl?: string;
+  onOfferPress?: () => void;
 }
 
 export interface VideoPlayerRef {
@@ -84,7 +84,7 @@ function formatTime(seconds: number): string {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
-  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle, offerCheckoutUrl },
+  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle, onOfferPress },
   ref
 ) {
   const videoViewRef = useRef<VideoView>(null);
@@ -115,21 +115,6 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   const [previewEnded, setPreviewEnded] = useState(false);
   const previewEndedRef = useRef(false);
 
-  // CTA do overlay de prévia: abre o checkout TheMembers no navegador externo.
-  const handleOpenCheckout = useCallback(async () => {
-    if (!offerCheckoutUrl) return;
-    try {
-      const supported = await Linking.canOpenURL(offerCheckoutUrl);
-      if (supported) {
-        await Linking.openURL(offerCheckoutUrl);
-      } else {
-        Alert.alert('Erro', 'Não foi possível abrir a página de compra.');
-      }
-    } catch (err) {
-      logger.error('Erro ao abrir checkout:', err);
-      Alert.alert('Erro', 'Ocorreu um erro ao abrir a página de compra.');
-    }
-  }, [offerCheckoutUrl]);
 
   // Source com contentType explícito para HLS.
   // Prioridade: contrato backend playbackKind > regex .m3u8 (fallback defensivo
@@ -720,14 +705,16 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
                 ? `Esta aula faz parte de "${offerTitle}". Adquira o acesso para continuar assistindo.`
                 : 'Adquira o acesso para continuar assistindo esta aula.'}
             </Text>
-            {offerCheckoutUrl && (
+            {onOfferPress && (
+              // Leva à Central de Ajuda (web) na pergunta de desbloqueio —
+              // o app não aponta pro checkout diretamente.
               <TouchableOpacity
                 style={styles.previewCtaButton}
-                onPress={handleOpenCheckout}
+                onPress={onOfferPress}
                 activeOpacity={0.85}
               >
-                <Text style={styles.previewCtaText}>Desbloquear acesso</Text>
-                <Ionicons name="open-outline" size={14} color="#fff" />
+                <Text style={styles.previewCtaText}>Como acessar este curso?</Text>
+                <Ionicons name="help-circle-outline" size={15} color="#fff" />
               </TouchableOpacity>
             )}
           </View>

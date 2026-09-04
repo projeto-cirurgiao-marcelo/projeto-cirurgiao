@@ -2,21 +2,14 @@
  * Card de vitrine BLOQUEADA (seção "Continue evoluindo") — provocação de
  * compra. Tocar no card abre a vitrine em modo prévia (índice das aulas,
  * cada uma assistível até `previewSeconds`) — a "visão do curso" antes do
- * checkout. O CTA "Desbloquear" é um atalho direto pro checkout TheMembers
- * no navegador externo; sem checkoutUrl o CTA vira "Em breve" (produto
- * ainda não vendável), mas a prévia continua acessível.
- * Visual na linha do ShowcaseCard.
+ * checkout. O CTA "Como acessar?" abre a Central de Ajuda do web na
+ * pergunta "Como desbloquear mais cursos?" daquela vitrine — é a página web
+ * que aponta pro checkout, nunca o app (App Store 3.1.1). Sem checkoutUrl
+ * (produto ainda não vendável) o CTA vira "Em breve", mas a prévia continua
+ * acessível. Visual na linha do ShowcaseCard.
  */
 import React from 'react';
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Linking,
-  Alert,
-} from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import {
@@ -27,22 +20,14 @@ import {
   BorderRadius,
   Shadows,
 } from '../../constants/colors';
-import { logger } from '../../lib/logger';
 import type { AvailableShowcase } from '../../services/api/showcases.service';
 
-/** Abre o checkout TheMembers no navegador. Compartilhado com a tela de prévia. */
-export async function openShowcaseCheckout(checkoutUrl: string): Promise<void> {
-  try {
-    const supported = await Linking.canOpenURL(checkoutUrl);
-    if (supported) {
-      await Linking.openURL(checkoutUrl);
-    } else {
-      Alert.alert('Erro', 'Não foi possível abrir a página de compra.');
-    }
-  } catch (err) {
-    logger.error('[LockedShowcaseCard] Erro ao abrir checkout:', err);
-    Alert.alert('Erro', 'Ocorreu um erro ao abrir a página de compra.');
-  }
+/**
+ * Abre a Central de Ajuda (WebView) na pergunta de desbloqueio da vitrine.
+ * Compartilhado com a tela de prévia e o overlay do player.
+ */
+export function openUnlockHelp(showcaseSlug: string): void {
+  router.push(`/help?showcase=${encodeURIComponent(showcaseSlug)}` as Href);
 }
 
 export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }) {
@@ -77,12 +62,12 @@ export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }
         {showcase.checkoutUrl ? (
           <TouchableOpacity
             style={styles.ctaRow}
-            onPress={() => openShowcaseCheckout(showcase.checkoutUrl!)}
+            onPress={() => openUnlockHelp(showcase.slug)}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            accessibilityRole="link"
+            accessibilityRole="button"
           >
-            <Text style={styles.ctaText}>Desbloquear</Text>
-            <Ionicons name="open-outline" size={12} color={Colors.accent} />
+            <Text style={styles.ctaText}>Como acessar?</Text>
+            <Ionicons name="help-circle-outline" size={13} color={Colors.accent} />
           </TouchableOpacity>
         ) : (
           <Text style={styles.soonText}>Em breve</Text>

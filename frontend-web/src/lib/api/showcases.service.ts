@@ -6,6 +6,8 @@ import { apiClient } from './client';
 import type {
   AvailableShowcaseDetail,
   AvailableShowcases,
+  PublicShowcase,
+  PublicShowcases,
   CourseTreeItem,
   MyShowcaseDetail,
   MyShowcases,
@@ -39,6 +41,18 @@ export const showcasesService = {
     const res = await apiClient.get<AvailableShowcaseDetail>(
       `/showcases/available/${slug}`,
     );
+    return res.data;
+  },
+
+  /** Página pública de ajuda — vitrine à venda por slug (sem auth). */
+  async publicShowcase(slug: string): Promise<PublicShowcase> {
+    const res = await apiClient.get<PublicShowcase>(`/showcases/public/${slug}`);
+    return res.data;
+  },
+
+  /** Página pública de ajuda — todas as vitrines à venda (sem auth). */
+  async publicShowcases(): Promise<PublicShowcases> {
+    const res = await apiClient.get<PublicShowcases>('/showcases/public');
     return res.data;
   },
 
