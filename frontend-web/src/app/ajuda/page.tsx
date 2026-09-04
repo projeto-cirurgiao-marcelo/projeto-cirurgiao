@@ -231,7 +231,7 @@ function HelpContent() {
 
   const unlockItem = (
     <AccordionItem value={UNLOCK_ITEM} className="border rounded-xl px-4 bg-card">
-      <AccordionTrigger className="text-left font-semibold hover:no-underline">
+      <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
         Como desbloquear mais cursos?
       </AccordionTrigger>
       <AccordionContent>
@@ -282,7 +282,7 @@ function HelpContent() {
               </h2>
               {FAQ.filter((f) => f.category === category).map((item) => (
                 <AccordionItem key={item.id} value={item.id} className="border rounded-xl px-4 bg-card">
-                  <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                  <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
                     {item.question}
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground leading-relaxed">
