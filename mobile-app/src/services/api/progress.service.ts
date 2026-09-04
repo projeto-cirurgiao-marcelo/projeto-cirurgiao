@@ -8,11 +8,16 @@ import { EnrolledCourse, CourseProgress, SaveProgressDto } from '../../types';
 
 export const progressService = {
   /**
-   * Lista cursos matriculados do usuário
+   * Lista cursos matriculados do usuário.
+   *
+   * Curso com acesso `partial` (aluno só tem um recorte via vitrine — ex.:
+   * Castração dentro de Treinamentos Premium) fica de fora: o progresso dele
+   * aparece no card da vitrine em "Meus Cursos", e mostrar o curso inteiro
+   * aqui exibiria "2/91" e levaria a 72 aulas bloqueadas.
    */
   async getEnrolledCourses(): Promise<EnrolledCourse[]> {
-    const response = await apiClient.get('/progress/enrolled-courses');
-    return response.data;
+    const response = await apiClient.get<EnrolledCourse[]>('/progress/enrolled-courses');
+    return (response.data ?? []).filter((c) => c.accessLevel !== 'partial');
   },
 
   /**

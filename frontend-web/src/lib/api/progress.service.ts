@@ -109,16 +109,26 @@ export const progressService = {
   },
 
   /**
-   * Buscar cursos em que o usuário está matriculado
+   * Buscar cursos em que o usuário está matriculado.
+   *
+   * Curso com acesso `partial` (aluno só tem um recorte via vitrine — ex.:
+   * Castração dentro de Treinamentos Premium) fica de fora: o progresso dele
+   * aparece no card da vitrine em "Meus Cursos", e listar o curso inteiro
+   * mostraria "2/91" e levaria a dezenas de aulas bloqueadas. Espelha o mobile.
    */
   async getEnrolledCourses(): Promise<EnrolledCourseWithProgress[]> {
     const response = await apiClient.get<EnrolledCourseWithProgress[]>('/progress/enrolled-courses');
-    return response.data;
+    return (response.data ?? []).filter((c) => c.accessLevel !== 'partial');
   },
 };
 
 export interface EnrolledCourseWithProgress {
   id: string;
+  /**
+   * `full` = todas as aulas; `partial` = só um recorte via vitrine. Sem acesso
+   * o backend nem devolve o curso. Ausente = backend anterior ao campo.
+   */
+  accessLevel?: 'full' | 'partial';
   title: string;
   slug: string;
   description: string;

@@ -359,8 +359,20 @@ export default function CoursesPage() {
                   title={s.title}
                   category="Meu curso"
                   lessonsCount={s.videoCount}
-                  status="new"
-                  progressPercent={0}
+                  // Progresso só sobre as aulas da vitrine (não do curso de origem).
+                  status={
+                    (s.progressPercentage ?? 0) >= 100
+                      ? 'completed'
+                      : (s.completedVideos ?? 0) > 0
+                        ? 'in-progress'
+                        : 'new'
+                  }
+                  progressPercent={s.progressPercentage ?? 0}
+                  lessonsProgress={
+                    (s.completedVideos ?? 0) > 0
+                      ? `${s.completedVideos} / ${s.videoCount}`
+                      : undefined
+                  }
                   thumbVariant={pickThumbVariant(s.id)}
                   thumbImageUrl={s.thumbnail || undefined}
                 />

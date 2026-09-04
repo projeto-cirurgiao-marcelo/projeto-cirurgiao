@@ -46,6 +46,13 @@ export interface CourseProgress {
 export interface EnrolledCourse extends Course {
   enrollment: Enrollment;
   progress: CourseProgress;
+  /**
+   * Quanto do curso o aluno alcança hoje: `full` (todas as aulas) ou
+   * `partial` (só um recorte via vitrine — o progresso dele vive no card da
+   * vitrine em "Meus Cursos"). Sem acesso o backend nem devolve o curso.
+   * Ausente = backend anterior ao campo → tratar como `full`.
+   */
+  accessLevel?: 'full' | 'partial';
 }
 
 export interface VideoProgress {

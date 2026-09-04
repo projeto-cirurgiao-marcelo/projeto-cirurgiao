@@ -17,6 +17,10 @@ import {
 import type { MyShowcase } from '../../services/api/showcases.service';
 
 export function ShowcaseCard({ showcase }: { showcase: MyShowcase }) {
+  const completed = showcase.completedVideos ?? 0;
+  const percent = Math.min(100, showcase.progressPercentage ?? 0);
+  const started = completed > 0;
+
   return (
     <TouchableOpacity
       style={styles.container}
@@ -42,11 +46,23 @@ export function ShowcaseCard({ showcase }: { showcase: MyShowcase }) {
             {showcase.description}
           </Text>
         ) : null}
+        {started && (
+          <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: `${percent}%` }]} />
+          </View>
+        )}
         <View style={styles.metaRow}>
-          <Ionicons name="play-circle-outline" size={13} color={Colors.textMuted} />
+          <Ionicons
+            name={started ? 'checkmark-circle-outline' : 'play-circle-outline'}
+            size={13}
+            color={started ? Colors.accent : Colors.textMuted}
+          />
           <Text style={styles.metaText}>
-            {showcase.videoCount} aula{showcase.videoCount !== 1 ? 's' : ''}
+            {started
+              ? `${completed}/${showcase.videoCount} aulas`
+              : `${showcase.videoCount} aula${showcase.videoCount !== 1 ? 's' : ''}`}
           </Text>
+          {started && <Text style={styles.percentText}>{percent}%</Text>}
         </View>
       </View>
       <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} style={styles.chevron} />
@@ -97,6 +113,24 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     fontWeight: FontWeight.medium,
+  },
+  percentText: {
+    marginLeft: 'auto',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+    fontWeight: FontWeight.semibold,
+  },
+  progressBarBg: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.background,
+    overflow: 'hidden',
+    marginTop: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
   },
   chevron: { marginRight: 2 },
 });

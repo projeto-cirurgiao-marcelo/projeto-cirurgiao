@@ -86,6 +86,10 @@ export interface MyShowcase {
   description: string | null;
   thumbnail: string | null;
   videoCount: number;
+  /** Aulas concluídas SÓ entre as da vitrine ("2/19", não "2/91" do curso de origem). */
+  completedVideos?: number;
+  /** % binário sobre as aulas da vitrine. */
+  progressPercentage?: number;
 }
 
 export interface MyShowcases {
