@@ -295,3 +295,18 @@ professores não têm conta, então o nome virou texto livre editável no admin
 sugestões do chat truncadas — `maxOutputTokens` 1024 + `parseSuggestions`.
 Mobile no mesmo dia: chat da aula como painel parcial + Markdown renderizado +
 citação pula o player; acentuação em 60 textos; miniaturas na lista da vitrine.
+
+**Adendo 2026-09-04 (noite) — Central de Ajuda / desbloqueio sem apontar pro checkout.**
+Backend rev **`00117-w6r`**: `GET /showcases/public` e `/showcases/public/:slug`
+(sem auth, só publicadas e com produto, throttle 10/s e 60/min). Web:
+`/ajuda` pública (`?desbloquear=slug` abre a pergunta "Como desbloquear mais
+cursos?" com o link do checkout daquela vitrine; `?embed=1` esconde
+cabeçalho). Mobile: tela `/help` (react-native-webview) — os 3 pontos que
+abriam o checkout (card bloqueado, prévia da vitrine, overlay do player)
+agora abrem a Central de Ajuda com o slug; navegação pra fora do nosso
+domínio sai do WebView pro navegador do sistema. Rótulos: "Como acessar?".
+Motivo: App Store 3.1.1 (padrão Spotify) — o app não aponta pra compra
+externa; quem carrega a URL é a página web. Validado no emulador: o link
+"Acessar a página de compra" abriu o Chrome. `EXPO_PUBLIC_WEB_URL` permite
+apontar o app pra outro web (padrão `https://app.projetocirurgiao.app`).
+Risco: a leitura do revisor da Apple sobre FAQ com link de compra varia.
