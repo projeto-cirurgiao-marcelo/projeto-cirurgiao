@@ -211,7 +211,7 @@ export default function InProgressScreen() {
             <View style={styles.emptyContainer}>
               <Ionicons name="play-circle-outline" size={64} color="#9CA3AF" />
               <Text style={styles.emptyTitle}>Nenhum curso em andamento</Text>
-              <Text style={styles.emptyText}>Comece um curso e ele aparecera aqui</Text>
+              <Text style={styles.emptyText}>Comece um curso e ele aparecerá aqui</Text>
               <TouchableOpacity
                 style={styles.ctaButton}
                 onPress={() => router.push('/courses/catalog')}

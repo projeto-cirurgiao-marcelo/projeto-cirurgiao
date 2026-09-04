@@ -78,7 +78,7 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: 'trophy-outline' as const, title: 'Gamificacao', subtitle: 'Conquistas, ranking e desafios', route: '/profile/gamification' },
+    { icon: 'trophy-outline' as const, title: 'Gamificação', subtitle: 'Conquistas, ranking e desafios', route: '/profile/gamification' },
     { icon: 'person-outline' as const, title: 'Editar Perfil', subtitle: 'Nome, profissão e especializações', route: '/profile/edit' },
     { icon: 'lock-closed-outline' as const, title: 'Alterar Senha', subtitle: 'Atualizar credenciais', route: '/profile/change-password' },
     { icon: 'notifications-outline' as const, title: 'Notificações', subtitle: 'Configurar alertas', route: '/profile/notifications' },

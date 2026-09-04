@@ -32,7 +32,7 @@ import type {
 } from '../../src/types/gamification.types';
 
 const TAB_ROUTES = [
-  { key: 'overview', title: 'Visao Geral', icon: 'home-outline' as const },
+  { key: 'overview', title: 'Visão Geral', icon: 'home-outline' as const },
   { key: 'achievements', title: 'Conquistas', icon: 'ribbon-outline' as const },
   { key: 'leaderboard', title: 'Ranking', icon: 'podium-outline' as const },
   { key: 'challenges', title: 'Desafios', icon: 'flag-outline' as const },
@@ -105,7 +105,7 @@ export default function GamificationHubScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Ionicons name="trophy" size={18} color={colors.accent} />
-          <Text style={styles.headerTitle}>Gamificacao</Text>
+          <Text style={styles.headerTitle}>Gamificação</Text>
         </View>
         <View style={{ width: 32 }} />
       </View>
@@ -166,7 +166,7 @@ function OverviewTab({ profile, badges, challenges, onRefresh, refreshing }: any
       <View style={styles.statsGrid}>
         <StatCard icon="time-outline" color="#8B5CF6" value={`${watchHours}h ${watchMins}m`} label="Tempo" />
         <StatCard icon="school" color="#22C55E" value={profile.stats.coursesCompleted} label="Cursos" />
-        <StatCard icon="play-circle" color="#3B82F6" value={profile.stats.videosCompleted} label="Videos" />
+        <StatCard icon="play-circle" color="#3B82F6" value={profile.stats.videosCompleted} label="Vídeos" />
         <StatCard icon="chatbubble-outline" color="#EC4899" value={profile.stats.forumTopics + profile.stats.forumReplies} label="Forum" />
       </View>
 
@@ -215,7 +215,7 @@ function OverviewTab({ profile, badges, challenges, onRefresh, refreshing }: any
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Ionicons name="sparkles" size={16} color={colors.accent} />
-            <Text style={styles.sectionTitle}>Historico XP</Text>
+            <Text style={styles.sectionTitle}>Histórico XP</Text>
           </View>
           {profile.recentXpHistory.slice(0, 8).map((entry: any, i: number) => (
             <View key={i} style={styles.xpHistoryRow}>
@@ -365,7 +365,7 @@ function LeaderboardTab() {
       {/* Current user rank */}
       {leaderboard?.currentUser && (
         <View style={styles.yourRankCard}>
-          <Text style={styles.yourRankLabel}>Sua Posicao</Text>
+          <Text style={styles.yourRankLabel}>Sua Posição</Text>
           <View style={styles.yourRankRow}>
             <Text style={styles.yourRankNumber}>{leaderboard.currentUser.rank}°</Text>
             <View style={{ flex: 1 }}>
@@ -449,7 +449,7 @@ function ChallengesTab({ challenges, isLoading, onClaim, claimingId }: any) {
       {/* Daily */}
       {daily.length > 0 && (
         <ChallengeSection
-          title="Desafios Diarios"
+          title="Desafios Diários"
           icon="calendar-outline"
           color="#3B82F6"
           challenges={daily}
@@ -485,7 +485,7 @@ function ChallengesTab({ challenges, isLoading, onClaim, claimingId }: any) {
       {!hasAnyChallenges && (
         <View style={styles.emptyContainer}>
           <Ionicons name="flag-outline" size={40} color="#9CA3AF" />
-          <Text style={styles.emptyText}>Nenhum desafio disponivel no momento</Text>
+          <Text style={styles.emptyText}>Nenhum desafio disponível no momento</Text>
         </View>
       )}
 

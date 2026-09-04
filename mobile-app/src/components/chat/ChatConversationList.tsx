@@ -97,7 +97,7 @@ export function ChatConversationList({
             setConversations((prev) => prev.filter((c) => c.id !== conversation.id));
           } catch (error) {
             logger.error('Erro ao excluir conversa:', error);
-            Alert.alert('Erro', 'Nao foi possivel excluir a conversa.');
+            Alert.alert('Erro', 'Não foi possível excluir a conversa.');
           }
         },
       },
@@ -114,7 +114,7 @@ export function ChatConversationList({
 
   const getSubtitle = (conv: AnyConversation): string | null => {
     if (conv._segment === 'video' && 'videoId' in conv && conv.videoId) {
-      return 'Duvida sobre aula';
+      return 'Dúvida sobre aula';
     }
     if (conv._segment === 'library') {
       return 'Biblioteca IA';
@@ -204,9 +204,9 @@ export function ChatConversationList({
             {activeSegment === 'library' && 'Nenhuma consulta na biblioteca'}
           </Text>
           <Text style={styles.emptyText}>
-            {activeSegment === 'general' && 'Use o botao abaixo para iniciar uma conversa com o Mentor IA.'}
-            {activeSegment === 'video' && 'Conversas sobre aulas aparecem aqui quando voce faz perguntas durante um video.'}
-            {activeSegment === 'library' && 'Consulte livros e materiais de referencia usando a Biblioteca IA.'}
+            {activeSegment === 'general' && 'Use o botão abaixo para iniciar uma conversa com o Mentor IA.'}
+            {activeSegment === 'video' && 'Conversas sobre aulas aparecem aqui quando você faz perguntas durante um vídeo.'}
+            {activeSegment === 'library' && 'Consulte livros e materiais de referência usando a Biblioteca IA.'}
           </Text>
         </View>
       )}

@@ -211,7 +211,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       setGenerationStatus(null);
     } catch (error) {
       logger.error('Erro ao gerar quiz:', error);
-      Alert.alert('Erro', 'Nao foi possivel gerar o quiz. Verifique se o video possui transcricao.');
+      Alert.alert('Erro', 'Não foi possível gerar o quiz. Verifique se o vídeo possui transcrição.');
       setGenerationStatus(null);
     } finally {
       setGenerating(false);
@@ -358,7 +358,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
         setStats(newStats);
       } catch (error) {
         logger.error('Erro ao enviar quiz:', error);
-        Alert.alert('Erro', 'Nao foi possivel enviar as respostas. Tente novamente.');
+        Alert.alert('Erro', 'Não foi possível enviar as respostas. Tente novamente.');
       } finally {
         setSubmitting(false);
       }
@@ -437,7 +437,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       setGenerationStatus(null);
     } catch (error) {
       logger.error('Erro ao gerar novo quiz:', error);
-      Alert.alert('Erro', 'Nao foi possivel gerar um novo quiz. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível gerar um novo quiz. Tente novamente.');
       setGenerationStatus(null);
     } finally {
       setGenerating(false);
@@ -447,7 +447,7 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
 
   const handleCloseModal = () => {
     if (phase === 'play') {
-      Alert.alert('Sair do quiz?', 'Seu progresso sera perdido.', [
+      Alert.alert('Sair do quiz?', 'Seu progresso será perdido.', [
         { text: 'Continuar', style: 'cancel' },
         { text: 'Sair', style: 'destructive', onPress: resetToIntro },
       ]);

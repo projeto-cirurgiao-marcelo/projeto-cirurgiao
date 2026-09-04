@@ -75,7 +75,7 @@ export function QuizResult({
         </Text>
       </View>
 
-      <Text style={styles.reviewTitle}>Revisao das questoes</Text>
+      <Text style={styles.reviewTitle}>Revisão das questões</Text>
       {answers.map((answer, index) => {
         const question = questions?.find((q) => q.id === answer.questionId);
         return (
@@ -90,7 +90,7 @@ export function QuizResult({
             ]}
           >
             <View style={styles.reviewHeader}>
-              <Text style={styles.reviewQuestionNum}>Questao {index + 1}</Text>
+              <Text style={styles.reviewQuestionNum}>Questão {index + 1}</Text>
               <Ionicons
                 name={answer.isCorrect ? 'checkmark-circle' : 'close-circle'}
                 size={16}

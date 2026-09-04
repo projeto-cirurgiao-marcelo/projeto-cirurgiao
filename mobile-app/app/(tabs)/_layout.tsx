@@ -40,7 +40,7 @@ const TAB_CONFIG: Record<string, {
   iconFocused: keyof typeof Ionicons.glyphMap;
 }> = {
   index: {
-    label: 'Inicio',
+    label: 'Início',
     sfIcon: 'house',
     sfIconFocused: 'house.fill',
     icon: 'home-outline',

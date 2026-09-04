@@ -305,10 +305,10 @@ export default function CatalogScreen() {
         <View style={styles.emptyContainer}>
           <Ionicons name={search ? 'search-outline' : 'school-outline'} size={48} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>
-            {search ? 'Nenhum curso encontrado' : 'Nenhum curso disponivel'}
+            {search ? 'Nenhum curso encontrado' : 'Nenhum curso disponível'}
           </Text>
           <Text style={styles.emptyText}>
-            {search ? 'Tente buscar por outro termo' : 'Novos cursos serao adicionados em breve'}
+            {search ? 'Tente buscar por outro termo' : 'Novos cursos serão adicionados em breve'}
           </Text>
           {(search || filter !== 'all') && (
             <TouchableOpacity onPress={() => { setSearch(''); setFilter('all'); }}>

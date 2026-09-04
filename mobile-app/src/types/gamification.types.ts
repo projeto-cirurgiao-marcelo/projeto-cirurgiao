@@ -131,15 +131,15 @@ export const RARITY_COLORS: Record<BadgeRarity, { border: string; bg: string; te
 export const RARITY_LABELS: Record<BadgeRarity, string> = {
   common: 'Comum',
   rare: 'Raro',
-  epic: 'Epico',
-  legendary: 'Lendario',
+  epic: 'Épico',
+  legendary: 'Lendário',
 };
 
 export const CATEGORY_LABELS: Record<BadgeCategory, string> = {
   progress: 'Progresso',
   quizzes: 'Quizzes',
   community: 'Comunidade',
-  consistency: 'Consistencia',
+  consistency: 'Consistência',
   special: 'Especiais',
 };
 
@@ -257,7 +257,7 @@ export const DIFFICULTY_COLORS: Record<ChallengeDifficulty, string> = {
 };
 
 export const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
-  easy: 'Facil',
-  medium: 'Medio',
-  hard: 'Dificil',
+  easy: 'Fácil',
+  medium: 'Médio',
+  hard: 'Difícil',
 };

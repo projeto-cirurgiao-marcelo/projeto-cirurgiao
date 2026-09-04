@@ -114,7 +114,7 @@ export function VideoAIChatBubble({ videoId, courseId, videoTitle }: VideoAIChat
     } catch (error) {
       logger.error('Erro ao enviar mensagem:', error);
       setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
-      Alert.alert('Erro', 'Nao foi possivel enviar a mensagem. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
     } finally {
       setSending(false);
     }
@@ -199,9 +199,9 @@ export function VideoAIChatBubble({ videoId, courseId, videoTitle }: VideoAIChat
                       <View style={styles.emptyIconContainer}>
                         <Ionicons name="sparkles" size={28} color={colors.accent} />
                       </View>
-                      <Text style={styles.emptyTitle}>Duvidas sobre esta aula?</Text>
+                      <Text style={styles.emptyTitle}>Dúvidas sobre esta aula?</Text>
                       <Text style={styles.emptyText}>
-                        Pergunte ao Mentor IA sobre o conteudo desta aula. Ele conhece o material e pode te ajudar!
+                        Pergunte ao Mentor IA sobre o conteúdo desta aula. Ele conhece o material e pode te ajudar!
                       </Text>
                     </View>
                   }
@@ -221,7 +221,7 @@ export function VideoAIChatBubble({ videoId, courseId, videoTitle }: VideoAIChat
                       <View style={[styles.typingDot, { opacity: 0.6 }]} />
                       <View style={[styles.typingDot, { opacity: 0.8 }]} />
                     </View>
-                    <Text style={styles.typingText}>Mentor IA esta pensando...</Text>
+                    <Text style={styles.typingText}>Mentor IA está pensando...</Text>
                   </View>
                 )}
 
@@ -318,7 +318,7 @@ function MessageBubble({
               <View key={idx} style={styles.sourceChip}>
                 <Ionicons name="videocam-outline" size={11} color={colors.accent} />
                 <Text style={styles.sourceChipText} numberOfLines={1}>
-                  {source.videoTitle || 'Video'}
+                  {source.videoTitle || 'Vídeo'}
                 </Text>
                 <Text style={styles.sourceChipTime}>
                   {formatTimestamp(source.timestamp)}

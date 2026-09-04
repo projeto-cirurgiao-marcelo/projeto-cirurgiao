@@ -65,7 +65,7 @@ export function ChatScreen() {
       }
     } catch (error) {
       logger.error('Erro ao carregar conversa:', error);
-      Alert.alert('Erro', 'Nao foi possivel carregar a conversa.');
+      Alert.alert('Erro', 'Não foi possível carregar a conversa.');
       setView('list');
     }
   }, []);
@@ -127,7 +127,7 @@ export function ChatScreen() {
     } catch (error) {
       logger.error('Erro ao enviar mensagem:', error);
       setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
-      Alert.alert('Erro', 'Nao foi possivel enviar a mensagem. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
     } finally {
       setSending(false);
     }
@@ -163,7 +163,7 @@ export function ChatScreen() {
     activeConversation?._segment === 'library'
       ? 'Biblioteca IA'
       : activeConversation?._segment === 'video'
-        ? 'Duvidas da Aula'
+        ? 'Dúvidas da Aula'
         : 'Mentor IA';
 
   // ===== VIEW: LIST =====
@@ -241,7 +241,7 @@ export function ChatScreen() {
               <Ionicons name="sparkles" size={32} color={colors.accent} />
               <Text style={styles.chatEmptyTitle}>Como posso ajudar?</Text>
               <Text style={styles.chatEmptyText}>
-                Pergunte sobre suas aulas, procedimentos ou qualquer duvida de estudo.
+                Pergunte sobre suas aulas, procedimentos ou qualquer dúvida de estudo.
               </Text>
             </View>
           }
@@ -263,8 +263,8 @@ export function ChatScreen() {
             </View>
             <Text style={styles.typingText}>
               {activeConversation?._segment === 'library'
-                ? 'Biblioteca IA esta pesquisando...'
-                : 'Mentor IA esta pensando...'}
+                ? 'Biblioteca IA está pesquisando...'
+                : 'Mentor IA está pensando...'}
             </Text>
           </View>
         )}

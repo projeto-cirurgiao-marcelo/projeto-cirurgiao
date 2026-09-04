@@ -56,9 +56,9 @@ export function ExpandableFAB({
 
   const options: FABOption[] = useMemo(() => {
     const list: FABOption[] = [];
-    list.push({ type: 'general', label: 'Duvidas Gerais', icon: 'chatbubbles-outline' });
+    list.push({ type: 'general', label: 'Dúvidas Gerais', icon: 'chatbubbles-outline' });
     if (showVideoOption) {
-      list.push({ type: 'video', label: 'Duvidas sobre esta aula', icon: 'sparkles' });
+      list.push({ type: 'video', label: 'Dúvidas sobre esta aula', icon: 'sparkles' });
     }
     list.push({ type: 'library', label: 'Biblioteca IA', icon: 'sparkles' });
     return list;

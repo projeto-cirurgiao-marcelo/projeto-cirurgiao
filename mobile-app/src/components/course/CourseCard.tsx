@@ -101,7 +101,7 @@ export function CourseCard({
         {/* Info */}
         <View style={styles.progressInfo}>
           <Text style={styles.progressCategory} numberOfLines={1}>
-            {course.instructor?.name || 'Projeto Cirurgiao'}
+            {course.instructor?.name || 'Projeto Cirurgião'}
           </Text>
           <Text style={styles.progressTitle} numberOfLines={2}>
             {course.title}
@@ -173,7 +173,7 @@ export function CourseCard({
         {/* Info */}
         <View style={styles.carouselInfo}>
           <Text style={styles.carouselCategory} numberOfLines={1}>
-            {course.instructor?.name || 'Projeto Cirurgiao'}
+            {course.instructor?.name || 'Projeto Cirurgião'}
           </Text>
           <Text style={styles.carouselTitle} numberOfLines={2}>
             {course.title}
@@ -231,7 +231,7 @@ export function CourseCard({
       {/* Info */}
       <View style={styles.gridInfo}>
         <Text style={styles.gridCategory} numberOfLines={1}>
-          {course.instructor?.name || 'Projeto Cirurgiao'}
+          {course.instructor?.name || 'Projeto Cirurgião'}
         </Text>
         <Text style={styles.gridTitle} numberOfLines={2}>
           {course.title}

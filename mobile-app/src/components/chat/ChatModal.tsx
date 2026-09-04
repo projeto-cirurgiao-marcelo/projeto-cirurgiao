@@ -49,25 +49,25 @@ const HEADER_CONFIG: Record<ChatType, {
     title: 'Mentor IA',
     icon: 'chatbubbles-outline',
     emptyTitle: 'Como posso ajudar?',
-    emptyText: 'Pergunte sobre seus estudos, procedimentos cirurgicos ou qualquer duvida geral.',
+    emptyText: 'Pergunte sobre seus estudos, procedimentos cirúrgicos ou qualquer dúvida geral.',
     placeholder: 'Digite sua pergunta...',
-    thinkingText: 'Mentor IA esta pensando...',
+    thinkingText: 'Mentor IA está pensando...',
   },
   video: {
-    title: 'Duvidas da Aula',
+    title: 'Dúvidas da Aula',
     icon: 'sparkles',
-    emptyTitle: 'Duvidas sobre esta aula?',
-    emptyText: 'Pergunte sobre o conteudo desta aula. O Mentor conhece o material e pode te ajudar!',
+    emptyTitle: 'Dúvidas sobre esta aula?',
+    emptyText: 'Pergunte sobre o conteúdo desta aula. O Mentor conhece o material e pode te ajudar!',
     placeholder: 'Pergunte sobre esta aula...',
-    thinkingText: 'Mentor IA esta pensando...',
+    thinkingText: 'Mentor IA está pensando...',
   },
   library: {
     title: 'Biblioteca IA',
     icon: 'book-outline',
     emptyTitle: 'Consulte a Biblioteca',
-    emptyText: 'Faca perguntas sobre os livros e materiais de referencia em Medicina Veterinaria.',
+    emptyText: 'Faça perguntas sobre os livros e materiais de referência em Medicina Veterinária.',
     placeholder: 'Pergunte sobre os livros...',
-    thinkingText: 'Biblioteca IA esta pesquisando...',
+    thinkingText: 'Biblioteca IA está pesquisando...',
   },
 };
 
@@ -139,7 +139,7 @@ export function ChatModal({
         setSuggestions(sug);
       }
     } catch (error) {
-      logger.error('Erro ao carregar sugestoes:', error);
+      logger.error('Erro ao carregar sugestões:', error);
     } finally {
       setLoadingSuggestions(false);
     }
@@ -219,7 +219,7 @@ export function ChatModal({
     } catch (error) {
       logger.error('Erro ao enviar mensagem:', error);
       setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
-      Alert.alert('Erro', 'Nao foi possivel enviar a mensagem. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
     } finally {
       setSending(false);
     }

@@ -15,7 +15,7 @@ export function SourceChip({ source }: { source: ChatSource }) {
     <View style={styles.sourceChip}>
       <Ionicons name="videocam-outline" size={11} color={colors.accent} />
       <Text style={styles.sourceChipText} numberOfLines={1}>
-        {source.videoTitle || 'Video'}
+        {source.videoTitle || 'Vídeo'}
       </Text>
       <Text style={styles.sourceChipTime}>
         {formatTimestamp(source.timestamp)}

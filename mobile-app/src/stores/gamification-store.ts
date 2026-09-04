@@ -348,7 +348,7 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
           if (event.data.streakDays) {
             get().showXpPopup(
               event.data.xp || 50,
-              `Sequencia de ${event.data.streakDays} dias!`,
+              `Sequência de ${event.data.streakDays} dias!`,
             );
           }
           break;

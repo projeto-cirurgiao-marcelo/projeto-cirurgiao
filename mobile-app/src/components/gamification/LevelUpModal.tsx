@@ -64,13 +64,13 @@ export function LevelUpModal() {
             <Text style={styles.levelNumber}>{data.newLevel}</Text>
           </Animated.View>
 
-          <Text style={styles.subtitle}>Novo nivel alcancado!</Text>
+          <Text style={styles.subtitle}>Novo nível alcançado!</Text>
           <Text style={[styles.title, { color: data.newColor }]}>{data.newTitle}</Text>
 
           {isMaxLevel && (
             <View style={styles.trophyRow}>
               <Ionicons name="trophy" size={24} color="#FFD700" />
-              <Text style={styles.trophyText}>Nivel maximo!</Text>
+              <Text style={styles.trophyText}>Nível máximo!</Text>
             </View>
           )}
 

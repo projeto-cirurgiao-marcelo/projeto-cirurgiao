@@ -111,7 +111,7 @@ export const summariesService = {
         job = await pollJobUntilComplete(job.jobId);
       }
       if (job.status === 'failed' || !job.resultRef) {
-        throw new Error(job.error || 'Resumo nao foi gerado (sem resultRef)');
+        throw new Error(job.error || 'Resumo não foi gerado (sem resultRef)');
       }
       const { data: summary } = await apiClient.get<VideoSummary>(
         `/videos/${videoId}/summaries/${job.resultRef}`

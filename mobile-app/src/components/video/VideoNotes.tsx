@@ -111,7 +111,7 @@ export function VideoNotes({ videoId, currentTime, onSeek }: VideoNotesProps) {
       setEditingNote(null);
     } catch (error) {
       logger.error('Erro ao salvar nota:', error);
-      Alert.alert('Erro', 'Nao foi possivel salvar a nota. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível salvar a nota. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -129,7 +129,7 @@ export function VideoNotes({ videoId, currentTime, onSeek }: VideoNotesProps) {
             setNotes((prev) => prev.filter((n) => n.id !== note.id));
           } catch (error) {
             logger.error('Erro ao excluir nota:', error);
-            Alert.alert('Erro', 'Nao foi possivel excluir a nota.');
+            Alert.alert('Erro', 'Não foi possível excluir a nota.');
           }
         },
       },

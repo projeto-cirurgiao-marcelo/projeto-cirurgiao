@@ -78,7 +78,7 @@ export function BadgeUnlockModal() {
             onPress={dismiss}
             activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>Incrivel!</Text>
+            <Text style={styles.buttonText}>Incrível!</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -12,9 +12,9 @@ import { Colors as colors } from '../../constants/colors';
 import type { Quiz, QuizStats } from '../../types/quiz.types';
 
 const DIFFICULTY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  EASY: { label: 'Facil', color: colors.success, bg: `${colors.success}15` },
-  MEDIUM: { label: 'Medio', color: colors.warning, bg: `${colors.warning}15` },
-  HARD: { label: 'Dificil', color: colors.danger, bg: `${colors.danger}15` },
+  EASY: { label: 'Fácil', color: colors.success, bg: `${colors.success}15` },
+  MEDIUM: { label: 'Médio', color: colors.warning, bg: `${colors.warning}15` },
+  HARD: { label: 'Difícil', color: colors.danger, bg: `${colors.danger}15` },
 };
 
 export interface QuizIntroProps {
@@ -62,8 +62,8 @@ export function QuizIntro({
           <Text style={styles.emptyTitle}>Teste seus conhecimentos</Text>
           <Text style={styles.emptyText}>
             {isAdmin
-              ? 'Gere um quiz com IA baseado no conteudo desta aula.'
-              : 'Gere um quiz personalizado com IA para praticar o que aprendeu nesta aula. Cada quiz e unico!'}
+              ? 'Gere um quiz com IA baseado no conteúdo desta aula.'
+              : 'Gere um quiz personalizado com IA para praticar o que aprendeu nesta aula. Cada quiz é único!'}
           </Text>
           <TouchableOpacity
             style={[styles.generateButton, generating && styles.buttonDisabled]}
@@ -110,7 +110,7 @@ export function QuizIntro({
             })()}
             <View style={styles.introBadge}>
               <Ionicons name="help-circle-outline" size={12} color={colors.textSecondary} />
-              <Text style={styles.introBadgeText}>{quiz.questions?.length ?? 0} questoes</Text>
+              <Text style={styles.introBadgeText}>{quiz.questions?.length ?? 0} questões</Text>
             </View>
             {quiz.timeLimit && (
               <View style={styles.introBadge}>
@@ -147,7 +147,7 @@ export function QuizIntro({
                 </View>
                 <View style={styles.statItem}>
                   <Text style={styles.statValue}>{Math.round(stats.averageScore)}%</Text>
-                  <Text style={styles.statLabel}>Media</Text>
+                  <Text style={styles.statLabel}>Média</Text>
                 </View>
               </View>
             </View>

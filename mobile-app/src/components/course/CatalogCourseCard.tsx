@@ -60,7 +60,7 @@ export function CatalogCourseCard({ course, onPress }: CatalogCourseCardProps) {
   let statusIcon: keyof typeof Ionicons.glyphMap = 'bookmark';
   if (enrolled) {
     if (progress >= 100) {
-      statusLabel = 'Concluido';
+      statusLabel = 'Concluído';
       statusColor = 'rgba(34,197,94,0.9)';
       statusIcon = 'checkmark-circle';
     } else if (progress > 0) {
@@ -141,7 +141,7 @@ export function CatalogCourseCard({ course, onPress }: CatalogCourseCardProps) {
           <Text style={styles.metaRating}>4.8</Text>
           <Text style={styles.metaDot}>·</Text>
           <Ionicons name="folder-outline" size={13} color="#94A3B8" />
-          <Text style={styles.metaText}>{moduleCount} modulos</Text>
+          <Text style={styles.metaText}>{moduleCount} módulos</Text>
           <Text style={styles.metaDot}>·</Text>
           <Ionicons name="videocam-outline" size={13} color="#94A3B8" />
           <Text style={styles.metaText}>{totalVideos} aulas</Text>

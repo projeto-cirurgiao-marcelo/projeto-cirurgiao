@@ -64,9 +64,9 @@ describe('<GamificationScreen />', () => {
     expect(getByText('5 dias')).toBeTruthy();
   });
 
-  it('renderiza header "Gamificacao"', () => {
+  it('renderiza header "Gamificação"', () => {
     const { getByText } = render(<GamificationScreen />);
-    expect(getByText('Gamificacao')).toBeTruthy();
+    expect(getByText('Gamificação')).toBeTruthy();
   });
 
   it('dispara os 4 fetchers no mount', () => {
