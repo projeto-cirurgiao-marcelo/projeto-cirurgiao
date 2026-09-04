@@ -14,6 +14,7 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -64,11 +65,23 @@ export default function ShowcaseLessonsScreen() {
       activeOpacity={0.7}
       onPress={() => router.push(`/course/${item.courseId}/watch/${item.id}`)}
     >
-      <View style={styles.lessonIndex}>
-        {locked ? (
-          <Ionicons name="play-outline" size={16} color={colors.textSecondary} />
+      {/* Miniatura da aula (auto-thumbnail do pipeline) com o número como selo;
+          sem imagem, placeholder com o número em destaque. */}
+      <View style={styles.thumbWrap}>
+        {item.thumbnailUrl ? (
+          <Image source={{ uri: item.thumbnailUrl }} style={styles.thumb} resizeMode="cover" />
         ) : (
-          <Text style={styles.lessonIndexText}>{String(index + 1).padStart(2, '0')}</Text>
+          <View style={styles.thumbPlaceholder}>
+            <Ionicons name="videocam-outline" size={22} color={colors.textMuted} />
+          </View>
+        )}
+        <View style={styles.indexBadge}>
+          <Text style={styles.indexBadgeText}>{String(index + 1).padStart(2, '0')}</Text>
+        </View>
+        {locked && (
+          <View style={styles.thumbLock}>
+            <Ionicons name="lock-closed" size={10} color="#fff" />
+          </View>
         )}
       </View>
       <View style={styles.lessonInfo}>
@@ -217,14 +230,26 @@ const styles = StyleSheet.create({
 
   lessonRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fff', borderRadius: 12, padding: 12,
+    backgroundColor: '#fff', borderRadius: 12, padding: 10,
     elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
   },
-  lessonIndex: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: colors.background,
-    justifyContent: 'center', alignItems: 'center',
+  thumbWrap: {
+    width: 104, height: 58, borderRadius: 8, overflow: 'hidden',
+    backgroundColor: colors.background,
   },
-  lessonIndexText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  thumb: { width: '100%', height: '100%' },
+  thumbPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  indexBadge: {
+    position: 'absolute', left: 4, bottom: 4,
+    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4,
+    backgroundColor: 'rgba(3, 20, 43, 0.72)',
+  },
+  indexBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff', fontVariant: ['tabular-nums'] },
+  thumbLock: {
+    position: 'absolute', top: 4, right: 4,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center',
+  },
   lessonInfo: { flex: 1, gap: 2 },
   lessonTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
   lessonSubtitle: { fontSize: 11.5, color: colors.textMuted },
