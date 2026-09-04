@@ -565,28 +565,82 @@ export class ShowcasesService {
 
     const grantsAllContent = ents.some((e) => e.showcase.grantsAllContent);
 
-    const needsFallback = ents
-      .filter((e) => !e.showcase.grantsAllContent && !e.showcase.thumbnail)
-      .map((e) => e.showcase.id);
-    const fallbacks = await this.resolveThumbnailFallbacks(needsFallback);
+    const owned = ents.filter((e) => !e.showcase.grantsAllContent);
+    const ownedIds = owned.map((e) => e.showcase.id);
+    const [fallbacks, completedByShowcase] = await Promise.all([
+      this.resolveThumbnailFallbacks(
+        owned.filter((e) => !e.showcase.thumbnail).map((e) => e.showcase.id),
+      ),
+      this.countCompletedByShowcase(userId, ownedIds),
+    ]);
 
-    const showcases = ents
-      .filter((e) => !e.showcase.grantsAllContent)
+    const showcases = owned
       .sort(
         (a, b) =>
           a.showcase.position - b.showcase.position ||
           a.showcase.title.localeCompare(b.showcase.title),
       )
-      .map(({ showcase: s }) => ({
-        id: s.id,
-        title: s.title,
-        slug: s.slug,
-        description: s.description,
-        thumbnail: s.thumbnail ?? fallbacks.get(s.id) ?? null,
-        videoCount: s._count.videos,
-      }));
+      .map(({ showcase: s }) => {
+        const completedVideos = completedByShowcase.get(s.id) ?? 0;
+        return {
+          id: s.id,
+          title: s.title,
+          slug: s.slug,
+          description: s.description,
+          thumbnail: s.thumbnail ?? fallbacks.get(s.id) ?? null,
+          videoCount: s._count.videos,
+          // Progresso SÓ sobre as aulas da vitrine — o card diz "2/19", não
+          // "2/91" do curso de origem (que o aluno de recorte não possui).
+          completedVideos,
+          progressPercentage:
+            s._count.videos > 0 ? Math.round((completedVideos / s._count.videos) * 100) : 0,
+        };
+      });
 
     return { grantsAllContent, showcases };
+  }
+
+  /**
+   * Aulas concluídas por vitrine (binário, como o "X/Y aulas" dos cursos).
+   * Uma query pra N vitrines, partindo do progresso do aluno e atravessando
+   * a composição (video → showcases) — nunca uma query por vitrine. Uma aula
+   * em duas vitrines conta nas duas.
+   */
+  private async countCompletedByShowcase(
+    userId: string,
+    showcaseIds: string[],
+  ): Promise<Map<string, number>> {
+    const completed = new Map<string, number>();
+    if (showcaseIds.length === 0) return completed;
+
+    const done = await this.prisma.progress.findMany({
+      where: {
+        userId,
+        completed: true,
+        video: {
+          deletedAt: null,
+          isPublished: true,
+          showcases: { some: { showcaseId: { in: showcaseIds } } },
+        },
+      },
+      select: {
+        video: {
+          select: {
+            showcases: {
+              where: { showcaseId: { in: showcaseIds } },
+              select: { showcaseId: true },
+            },
+          },
+        },
+      },
+    });
+
+    for (const p of done) {
+      for (const { showcaseId } of p.video.showcases) {
+        completed.set(showcaseId, (completed.get(showcaseId) ?? 0) + 1);
+      }
+    }
+    return completed;
   }
 
   /**

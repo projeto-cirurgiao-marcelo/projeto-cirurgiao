@@ -3,6 +3,7 @@ import { Prisma, Role } from '@prisma/client';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
+import { AccessService } from '../showcases/access.service';
 import {
   EVENT_RELEASE,
   EVENT_REVOKE,
@@ -20,6 +21,7 @@ export class WebhooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly firebase: FirebaseAdminService,
+    private readonly access: AccessService,
   ) {}
 
   /**
@@ -124,6 +126,8 @@ export class WebhooksService {
       },
     });
     this.logger.log(`Acesso liberado: ${email} -> "${showcase.title}"`);
+    // Recompra: matrícula suspensa na revogação volta a aparecer.
+    await this.access.reconcileEnrollments(user.id);
   }
 
   private async revokeAccess(data: ThemembersData, event: string) {
@@ -154,6 +158,11 @@ export class WebhooksService {
       data: { revokedAt: new Date(), revokedReason: event },
     });
     this.logger.log(`Acesso revogado (${event}): ${email} -> "${showcase.title}"`);
+    // Congela as matrículas dos cursos onde o aluno não alcança mais aula nenhuma.
+    const sync = await this.access.reconcileEnrollments(user.id);
+    if (sync.suspended > 0) {
+      this.logger.log(`Matrículas suspensas após revogação: ${sync.suspended} (${email})`);
+    }
   }
 
   /**

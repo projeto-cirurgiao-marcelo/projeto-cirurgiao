@@ -306,10 +306,11 @@ export class ProgressService {
         });
         this.logger.log(`Enrollment created for user ${userId} in course ${courseId}`);
       } else {
-        // Atualizar último acesso
+        // Atualizar último acesso. Progresso só é salvo em aula com acesso
+        // (preview não reporta), então voltar a assistir reativa a matrícula.
         await this.prisma.enrollment.update({
           where: { id: existingEnrollment.id },
-          data: { lastAccessAt: new Date() },
+          data: { lastAccessAt: new Date(), suspendedAt: null },
         });
       }
     } catch (error) {
@@ -669,14 +670,15 @@ export class ProgressService {
   /**
    * Buscar cursos em que o usuário está matriculado com progresso
    */
-  async getEnrolledCourses(userId: string): Promise<any[]> {
+  async getEnrolledCourses(userId: string, role: string = 'STUDENT'): Promise<any[]> {
     // Buscar todas as matrículas do usuário com dados do curso.
     // Cursos soft-deletados ficam de fora: a matrícula sobrevive ao delete,
     // mas o curso some das listagens e o detalhe dele responde 404 — sem o
     // filtro o aluno via um "curso fantasma" em Meus cursos que quebrava ao
     // clicar (ex.: Ortopedia e Neurocirurgia, deletado em 2026-06-15).
+    // Matrícula suspensa (perdeu o acesso) também fica de fora.
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { userId, course: { deletedAt: null } },
+      where: { userId, suspendedAt: null, course: { deletedAt: null } },
       include: {
         course: {
           select: {
@@ -721,10 +723,20 @@ export class ProgressService {
       progressMap.set(progress.videoId, progress);
     }
 
+    // Enrollment é telemetria ("começou a assistir"), não direito de acesso:
+    // uma matrícula pode sobreviver à revogação do entitlement, e assistir
+    // um recorte (vitrine) matricula no curso de origem inteiro. Cada curso
+    // sai anotado com o nível de acesso atual; sem acesso nenhum, sai da lista.
+    const access = await this.accessService.getAccess({ userId, role });
+
     // Montar resposta com dados de progresso
-    return enrollments.map((enrollment) => {
+    const courses = enrollments.map((enrollment) => {
       const course = enrollment.course;
-      
+      const accessLevel = this.accessService.courseAccessLevel(
+        access,
+        course.modules.flatMap((m) => m.videos.filter((v) => v.isPublished).map((v) => v.id)),
+      );
+
       // Calcular total de vídeos e vídeos assistidos/concluídos
       let totalVideos = 0;
       let watchedVideos = 0;
@@ -785,6 +797,7 @@ export class ProgressService {
         price: course.price,
         instructor: course.instructor,
         modules: course.modules,
+        accessLevel,
         enrollment: {
           id: enrollment.id,
           enrolledAt: enrollment.enrolledAt,
@@ -802,5 +815,7 @@ export class ProgressService {
         },
       };
     });
+
+    return courses.filter((c) => c.accessLevel !== 'none');
   }
 }

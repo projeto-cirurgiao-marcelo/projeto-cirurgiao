@@ -235,6 +235,10 @@ model Enrollment {
   completedAt  DateTime?
   progress     Int       @default(0)
   lastAccessAt DateTime  @default(now())
+  /// Matrícula "congelada": o aluno perdeu todo acesso ao curso (entitlement
+  /// revogado/expirado). Some das listagens mas preserva progresso e datas;
+  /// volta a null quando ele recupera acesso (recompra) ou assiste de novo.
+  suspendedAt  DateTime?
   course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 

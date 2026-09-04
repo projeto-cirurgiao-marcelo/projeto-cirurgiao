@@ -43,6 +43,8 @@ describe('ShowcasesService', () => {
       ],
     }).compile();
     service = module.get(ShowcasesService);
+    // listMine consulta o progresso do aluno; sem concluídas por padrão.
+    prisma.progress.findMany.mockResolvedValue([]);
   });
 
   // ============================================
@@ -411,6 +413,64 @@ describe('ShowcasesService', () => {
       const result = await service.findMineBySlug('user-1', 'a');
 
       expect(result.thumbnail).toBe('propria.png');
+    });
+  });
+
+  // ============================================
+  // listMine — progresso por vitrine (só sobre as aulas dela)
+  // ============================================
+  describe('listMine — progresso por vitrine', () => {
+    it('conta concluídas apenas entre as aulas da vitrine, nunca do curso de origem', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        {
+          showcase: {
+            id: 's1', title: 'Castração', slug: 'castracao', description: null,
+            thumbnail: 'capa.png', grantsAllContent: false, position: 0,
+            _count: { videos: 4 },
+          },
+        },
+      ] as any);
+      // Duas aulas concluídas dentro da vitrine s1 (uma delas também numa
+      // vitrine s9 que o aluno não tem — não pode contar pra s9).
+      prisma.progress.findMany.mockResolvedValue([
+        { video: { showcases: [{ showcaseId: 's1' }] } },
+        { video: { showcases: [{ showcaseId: 's1' }] } },
+      ] as any);
+
+      const result = await service.listMine('user-1');
+
+      expect(result.showcases[0]).toMatchObject({
+        videoCount: 4,
+        completedVideos: 2,
+        progressPercentage: 50,
+      });
+      // Uma query só, restrita às vitrines possuídas (composição vem pela relação).
+      expect(prisma.progress.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.progress.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            completed: true,
+            video: expect.objectContaining({
+              showcases: { some: { showcaseId: { in: ['s1'] } } },
+            }),
+          }),
+        }),
+      );
+      // Não toca em showcase_videos além do lote de capa (s1 tem capa própria).
+      expect(prisma.showcaseVideo.findMany).not.toHaveBeenCalled();
+    });
+
+    it('acesso total: sem cards, sem query de progresso', async () => {
+      prisma.entitlement.findMany.mockResolvedValue([
+        { showcase: { id: 'all', grantsAllContent: true, thumbnail: null, position: 0, title: 'x', slug: 'x', description: null, _count: { videos: 0 } } },
+      ] as any);
+
+      const result = await service.listMine('user-1');
+
+      expect(result.grantsAllContent).toBe(true);
+      expect(result.showcases).toEqual([]);
+      expect(prisma.progress.findMany).not.toHaveBeenCalled();
     });
   });
 

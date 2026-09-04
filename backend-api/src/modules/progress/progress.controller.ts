@@ -96,7 +96,7 @@ export class ProgressController {
    * Buscar cursos em que o usuário está matriculado
    */
   @Get('enrolled-courses')
-  async getEnrolledCourses(@GetUser('id') userId: string) {
-    return this.progressService.getEnrolledCourses(userId);
+  async getEnrolledCourses(@GetUser('id') userId: string, @GetUser('role') role: string) {
+    return this.progressService.getEnrolledCourses(userId, role);
   }
 }

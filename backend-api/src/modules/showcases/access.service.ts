@@ -20,6 +20,14 @@ export interface OfferShowcase {
   externalProductId: string | null;
 }
 
+/**
+ * Quanto de um curso o aluno alcança:
+ * - full: todas as aulas publicadas (acesso total ou vitrine que cobre o curso)
+ * - partial: só um recorte (ex.: vitrine "Castração" dentro de "Treinamentos Premium")
+ * - none: nenhuma aula
+ */
+export type CourseAccessLevel = 'full' | 'partial' | 'none';
+
 const EMPTY = new Set<string>();
 
 /**
@@ -69,6 +77,82 @@ export class AccessService {
 
   hasAccess(access: VideoAccess, videoId: string): boolean {
     return access.all || access.videoIds.has(videoId);
+  }
+
+  /**
+   * Nível de acesso a um curso a partir das aulas publicadas dele. Curso sem
+   * aula publicada conta como `full` — não há o que bloquear, e esconder
+   * um curso vazio da lista seria decisão de outro lugar.
+   */
+  courseAccessLevel(access: VideoAccess, videoIds: string[]): CourseAccessLevel {
+    if (access.all || videoIds.length === 0) return 'full';
+    let reachable = 0;
+    for (const id of videoIds) {
+      if (access.videoIds.has(id)) reachable++;
+    }
+    if (reachable === 0) return 'none';
+    return reachable === videoIds.length ? 'full' : 'partial';
+  }
+
+  /**
+   * Realinha as matrículas (Enrollment) do aluno com o acesso atual:
+   * suspende as de cursos onde ele não alcança mais nenhuma aula e restaura
+   * as suspensas onde voltou a alcançar (recompra). Chamado após
+   * conceder/revogar entitlement e pelo script de reconciliação. Enrollment
+   * é telemetria de "começou a assistir" — congelar preserva progresso e
+   * datas, e é reversível.
+   */
+  async reconcileEnrollments(userId: string): Promise<{ suspended: number; restored: number }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (!user) return { suspended: 0, restored: 0 };
+
+    const access = await this.getAccess({ userId, role: user.role });
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { userId, course: { deletedAt: null } },
+      select: {
+        id: true,
+        suspendedAt: true,
+        course: {
+          select: {
+            modules: {
+              where: { deletedAt: null },
+              select: {
+                videos: {
+                  where: { deletedAt: null, isPublished: true },
+                  select: { id: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const toSuspend: string[] = [];
+    const toRestore: string[] = [];
+    for (const e of enrollments) {
+      const videoIds = e.course.modules.flatMap((m) => m.videos.map((v) => v.id));
+      const level = this.courseAccessLevel(access, videoIds);
+      if (level === 'none' && !e.suspendedAt) toSuspend.push(e.id);
+      if (level !== 'none' && e.suspendedAt) toRestore.push(e.id);
+    }
+
+    if (toSuspend.length > 0) {
+      await this.prisma.enrollment.updateMany({
+        where: { id: { in: toSuspend } },
+        data: { suspendedAt: new Date() },
+      });
+    }
+    if (toRestore.length > 0) {
+      await this.prisma.enrollment.updateMany({
+        where: { id: { in: toRestore } },
+        data: { suspendedAt: null },
+      });
+    }
+    return { suspended: toSuspend.length, restored: toRestore.length };
   }
 
   /**

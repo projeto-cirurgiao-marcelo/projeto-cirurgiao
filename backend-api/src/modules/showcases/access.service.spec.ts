@@ -18,6 +18,85 @@ describe('AccessService', () => {
     service = module.get(AccessService);
   });
 
+  describe('courseAccessLevel', () => {
+    const partial = { all: false, videoIds: new Set(['v1', 'v2']) };
+
+    it('acesso total → full; curso sem aula publicada → full', () => {
+      expect(service.courseAccessLevel({ all: true, videoIds: new Set() }, ['v9'])).toBe('full');
+      expect(service.courseAccessLevel(partial, [])).toBe('full');
+    });
+
+    it('todas as aulas alcançáveis → full; algumas → partial; nenhuma → none', () => {
+      expect(service.courseAccessLevel(partial, ['v1', 'v2'])).toBe('full');
+      expect(service.courseAccessLevel(partial, ['v1', 'v2', 'v3'])).toBe('partial');
+      expect(service.courseAccessLevel(partial, ['v3', 'v4'])).toBe('none');
+    });
+  });
+
+  describe('reconcileEnrollments', () => {
+    const enrollment = (id: string, videoIds: string[], suspendedAt: Date | null = null) =>
+      ({
+        id,
+        suspendedAt,
+        course: { modules: [{ videos: videoIds.map((v) => ({ id: v })) }] },
+      }) as any;
+
+    beforeEach(() => {
+      prisma.user.findUnique.mockResolvedValue({ role: 'STUDENT' } as any);
+      // Entitlement só na vitrine que cobre v1 e v2.
+      prisma.$queryRaw.mockResolvedValue([
+        { grantsAllContent: false, videoId: 'v1' },
+        { grantsAllContent: false, videoId: 'v2' },
+      ]);
+      prisma.enrollment.updateMany.mockResolvedValue({ count: 1 } as any);
+    });
+
+    it('suspende curso sem acesso, mantém parcial/total, restaura suspensa que voltou a ter acesso', async () => {
+      prisma.enrollment.findMany.mockResolvedValue([
+        enrollment('e-none', ['v8', 'v9']), // perdeu tudo → suspender
+        enrollment('e-partial', ['v1', 'v7']), // recorte → fica
+        enrollment('e-full', ['v1', 'v2']), // completo → fica
+        enrollment('e-back', ['v2'], new Date('2026-08-13')), // recomprou → restaurar
+        enrollment('e-still', ['v9'], new Date('2026-08-13')), // segue sem acesso → nada
+      ]);
+
+      const result = await service.reconcileEnrollments('user-1');
+
+      expect(result).toEqual({ suspended: 1, restored: 1 });
+      expect(prisma.enrollment.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['e-none'] } },
+          data: { suspendedAt: expect.any(Date) },
+        }),
+      );
+      expect(prisma.enrollment.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['e-back'] } },
+          data: { suspendedAt: null },
+        }),
+      );
+    });
+
+    it('sem mudança não grava nada', async () => {
+      prisma.enrollment.findMany.mockResolvedValue([enrollment('e-full', ['v1'])]);
+
+      const result = await service.reconcileEnrollments('user-1');
+
+      expect(result).toEqual({ suspended: 0, restored: 0 });
+      expect(prisma.enrollment.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('usuário inexistente: no-op', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.reconcileEnrollments('ghost')).resolves.toEqual({
+        suspended: 0,
+        restored: 0,
+      });
+      expect(prisma.enrollment.findMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getAccess', () => {
     it('ADMIN e INSTRUCTOR liberam tudo sem tocar no banco', async () => {
       const admin = await service.getAccess({ userId: 'a', role: 'ADMIN' });
