@@ -6,8 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -20,10 +18,9 @@ import {
   BorderRadius,
 } from '../../src/constants/colors';
 
-// Habilitar LayoutAnimation no Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// LayoutAnimation funciona nativamente na Nova Arquitetura (newArchEnabled);
+// o antigo UIManager.setLayoutAnimationEnabledExperimental virou no-op e só
+// gerava warning no dev client.
 
 interface FAQItem {
   question: string;
