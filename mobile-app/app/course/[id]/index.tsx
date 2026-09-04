@@ -1,3 +1,4 @@
+import { courseInstructorName, courseInstructorTitle } from '../../../src/lib/course-instructor';
 /**
  * Tela de Detalhes do Curso
  * Design inspirado no layout Coursera / referência com tabs
@@ -134,7 +135,8 @@ export default function CourseDetailScreen() {
   }, [estimatedMinutes]);
 
   const enrollmentCount = course?._count?.enrollments ?? 0;
-  const instructorName = course?.instructor?.name || 'Projeto Cirurgião';
+  const instructorName = (course && courseInstructorName(course)) || 'Projeto Cirurgião';
+  const instructorTitle = (course && courseInstructorTitle(course)) || 'Instrutor';
 
   // ==========================================
   // LOADING STATE
@@ -294,7 +296,7 @@ export default function CourseDetailScreen() {
         </View>
         <View style={styles.instructorInfo}>
           <Text style={styles.instructorName}>{instructorName}</Text>
-          <Text style={styles.instructorRole}>Instrutor</Text>
+          <Text style={styles.instructorRole}>{instructorTitle}</Text>
         </View>
       </View>
       <Text style={styles.instructorBio}>

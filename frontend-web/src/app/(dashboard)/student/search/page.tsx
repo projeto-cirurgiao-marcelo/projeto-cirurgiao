@@ -1,4 +1,5 @@
 'use client';
+import { courseInstructorName } from '@/lib/course-instructor';
 
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -112,7 +113,7 @@ function SearchResults() {
                   href={`/student/courses/${course.id}`}
                   title={course.title}
                   category="Cirurgia veterinária"
-                  instructor={course.instructor?.name}
+                  instructor={courseInstructorName(course)}
                   lessonsCount={course.lessonsCount}
                   status="new"
                   thumbVariant={pickThumbVariant(course.id)}

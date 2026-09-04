@@ -1,3 +1,4 @@
+import { courseInstructorName } from '../../src/lib/course-instructor';
 /**
  * Tela Inicio - Home do estudante (Redesign)
  * Layout: Header simplificado, busca, Em Andamento (horizontal),
@@ -158,7 +159,7 @@ export default function HomeScreen() {
           type: 'course',
           id: course.id,
           title: course.title,
-          subtitle: course.instructor?.name ? `por ${course.instructor.name}` : 'Curso',
+          subtitle: courseInstructorName(course) ? `por ${courseInstructorName(course)}` : 'Curso',
           courseId: course.id,
           icon: 'book-outline',
         });

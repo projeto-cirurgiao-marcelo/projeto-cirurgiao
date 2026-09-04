@@ -1,4 +1,5 @@
 'use client';
+import { courseInstructorName } from '@/lib/course-instructor';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -161,7 +162,7 @@ export default function MyCoursesPage() {
           thumbnail: c.thumbnail,
           thumbnailHorizontal: c.thumbnailHorizontal,
           thumbnailVertical: c.thumbnailVertical,
-          instructor: c.instructor,
+          instructor: courseInstructorName(c) ? { name: courseInstructorName(c)! } : undefined,
           status,
           progressPercent: weightedPct,
           watched: c.progress.watchedVideos,
@@ -186,7 +187,7 @@ export default function MyCoursesPage() {
             thumbnail: course.thumbnail,
             thumbnailHorizontal: course.thumbnailHorizontal,
             thumbnailVertical: course.thumbnailVertical,
-            instructor: course.instructor,
+            instructor: courseInstructorName(course) ? { name: courseInstructorName(course)! } : undefined,
             totalVideos,
           };
         });

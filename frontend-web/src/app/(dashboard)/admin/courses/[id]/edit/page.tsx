@@ -56,6 +56,8 @@ const courseFormSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().min(10, 'A descrição deve ter no mínimo 10 caracteres'),
   price: z.string().min(1, 'O preço é obrigatório'),
+  instructorName: z.string().max(120, 'Máximo de 120 caracteres').optional().or(z.literal('')),
+  instructorTitle: z.string().max(120, 'Máximo de 120 caracteres').optional().or(z.literal('')),
   thumbnailVertical: z.string().url('URL inválida').optional().or(z.literal('')),
   thumbnailHorizontal: z.string().url('URL inválida').optional().or(z.literal('')),
 });
@@ -100,7 +102,7 @@ export default function EditCoursePage() {
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
-    defaultValues: { title: '', description: '', price: '', thumbnailVertical: '', thumbnailHorizontal: '' },
+    defaultValues: { title: '', description: '', price: '', instructorName: '', instructorTitle: '', thumbnailVertical: '', thumbnailHorizontal: '' },
   });
 
   useEffect(() => {
@@ -113,6 +115,8 @@ export default function EditCoursePage() {
           title: data.title,
           description: data.description || '',
           price: typeof data.price === 'number' ? data.price.toString() : data.price,
+          instructorName: data.instructorName || '',
+          instructorTitle: data.instructorTitle || '',
           thumbnailVertical: data.thumbnailVertical || '',
           thumbnailHorizontal: data.thumbnailHorizontal || data.thumbnail || '',
         });
@@ -150,6 +154,9 @@ export default function EditCoursePage() {
         title: values.title,
         description: values.description,
         price: parseFloat(values.price),
+        // Campo limpo vira '' de propósito: limpa o nome e volta ao padrão (conta dona do curso).
+        instructorName: values.instructorName?.trim() ?? '',
+        instructorTitle: values.instructorTitle?.trim() ?? '',
         thumbnailVertical: values.thumbnailVertical || undefined,
         thumbnailHorizontal: values.thumbnailHorizontal || undefined,
       });
@@ -597,6 +604,24 @@ export default function EditCoursePage() {
                 <FormField control={form.control} name="price" render={({ field }) => (
                   <FormItem><FormLabel>Preço (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="99.90" {...field} /></FormControl><FormDescription>Valor do curso em reais</FormDescription><FormMessage /></FormItem>
                 )} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="instructorName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Professor(es)</FormLabel>
+                      <FormControl><Input placeholder="Dr. Marcelo Silva" maxLength={120} {...field} /></FormControl>
+                      <FormDescription>Nome exibido nos cards e na página do curso. Vazio = nome da conta dona do curso.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="instructorTitle" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cargo / especialidade</FormLabel>
+                      <FormControl><Input placeholder="Cirurgião veterinário" maxLength={120} {...field} /></FormControl>
+                      <FormDescription>Linha abaixo do nome do professor (opcional).</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
                 <Separator className="my-6" />
                 <div className="space-y-6">
                   <div>

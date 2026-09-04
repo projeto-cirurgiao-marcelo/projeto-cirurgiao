@@ -100,6 +100,12 @@ model Course {
   updatedAt           DateTime      @updatedAt
   thumbnailVertical   String?
   thumbnailHorizontal String?
+  /// Nome do(s) professor(es) SÓ pra exibição ("Dr. Marcelo e Dra. Jaqueline").
+  /// `instructorId` segue sendo a conta dona do curso (hoje o admin); os
+  /// professores não têm conta na plataforma.
+  instructorName      String?
+  /// Cargo/especialidade exibido abaixo do nome ("Cirurgião veterinário").
+  instructorTitle     String?
   deletedAt           DateTime?
   // Ordem manual definida via admin drag-drop em /admin/courses.
   // Listing default = ORDER BY position ASC, createdAt DESC. Cursos novos

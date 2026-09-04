@@ -141,6 +141,9 @@ export interface EnrolledCourseWithProgress {
     id: string;
     name: string;
   };
+  /** Nome/cargo do professor pra exibição (texto livre do admin). */
+  instructorName?: string | null;
+  instructorTitle?: string | null;
   modules: any[];
   enrollment: {
     id: string;

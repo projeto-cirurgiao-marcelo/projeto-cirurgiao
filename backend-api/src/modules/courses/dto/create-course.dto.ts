@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean, Min } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  Min,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateCourseDto {
@@ -21,6 +29,18 @@ export class CreateCourseDto {
   @IsString()
   @IsOptional()
   thumbnailHorizontal?: string; // Thumbnail horizontal (16:9) - ideal para desktop
+
+  /** Nome do(s) professor(es) exibido nos cards; vazio = nome da conta dona do curso. */
+  @IsString()
+  @MaxLength(120)
+  @IsOptional()
+  instructorName?: string;
+
+  /** Cargo/especialidade exibido abaixo do nome. */
+  @IsString()
+  @MaxLength(120)
+  @IsOptional()
+  instructorTitle?: string;
 
   @IsNumber()
   @Type(() => Number)

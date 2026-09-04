@@ -1,4 +1,5 @@
 'use client';
+import { courseInstructorName } from '@/lib/course-instructor';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -488,7 +489,7 @@ export default function CoursesPage() {
                   href={`/student/courses/${course.id}`}
                   title={course.title}
                   category="Cirurgia veterinária"
-                  instructor={course.instructor?.name}
+                  instructor={courseInstructorName(course)}
                   lessonsCount={course.progress.totalVideos}
                   totalDuration={formatDuration(totalSeconds)}
                   status={status}

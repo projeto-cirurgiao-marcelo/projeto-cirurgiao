@@ -1,4 +1,5 @@
 'use client';
+import { courseInstructorName } from '@/lib/course-instructor';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -259,7 +260,7 @@ export default function InProgressPage() {
                 href={`/student/courses/${course.id}`}
                 title={course.title}
                 category="Cirurgia veterinária"
-                instructor={course.instructor?.name}
+                instructor={courseInstructorName(course)}
                 progressPercent={getCourseWeightedPercent(course)}
                 lessonsProgress={`${course.progress.watchedVideos} / ${course.progress.totalVideos}`}
                 lastMeta={formatLastAccess(course.enrollment.lastAccessAt)}

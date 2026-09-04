@@ -1,3 +1,4 @@
+import { courseInstructorName } from '../../lib/course-instructor';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,7 +44,7 @@ export function CatalogCourseCard({ course, onPress }: CatalogCourseCardProps) {
   const duration = estimateDuration(course);
   const moduleCount = course._count?.modules ?? course.modules?.length ?? 0;
   const studentCount = course._count?.enrollments ?? 0;
-  const instructorName = course.instructor?.name;
+  const instructorName = courseInstructorName(course);
 
   let totalVideos = 0;
   if (enrolled) {

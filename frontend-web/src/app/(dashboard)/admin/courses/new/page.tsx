@@ -36,6 +36,8 @@ const courseSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   description: z.string().optional(),
   price: z.number().min(0, 'O preço deve ser maior ou igual a 0'),
+  instructorName: z.string().max(120, 'Máximo de 120 caracteres').optional().or(z.literal('')),
+  instructorTitle: z.string().max(120, 'Máximo de 120 caracteres').optional().or(z.literal('')),
   thumbnailHorizontal: z.string().url('URL inválida').optional().or(z.literal('')),
   thumbnailVertical: z.string().url('URL inválida').optional().or(z.literal('')),
 });
@@ -56,6 +58,8 @@ export default function NewCoursePage() {
       title: '',
       description: '',
       price: 0,
+      instructorName: '',
+      instructorTitle: '',
       thumbnailHorizontal: '',
       thumbnailVertical: '',
     },
@@ -69,6 +73,8 @@ export default function NewCoursePage() {
         title: data.title,
         description: data.description || undefined,
         price: data.price,
+        instructorName: data.instructorName?.trim() || undefined,
+        instructorTitle: data.instructorTitle?.trim() || undefined,
         thumbnailHorizontal: data.thumbnailHorizontal || undefined,
         thumbnailVertical: data.thumbnailVertical || undefined,
       };
@@ -160,6 +166,37 @@ export default function NewCoursePage() {
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="instructorName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Professor(es)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Dr. Marcelo Silva" maxLength={120} {...field} />
+                      </FormControl>
+                      <FormDescription>Nome exibido nos cards e na página do curso.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="instructorTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cargo / especialidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Cirurgião veterinário" maxLength={120} {...field} />
+                      </FormControl>
+                      <FormDescription>Linha abaixo do nome (opcional).</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}

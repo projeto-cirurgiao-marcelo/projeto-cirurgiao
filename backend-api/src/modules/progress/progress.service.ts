@@ -691,6 +691,8 @@ export class ProgressService {
             thumbnailHorizontal: true,
             isPublished: true,
             price: true,
+            instructorName: true,
+            instructorTitle: true,
             modules: {
               where: { deletedAt: null },
               include: {
@@ -796,6 +798,8 @@ export class ProgressService {
         isPublished: course.isPublished,
         price: course.price,
         instructor: course.instructor,
+        instructorName: course.instructorName,
+        instructorTitle: course.instructorTitle,
         modules: course.modules,
         accessLevel,
         enrollment: {

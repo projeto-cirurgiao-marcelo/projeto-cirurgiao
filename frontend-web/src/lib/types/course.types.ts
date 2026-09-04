@@ -14,6 +14,10 @@ export interface Course {
   thumbnailHorizontal: string | null; // Thumbnail horizontal (16:9)
   isPublished: boolean;
   instructorId: string;
+  /** Nome do(s) professor(es) pra exibição (texto livre do admin); null = usar instructor.name. */
+  instructorName?: string | null;
+  /** Cargo/especialidade exibido abaixo do nome. */
+  instructorTitle?: string | null;
   createdAt: string;
   updatedAt: string;
   instructor?: {
@@ -115,6 +119,8 @@ export interface CreateCourseDto {
   thumbnail?: string; // Deprecated
   thumbnailVertical?: string;
   thumbnailHorizontal?: string;
+  instructorName?: string;
+  instructorTitle?: string;
   isPublished?: boolean;
 }
 
@@ -126,6 +132,8 @@ export interface UpdateCourseDto {
   thumbnail?: string; // Deprecated
   thumbnailVertical?: string;
   thumbnailHorizontal?: string;
+  instructorName?: string;
+  instructorTitle?: string;
   isPublished?: boolean;
 }
 

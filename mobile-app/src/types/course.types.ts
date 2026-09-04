@@ -16,6 +16,10 @@ export interface Course {
   thumbnailHorizontal: string | null;
   isPublished: boolean;
   instructorId: string;
+  /** Nome do(s) professor(es) pra exibição (texto livre do admin); null = usar instructor.name. */
+  instructorName?: string | null;
+  /** Cargo/especialidade exibido abaixo do nome. */
+  instructorTitle?: string | null;
   createdAt: string;
   updatedAt: string;
   instructor?: {
