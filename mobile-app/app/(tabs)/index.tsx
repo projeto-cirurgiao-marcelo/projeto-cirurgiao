@@ -476,7 +476,7 @@ export default function HomeScreen() {
               <Text style={styles.sectionTitle}>Continue evoluindo</Text>
             </View>
             <Text style={styles.sectionSubtitle}>
-              Áreas ainda bloqueadas — desbloqueie novos treinamentos.
+              Treinamentos ainda não disponíveis na sua conta. Toque para conhecer.
             </Text>
             <View style={styles.showcasesList}>
               {availableShowcases.showcases.map((s) => (

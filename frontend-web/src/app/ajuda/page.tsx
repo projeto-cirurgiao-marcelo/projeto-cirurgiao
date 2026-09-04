@@ -106,8 +106,15 @@ const FAQ: FaqItem[] = [
 
 function UnlockAnswer({
   slug,
+  embed,
 }: {
   slug: string | null;
+  /**
+   * Dentro do WebView do app: linguagem neutra (sem "compra"/"venda"), só
+   * "disponibilizado separadamente" e "Saiba mais" — o app não pode sugerir
+   * compra fora da loja (App Store 3.1.1). No navegador, texto completo.
+   */
+  embed: boolean;
 }) {
   const [showcase, setShowcase] = useState<PublicShowcase | null>(null);
   const [all, setAll] = useState<PublicShowcases['showcases']>([]);
@@ -143,9 +150,9 @@ function UnlockAnswer({
   return (
     <div className="space-y-4 text-muted-foreground leading-relaxed">
       <p>
-        Os cursos do Projeto Cirurgião são vendidos separadamente. Ao adquirir um curso, o acesso
-        é liberado automaticamente na sua conta, no app e no site, em poucos minutos após a
-        confirmação do pagamento, usando o mesmo e-mail do cadastro.
+        {embed
+          ? 'Alguns treinamentos do Projeto Cirurgião são disponibilizados separadamente. Quando um treinamento é liberado para o seu e-mail, ele aparece automaticamente na sua conta, no app e no site.'
+          : 'Os cursos do Projeto Cirurgião são vendidos separadamente. Ao adquirir um curso, o acesso é liberado automaticamente na sua conta, no app e no site, em poucos minutos após a confirmação do pagamento, usando o mesmo e-mail do cadastro.'}
       </p>
 
       {loading ? (
@@ -176,7 +183,7 @@ function UnlockAnswer({
             </p>
             <Button className="mt-3" asChild>
               <a href={showcase.checkoutUrl} target="_blank" rel="noopener noreferrer">
-                Acessar a página de compra
+                {embed ? 'Saiba mais no site' : 'Acessar a página de compra'}
                 <ExternalLink className="ml-2 h-4 w-4" />
               </a>
             </Button>
@@ -184,12 +191,15 @@ function UnlockAnswer({
         </div>
       ) : slug && notFound ? (
         <p className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
-          Este curso ainda não está disponível para compra. Fale com o suporte para saber quando
-          ele será liberado.
+          {embed
+            ? 'Este treinamento ainda não está disponível. Fale com o suporte para saber quando ele será liberado.'
+            : 'Este curso ainda não está disponível para compra. Fale com o suporte para saber quando ele será liberado.'}
         </p>
       ) : all.length > 0 ? (
         <div>
-          <p className="mb-2">Cursos disponíveis para compra:</p>
+          <p className="mb-2">
+            {embed ? 'Treinamentos disponibilizados separadamente:' : 'Cursos disponíveis para compra:'}
+          </p>
           <ul className="space-y-2">
             {all.map((s) => (
               <li key={s.id}>
@@ -213,8 +223,9 @@ function UnlockAnswer({
       )}
 
       <p className="text-sm">
-        Já comprou e o acesso não apareceu? Confira se usou o mesmo e-mail da sua conta e, se
-        precisar, fale com o suporte.
+        {embed
+          ? 'Já tem o treinamento liberado e ele não apareceu? Confira se usou o mesmo e-mail da sua conta e, se precisar, fale com o suporte.'
+          : 'Já comprou e o acesso não apareceu? Confira se usou o mesmo e-mail da sua conta e, se precisar, fale com o suporte.'}
       </p>
     </div>
   );
@@ -232,10 +243,10 @@ function HelpContent() {
   const unlockItem = (
     <AccordionItem value={UNLOCK_ITEM} className="border rounded-xl px-4 bg-card">
       <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
-        Como desbloquear mais cursos?
+        {embed ? 'Como ter acesso a mais treinamentos?' : 'Como desbloquear mais cursos?'}
       </AccordionTrigger>
       <AccordionContent>
-        <UnlockAnswer slug={slug} />
+        <UnlockAnswer slug={slug} embed={embed} />
       </AccordionContent>
     </AccordionItem>
   );

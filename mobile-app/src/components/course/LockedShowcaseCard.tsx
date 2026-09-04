@@ -56,7 +56,7 @@ export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }
         <View style={styles.metaRow}>
           <Ionicons name="play-circle-outline" size={13} color={Colors.textMuted} />
           <Text style={styles.metaText}>
-            Bloqueado · {showcase.videoCount} aula{showcase.videoCount !== 1 ? 's' : ''}
+            Não disponível · {showcase.videoCount} aula{showcase.videoCount !== 1 ? 's' : ''}
           </Text>
         </View>
         {showcase.checkoutUrl ? (
@@ -66,7 +66,7 @@ export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             accessibilityRole="button"
           >
-            <Text style={styles.ctaText}>Como acessar?</Text>
+            <Text style={styles.ctaText}>Saiba mais</Text>
             <Ionicons name="help-circle-outline" size={13} color={Colors.accent} />
           </TouchableOpacity>
         ) : (

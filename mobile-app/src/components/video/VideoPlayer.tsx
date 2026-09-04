@@ -702,8 +702,8 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
             <Text style={styles.previewEndedTitle}>Prévia encerrada</Text>
             <Text style={styles.previewEndedText}>
               {offerTitle
-                ? `Esta aula faz parte de "${offerTitle}". Adquira o acesso para continuar assistindo.`
-                : 'Adquira o acesso para continuar assistindo esta aula.'}
+                ? `Esta aula faz parte de "${offerTitle}" e não está disponível na sua conta.`
+                : 'Esta aula não está disponível na sua conta.'}
             </Text>
             {onOfferPress && (
               // Leva à Central de Ajuda (web) na pergunta de desbloqueio —
@@ -713,7 +713,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
                 onPress={onOfferPress}
                 activeOpacity={0.85}
               >
-                <Text style={styles.previewCtaText}>Como acessar este curso?</Text>
+                <Text style={styles.previewCtaText}>Saiba mais</Text>
                 <Ionicons name="help-circle-outline" size={15} color="#fff" />
               </TouchableOpacity>
             )}

@@ -110,10 +110,9 @@ export default function ShowcaseLessonsScreen() {
             <Ionicons name="lock-closed" size={16} color={colors.accent} />
           </View>
           <View style={styles.lockedBannerBody}>
-            <Text style={styles.lockedBannerTitle}>Você ainda não tem acesso a este curso</Text>
+            <Text style={styles.lockedBannerTitle}>Este curso não está disponível na sua conta</Text>
             <Text style={styles.lockedBannerText}>
-              Assista a uma prévia de cada aula para conhecer o conteúdo. Desbloqueie para ter
-              acesso completo.
+              Você pode assistir a uma prévia de cada aula para conhecer o conteúdo.
             </Text>
             {checkoutUrl ? (
               // Abre a Central de Ajuda (web) na pergunta de desbloqueio —
@@ -124,11 +123,11 @@ export default function ShowcaseLessonsScreen() {
                 onPress={() => slug && openUnlockHelp(slug)}
                 accessibilityRole="button"
               >
-                <Text style={styles.unlockButtonText}>Como acessar este curso?</Text>
+                <Text style={styles.unlockButtonText}>Saiba mais</Text>
                 <Ionicons name="help-circle-outline" size={15} color="#fff" />
               </TouchableOpacity>
             ) : (
-              <Text style={styles.soonText}>Em breve — este curso ainda não está à venda.</Text>
+              <Text style={styles.soonText}>Este curso ainda não está disponível.</Text>
             )}
           </View>
         </View>

@@ -8,7 +8,7 @@
  *
  * Preview (corte nível 1): o polling de 500ms clampa currentTime em
  * previewSeconds, pausa e mostra o overlay "Prévia encerrada"; o CTA
- * "Como acessar este curso?" só aparece com onOfferPress e chama o handler
+ * "Saiba mais" só aparece com onOfferPress e chama o handler
  * (Central de Ajuda) — o app não abre o checkout direto.
  *
  * Note que VideoView real foi stubbado em jest.setup.ts.
@@ -131,7 +131,7 @@ describe('<VideoPlayer /> — preview (corte nível 1)', () => {
     expect(getByText('Prévia encerrada')).toBeTruthy();
     expect(
       getByText(
-        'Esta aula faz parte de "Castração Descomplicada". Adquira o acesso para continuar assistindo.',
+        'Esta aula faz parte de "Castração Descomplicada" e não está disponível na sua conta.',
       ),
     ).toBeTruthy();
   });
@@ -145,17 +145,17 @@ describe('<VideoPlayer /> — preview (corte nível 1)', () => {
     expect(queryByText('Prévia encerrada')).toBeNull();
   });
 
-  it('mostra CTA "Como acessar este curso?" quando há onOfferPress', () => {
+  it('mostra CTA "Saiba mais" quando há onOfferPress', () => {
     const { getByText } = renderPreview({ onOfferPress: jest.fn() });
     advancePastCut();
-    expect(getByText('Como acessar este curso?')).toBeTruthy();
+    expect(getByText('Saiba mais')).toBeTruthy();
   });
 
   it('omite o CTA sem onOfferPress (produto ainda não vendável)', () => {
     const { getByText, queryByText } = renderPreview();
     advancePastCut();
     expect(getByText('Prévia encerrada')).toBeTruthy();
-    expect(queryByText('Como acessar este curso?')).toBeNull();
+    expect(queryByText('Saiba mais')).toBeNull();
   });
 
   it('CTA chama onOfferPress (Central de Ajuda) — nunca abre o checkout direto', async () => {
@@ -166,7 +166,7 @@ describe('<VideoPlayer /> — preview (corte nível 1)', () => {
     advancePastCut();
 
     await act(async () => {
-      fireEvent.press(getByText('Como acessar este curso?'));
+      fireEvent.press(getByText('Saiba mais'));
     });
 
     expect(onOfferPress).toHaveBeenCalledTimes(1);
