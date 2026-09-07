@@ -1,14 +1,11 @@
 /**
- * Central de ajuda (web) dentro do app. Chegando com `?showcase=slug`, abre a
- * página já na pergunta "Como desbloquear mais cursos?" daquela vitrine.
- *
- * Por que WebView e não o checkout direto: o app não aponta pra compra
- * externa de conteúdo digital (App Store 3.1.1) — quem carrega o link é a
- * página de ajuda. Qualquer navegação pra fora do nosso domínio (o checkout
- * TheMembers) sai do WebView e abre no navegador do sistema.
+ * A rota e a query `showcase` continuam disponíveis para Android/web.
+ * No iOS, todos os usuários recebem apenas suporte nativo, inclusive por
+ * deep link. Checkout via ajuda web também é um caminho de compra externa;
+ * sua inclusão no iOS exige conformidade e review, não um toggle remoto.
  */
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,8 +13,13 @@ import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { helpUrl, isExternalCheckoutUrl } from '../src/constants/urls';
 import { Colors as colors } from '../src/constants/colors';
 import { logger } from '../src/lib/logger';
+import NativeHelpScreen from './profile/help';
 
 export default function HelpScreen() {
+  return Platform.OS === 'ios' ? <NativeHelpScreen /> : <WebHelpScreen />;
+}
+
+function WebHelpScreen() {
   const router = useRouter();
   const { showcase } = useLocalSearchParams<{ showcase?: string }>();
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,9 @@ export default function HelpScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >

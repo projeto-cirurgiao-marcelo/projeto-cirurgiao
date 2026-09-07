@@ -32,7 +32,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Conta e Acesso',
     question: 'Como faço para criar uma conta?',
-    answer: 'O acesso ao Projeto Cirurgião é por convite. Se você recebeu um link de registro, utilize-o para criar sua conta com email e senha. Caso tenha dúvidas, entre em contato com o suporte.',
+    answer: 'O acesso ao Projeto Cirurgião é por convite. Use as credenciais da sua conta para entrar. Se precisar de ajuda com sua conta, entre em contato com o suporte em Ajuda e Suporte.',
   },
   {
     category: 'Conta e Acesso',
@@ -46,8 +46,8 @@ const FAQ_DATA: FAQItem[] = [
   },
   {
     category: 'Cursos e Aulas',
-    question: 'Como me matriculo em um curso?',
-    answer: 'Na página inicial, navegue até o curso desejado e toque em "Inscreva-se agora". A matrícula é automática e você terá acesso imediato ao conteúdo.',
+    question: 'Quais aulas posso assistir?',
+    answer: 'Você pode assistir às aulas liberadas para sua conta. Outros conteúdos podem exibir apenas uma prévia. Iniciar um curso não libera automaticamente todas as aulas. Se uma aula que já faz parte do seu acesso estiver indisponível, entre em contato com o suporte em Ajuda e Suporte.',
   },
   {
     category: 'Cursos e Aulas',
@@ -82,12 +82,12 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Técnico',
     question: 'O app funciona offline?',
-    answer: 'No momento, é necessária conexão com a internet para assistir aulas e acessar os recursos. O download de vídeos para visualização offline será disponibilizado em uma atualização futura.',
+    answer: 'É necessária conexão com a internet para assistir aulas e acessar os recursos. O app não oferece download de vídeos para assistir offline.',
   },
   {
     category: 'Técnico',
     question: 'Qual a versão mínima do Android/iOS?',
-    answer: 'O aplicativo requer Android 6.0 (API 23) ou superior, ou iOS 13.0 ou superior.',
+    answer: 'O aplicativo requer Android 7.0 (API 24) ou superior, ou iOS 15.1 ou superior.',
   },
 ];
 
@@ -111,7 +111,9 @@ export default function FAQScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/help')}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
           style={styles.headerButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >

@@ -13,11 +13,12 @@
  *
  * Note que VideoView real foi stubbado em jest.setup.ts.
  */
-import { render, act, fireEvent } from '@testing-library/react-native';
+import { render, act, fireEvent, cleanup } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 import { useVideoPlayer } from 'expo-video';
 import VideoPlayer from '../../src/components/video/VideoPlayer';
 import type { Video } from '../../src/types/course.types';
+import { progressService } from '../../src/services/api/progress.service';
 
 // progressService usado em auto-save: mocka pra nao chamar HTTP real.
 jest.mock('../../src/services/api/progress.service', () => ({
@@ -54,6 +55,28 @@ const makeVideo = (overrides: Partial<Video> = {}): Video => ({
   ...overrides,
 });
 
+const makeFakePlayer = (currentTime: number) => {
+  const listeners = new Map<string, Set<(event?: any) => void>>();
+  return {
+    play: jest.fn(),
+    pause: jest.fn(),
+    addListener: jest.fn((name: string, callback: (event?: any) => void) => {
+      if (!listeners.has(name)) listeners.set(name, new Set());
+      listeners.get(name)!.add(callback);
+      return { remove: jest.fn(() => listeners.get(name)!.delete(callback)) };
+    }),
+    emit: (name: string, event?: any) => {
+      listeners.get(name)?.forEach((callback) => callback(event));
+    },
+    currentTime,
+    duration: 900,
+    playing: true,
+    playbackRate: 1,
+    subtitleTrack: null,
+    loop: false,
+  };
+};
+
 describe('<VideoPlayer />', () => {
   it('renderiza VideoView quando streamUrl HLS valido', () => {
     const { getByTestId } = render(
@@ -78,18 +101,6 @@ describe('<VideoPlayer /> — preview (corte nível 1)', () => {
   const STREAM = 'https://cdn.example.com/videos/x/playlist.m3u8';
 
   // Player fake com tempo controlável — o polling de 500ms lê currentTime.
-  const makeFakePlayer = (currentTime: number) => ({
-    play: jest.fn(),
-    pause: jest.fn(),
-    addListener: jest.fn(() => ({ remove: jest.fn() })),
-    currentTime,
-    duration: 900,
-    playing: true,
-    playbackRate: 1,
-    subtitleTrack: null,
-    loop: false,
-  });
-
   let fakePlayer: ReturnType<typeof makeFakePlayer>;
 
   beforeEach(() => {
@@ -173,5 +184,104 @@ describe('<VideoPlayer /> — preview (corte nível 1)', () => {
     expect(openUrl).not.toHaveBeenCalled();
 
     openUrl.mockRestore();
+  });
+});
+
+describe('<VideoPlayer /> completion vs playback end', () => {
+  let fakePlayer: ReturnType<typeof makeFakePlayer>;
+  const onEnded = jest.fn();
+  const props = {
+    video: makeVideo(),
+    streamUrl: 'https://cdn.example.com/videos/x/playlist.m3u8',
+    onEnded,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    fakePlayer = makeFakePlayer(0);
+    fakePlayer.duration = 100;
+    (useVideoPlayer as jest.Mock).mockImplementation(() => fakePlayer);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.useRealTimers();
+  });
+
+  const pollAt = async (time: number) => {
+    fakePlayer.currentTime = time;
+    await act(async () => { jest.advanceTimersByTime(500); });
+  };
+
+  it('marks progress at 95% without ending, including idle and later polling', async () => {
+    render(<VideoPlayer {...props} />);
+    act(() => fakePlayer.emit('sourceLoad', { duration: 100 }));
+
+    await pollAt(95);
+    act(() => fakePlayer.emit('statusChange', { status: 'idle' }));
+    await pollAt(99);
+
+    expect(progressService.markAsCompleted).toHaveBeenCalledTimes(1);
+    expect(progressService.markAsCompleted).toHaveBeenCalledWith('vid_1');
+    expect(onEnded).not.toHaveBeenCalled();
+  });
+
+  it('ends once at playToEnd even when already completed at 95%', async () => {
+    const { rerender } = render(<VideoPlayer {...props} />);
+    act(() => fakePlayer.emit('sourceLoad', { duration: 100 }));
+    await pollAt(95);
+    fakePlayer.currentTime = 100;
+    await act(async () => fakePlayer.emit('playToEnd'));
+
+    const updatedOnEnded = jest.fn();
+    rerender(<VideoPlayer {...props} onEnded={updatedOnEnded} />);
+    await act(async () => {
+      fakePlayer.emit('playToEnd');
+      fakePlayer.emit('statusChange', { status: 'idle' });
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(onEnded).toHaveBeenCalledTimes(1);
+    expect(updatedOnEnded).not.toHaveBeenCalled();
+    expect(progressService.markAsCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('ends a resumed video above 95% without waiting for progress persistence', async () => {
+    let resolveCompletion!: () => void;
+    (progressService.markAsCompleted as jest.Mock).mockImplementationOnce(
+      () => new Promise<void>((resolve) => { resolveCompletion = resolve; }),
+    );
+    render(<VideoPlayer {...props} initialPosition={96} />);
+    act(() => fakePlayer.emit('sourceLoad', { duration: 100 }));
+    await pollAt(96);
+    expect(progressService.markAsCompleted).not.toHaveBeenCalled();
+
+    fakePlayer.currentTime = 100;
+    act(() => {
+      fakePlayer.emit('playToEnd');
+      fakePlayer.emit('playToEnd');
+    });
+    expect(onEnded).toHaveBeenCalledTimes(1);
+    expect(progressService.markAsCompleted).toHaveBeenCalledTimes(1);
+
+    await act(async () => resolveCompletion());
+    expect(onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([20, 120])('preview (%ss) never completes or emits onEnded', async (previewSeconds) => {
+    render(<VideoPlayer {...props} previewSeconds={previewSeconds} />);
+    act(() => fakePlayer.emit('sourceLoad', { duration: 100 }));
+    await pollAt(95);
+    fakePlayer.currentTime = 100;
+    await act(async () => {
+      fakePlayer.emit('playToEnd');
+      fakePlayer.emit('playToEnd');
+      fakePlayer.emit('statusChange', { status: 'idle' });
+    });
+
+    expect(onEnded).not.toHaveBeenCalled();
+    expect(progressService.markAsCompleted).not.toHaveBeenCalled();
+    expect(progressService.saveProgress).not.toHaveBeenCalled();
   });
 });

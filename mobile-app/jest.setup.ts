@@ -184,20 +184,26 @@ jest.mock('@react-native-community/netinfo', () => {
 // ---------------------------------------------------------------------------
 // firebase/auth
 // ---------------------------------------------------------------------------
-jest.mock('firebase/auth', () => ({
-  getAuth: jest.fn(() => ({
+jest.mock('firebase/auth', () => {
+  const auth = {
     currentUser: null,
-  })),
-  signInWithEmailAndPassword: jest.fn(() =>
-    Promise.resolve({
-      user: { uid: 'test-uid', getIdToken: () => Promise.resolve('fake-token') },
-    }),
-  ),
-  createUserWithEmailAndPassword: jest.fn(),
-  sendPasswordResetEmail: jest.fn(),
-  onAuthStateChanged: jest.fn(),
-  signOut: jest.fn(),
-}));
+    authStateReady: jest.fn(() => Promise.resolve()),
+  };
+  return {
+    getAuth: jest.fn(() => auth),
+    initializeAuth: jest.fn(() => auth),
+    getReactNativePersistence: jest.fn(),
+    signInWithEmailAndPassword: jest.fn(() =>
+      Promise.resolve({
+        user: { uid: 'test-uid', getIdToken: () => Promise.resolve('fake-token') },
+      }),
+    ),
+    createUserWithEmailAndPassword: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
+    onAuthStateChanged: jest.fn(),
+    signOut: jest.fn(),
+  };
+});
 
 jest.mock('firebase/app', () => ({
   initializeApp: jest.fn(),

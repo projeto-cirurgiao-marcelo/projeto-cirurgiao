@@ -5,41 +5,35 @@
  * Fluxo de login:
  * 1. Firebase signIn → obtém token
  * 2. POST /auth/firebase-login { firebaseToken } → backend valida e retorna user com role
- * 3. Salva token + user no estado e AsyncStorage
- *
- * Fluxo de registro:
- * 1. POST /aulas/92339018203 { email, password, name } → backend cria no Firebase Auth + PostgreSQL
- * 2. Firebase signIn → obtém token
- * 3. POST /auth/firebase-login → sincroniza e obtém user com role
+ * 3. Salva token no SecureStore e dados do usuario no AsyncStorage
+ * Contas sao provisionadas por convite, nunca pelo cliente mobile.
  */
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import secureStorage from '../lib/secure-storage';
 import {
   signInWithEmailAndPassword,
   signOut,
-  getIdToken,
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { User, AuthState, LoginCredentials, RegisterCredentials } from '../types';
-import { apiClient } from '../services/api/client';
+import { User, AuthState, LoginCredentials } from '../types';
+import { apiClient, configureApiAuth, resetApiSession } from '../services/api/client';
 import { logger } from '../lib/logger';
 
 interface AuthActions {
   login: (credentials: LoginCredentials) => Promise<void>;
-  register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  setFirebaseToken: (token: string) => void;
   setUser: (user: User) => void;
   clearError: () => void;
   setHasHydrated: (state: boolean) => void;
 }
 
 type AuthStore = AuthState & AuthActions;
+let logoutPromise: Promise<void> | null = null;
+let loginAttempt = 0;
 
 const initialState: AuthState = {
   user: null,
@@ -84,6 +78,8 @@ export const useAuthStore = create<AuthStore>()(
        * Login: Firebase signIn → POST /auth/firebase-login → salva user + token
        */
       login: async (credentials: LoginCredentials) => {
+        await get().logout();
+        const attempt = ++loginAttempt;
         set({ isLoading: true, error: null });
         try {
           // 1. Login no Firebase
@@ -92,15 +88,14 @@ export const useAuthStore = create<AuthStore>()(
             credentials.email,
             credentials.password
           );
-          const token = await userCredential.user.getIdToken();
-          await secureStorage.setItem('firebaseToken', token);
-
           // 2. Sincroniza com backend (mesmo endpoint do web)
-          const backendResponse = await apiClient.post('/auth/firebase-login', {
-            firebaseToken: token,
-          });
+          if (attempt !== loginAttempt) throw new Error('Login cancelado.');
+          const backendResponse = await apiClient.post('/auth/firebase-login');
 
           const backendUser: User = backendResponse.data.user;
+          if (attempt !== loginAttempt || auth.currentUser !== userCredential.user) {
+            throw new Error('Login cancelado.');
+          }
 
           // 3. Salva no estado
           set({
@@ -112,89 +107,20 @@ export const useAuthStore = create<AuthStore>()(
               photoURL: userCredential.user.photoURL,
               emailVerified: userCredential.user.emailVerified,
             },
-            firebaseToken: token,
             isAuthenticated: true,
             isLoading: false,
             error: null,
           });
         } catch (error: any) {
-          logger.error('Erro no login:', error);
+          // An old attempt must never clear a newer login or change its error state.
+          if (attempt !== loginAttempt) throw new Error('Login cancelado.');
+          await get().logout();
 
           let message = 'Erro ao fazer login';
-          // Erro do Firebase (tem .code)
-          if (error.code) {
-            message = getFirebaseErrorMessage(error.code);
-          }
-          // Erro do backend (tem .response)
-          else if (error.response?.data?.message) {
+          if (error.response?.data?.message) {
             message = error.response.data.message;
-          }
-
-          set({
-            isLoading: false,
-            error: message,
-            user: null,
-            firebaseUser: null,
-            firebaseToken: null,
-            isAuthenticated: false,
-          });
-          throw new Error(message);
-        }
-      },
-
-      /**
-       * Register: POST /aulas/92339018203 (rota secreta) → cria no Firebase + PostgreSQL
-       * Depois faz login normal via Firebase para obter token
-       */
-      register: async (credentials: RegisterCredentials) => {
-        set({ isLoading: true, error: null });
-        try {
-          // 1. Cria usuário via rota secreta (backend cria no Firebase Auth + PostgreSQL)
-          await apiClient.post('/aulas/92339018203', {
-            email: credentials.email,
-            password: credentials.password,
-            name: credentials.name,
-          });
-
-          // 2. Faz login no Firebase client-side para obter token
-          const userCredential = await signInWithEmailAndPassword(
-            auth,
-            credentials.email,
-            credentials.password
-          );
-          const token = await userCredential.user.getIdToken();
-          await secureStorage.setItem('firebaseToken', token);
-
-          // 3. Sincroniza com backend para obter dados do usuário com role
-          const backendResponse = await apiClient.post('/auth/firebase-login', {
-            firebaseToken: token,
-          });
-
-          const backendUser: User = backendResponse.data.user;
-
-          // 4. Salva no estado
-          set({
-            user: backendUser,
-            firebaseUser: {
-              uid: userCredential.user.uid,
-              email: userCredential.user.email,
-              displayName: userCredential.user.displayName,
-              photoURL: userCredential.user.photoURL,
-              emailVerified: userCredential.user.emailVerified,
-            },
-            firebaseToken: token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        } catch (error: any) {
-          logger.error('Erro no registro:', error);
-
-          let message = 'Erro ao criar conta';
-          if (error.code) {
+          } else if (error.code) {
             message = getFirebaseErrorMessage(error.code);
-          } else if (error.response?.data?.message) {
-            message = error.response.data.message;
           }
 
           set({
@@ -212,18 +138,21 @@ export const useAuthStore = create<AuthStore>()(
       /**
        * Logout: Firebase signOut + limpa estado
        */
-      logout: async () => {
-        try {
-          await signOut(auth);
-        } catch (error) {
-          logger.error('Erro ao fazer logout:', error);
-        } finally {
-          await secureStorage.removeItem('firebaseToken');
-          set({
-            ...initialState,
-            hasHydrated: true,
-          });
-        }
+      logout: () => {
+        if (logoutPromise) return logoutPromise;
+        loginAttempt += 1;
+        set({ ...initialState, hasHydrated: true });
+        const clearedToken = resetApiSession();
+        logoutPromise = (async () => {
+          try {
+            await signOut(auth);
+          } catch {
+            logger.warn('Nao foi possivel encerrar a sessao Firebase.');
+          } finally {
+            await clearedToken;
+          }
+        })().finally(() => { logoutPromise = null; });
+        return logoutPromise;
       },
 
       /**
@@ -231,63 +160,42 @@ export const useAuthStore = create<AuthStore>()(
        * Chamado na hidratação do app para restaurar sessão
        */
       loadUser: async () => {
-        // Token persiste no SecureStore, não no estado do Zustand (que só
-        // guarda dados não sensíveis). Lê de lá na hidratação.
-        const token = await secureStorage.getItem('firebaseToken');
-        if (!token) {
-          set({ hasHydrated: true });
+        await auth.authStateReady();
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          await get().logout();
           return;
         }
 
         set({ isLoading: true });
         try {
-          // Valida token com o backend (mesmo endpoint do web)
-          const response = await apiClient.post('/auth/firebase-login', {
-            firebaseToken: token,
-          });
+          // The client obtains the current Firebase token and sets the body.
+          const response = await apiClient.post('/auth/firebase-login');
+          if (auth.currentUser !== currentUser) return;
 
           const backendUser: User = response.data.user;
 
           set({
             user: backendUser,
-            firebaseToken: token,
+            firebaseUser: {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName,
+              photoURL: currentUser.photoURL,
+              emailVerified: currentUser.emailVerified,
+            },
             isAuthenticated: true,
             isLoading: false,
             hasHydrated: true,
           });
-        } catch (error) {
-          // Token inválido ou expirado - tenta renovar via Firebase
-          try {
-            const currentUser = auth.currentUser;
-            if (currentUser) {
-              const newToken = await getIdToken(currentUser, true);
-              await secureStorage.setItem('firebaseToken', newToken);
-
-              const response = await apiClient.post('/auth/firebase-login', {
-                firebaseToken: newToken,
-              });
-
-              const backendUser: User = response.data.user;
-
-              set({
-                user: backendUser,
-                firebaseToken: newToken,
-                isAuthenticated: true,
-                isLoading: false,
-                hasHydrated: true,
-              });
-              return;
-            }
-          } catch (refreshError) {
-            // Refresh também falhou
+        } catch (error: any) {
+          if (auth.currentUser !== currentUser) return;
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            await get().logout();
+          } else {
+            // Keep an existing session on offline/5xx; never authenticate a new one.
+            set({ isLoading: false, hasHydrated: true, error: 'Nao foi possivel atualizar a sessao. Verifique sua conexao.' });
           }
-
-          // Limpa sessão
-          await secureStorage.removeItem('firebaseToken');
-          set({
-            ...initialState,
-            hasHydrated: true,
-          });
         }
       },
 
@@ -313,11 +221,6 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      setFirebaseToken: (token: string) => {
-        set({ firebaseToken: token });
-        void secureStorage.setItem('firebaseToken', token);
-      },
-
       setUser: (user: User) => {
         set({ user });
       },
@@ -330,8 +233,8 @@ export const useAuthStore = create<AuthStore>()(
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
       // firebaseToken NÃO é persistido aqui (AsyncStorage não-criptografado).
-      // Vive no SecureStore; loadUser() o relê na hidratação. Só dados não
-      // sensíveis ficam no AsyncStorage do Zustand.
+      // O client sincroniza o token do Firebase com SecureStore e memoria.
+      // So dados nao sensiveis ficam no AsyncStorage do Zustand.
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
@@ -342,5 +245,10 @@ export const useAuthStore = create<AuthStore>()(
     }
   )
 );
+
+configureApiAuth({
+  onTokenChanged: (firebaseToken) => useAuthStore.setState({ firebaseToken }),
+  onSessionExpired: () => useAuthStore.getState().logout(),
+});
 
 export default useAuthStore;

@@ -3,13 +3,15 @@
  */
 
 import '../src/global.css';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { OfflineBanner } from '../src/components/ui/OfflineBanner';
 import { GamificationCelebrationProvider } from '../src/components/gamification/GamificationCelebrationProvider';
 import { initSentry } from '../src/config/sentry';
+import useAuthStore from '../src/stores/auth-store';
 
 // Error tracking — no-op sem EXPO_PUBLIC_SENTRY_DSN. Uma vez, no load do módulo.
 initSentry();
@@ -21,6 +23,23 @@ initSentry();
  */
 
 export default function RootLayout() {
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    let active = true;
+    void useAuthStore.getState().loadUser().catch(() => {}).finally(() => {
+      if (active) setSessionReady(true);
+    });
+    return () => { active = false; };
+  }, [hasHydrated]);
+
+  if (!sessionReady) {
+    return <View style={[styles.container, styles.loading]}><ActivityIndicator /></View>;
+  }
+
   return (
     <View style={styles.container}>
       {/* `dark` = ícones escuros. Fixo, não "auto": o app é light-only por
@@ -31,14 +50,20 @@ export default function RootLayout() {
       <OfflineBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="course" />
-        <Stack.Screen name="courses" />
-        <Stack.Screen name="forum" />
+        <Stack.Screen name="help" />
+        <Stack.Protected guard={!isAuthenticated}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected guard={isAuthenticated}>
+          <Stack.Screen name="(onboarding)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="course" />
+          <Stack.Screen name="courses" />
+          <Stack.Screen name="forum" />
+          <Stack.Screen name="profile" />
+        </Stack.Protected>
       </Stack>
-      <GamificationCelebrationProvider />
+      {isAuthenticated && <GamificationCelebrationProvider />}
       <Toast />
     </View>
   );
@@ -47,5 +72,9 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loading: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

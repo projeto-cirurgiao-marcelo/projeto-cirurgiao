@@ -101,6 +101,10 @@ mobile-app/.expo/
 mobile-app/coverage/
 mobile-app/dist/
 mobile-app/web-build/
+mobile-app/docs/
+mobile-app/__tests__/
+mobile-app/**/*.log
+mobile-app/*.log
 
 # --- ... e credenciais que NUNCA devem subir pro EAS ----------------------
 # eas.json aponta serviceAccountKeyPath pra ./playstore-service-account.json;
@@ -110,3 +114,12 @@ mobile-app/*-service-account*.json
 mobile-app/*.keystore
 mobile-app/*.jks
 mobile-app/.env.production
+mobile-app/.env.production*
+mobile-app/.env.local
+mobile-app/.env.*.local
+mobile-app/*.p8
+mobile-app/*.p12
+mobile-app/*.key
+mobile-app/*.pem
+mobile-app/*.mobileprovision
+mobile-app/*.cer

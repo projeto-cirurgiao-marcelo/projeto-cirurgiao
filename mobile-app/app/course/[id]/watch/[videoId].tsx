@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import VideoPlayer, { VideoPlayerRef } from '../../../../src/components/video/VideoPlayer';
 import { VideoLessonsList } from '../../../../src/components/video/VideoLessonsList';
@@ -37,6 +37,23 @@ export default function WatchVideoScreen() {
   const { id: courseId, videoId } = useLocalSearchParams<{ id: string; videoId: string }>();
   const router = useRouter();
   const playerRef = useRef<VideoPlayerRef>(null);
+  const nextVideoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isWatchActiveRef = useRef(false);
+
+  const cancelNextVideo = useCallback(() => {
+    if (nextVideoTimeoutRef.current !== null) {
+      clearTimeout(nextVideoTimeoutRef.current);
+      nextVideoTimeoutRef.current = null;
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    isWatchActiveRef.current = true;
+    return () => {
+      isWatchActiveRef.current = false;
+      cancelNextVideo();
+    };
+  }, [courseId, videoId, cancelNextVideo]));
 
   const [video, setVideo] = useState<Video | null>(null);
   const [moduleVideos, setModuleVideos] = useState<Video[]>([]);
@@ -185,17 +202,18 @@ export default function WatchVideoScreen() {
   };
 
   const handleVideoEnded = useCallback(() => {
+    if (!isWatchActiveRef.current || video?.id !== videoId || video.hasAccess === false) return;
     logger.log('[WatchVideo] Vídeo concluído');
     setIsCompleted(true);
 
     // Navegar automaticamente para próxima aula após 3 segundos
-    // (tempo suficiente para o progresso ser salvo no backend)
-    if (nextVideo) {
-      setTimeout(() => {
+    if (nextVideo && nextVideoTimeoutRef.current === null) {
+      nextVideoTimeoutRef.current = setTimeout(() => {
+        nextVideoTimeoutRef.current = null;
         router.replace(`/course/${courseId}/watch/${nextVideo.id}`);
       }, 3000);
     }
-  }, [nextVideo, courseId, router]);
+  }, [nextVideo, courseId, router, video, videoId]);
 
   const handleProgressUpdate = useCallback((time: number, dur: number) => {
     setCurrentTime(time);
@@ -203,6 +221,7 @@ export default function WatchVideoScreen() {
   }, []);
 
   const handleBack = () => {
+    cancelNextVideo();
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -212,12 +231,14 @@ export default function WatchVideoScreen() {
 
   const handleNavigatePrevious = () => {
     if (previousVideo) {
+      cancelNextVideo();
       router.replace(`/course/${courseId}/watch/${previousVideo.id}`);
     }
   };
 
   const handleNavigateNext = () => {
     if (nextVideo) {
+      cancelNextVideo();
       router.replace(`/course/${courseId}/watch/${nextVideo.id}`);
     }
   };
@@ -340,6 +361,7 @@ export default function WatchVideoScreen() {
         if (kind === 'hls' && playbackUrl) {
           return (
             <VideoPlayer
+              key={video.id}
               ref={playerRef}
               video={video}
               streamUrl={playbackUrl}

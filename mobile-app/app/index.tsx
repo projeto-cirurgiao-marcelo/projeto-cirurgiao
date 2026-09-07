@@ -16,39 +16,19 @@ export default function IndexScreen() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
-  const loadUser = useAuthStore((s) => s.loadUser);
 
   useEffect(() => {
     if (!hasHydrated) return;
 
-    const bootstrap = async () => {
-      if (isAuthenticated) {
-        // Revalida sessão com o backend para obter dados frescos
-        try {
-          await loadUser();
-        } catch {
-          // Se falhar, loadUser já limpa a sessão
-        }
-
-        // Relê o estado atualizado após loadUser
-        const freshUser = useAuthStore.getState().user;
-        const stillAuthenticated = useAuthStore.getState().isAuthenticated;
-
-        if (!stillAuthenticated) {
-          router.replace('/(auth)/login');
-        } else if (freshUser?.onboardingCompleted === false) {
-          router.replace('/(onboarding)/specializations');
-        } else {
-          router.replace('/(tabs)');
-        }
-      } else {
-        router.replace('/(auth)/login');
-      }
-    };
-
-    const timer = setTimeout(bootstrap, 500);
-    return () => clearTimeout(timer);
-  }, [hasHydrated]);
+    // The root layout resolves Firebase before mounting any route, including deep links.
+    if (!isAuthenticated) {
+      router.replace('/(auth)/login');
+    } else if (user?.onboardingCompleted === false) {
+      router.replace('/(onboarding)/specializations');
+    } else {
+      router.replace('/(tabs)');
+    }
+  }, [hasHydrated, isAuthenticated, user?.onboardingCompleted]);
 
   return (
     <View style={styles.container}>

@@ -1,4 +1,7 @@
 import { apiClient } from './client';
+import { FirebaseError } from 'firebase/app';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export interface UserProfile {
   id: string;
@@ -41,11 +44,20 @@ export const profileService = {
   },
 
   async changePassword(data: ChangePasswordDto): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>(
-      '/profile/change-password',
-      data
-    );
-    return response.data;
+    await auth.authStateReady();
+    const user = auth.currentUser;
+    if (!user) {
+      throw new FirebaseError('auth/user-token-expired', 'No authenticated user.');
+    }
+    if (!user.email) {
+      throw new FirebaseError('auth/operation-not-allowed', 'An email is required.');
+    }
+
+    const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, data.newPassword);
+    // The API client reads Firebase's current token on the next request.
+    return { message: 'Senha alterada com sucesso!' };
   },
 };
 

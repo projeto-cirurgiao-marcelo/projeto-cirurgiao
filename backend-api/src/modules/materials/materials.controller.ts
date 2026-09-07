@@ -15,6 +15,9 @@ import { MaterialsService } from './materials.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('Materials')
 @Controller('videos/:videoId/materials')
@@ -22,7 +25,8 @@ export class MaterialsController {
   constructor(private readonly materialsService: MaterialsService) {}
 
   @Post()
-  @UseGuards(FirebaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.INSTRUCTOR)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Criar novo material para um vídeo' })
   @ApiResponse({ status: 201, description: 'Material criado com sucesso' })
@@ -50,7 +54,8 @@ export class MaterialsController {
   }
 
   @Patch(':id')
-  @UseGuards(FirebaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.INSTRUCTOR)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Atualizar material' })
   @ApiResponse({ status: 200, description: 'Material atualizado' })
@@ -63,7 +68,8 @@ export class MaterialsController {
   }
 
   @Delete(':id')
-  @UseGuards(FirebaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.INSTRUCTOR)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover material' })
@@ -74,7 +80,8 @@ export class MaterialsController {
   }
 
   @Post('reorder')
-  @UseGuards(FirebaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.INSTRUCTOR)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reordenar materiais' })
   @ApiResponse({ status: 200, description: 'Materiais reordenados' })

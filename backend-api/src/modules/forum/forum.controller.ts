@@ -17,6 +17,9 @@ import { CreateReplyDto } from './dto/create-reply.dto';
 import { CreateReportDto } from './dto/create-report.dto';
 import { VoteTopicDto, VoteReplyDto } from './dto/vote.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('forum')
 @UseGuards(FirebaseAuthGuard)
@@ -165,6 +168,8 @@ export class ForumController {
    * Listar denúncias (ADMIN only)
    */
   @Get('reports')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   findAllReports(
     @Query('status') status?: string,
     @Query('page') page?: string,

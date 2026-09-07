@@ -93,6 +93,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   const saveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasRestoredPosition = useRef<boolean>(false);
   const hasMarkedCompleted = useRef<boolean>(false);
+  const hasEmittedEnded = useRef(false);
   const startedBelowThreshold = useRef<boolean>(false);
   const isFullscreenRef = useRef<boolean>(false);
   const isSeeking = useRef<boolean>(false);
@@ -393,10 +394,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
       logger.error('[VideoPlayer] Erro ao marcar como concluído:', error);
       await saveProgress(true);
     }
-    if (onEnded) {
-      onEnded();
-    }
-  }, [video.id, saveProgress, onEnded, previewSeconds]);
+  }, [video.id, saveProgress, previewSeconds]);
 
   // Polling para atualização de tempo + detecção de conclusão
   useEffect(() => {
@@ -454,25 +452,15 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   useEffect(() => {
     // @ts-ignore
     const subscription = player.addListener('playToEnd', () => {
+      if (previewSeconds !== undefined || hasEmittedEnded.current) return;
+      hasEmittedEnded.current = true;
+      currentTimeRef.current = player.currentTime || 0;
       markAsCompleted();
+      // Fim real independe da conclusao aos 95% e da resposta da API.
+      onEnded?.();
     });
     return () => subscription.remove();
-  }, [player, markAsCompleted]);
-
-  // Fallback: statusChange para detectar fim
-  useEffect(() => {
-    // @ts-ignore
-    const subscription = player.addListener('statusChange', (event: any) => {
-      if (event?.status === 'idle' && currentTimeRef.current > 0 && !hasMarkedCompleted.current) {
-        // @ts-ignore
-        const dur = player.duration || 0;
-        if (dur > 0 && currentTimeRef.current >= dur * COMPLETION_THRESHOLD) {
-          markAsCompleted();
-        }
-      }
-    });
-    return () => subscription.remove();
-  }, [player, markAsCompleted]);
+  }, [player, markAsCompleted, onEnded, previewSeconds]);
 
   // Auto-save a cada 10 segundos
   useEffect(() => {

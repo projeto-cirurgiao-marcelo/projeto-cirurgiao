@@ -4,11 +4,9 @@
  */
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import secureStorage from '../../lib/secure-storage';
-import { getAuth } from 'firebase/auth';
+import { auth } from '../firebase';
 import Toast from 'react-native-toast-message';
-import { logger } from '../../lib/logger';
 
 /**
  * Extrai `Retry-After` do response 429. Retorna segundos (inteiro >= 0)
@@ -73,24 +71,72 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Interceptor de request - adiciona token de autenticação
+type SessionRequest = InternalAxiosRequestConfig & { _retry?: boolean; _sessionVersion?: number };
+let sessionVersion = 0;
+let refreshPromise: Promise<string> | null = null;
+let tokenWrite: Promise<void> = Promise.resolve();
+let authHandlers: {
+  onTokenChanged: (token: string) => void;
+  onSessionExpired: () => Promise<void>;
+} | undefined;
+
+// Registered by the store, avoiding a client -> store -> client import cycle.
+export function configureApiAuth(handlers: NonNullable<typeof authHandlers>) {
+  authHandlers = handlers;
+}
+
+export function resetApiSession(): Promise<void> {
+  sessionVersion += 1;
+  refreshPromise = null;
+  // Queue removal after any pending write so logout cannot resurrect a token.
+  tokenWrite = tokenWrite.catch(() => {}).then(() => secureStorage.removeItem('firebaseToken'));
+  return tokenWrite;
+}
+
+function persistToken(token: string, version: number): Promise<void> {
+  tokenWrite = tokenWrite.catch(() => {}).then(async () => {
+    if (version !== sessionVersion) return;
+    await secureStorage.setItem('firebaseToken', token);
+    if (version === sessionVersion) authHandlers?.onTokenChanged(token);
+  });
+  return tokenWrite;
+}
+
+function isInvalidFirebaseSession(error: unknown): boolean {
+  const code = (error as { code?: string })?.code;
+  return ['auth/user-disabled', 'auth/user-not-found', 'auth/user-token-expired',
+    'auth/invalid-user-token'].includes(code ?? '');
+}
+
+// Firebase is the token source, including after a password change or cold start.
 apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
+  async (config: SessionRequest) => {
+    const version = config._sessionVersion ?? sessionVersion;
+    config._sessionVersion = version;
+    await auth.authStateReady();
+    if (version !== sessionVersion) throw new axios.CanceledError('Session changed');
     try {
-      const token = await secureStorage.getItem('firebaseToken');
-      if (token) {
-        if (!config.headers) {
-          config.headers = new axios.AxiosHeaders();
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        if (version !== sessionVersion || auth.currentUser !== user) {
+          throw new axios.CanceledError('Session changed');
         }
-        // Garante que o header é setado corretamente em qualquer versão do Axios
-        if (typeof config.headers.set === 'function') {
-          config.headers.set('Authorization', `Bearer ${token}`);
-        } else {
-          (config.headers as any)['Authorization'] = `Bearer ${token}`;
+        await persistToken(token, version);
+        if (version !== sessionVersion) throw new axios.CanceledError('Session changed');
+        config.headers.set('Authorization', `Bearer ${token}`);
+        // This endpoint validates the body, not the Authorization header.
+        if (config.url === '/auth/firebase-login') {
+          config.data = { firebaseToken: token };
         }
+      } else {
+        config.headers.delete('Authorization');
       }
     } catch (error) {
-      logger.error('[apiClient] Erro ao obter token:', error);
+      if (version === sessionVersion && isInvalidFirebaseSession(error)) {
+        await authHandlers?.onSessionExpired();
+      }
+      throw error;
     }
     return config;
   },
@@ -99,48 +145,52 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Flag para evitar múltiplos refreshes simultâneos
-let isRefreshing = false;
-
 // Interceptor de response - tenta refresh do token antes de fazer logout
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    const version = (response.config as SessionRequest)._sessionVersion;
+    if (version !== undefined && version !== sessionVersion) {
+      throw new axios.CanceledError('Session changed');
+    }
+    return response;
+  },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as SessionRequest | undefined;
+    const version = originalRequest?._sessionVersion;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && version === sessionVersion) {
+      const user = auth.currentUser;
+      if (originalRequest._retry || !user) {
+        await authHandlers?.onSessionExpired();
+        return Promise.reject(error);
+      }
       originalRequest._retry = true;
 
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const auth = getAuth();
-          const currentUser = auth.currentUser;
-
-          if (currentUser) {
-            // Forçar refresh do token Firebase
-            const newToken = await currentUser.getIdToken(true);
-            await secureStorage.setItem('firebaseToken', newToken);
-            isRefreshing = false;
-
-            // Retentar a request original com o novo token
-            if (typeof originalRequest.headers.set === 'function') {
-              originalRequest.headers.set('Authorization', `Bearer ${newToken}`);
-            } else {
-              (originalRequest.headers as any)['Authorization'] = `Bearer ${newToken}`;
-            }
-            return apiClient(originalRequest);
+      if (!refreshPromise) {
+        const pending = user.getIdToken(true).then(async (token) => {
+          if (version !== sessionVersion || auth.currentUser !== user) {
+            throw new axios.CanceledError('Session changed');
           }
-        } catch (refreshError) {
-          logger.warn('[apiClient] Token refresh falhou, limpando sessão', refreshError);
-        }
-        isRefreshing = false;
+          await persistToken(token, version);
+          return token;
+        });
+        refreshPromise = pending;
+        void pending.finally(() => {
+          if (refreshPromise === pending) refreshPromise = null;
+        }).catch(() => {});
       }
 
-      // Refresh falhou ou não há usuário - limpar sessão
-      await secureStorage.removeItem('firebaseToken');
-      await AsyncStorage.removeItem('auth-storage');
-      // A navegação para login será tratada pelo AuthProvider
+      try {
+        await refreshPromise;
+      } catch (refreshError) {
+        // Offline/timeouts must not destroy a recoverable Firebase session.
+        if (version === sessionVersion && isInvalidFirebaseSession(refreshError)) {
+          await authHandlers?.onSessionExpired();
+        }
+        return Promise.reject(refreshError);
+      }
+      if (version !== sessionVersion) throw new axios.CanceledError('Session changed');
+      return apiClient(originalRequest);
     }
 
     // Rate limit por usuario (30 rpm em endpoints de IA) ou por IP. Toast

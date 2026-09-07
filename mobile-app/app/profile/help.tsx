@@ -35,7 +35,7 @@ export default function HelpScreen() {
   };
 
   const openFAQ = () => {
-    router.push('/profile/faq' as any);
+    router.push('/profile/faq');
   };
 
   const helpItems: HelpItem[] = [
@@ -58,7 +58,9 @@ export default function HelpScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
           style={styles.headerButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >

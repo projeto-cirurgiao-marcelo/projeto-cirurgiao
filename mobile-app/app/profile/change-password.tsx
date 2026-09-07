@@ -23,6 +23,34 @@ import {
   BorderRadius,
 } from '../../src/constants/colors';
 
+function getPasswordErrorMessage(error: unknown): string {
+  const code = error && typeof error === 'object' && 'code' in error ? error.code : '';
+  switch (code) {
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'A senha atual está incorreta. Confira e tente novamente.';
+    case 'auth/weak-password':
+    case 'auth/password-does-not-meet-requirements':
+      return 'A nova senha não atende aos requisitos de segurança. Use uma senha mais forte, com letras maiúsculas, minúsculas, números e símbolos.';
+    case 'auth/requires-recent-login':
+    case 'auth/user-token-expired':
+    case 'auth/invalid-user-token':
+    case 'auth/user-not-found':
+    case 'auth/user-mismatch':
+      return 'Sua sessão expirou. Entre novamente para alterar a senha.';
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+    case 'auth/network-request-failed':
+      return 'Falha de conexão. Verifique sua internet e tente novamente.';
+    case 'auth/user-disabled':
+      return 'Esta conta foi desativada. Entre em contato com o suporte.';
+    case 'auth/operation-not-allowed':
+      return 'A alteração de senha não está disponível para esta conta. Entre em contato com o suporte.';
+    default:
+      return 'Não foi possível alterar a senha. Tente novamente.';
+  }
+}
+
 export default function ChangePasswordScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -54,10 +82,8 @@ export default function ChangePasswordScreen() {
       Alert.alert('Sucesso', 'Senha alterada com sucesso!', [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || 'Não foi possível alterar a senha.';
-      Alert.alert('Erro', message);
+    } catch (error: unknown) {
+      Alert.alert('Erro', getPasswordErrorMessage(error));
     } finally {
       setSaving(false);
     }

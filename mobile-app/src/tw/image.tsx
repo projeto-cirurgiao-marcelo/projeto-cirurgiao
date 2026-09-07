@@ -30,7 +30,12 @@ function CSSImage(props: React.ComponentProps<typeof AnimatedExpoImage>) {
 export const Image = (
   props: React.ComponentProps<typeof CSSImage> & { className?: string }
 ) => {
-  return useCssElement(CSSImage, props, { className: "style" });
+  // Resolve mapping paths against native props, not recursive animated styles.
+  return useCssElement<
+    React.ComponentType<React.ComponentProps<typeof RNImage>>
+  >(CSSImage, props, {
+    className: "style",
+  });
 };
 
 Image.displayName = "CSS(Image)";

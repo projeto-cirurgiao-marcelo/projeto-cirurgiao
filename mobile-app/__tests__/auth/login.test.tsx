@@ -57,6 +57,13 @@ describe('<LoginScreen />', () => {
     expect(getByPlaceholderText('••••••')).toBeTruthy();
   });
 
+  it('comunica acesso por convite sem oferecer criacao publica', () => {
+    const { getByText, queryByText } = render(<LoginScreen />);
+    expect(getByText(/Acesso por convite/)).toBeTruthy();
+    expect(queryByText('Criar conta')).toBeNull();
+    expect(queryByText(/Não tem uma conta/)).toBeNull();
+  });
+
   // Note: teste de fluxo complete (changeText + press + verificar mockLogin)
   // ficou fora do smoke v1. Zustand hook compartilhando referencia mutavel
   // de state gera comportamento nao-trivial em jest.mock — resolvido de

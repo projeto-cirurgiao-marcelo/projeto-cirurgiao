@@ -174,15 +174,10 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Link para registro */}
-          <View style={styles.linkRow}>
-            <Text style={styles.linkText}>Não tem uma conta? </Text>
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity>
-                <Text style={styles.linkBold}>Criar conta</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
+          <Text style={styles.inviteText}>
+            Acesso por convite. Entre com o e-mail e a senha da sua conta. Se ainda
+            não recebeu acesso, entre em contato com a equipe do Projeto Cirurgião.
+          </Text>
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -291,21 +286,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // ---- Link para registro ----
-  linkRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  inviteText: {
     marginBottom: Spacing['2xl'],
-  },
-  linkText: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,
-  },
-  linkBold: {
-    fontSize: FontSize.md,
-    color: Colors.accent,
-    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+    lineHeight: FontSize.md * 1.5,
   },
 
 });

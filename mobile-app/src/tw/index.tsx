@@ -14,6 +14,7 @@ import {
   TouchableHighlight as RNTouchableHighlight,
   TextInput as RNTextInput,
   StyleSheet,
+  type ViewStyle,
 } from "react-native";
 
 // CSS-enabled Link
@@ -90,7 +91,10 @@ export const AnimatedScrollView = (
     contentContainerClassName?: string;
   }
 ) => {
-  return useCssElement(Animated.ScrollView, props, {
+  // Resolve mapping paths against native props, not recursive animated styles.
+  return useCssElement<
+    React.ComponentType<React.ComponentProps<typeof RNScrollView>>
+  >(Animated.ScrollView, props, {
     className: "style",
     contentClassName: "contentContainerStyle",
     contentContainerClassName: "contentContainerStyle",
@@ -101,7 +105,9 @@ export const AnimatedScrollView = (
 function XXTouchableHighlight(
   props: React.ComponentProps<typeof RNTouchableHighlight>
 ) {
-  const { underlayColor, ...style } = StyleSheet.flatten(props.style) || {};
+  const { underlayColor, ...style }: ViewStyle &
+    Pick<React.ComponentProps<typeof RNTouchableHighlight>, "underlayColor"> =
+    StyleSheet.flatten(props.style) || {};
   return (
     <RNTouchableHighlight
       underlayColor={underlayColor}
