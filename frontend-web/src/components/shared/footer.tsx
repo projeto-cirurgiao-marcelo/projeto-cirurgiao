@@ -72,10 +72,10 @@ export function Footer() {
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-[rgb(var(--primary-500))]" />
                 <a
-                  href="mailto:contato@projetocirurgiao.com.br"
+                  href="mailto:contato@projetocirurgiao.app"
                   className="hover:text-[rgb(var(--primary-500))] transition-colors"
                 >
-                  contato@projetocirurgiao.com.br
+                  contato@projetocirurgiao.app
                 </a>
               </div>
               <div className="flex items-center gap-2">

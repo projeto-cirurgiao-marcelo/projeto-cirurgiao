@@ -83,7 +83,7 @@ export function LandingFooter() {
               Contato
             </div>
             <div>
-              contato@projetocirurgiao.com
+              contato@projetocirurgiao.app
               <br />
               WhatsApp · Seg–Sex 9h–18h
             </div>

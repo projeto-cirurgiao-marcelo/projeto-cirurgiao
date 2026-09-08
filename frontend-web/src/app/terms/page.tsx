@@ -144,7 +144,7 @@ export default function TermsPage() {
             </p>
             <div className="mt-3 p-4 rounded-lg bg-muted/50 border border-border">
               <p className="text-sm text-foreground font-medium">Projeto Cirurgiao</p>
-              <p className="text-sm text-muted-foreground">E-mail: contato@projetocirurgiao.com.br</p>
+              <p className="text-sm text-muted-foreground">E-mail: contato@projetocirurgiao.app</p>
               <p className="text-sm text-muted-foreground">Sao Paulo, SP - Brasil</p>
             </div>
           </section>
