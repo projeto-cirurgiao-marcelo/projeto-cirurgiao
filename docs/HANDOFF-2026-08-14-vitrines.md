@@ -310,3 +310,29 @@ externa; quem carrega a URL é a página web. Validado no emulador: o link
 "Acessar a página de compra" abriu o Chrome. `EXPO_PUBLIC_WEB_URL` permite
 apontar o app pra outro web (padrão `https://app.projetocirurgiao.app`).
 Risco: a leitura do revisor da Apple sobre FAQ com link de compra varia.
+
+**Adendo 2026-09-07/08 — preparação de lojas.** (07/09, outro agente, commit
+`a79a88f`): "Criar conta" removido do login e a tela `/register` virou aviso
+de acesso por convite; cliente de API reescrito (token lido do Firebase a
+cada request, proteção contra logins concorrentes); troca de senha via
+Firebase com reautenticação; `Stack.Protected` no layout raiz; **no iOS a
+rota `/help` ignora a Central de Ajuda web e abre a tela nativa (FAQ +
+e-mail)** — decisão conservadora frente à 3.1.1, sem caminho de desbloqueio
+no iPhone; Android mantém o WebView. Backend rev **`00118-45g`** (materiais
+só ADMIN/INSTRUCTOR; denúncias do fórum só ADMIN). **iOS build de produção
+1.0.0 (3)** enviado ao App Store Connect (ASC app **6808997426**, bundle
+`app.projetocirurgiao.mobile`, `ascAppId` no `eas.json`); smoke no iPhone 8
+OK. (08/09, commit `78ad530`): **autoexclusão de conta** — `DELETE /users/me`
+(rev **`00119-7fb`**): anonimiza nome/e-mail/perfil, apaga conversas de IA,
+anotações, favoritos e refresh tokens, remove o login Firebase, audita
+`user.self_delete`; ADMIN recebe 403. Botão "Excluir minha conta" no Perfil
+do app (dupla confirmação) e seção "Excluir conta" no Perfil web (digitar
+EXCLUIR); pergunta "Como excluir minha conta?" nas duas FAQs. `/privacy`
+reescrita (acentos, seção de IA/Vertex, operadores GCP/Cloudflare/Vercel,
+caminho de exclusão, contato `contato@projetocirurgiao.app`, data 08/09/2026).
+**Inconsistência conhecida:** termos, cookies e rodapés do web ainda citam
+`contato@projetocirurgiao.com.br` / `.com` — confirmar qual caixa existe.
+**Pendente pra submissão:** rotação de segredos (TECH-DEBT), build Android
+de produção + conta/registro no Play Console, screenshots (iOS exige 6,5"/6,9"),
+textos de loja, classificação etária, conta demo pro revisor, `NSMicrophoneUsageDescription`
+(verificar se o upload do build 3 gerou aviso ITMS-90683).
