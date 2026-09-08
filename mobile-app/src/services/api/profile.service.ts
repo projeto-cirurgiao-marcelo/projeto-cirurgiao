@@ -33,6 +33,15 @@ export interface ChangePasswordDto {
 }
 
 export const profileService = {
+  /**
+   * Autoexclusão (App Store 5.1.1(v) / Play Data Safety). O backend anonimiza
+   * a conta e apaga o login Firebase; o chamador deve encerrar a sessão local
+   * em seguida, porque o token atual deixa de resolver um usuário.
+   */
+  async deleteAccount(): Promise<void> {
+    await apiClient.delete('/users/me');
+  },
+
   async getProfile(): Promise<UserProfile> {
     const response = await apiClient.get<UserProfile>('/profile');
     return response.data;

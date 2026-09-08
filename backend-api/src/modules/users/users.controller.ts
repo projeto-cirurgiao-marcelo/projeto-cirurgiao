@@ -74,6 +74,17 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+  // Antes de ":id": o Nest casa rotas na ordem de declaração e "me" cairia
+  // no parâmetro. Sem @Roles — qualquer usuário autenticado exclui a própria
+  // conta (ADMIN é barrado no service).
+  @Delete('me')
+  @ApiOperation({ summary: 'Excluir a própria conta (LGPD / lojas)' })
+  @ApiResponse({ status: 200, description: 'Conta anonimizada e login Firebase removido' })
+  @ApiResponse({ status: 403, description: 'Administradores não podem se autoexcluir' })
+  deleteOwnAccount(@Request() req: any) {
+    return this.usersService.deleteOwnAccount(req.user.userId);
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Remover usuário' })

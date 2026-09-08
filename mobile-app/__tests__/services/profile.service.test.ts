@@ -21,7 +21,7 @@ jest.mock('../../src/services/firebase', () => ({
   auth: { authStateReady: jest.fn(), currentUser: null },
 }));
 jest.mock('../../src/services/api/client', () => ({
-  apiClient: { post: jest.fn() },
+  apiClient: { post: jest.fn(), delete: jest.fn() },
 }));
 
 const mockAuth = auth as unknown as {
@@ -109,4 +109,12 @@ it('propaga erro do updatePassword sem retornar sucesso', async () => {
   mockUpdatePassword.mockRejectedValue(error);
   await expect(profileService.changePassword(data)).rejects.toBe(error);
   expect(mockReauthenticate).toHaveBeenCalledTimes(1);
+});
+
+it('deleteAccount chama DELETE /users/me (autoexclusão exigida pelas lojas)', async () => {
+  (apiClient.delete as jest.Mock).mockResolvedValue({ data: { message: 'ok' } });
+
+  await profileService.deleteAccount();
+
+  expect(apiClient.delete).toHaveBeenCalledWith('/users/me');
 });

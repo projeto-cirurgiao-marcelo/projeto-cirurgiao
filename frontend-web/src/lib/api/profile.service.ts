@@ -31,6 +31,11 @@ export interface ChangePasswordDto {
 }
 
 export const profileService = {
+  /** Autoexclusão (LGPD / lojas): anonimiza a conta e apaga o login Firebase. */
+  async deleteAccount(): Promise<void> {
+    await apiClient.delete('/users/me');
+  },
+
   async getProfile(): Promise<UserProfile> {
     const response = await apiClient.get<UserProfile>('/profile');
     return response.data;

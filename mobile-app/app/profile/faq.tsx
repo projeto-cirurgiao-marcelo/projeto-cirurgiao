@@ -45,6 +45,11 @@ const FAQ_DATA: FAQItem[] = [
     answer: 'Sim! Sua conta é única e funciona tanto no aplicativo mobile quanto na versão web. Seu progresso é sincronizado automaticamente entre as plataformas.',
   },
   {
+    category: 'Conta e Acesso',
+    question: 'Como excluir minha conta?',
+    answer: 'Em Perfil, toque em "Excluir minha conta" no fim da tela e confirme. Seus dados de cadastro são anonimizados na hora e o acesso é encerrado em todos os dispositivos. A exclusão é permanente. Também é possível pedir pelo site, em Perfil, ou por e-mail para contato@projetocirurgiao.app.',
+  },
+  {
     category: 'Cursos e Aulas',
     question: 'Quais aulas posso assistir?',
     answer: 'Você pode assistir às aulas liberadas para sua conta. Outros conteúdos podem exibir apenas uma prévia. Iniciar um curso não libera automaticamente todas as aulas. Se uma aula que já faz parte do seu acesso estiver indisponível, entre em contato com o suporte em Ajuda e Suporte.',

@@ -22,6 +22,14 @@ import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Loader2,
   Camera,
   User,
@@ -32,10 +40,12 @@ import {
   Save,
   Shield,
   Calendar,
+  Trash2,
 } from 'lucide-react';
 
 export default function StudentProfilePage() {
   const setGlobalPhotoUrl = useAvatarStore((s) => s.setPhotoUrl);
+  const logout = useAuthStore((s) => s.logout);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +64,10 @@ export default function StudentProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     void loadProfile();
@@ -169,6 +183,26 @@ export default function StudentProfilePage() {
       atlasToast.error('Falha ao alterar senha', { description: message });
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  // Exigido pela LGPD e pelas lojas (Play Data Safety / App Store 5.1.1(v)).
+  // O backend anonimiza a conta e apaga o login Firebase; depois só resta
+  // encerrar a sessão local.
+  const handleDeleteAccount = async () => {
+    try {
+      setDeleting(true);
+      await profileService.deleteAccount();
+      atlasToast.success('Conta excluída', {
+        description: 'Seus dados de cadastro foram anonimizados.',
+      });
+      await logout();
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ??
+        'Não foi possível excluir a conta agora. Tente novamente ou escreva para contato@projetocirurgiao.app.';
+      atlasToast.error('Falha ao excluir conta', { description: message });
+      setDeleting(false);
     }
   };
 
@@ -452,7 +486,83 @@ export default function StudentProfilePage() {
             </div>
           </AtlasCardContent>
         </AtlasCard>
+
+        {/* Exclusão de conta */}
+        <AtlasCard>
+          <AtlasCardHeader>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Trash2
+                className="size-4 text-atlas-muted shrink-0"
+                strokeWidth={1.5}
+              />
+              <AtlasCardTitle>Excluir conta</AtlasCardTitle>
+            </div>
+          </AtlasCardHeader>
+          <AtlasCardContent className="space-y-4">
+            <p className="text-[12.5px] text-atlas-muted -mt-1">
+              A exclusão é permanente. Seus dados de cadastro são anonimizados,
+              as conversas com a IA e as anotações são apagadas e o acesso aos
+              treinamentos desta conta é encerrado em todos os dispositivos.
+            </p>
+            <div className="flex justify-end">
+              <AtlasButton
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDeleteConfirm('');
+                  setDeleteOpen(true);
+                }}
+              >
+                <Trash2 strokeWidth={1.5} />
+                Excluir minha conta
+              </AtlasButton>
+            </div>
+          </AtlasCardContent>
+        </AtlasCard>
       </div>
+
+      <Dialog open={deleteOpen} onOpenChange={(open) => !deleting && setDeleteOpen(open)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir conta permanentemente?</DialogTitle>
+            <DialogDescription>
+              Não será possível recuperar a conta nem o progresso depois. Para
+              confirmar, digite <span className="font-semibold">EXCLUIR</span>{' '}
+              abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder="EXCLUIR"
+            autoComplete="off"
+            disabled={deleting}
+          />
+          <DialogFooter>
+            <AtlasButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Manter conta
+            </AtlasButton>
+            <AtlasButton
+              size="sm"
+              className="bg-red-600 border-red-600 hover:bg-red-700 hover:border-red-700 text-white"
+              onClick={handleDeleteAccount}
+              disabled={deleting || deleteConfirm.trim().toUpperCase() !== 'EXCLUIR'}
+            >
+              {deleting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Trash2 strokeWidth={1.5} />
+              )}
+              Excluir definitivamente
+            </AtlasButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

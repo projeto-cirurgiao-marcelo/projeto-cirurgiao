@@ -44,7 +44,7 @@ const FAQ: FaqItem[] = [
     category: 'Conta e acesso',
     question: 'Como faço para criar uma conta?',
     answer:
-      'O acesso ao Projeto Cirurgião é por convite. Se você recebeu um link de registro, utilize-o para criar sua conta com e-mail e senha. Em caso de dúvida, fale com o suporte.',
+      'O acesso ao Projeto Cirurgião é por convite. Não é possível criar uma conta pelo app ou pelo site: o acesso é liberado pela equipe para o seu e-mail. Se ainda não recebeu o convite, fale com o suporte.',
   },
   {
     id: 'conta-senha',
@@ -59,6 +59,13 @@ const FAQ: FaqItem[] = [
     question: 'Posso usar a mesma conta no app e no site?',
     answer:
       'Sim. Sua conta é única e funciona no aplicativo e na versão web. O progresso é sincronizado automaticamente entre as plataformas.',
+  },
+  {
+    id: 'conta-excluir',
+    category: 'Conta e acesso',
+    question: 'Como excluir minha conta?',
+    answer:
+      'No app, abra Perfil e toque em "Excluir minha conta" no fim da tela. No site, vá em Perfil e use a seção "Excluir conta". Seus dados de cadastro são anonimizados na hora, as conversas com a IA e as anotações são apagadas e o acesso é encerrado em todos os dispositivos. A exclusão é permanente. Se preferir, envie o pedido para contato@projetocirurgiao.app a partir do e-mail cadastrado.',
   },
   {
     id: 'cursos-progresso',

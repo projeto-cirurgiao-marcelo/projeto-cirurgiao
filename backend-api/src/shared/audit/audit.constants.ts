@@ -16,6 +16,7 @@ export const AUDIT_ACTIONS = {
   VIDEO_PUBLISH_TOGGLED: 'video.publish_toggled',
 
   USER_SOFT_DELETE: 'user.soft_delete',
+  USER_SELF_DELETE: 'user.self_delete',
   USER_RESTORE: 'user.restore',
   USER_ROLE_CHANGED: 'user.role_changed',
 

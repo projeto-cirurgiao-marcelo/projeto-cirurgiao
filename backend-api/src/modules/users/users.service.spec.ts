@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { User, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -8,6 +8,7 @@ import { UsersService } from './users.service';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
+import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -28,15 +29,18 @@ describe('UsersService', () => {
   let service: UsersService;
   let prisma: DeepMockProxy<PrismaService>;
   let audit: DeepMockProxy<AuditService>;
+  let firebaseAdmin: DeepMockProxy<FirebaseAdminService>;
 
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
     audit = mockDeep<AuditService>();
+    firebaseAdmin = mockDeep<FirebaseAdminService>();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: audit },
+        { provide: FirebaseAdminService, useValue: firebaseAdmin },
       ],
     }).compile();
     service = module.get(UsersService);
@@ -275,6 +279,62 @@ describe('UsersService', () => {
       expect(out.averageProgress).toBe(0);
       expect(out.quizAverageScore).toBeNull();
       expect(out.lastAccessAt).toBeNull();
+    });
+  });
+
+  describe('deleteOwnAccount', () => {
+    it('rejects unknown or already deleted users', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(service.deleteOwnAccount('u1')).rejects.toBeInstanceOf(NotFoundException);
+
+      prisma.user.findUnique.mockResolvedValue(makeUser({ deletedAt: new Date() }));
+      await expect(service.deleteOwnAccount('u1')).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('refuses ADMIN self-deletion before touching anything', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeUser({ role: Role.ADMIN }));
+
+      await expect(service.deleteOwnAccount('u1')).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(firebaseAdmin.deleteUser).not.toHaveBeenCalled();
+    });
+
+    it('anonymizes the row, purges user content, deletes the Firebase user and audits', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeUser({ firebaseUid: 'fb-1' }));
+      prisma.$transaction.mockResolvedValue([] as any);
+      firebaseAdmin.deleteUser.mockResolvedValue(true);
+
+      const result = await service.deleteOwnAccount('u1');
+
+      expect(result).toEqual({ message: 'Conta excluída com sucesso' });
+      expect(prisma.chatConversation.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+      expect(prisma.libraryConversation.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+      expect(prisma.videoNote.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+      expect(prisma.userProfile.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+      const data = prisma.user.update.mock.calls[0][0].data as any;
+      expect(data.email).toBe('removido+u1@anon.projetocirurgiao.app');
+      expect(data.name).toBe('Usuário removido');
+      expect(data.firebaseUid).toBeNull();
+      expect(data.isActive).toBe(false);
+      expect(data.deletedAt).toBeInstanceOf(Date);
+      expect(firebaseAdmin.deleteUser).toHaveBeenCalledWith('fb-1');
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ actorId: 'u1', action: AUDIT_ACTIONS.USER_SELF_DELETE, entityId: 'u1' }),
+      );
+    });
+
+    it('still succeeds (and audits) when there is no Firebase uid or the Firebase delete fails', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeUser({ firebaseUid: null }));
+      prisma.$transaction.mockResolvedValue([] as any);
+
+      await service.deleteOwnAccount('u1');
+      expect(firebaseAdmin.deleteUser).not.toHaveBeenCalled();
+
+      prisma.user.findUnique.mockResolvedValue(makeUser({ firebaseUid: 'fb-2' }));
+      firebaseAdmin.deleteUser.mockResolvedValue(false);
+      await expect(service.deleteOwnAccount('u1')).resolves.toBeDefined();
+      expect(audit.record).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import useAuthStore from '../../src/stores/auth-store';
+import { profileService } from '../../src/services/api/profile.service';
 import { useGamificationStore } from '../../src/stores/gamification-store';
 import {
   Colors,
@@ -74,6 +75,47 @@ export default function ProfileScreen() {
           },
         },
       ]
+    );
+  };
+
+  // Exigido pelas lojas (App Store 5.1.1(v), Play Data Safety) e pela LGPD.
+  // Duas confirmações: a ação é irreversível e anonimiza a conta na hora.
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Excluir conta',
+      'Esta ação é permanente. Seus dados de cadastro serão anonimizados e você perderá o acesso a todos os treinamentos liberados para esta conta.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Continuar',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert(
+              'Confirmar exclusão',
+              'Tem certeza? Não será possível recuperar a conta depois.',
+              [
+                { text: 'Manter conta', style: 'cancel' },
+                {
+                  text: 'Excluir definitivamente',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await profileService.deleteAccount();
+                      await logout();
+                      router.replace('/(auth)/login');
+                      Alert.alert('Conta excluída', 'Sua conta foi removida. Sentiremos sua falta.');
+                    } catch (error: any) {
+                      const message =
+                        error?.response?.data?.message ||
+                        'Não foi possível excluir a conta agora. Tente novamente ou escreva para contato@projetocirurgiao.app.';
+                      Alert.alert('Erro', message);
+                    }
+                  },
+                },
+              ],
+            ),
+        },
+      ],
     );
   };
 
@@ -222,6 +264,17 @@ export default function ProfileScreen() {
         >
           <Ionicons name="log-out-outline" size={20} color="#dc3545" />
           <Text style={styles.logoutText}>Sair da conta</Text>
+        </TouchableOpacity>
+
+        {/* Exclusão de conta (LGPD / lojas) — discreto, abaixo do logout */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+        >
+          <Ionicons name="trash-outline" size={16} color={Colors.textMuted} />
+          <Text style={styles.deleteText}>Excluir minha conta</Text>
         </TouchableOpacity>
 
         <View style={styles.bottomSpace} />
@@ -412,6 +465,19 @@ const styles = StyleSheet.create({
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
     color: '#dc3545',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  deleteText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textDecorationLine: 'underline',
   },
   bottomSpace: {
     height: Spacing['3xl'],

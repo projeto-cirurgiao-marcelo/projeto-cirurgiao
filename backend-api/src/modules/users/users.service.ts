@@ -1,16 +1,26 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private firebaseAdmin: FirebaseAdminService,
   ) {}
 
   async findAll() {
@@ -471,5 +481,76 @@ export class UsersService {
     });
 
     return { message: 'Usuário removido com sucesso' };
+  }
+
+  /**
+   * Autoexclusão de conta (LGPD art. 18 / App Store 5.1.1(v) / Play Data
+   * Safety). Diferente do soft-delete administrativo, aqui os dados de
+   * identificação são anonimizados na hora e o conteúdo gerado pelo usuário
+   * (conversas com IA, anotações, favoritos) é apagado. Matrículas, progresso,
+   * XP e posts do fórum ficam presos ao id anonimizado — servem só para
+   * estatística agregada e para o histórico do fórum aparecer como
+   * "Usuário removido". Por fim a conta Firebase é apagada, o que invalida
+   * o login em qualquer dispositivo.
+   *
+   * ADMIN não se autoexclui: precisa ser rebaixado antes, senão o último
+   * admin poderia trancar a operação.
+   */
+  async deleteOwnAccount(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    if (user.role === Role.ADMIN) {
+      throw new ForbiddenException(
+        'Contas de administrador não podem ser excluídas pelo próprio usuário.',
+      );
+    }
+
+    const deletedAt = new Date();
+    const anonymizedEmail = `removido+${user.id}@anon.projetocirurgiao.app`;
+
+    await this.prisma.$transaction([
+      this.prisma.chatConversation.deleteMany({ where: { userId } }),
+      this.prisma.libraryConversation.deleteMany({ where: { userId } }),
+      this.prisma.videoNote.deleteMany({ where: { userId } }),
+      this.prisma.video_bookmarks.deleteMany({ where: { userId } }),
+      this.prisma.refreshToken.deleteMany({ where: { userId } }),
+      this.prisma.userProfile.deleteMany({ where: { userId } }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: anonymizedEmail,
+          name: 'Usuário removido',
+          password: '',
+          firebaseUid: null,
+          isActive: false,
+          deletedAt,
+        },
+      }),
+    ]);
+
+    // Depois do banco: se falhar aqui, a conta já está inativa e o guard
+    // nega o login ("Usuário inativo"); o uid órfão fica registrado no log.
+    if (user.firebaseUid) {
+      const removed = await this.firebaseAdmin.deleteUser(user.firebaseUid);
+      if (!removed) {
+        this.logger.error(
+          `Conta Firebase ${user.firebaseUid} não foi apagada após autoexclusão do usuário ${userId}`,
+        );
+      }
+    }
+
+    await this.audit.record({
+      actorId: userId,
+      action: AUDIT_ACTIONS.USER_SELF_DELETE,
+      entityType: 'users',
+      entityId: userId,
+      metadata: { role: user.role, firebaseUid: user.firebaseUid },
+    });
+
+    return { message: 'Conta excluída com sucesso' };
   }
 }
