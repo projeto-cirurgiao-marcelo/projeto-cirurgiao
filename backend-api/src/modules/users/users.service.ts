@@ -10,6 +10,7 @@ import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
+import { LivesSavedService } from '../lives-saved/lives-saved.service';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -21,6 +22,7 @@ export class UsersService {
     private prisma: PrismaService,
     private audit: AuditService,
     private firebaseAdmin: FirebaseAdminService,
+    private livesSaved: LivesSavedService,
   ) {}
 
   async findAll() {
@@ -531,6 +533,10 @@ export class UsersService {
         },
       }),
     ]);
+
+    // LGPD: o relato de vida salva fica (conta no número), mas sem nome,
+    // CRMV, cargo nem fotos/vídeos do autor.
+    await this.livesSaved.anonymizeReporter(userId);
 
     // Depois do banco: se falhar aqui, a conta já está inativa e o guard
     // nega o login ("Usuário inativo"); o uid órfão fica registrado no log.

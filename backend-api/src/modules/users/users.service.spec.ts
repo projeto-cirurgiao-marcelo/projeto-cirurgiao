@@ -9,6 +9,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
+import { LivesSavedService } from '../lives-saved/lives-saved.service';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -41,6 +42,7 @@ describe('UsersService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: audit },
         { provide: FirebaseAdminService, useValue: firebaseAdmin },
+        { provide: LivesSavedService, useValue: { anonymizeReporter: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
     service = module.get(UsersService);

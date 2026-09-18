@@ -28,7 +28,7 @@ model User {
   auditLogs              AuditLog[]
   chatConversations      ChatConversation[]
   entitlements           Entitlement[]
-  coursesInstructor      Course[]                @relation("InstructorCourses")
+  coursesInstructor      Course[]                      @relation("InstructorCourses")
   enrollments            Enrollment[]
   forumReplies           ForumReply[]
   forumReplyVotes        ForumReplyVote[]
@@ -45,6 +45,8 @@ model User {
   userBadges             UserBadge[]
   user_mastery           user_mastery[]
   profile                UserProfile?
+  lifeSavedReports       LifeSavedReport[]             @relation("LifeSavedReporter")
+  lifeSavedReviews       LifeSavedReport[]             @relation("LifeSavedReviewer")
   userStreak             UserStreak?
   video_bookmarks        video_bookmarks[]
   videoLikes             VideoLike[]
@@ -63,6 +65,8 @@ model UserProfile {
   userId              String   @unique
   photoUrl            String?
   profession          String?
+  /// Pré-preenche o formulário de vida salva; gravado no último submit.
+  crmv                String?
   specializations     String[]
   state               String?
   city                String?
@@ -88,16 +92,16 @@ model RefreshToken {
 }
 
 model Course {
-  id                  String        @id @default(uuid())
+  id                  String            @id @default(uuid())
   title               String
-  slug                String        @unique
+  slug                String            @unique
   description         String?
   thumbnail           String?
   instructorId        String
-  isPublished         Boolean       @default(false)
-  price               Decimal       @default(0) @db.Decimal(10, 2)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  isPublished         Boolean           @default(false)
+  price               Decimal           @default(0) @db.Decimal(10, 2)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
   thumbnailVertical   String?
   thumbnailHorizontal String?
   /// Nome do(s) professor(es) SÓ pra exibição ("Dr. Marcelo e Dra. Jaqueline").
@@ -110,12 +114,13 @@ model Course {
   // Ordem manual definida via admin drag-drop em /admin/courses.
   // Listing default = ORDER BY position ASC, createdAt DESC. Cursos novos
   // pegam max(position)+1 ao serem criados.
-  position            Int           @default(0)
-  instructor          User          @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
+  position            Int               @default(0)
+  instructor          User              @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
   enrollments         Enrollment[]
   forumTopics         ForumTopic[]
   modules             Module[]
-  mediaFolders        MediaFolder[] @relation("MediaFolderCourse")
+  mediaFolders        MediaFolder[]     @relation("MediaFolderCourse")
+  lifeSavedReports    LifeSavedReport[]
 
   @@index([instructorId])
   @@index([slug])
@@ -155,24 +160,24 @@ model Module {
 }
 
 model Video {
-  id              String            @id @default(uuid())
+  id              String                        @id @default(uuid())
   title           String
   description     String?
-  cloudflareId    String?           @unique
+  cloudflareId    String?                       @unique
   cloudflareUrl   String?
   thumbnailUrl    String?
-  duration        Int               @default(0)
+  duration        Int                           @default(0)
   moduleId        String
   order           Int
-  isPublished     Boolean           @default(false)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  isPublished     Boolean                       @default(false)
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
   tempFilePath    String?
   uploadError     String?
-  uploadProgress  Int               @default(0)
-  uploadStatus    VideoUploadStatus @default(PENDING)
+  uploadProgress  Int                           @default(0)
+  uploadStatus    VideoUploadStatus             @default(PENDING)
   externalUrl     String?
-  videoSource     String            @default("cloudflare")
+  videoSource     String                        @default("cloudflare")
   hlsUrl          String?
   deletedAt       DateTime?
   // Organização lógica em árvore custom — independente do path físico no R2.
@@ -184,7 +189,7 @@ model Video {
   // ser registrada em módulos/cursos diferentes — reuso pedagógico — mas
   // impede duplicação dentro do mesmo módulo (erro de admin).
   r2Basename      String?
-  folder          MediaFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  folder          MediaFolder?                  @relation(fields: [folderId], references: [id], onDelete: SetNull)
   forumTopics     ForumTopic[]
   quizzes         Quiz[]
   video_bookmarks video_bookmarks[]
@@ -196,7 +201,7 @@ model Video {
   summaryQuotas   VideoSummaryGenerationQuota[]
   showcases       ShowcaseVideo[]
   transcript      VideoTranscript?
-  module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module          Module                        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   // @@unique([moduleId, order]) substituido por partial unique index
   // (raw SQL na migration) WHERE deletedAt IS NULL — mesmo motivo de Module.
@@ -850,8 +855,8 @@ model Showcase {
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
-  videos            ShowcaseVideo[]
-  entitlements      Entitlement[]
+  videos       ShowcaseVideo[]
+  entitlements Entitlement[]
 
   @@index([deletedAt])
   @@map("showcases")
@@ -862,8 +867,8 @@ model ShowcaseVideo {
   videoId    String
   addedAt    DateTime @default(now())
 
-  showcase   Showcase @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
-  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  showcase Showcase @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+  video    Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@id([showcaseId, videoId])
   @@index([videoId])
@@ -887,8 +892,8 @@ model Entitlement {
   /// order.id que gerou o direito
   externalOrderId String?
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  showcase        Showcase @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showcase Showcase @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, showcaseId])
   @@index([userId, revokedAt, expiresAt])
@@ -1101,4 +1106,106 @@ model VideoProcessingJob {
   @@index([status, createdAt])
   @@index([createdAt])
   @@map("video_processing_jobs")
+}
+
+/// Vida salva = relato moderado de um veterinário (design 2026-09-10).
+/// O contador é COUNT(status=APPROVED, deletedAt null); nunca existe um
+/// número editável. Nome, CRMV e `attribution` são obrigatórios só no
+/// submit (o rascunho pode nascer vazio), por isso são nullable aqui.
+model LifeSavedReport {
+  id                 String                @id @default(uuid())
+  reporterId         String
+  status             LifeSavedReportStatus @default(DRAFT)
+  source             LifeSavedReportSource @default(SELF)
+  reporterName       String
+  reporterCrmv       String?
+  reporterTitle      String?
+  /// Só ADMIN_BACKFILL: vet sem conta na plataforma.
+  onBehalfOfName     String?
+  /// "Por que você atribui essa vida salva a algo que aprendeu no Projeto
+  /// Cirurgião?" — sem limite de tamanho.
+  attribution        String                @default("")
+  species            AnimalSpecies?
+  speciesOther       String?
+  animalName         String?
+  occurredAt         DateTime?             @db.Date
+  procedureSummary   String?
+  impactType         LifeSavedImpact?
+  relatedCourseId    String?
+  consentPublicStory Boolean               @default(false)
+  consentShowName    Boolean               @default(false)
+  submittedAt        DateTime?
+  reviewedById       String?
+  reviewedAt         DateTime?
+  rejectionReason    String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  deletedAt          DateTime?
+
+  reporter      User                   @relation("LifeSavedReporter", fields: [reporterId], references: [id])
+  reviewedBy    User?                  @relation("LifeSavedReviewer", fields: [reviewedById], references: [id])
+  relatedCourse Course?                @relation(fields: [relatedCourseId], references: [id], onDelete: SetNull)
+  media         LifeSavedReportMedia[]
+
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+  @@index([deletedAt])
+  @@map("life_saved_reports")
+}
+
+/// Foto/vídeo do relato. Objeto vai direto pro R2 (presigned PUT) em
+/// `lives-saved/<reportId>/…`, fora de `inbox/` pra não disparar o pipeline.
+model LifeSavedReportMedia {
+  id        String               @id @default(uuid())
+  reportId  String
+  kind      LifeSavedMediaKind
+  r2Key     String
+  url       String
+  mimeType  String
+  sizeBytes Int                  @default(0)
+  caption   String?
+  order     Int                  @default(0)
+  status    LifeSavedMediaStatus @default(UPLOADING)
+  createdAt DateTime             @default(now())
+
+  report LifeSavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId, order])
+  @@map("life_saved_report_media")
+}
+
+enum LifeSavedReportStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LifeSavedReportSource {
+  SELF
+  ADMIN_BACKFILL
+}
+
+enum AnimalSpecies {
+  CANINE
+  FELINE
+  EQUINE
+  BOVINE
+  WILD
+  OTHER
+}
+
+enum LifeSavedImpact {
+  DIRECT
+  INDIRECT
+}
+
+enum LifeSavedMediaKind {
+  PHOTO
+  VIDEO
+}
+
+enum LifeSavedMediaStatus {
+  UPLOADING
+  READY
 }

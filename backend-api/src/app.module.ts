@@ -38,6 +38,7 @@ import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.
 import { MediaFoldersModule } from './modules/media-folders/media-folders.module';
 import { ShowcasesModule } from './modules/showcases/showcases.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { LivesSavedModule } from './modules/lives-saved/lives-saved.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -105,6 +106,7 @@ import { HealthController } from './modules/health/health.controller';
     MediaFoldersModule,
     ShowcasesModule,
     WebhooksModule,
+    LivesSavedModule,
   ],
   controllers: [HealthController],
   providers: [
