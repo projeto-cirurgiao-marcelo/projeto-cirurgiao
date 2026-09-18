@@ -1,11 +1,10 @@
 # Projeto Cirurgião — Contexto do Agent Team
 
-> **📍 Estado atual do projeto → `docs/HANDOFF-2026-08-14-vitrines.md`.**
-> Pré-V1, em cohort fechado. O catálogo agora é segmentado por **vitrines**
-> (recortes vendidos separadamente) com gate de acesso e preview de 2 min.
-> Esse handoff lista o que está em produção, o que mudou **nos consoles e nos
-> dados** (não descobrível pelo git log — inclusive uma conta em estado de
-> teste), o que ficou aberto e quais riscos foram **aceitos**.
+> **📍 Documento de entrada → `docs/HANDOFF-2026-09-15-transferencia.md`.**
+> Handoff completo para transferência a novo desenvolvedor: estado verificado,
+> contas e acessos, segurança obrigatória na transferência (rotação de
+> segredos), arquitetura, deploy, operação e pendências priorizadas.
+> Última feature (vitrines, com adendos até 08/09): `docs/HANDOFF-2026-08-14-vitrines.md`.
 > Rodada anterior (review pré-live): `docs/HANDOFF-2026-08-11-pre-live-execucao.md`.
 > Design das vitrines: `docs/plans/2026-08-12-vitrines-controle-acesso-design.md`.
 
