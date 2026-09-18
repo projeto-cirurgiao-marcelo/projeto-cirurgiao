@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Award,
   ChevronDown,
+  HeartPulse,
   Library,
   LogOut,
   Menu,
@@ -77,6 +78,11 @@ const SECTIONS: RailSection[] = [
         label: 'Conquistas',
         href: '/student/gamification',
         icon: Trophy,
+      },
+      {
+        label: 'Vidas salvas',
+        href: '/student/vidas',
+        icon: HeartPulse,
       },
     ],
   },

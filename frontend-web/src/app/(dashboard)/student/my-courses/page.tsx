@@ -24,6 +24,8 @@ import {
   type AtlasCourseThumbVariant,
 } from '@/components/atlas';
 import { logger } from '@/lib/logger';
+import { livesSavedService } from '@/lib/api/lives-saved.service';
+import type { LifeSavedSummary } from '@/lib/types/lives-saved.types';
 
 /**
  * Divisões fixas da home do aluno (pedido do dono, jul/2026).
@@ -98,6 +100,11 @@ interface EnrolledCourseRow {
 }
 
 export default function MyCoursesPage() {
+  const [lives, setLives] = useState<LifeSavedSummary | null>(null);
+  useEffect(() => {
+    // Falha silenciosa: o stat some, a página não quebra.
+    livesSavedService.summary().then(setLives).catch(() => setLives(null));
+  }, []);
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -278,6 +285,16 @@ export default function MyCoursesPage() {
             { value: String(inProgressCount), label: 'Em andamento' },
             { value: String(completedCount), label: 'Concluídos' },
             { value: String(availableCount), label: 'Disponíveis pra começar' },
+            ...(lives
+              ? [
+                  {
+                    value: String(lives.total),
+                    label: 'Vidas salvas',
+                    href: '/student/vidas',
+                    note: lives.newThisWeek > 0 ? `+${lives.newThisWeek} esta semana` : undefined,
+                  },
+                ]
+              : []),
           ]}
         />
       </AtlasPageHeader>

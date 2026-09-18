@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  HeartPulse,
   BookOpen,
   ChevronDown,
   Folders,
@@ -47,6 +48,7 @@ const SECTIONS: RailSection[] = [
       { label: 'R2 Browser', href: '/admin/r2-browser', icon: HardDrive },
       { label: 'Catálogo de Vídeos', href: '/admin/media', icon: Folders },
       { label: 'Vitrines', href: '/admin/showcases', icon: ShoppingBag },
+      { label: 'Vidas salvas', href: '/admin/vidas-salvas', icon: HeartPulse },
       { label: 'Jobs', href: '/admin/jobs', icon: ListChecks },
     ],
   },
