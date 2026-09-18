@@ -54,7 +54,15 @@
         }
       ],
       "@sentry/react-native",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Projeto Cirurgião acessa suas fotos e vídeos só quando você anexa mídia a um relato de vida salva.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "newArchEnabled": true,
     "experiments": {

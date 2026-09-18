@@ -61,6 +61,7 @@ export default function RootLayout() {
           <Stack.Screen name="courses" />
           <Stack.Screen name="forum" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="lives-saved" />
         </Stack.Protected>
       </Stack>
       {isAuthenticated && <GamificationCelebrationProvider />}

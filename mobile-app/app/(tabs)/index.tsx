@@ -36,6 +36,7 @@ import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ProgressCardSkeleton, CourseCardSkeleton } from '../../src/components/ui/Skeleton';
 import { EnrolledCourse, Course } from '../../src/types';
 import { CourseCardHome } from '../../src/components/course/CourseCardHome';
+import { LivesSavedBanner } from '../../src/components/lives-saved/LivesSavedBanner';
 import { getCourseProgressPercent } from '../../src/lib/course-progress';
 import useAuthStore from '../../src/stores/auth-store';
 import { useGamificationStore } from '../../src/stores/gamification-store';
@@ -419,6 +420,11 @@ export default function HomeScreen() {
             />
           </View>
         )}
+
+        {/* ============================================ */}
+        {/* BANNER VIDAS SALVAS (contador clicável)      */}
+        {/* ============================================ */}
+        <LivesSavedBanner />
 
         {/* ============================================ */}
         {/* BANNER MENTOR IA                             */}
