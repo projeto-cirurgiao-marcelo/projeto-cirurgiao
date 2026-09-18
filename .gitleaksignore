@@ -1,0 +1,3 @@
+# Falsos positivos do gitleaks (fingerprint = commit:arquivo:regra:linha).
+# ID de projeto GCP num comando de exemplo do handoff; não é credencial.
+794fb72540f99117d21460fe4986e0a421ceb5e6:docs/HANDOFF-2026-09-15-transferencia.md:generic-api-key:98
