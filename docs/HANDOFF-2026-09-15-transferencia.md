@@ -563,9 +563,11 @@ Do adendo de 07-08/09 do handoff de vitrines e de `mobile-app/docs/STORE-RELEASE
 ### P3 — próxima feature planejada: contador de vidas salvas
 
 Design aprovado pelo Gustavo em 10/09 (`docs/plans/2026-09-10-vidas-salvas-design.md`),
-protótipo interativo com tokens Atlas/mobile validado. **Implementação começou
-em 18/09 pela fase 1 (backend)** — conferir `git log -- backend-api/src/modules/lives-saved`
-para saber até onde foi. Resumo: cada vida salva é um relato moderado de um
+protótipo interativo com tokens Atlas/mobile validado. **Fases 1 (backend),
+2 (web) e 4 (mobile) implementadas em 18/09** (commits `fbb5b53`, `9cf5afb`,
+`a03648e`), ainda **sem push nem deploy**. Faltam: fase 0 (CORS de PUT no
+bucket R2 pra upload pelo browser), fase 3 (tela corporativa + credencial
+de exibição) e uma build EAS nova (expo-image-picker é módulo nativo). Resumo: cada vida salva é um relato moderado de um
 veterinário (nome, CRMV e atribuição obrigatórios, mídia opcional via
 presigned PUT no R2), o contador é `COUNT(aprovados)`, só usuários logados
 veem, e a tela corporativa usa credencial de exibição emitida pelo admin.
