@@ -565,9 +565,16 @@ Do adendo de 07-08/09 do handoff de vitrines e de `mobile-app/docs/STORE-RELEASE
 Design aprovado pelo Gustavo em 10/09 (`docs/plans/2026-09-10-vidas-salvas-design.md`),
 protótipo interativo com tokens Atlas/mobile validado. **Fases 1 (backend),
 2 (web) e 4 (mobile) implementadas em 18/09** (commits `fbb5b53`, `9cf5afb`,
-`a03648e`), ainda **sem push nem deploy**. Faltam: fase 0 (CORS de PUT no
-bucket R2 pra upload pelo browser), fase 3 (tela corporativa + credencial
-de exibição) e uma build EAS nova (expo-image-picker é módulo nativo). Resumo: cada vida salva é um relato moderado de um
+`a03648e`), **em produção desde 18/09** (backend rev `00120-sjd`, migration
+aplicada pelo job migrator; web via Vercel). Smoke feito: relato criado no
+app, aprovado no admin web, contador em 1 no app. Faltam: fase 0 (CORS de
+PUT no bucket R2 pra upload pelo browser; upload pelo app não depende disso),
+fase 3 (tela corporativa + credencial de exibição) e uma build EAS nova
+(expo-image-picker é módulo nativo; a APK preview publicada ainda não tem
+a feature). Há 1 relato de TESTE aprovado em prod (conta
+gustavobressnin6) — devolver no admin pra tirar do contador antes do
+lançamento. `gcloud` nesta máquina usa `CLOUDSDK_CONFIG=C:/Users/guh_r/gcloud-config`
+(a pasta de credenciais padrão ficou com ACL quebrada). Resumo: cada vida salva é um relato moderado de um
 veterinário (nome, CRMV e atribuição obrigatórios, mídia opcional via
 presigned PUT no R2), o contador é `COUNT(aprovados)`, só usuários logados
 veem, e a tela corporativa usa credencial de exibição emitida pelo admin.
