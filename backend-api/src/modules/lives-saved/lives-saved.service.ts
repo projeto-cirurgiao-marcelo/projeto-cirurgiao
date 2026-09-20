@@ -562,7 +562,8 @@ export class LivesSavedService {
   }
 
   private toCard(r: ReportWithMedia, userId: string) {
-    const base = r.procedureSummary?.trim() || r.attribution;
+    // A citação é sempre a atribuição do autor; procedureSummary sai à parte.
+    const base = r.attribution;
     return {
       id: r.id,
       species: r.species,
