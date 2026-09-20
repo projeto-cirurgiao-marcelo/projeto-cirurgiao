@@ -569,8 +569,8 @@ protótipo interativo com tokens Atlas/mobile validado. **Fases 1 (backend),
 aplicada pelo job migrator; web via Vercel). Smoke feito: relato criado no
 app, aprovado no admin web, contador em 1 no app. Fase 3 (tela corporativa
 `/display/vidas` + credencial de exibição em Admin › Vidas salvas › Telas)
-implementada em 20/09 (`dfeaef3`, `7e4028c`) e validada em smoke local com
-token; a TV abre o link uma vez (Chrome `--kiosk`), o token vai pro
+implementada em 20/09 (`dfeaef3`, `7e4028c`), em produção na rev `00121-rdh`,
+validada em smoke local com token; a TV abre o link uma vez (Chrome `--kiosk`), o token vai pro
 sessionStorage e vale só pra leitura. Falta: fase 0 (CORS do bucket R2 já
 tem PUT; adicionar a origem `https://app.projetocirurgiao.app`). Build EAS preview
 Android com a feature publicada em 20/09 (build `39918867-e808-4670-b312-3f3ac799b31c`,
