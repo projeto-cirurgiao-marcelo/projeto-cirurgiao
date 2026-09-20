@@ -31,14 +31,21 @@ export interface LifeSavedSummary {
   total: number;
   newThisWeek: number;
   lastApprovedAt: string | null;
+  lastOccurredAt: string | null;
+  lastSpecies: AnimalSpecies | null;
 }
 
-export interface WallDot {
+/** Uma linha do livro de registro. Privado: procedimento e autor vêm nulos. */
+export interface WallEntry {
   id: string;
+  seq: number;
   approvedAt: string | null;
+  occurredAt: string | null;
   species: AnimalSpecies | null;
   isMine: boolean;
   isPublic: boolean;
+  procedureSummary: string | null;
+  reporterDisplay: string | null;
 }
 
 export interface LifeSavedMedia {
@@ -53,6 +60,7 @@ export interface LifeSavedMedia {
 
 export interface StoryCard {
   id: string;
+  seq?: number | null;
   species: AnimalSpecies | null;
   animalName: string | null;
   occurredAt: string | null;
@@ -110,7 +118,7 @@ export const livesSavedService = {
     }
   },
 
-  async wall(): Promise<{ total: number; dots: WallDot[] } | null> {
+  async wall(): Promise<{ total: number; entries: WallEntry[] } | null> {
     try {
       return (await apiClient.get('/lives-saved/wall')).data;
     } catch (error) {

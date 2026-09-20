@@ -82,31 +82,70 @@ export class LivesSavedService {
       this.prisma.lifeSavedReport.findFirst({
         where: { status: APPROVED, deletedAt: null },
         orderBy: { reviewedAt: 'desc' },
-        select: { reviewedAt: true },
+        select: { reviewedAt: true, occurredAt: true, species: true },
       }),
     ]);
     // ponytail: sem cache; são 3 COUNTs numa tabela pequena. Adicionar
     // CacheModule (padrão admin-dashboard) se a Home ou o kiosk pesarem.
-    return { total, newThisWeek, lastApprovedAt: last?.reviewedAt ?? null, generatedAt: new Date() };
+    return {
+      total,
+      newThisWeek,
+      lastApprovedAt: last?.reviewedAt ?? null,
+      lastOccurredAt: last?.occurredAt ?? null,
+      lastSpecies: last?.species ?? null,
+      generatedAt: new Date(),
+    };
   }
 
-  /** Um ponto por vida. `isPublic=false` conta mas não abre. */
+  /**
+   * Livro de registro: uma linha por vida, em ordem de aprovação (nº de
+   * ordem = posição). Privado conta mas não abre e não expõe procedimento
+   * nem autor. Mais recente primeiro.
+   */
   async wall(userId: string) {
     const rows = await this.prisma.lifeSavedReport.findMany({
       where: { status: APPROVED, deletedAt: null },
-      orderBy: { reviewedAt: 'asc' },
-      select: { id: true, reviewedAt: true, reporterId: true, consentPublicStory: true, species: true },
+      orderBy: [{ reviewedAt: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        reviewedAt: true,
+        occurredAt: true,
+        reporterId: true,
+        consentPublicStory: true,
+        consentShowName: true,
+        species: true,
+        procedureSummary: true,
+        reporterName: true,
+        onBehalfOfName: true,
+      },
     });
-    return {
-      total: rows.length,
-      dots: rows.map((r) => ({
+    const entries = rows.map((r, i) => {
+      const mine = r.reporterId === userId;
+      const open = r.consentPublicStory || mine;
+      return {
         id: r.id,
+        seq: i + 1,
         approvedAt: r.reviewedAt,
+        occurredAt: r.occurredAt,
         species: r.species,
-        isMine: r.reporterId === userId,
+        isMine: mine,
         isPublic: r.consentPublicStory,
-      })),
-    };
+        procedureSummary: open ? r.procedureSummary : null,
+        reporterDisplay: open && (mine || r.consentShowName) ? r.onBehalfOfName ?? r.reporterName : null,
+      };
+    });
+    return { total: rows.length, entries: entries.reverse() };
+  }
+
+  /** id → nº de ordem entre os aprovados. Uma query leve por request. */
+  private async seqMap(): Promise<Map<string, number>> {
+    const rows =
+      (await this.prisma.lifeSavedReport.findMany({
+        where: { status: APPROVED, deletedAt: null },
+        orderBy: [{ reviewedAt: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      })) ?? [];
+    return new Map(rows.map((r, i) => [r.id, i + 1]));
   }
 
   async stories(userId: string, q: StoriesQueryDto) {
@@ -119,8 +158,9 @@ export class LivesSavedService {
       include: { media: { where: { status: LifeSavedMediaStatus.READY }, orderBy: { order: 'asc' } } },
     });
     const page = rows.slice(0, limit);
+    const seq = await this.seqMap();
     return {
-      items: page.map((r) => this.toCard(r, userId)),
+      items: page.map((r) => ({ ...this.toCard(r, userId), seq: seq.get(r.id) ?? null })),
       nextCursor: rows.length > limit ? page[page.length - 1].id : null,
     };
   }
@@ -129,7 +169,8 @@ export class LivesSavedService {
     const r = await this.findWithMedia(id);
     const canRead = r.reporterId === userId || (r.status === APPROVED && r.consentPublicStory);
     if (!canRead) throw new NotFoundException('Relato não encontrado');
-    return this.toFull(r, userId);
+    const seq = r.status === APPROVED ? ((await this.seqMap()).get(r.id) ?? null) : null;
+    return { ...this.toFull(r, userId), seq };
   }
 
   // ============================================================

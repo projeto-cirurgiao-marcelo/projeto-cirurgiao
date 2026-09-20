@@ -1,3 +1,4 @@
+/** Ficha de uma vida salva (direção C): nº, carimbo, ficha de campos, relato, mídia, assinatura. */
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../src/constants/colors';
 import { livesSavedService, SPECIES_LABEL, STATUS_LABEL, type Story } from '../../src/services/api/lives-saved.service';
+import { MONO, padSeq } from '../../src/components/lives-saved/LivesSavedBanner';
 import { compactDate } from '../../src/lib/lives-saved-format';
 import { logger } from '../../src/lib/logger';
 
@@ -23,14 +25,7 @@ export default function StoryScreen() {
       .catch((err) => { logger.error('[livesSaved] story falhou', err); setState('missing'); });
   }, [id]);
 
-  const initials = (story?.reporterDisplay ?? '')
-    .replace(/^Dr[a]?\.\s*/, '')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join('')
-    .toUpperCase();
+  const approved = story?.status === 'APPROVED';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -45,36 +40,30 @@ export default function StoryScreen() {
       {state === 'loading' ? (
         <ActivityIndicator style={{ marginTop: Spacing['4xl'] }} color={Colors.accent} />
       ) : state === 'missing' || !story ? (
-        <View style={styles.content}>
-          <Text style={styles.empty}>Relato não encontrado. Ele pode ter sido removido ou o autor não autorizou a exibição.</Text>
-        </View>
+        <View style={styles.content}><Text style={styles.empty}>Relato não encontrado. Ele pode ter sido removido ou o autor não autorizou a exibição.</Text></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={styles.eyebrow}>
-            {(story.species ? SPECIES_LABEL[story.species] : 'Espécie não informada').toUpperCase()}
-            {story.animalName ? ` · ${story.animalName.toUpperCase()}` : ''}
-            {story.occurredAt ? ` · ${compactDate(story.occurredAt)}` : ''}
-            {story.isMine && story.status !== 'APPROVED' ? ` · ${STATUS_LABEL[story.status].toUpperCase()}` : ''}
-          </Text>
-          {story.procedureSummary ? <Text style={styles.title}>{story.procedureSummary}</Text> : null}
+          <View style={styles.top}>
+            <Text style={styles.num}><Text style={styles.numLabel}>Nº </Text>{approved ? padSeq(story.seq) : '····'}</Text>
+            {approved ? (
+              <View style={styles.stamp}><Text style={styles.stampText}>Aprovado · {compactDate(story.approvedAt)}</Text></View>
+            ) : story.isMine ? (
+              <Text style={styles.status}>{STATUS_LABEL[story.status].toUpperCase()}</Text>
+            ) : null}
+          </View>
 
-          <View style={styles.who}>
-            <View style={styles.avatar}><Text style={styles.avatarText}>{initials || '?'}</Text></View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.whoName}>{story.reporterDisplay}</Text>
-              <Text style={styles.whoRole}>
-                {[story.reporterCrmv, story.reporterTitle].filter(Boolean).join(' · ') || 'Médico(a) veterinário(a)'}
-              </Text>
-            </View>
+          <View style={styles.ficha}>
+            <Field label="Espécie" value={[story.species ? SPECIES_LABEL[story.species] : null, story.animalName].filter(Boolean).join(' · ') || '—'} />
+            <Field label="Procedimento" value={story.procedureSummary || '—'} />
+            <Field label="Data do caso" value={story.occurredAt ? story.occurredAt.slice(0, 10) : '—'} mono />
+            <Field label="Responsável" value={story.reporterCrmv ?? 'CRMV reservado'} mono />
           </View>
 
           {story.isMine && story.status === 'REJECTED' && story.rejectionReason ? (
             <View style={styles.rejected}>
               <Text style={styles.rejectedLabel}>DEVOLVIDO PELA MODERAÇÃO</Text>
               <Text style={styles.body}>{story.rejectionReason}</Text>
-              <TouchableOpacity onPress={() => router.push(`/lives-saved/edit/${story.id}`)}>
-                <Text style={styles.link}>Editar e reenviar</Text>
-              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push(`/lives-saved/edit/${story.id}`)}><Text style={styles.link}>Editar e reenviar</Text></TouchableOpacity>
             </View>
           ) : null}
 
@@ -84,22 +73,34 @@ export default function StoryScreen() {
           {story.media.length > 0 && (
             <View style={styles.media}>
               {story.media.map((m) =>
-                m.kind === 'VIDEO' ? (
-                  <VideoTile key={m.id} url={m.url} />
-                ) : (
+                m.kind === 'VIDEO' ? <VideoTile key={m.id} url={m.url} /> : (
                   <Image key={m.id} source={{ uri: m.url }} style={styles.mediaItem} resizeMode="cover" accessibilityLabel={m.caption ?? 'Foto do relato'} />
                 ),
               )}
             </View>
           )}
 
+          <Text style={styles.sign}>
+            Assinado por <Text style={styles.signName}>{[story.reporterDisplay, story.reporterTitle].filter(Boolean).join(', ') || 'Médico(a) veterinário(a)'}</Text>
+            {story.reporterCrmv ? <Text style={styles.signCrmv}> · {story.reporterCrmv}</Text> : null}.
+          </Text>
+
           <TouchableOpacity style={styles.cta} onPress={() => router.replace('/lives-saved')}>
-            <Text style={styles.ctaText}>Ver outras histórias</Text>
+            <Text style={styles.ctaText}>Ver o registro</Text>
           </TouchableOpacity>
           <View style={{ height: Spacing['4xl'] }} />
         </ScrollView>
       )}
     </SafeAreaView>
+  );
+}
+
+function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
+      <Text style={[styles.fieldValue, mono && { fontFamily: MONO, fontSize: FontSize.sm }]} numberOfLines={2}>{value}</Text>
+    </View>
   );
 }
 
@@ -110,32 +111,30 @@ function VideoTile({ url }: { url: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    backgroundColor: Colors.card, borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: Colors.card, borderBottomWidth: 1, borderBottomColor: Colors.border },
   headerButton: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.semibold, color: Colors.text },
   content: { padding: Spacing['2xl'] },
-  eyebrow: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: FontWeight.medium, letterSpacing: 0.6 },
-  title: { fontSize: FontSize['2xl'], fontWeight: FontWeight.bold, color: Colors.text, lineHeight: FontSize['2xl'] * 1.2, marginTop: Spacing.xs },
-  who: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, borderRadius: BorderRadius.lg,
-    padding: Spacing.md, marginVertical: Spacing.lg,
-  },
-  avatar: { width: 40, height: 40, borderRadius: BorderRadius.full, backgroundColor: Colors.accentSoft, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: Colors.accentDark, fontWeight: FontWeight.bold, fontSize: FontSize.sm },
-  whoName: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.text },
-  whoRole: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  rejected: { borderWidth: 1, borderColor: Colors.warning, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.lg, gap: Spacing.xs },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, flexWrap: 'wrap' },
+  num: { fontFamily: MONO, fontSize: FontSize['3xl'], fontWeight: FontWeight.semibold, color: Colors.text, fontVariant: ['tabular-nums'] },
+  numLabel: { fontSize: FontSize.sm, letterSpacing: 1.5, color: Colors.textSecondary },
+  stamp: { borderWidth: 1.5, borderColor: Colors.success, borderRadius: BorderRadius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 2, transform: [{ rotate: '-2deg' }] },
+  stampText: { color: Colors.success, fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.bold, textTransform: 'uppercase' },
+  status: { fontSize: FontSize.xs, letterSpacing: 1, color: Colors.warning, fontWeight: FontWeight.semibold },
+  ficha: { flexDirection: 'row', flexWrap: 'wrap', borderWidth: 1, borderColor: Colors.textMuted, borderRadius: BorderRadius.sm, marginVertical: Spacing.md, backgroundColor: Colors.card },
+  field: { width: '50%', padding: Spacing.sm + 2, borderColor: Colors.border, borderWidth: 0.5 },
+  fieldLabel: { fontSize: 10, letterSpacing: 1, color: Colors.textMuted, marginBottom: 2 },
+  fieldValue: { fontSize: FontSize.md, color: Colors.text },
+  rejected: { borderWidth: 1, borderColor: Colors.warning, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.lg, gap: Spacing.xs, backgroundColor: Colors.warningLight },
   rejectedLabel: { fontSize: FontSize.xs, color: Colors.warning, fontWeight: FontWeight.semibold, letterSpacing: 0.6 },
   link: { color: Colors.accent, fontWeight: FontWeight.semibold, fontSize: FontSize.md },
-  question: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: FontWeight.medium, marginBottom: Spacing.sm },
+  question: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: FontWeight.medium, marginTop: Spacing.md, marginBottom: Spacing.sm },
   body: { fontSize: FontSize.base, lineHeight: FontSize.base * 1.5, color: Colors.text },
   media: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: Spacing.lg },
   mediaItem: { width: '48%', aspectRatio: 4 / 3, borderRadius: BorderRadius.md, backgroundColor: Colors.accentSoft, overflow: 'hidden' },
+  sign: { marginTop: Spacing.xl, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.border, fontSize: FontSize.sm, color: Colors.textSecondary },
+  signName: { color: Colors.text, fontWeight: FontWeight.semibold },
+  signCrmv: { fontFamily: MONO, fontSize: FontSize.xs },
   cta: { marginTop: Spacing['2xl'], backgroundColor: Colors.accent, borderRadius: BorderRadius.lg, paddingVertical: Spacing.lg, alignItems: 'center' },
   ctaText: { color: Colors.white, fontWeight: FontWeight.semibold, fontSize: FontSize.base },
   empty: { fontSize: FontSize.md, color: Colors.textSecondary },

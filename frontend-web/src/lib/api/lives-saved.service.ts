@@ -14,7 +14,7 @@ import type {
   ReportInput,
   Story,
   StoryCard,
-  WallDot,
+  WallEntry,
 } from '@/lib/types/lives-saved.types';
 
 /** Tetos espelhados do backend (MEDIA_LIMITS). HEIC fica fora na web: browser não renderiza. */
@@ -28,7 +28,7 @@ export const livesSavedService = {
   async summary(): Promise<LifeSavedSummary> {
     return (await apiClient.get<LifeSavedSummary>('/lives-saved/summary')).data;
   },
-  async wall(): Promise<{ total: number; dots: WallDot[] }> {
+  async wall(): Promise<{ total: number; entries: WallEntry[] }> {
     return (await apiClient.get('/lives-saved/wall')).data;
   },
   async stories(cursor?: string, limit = 12): Promise<{ items: StoryCard[]; nextCursor: string | null }> {

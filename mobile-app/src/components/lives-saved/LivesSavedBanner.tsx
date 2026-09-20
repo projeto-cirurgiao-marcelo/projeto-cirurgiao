@@ -1,14 +1,18 @@
 /**
- * Banner do contador na Home — mesmo molde do banner Mentor IA
- * (gradiente navy, ícone em círculo, título 16/700, subtítulo 12).
+ * Banner do registro de vidas salvas na Home (direção C, 20/09): cartão
+ * claro sem gradiente, o único da Home, com "0128" em mono tabular e a
+ * última entrada do registro. Tokens de colors.ts.
  */
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../constants/colors';
 import { useLivesSavedStore } from '../../stores/lives-saved-store';
+import { SPECIES_LABEL } from '../../services/api/lives-saved.service';
+import { compactDate } from '../../lib/lives-saved-format';
+
+export const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+export const padSeq = (n: number | null | undefined) => (n == null ? '—' : String(n).padStart(4, '0'));
 
 export function LivesSavedBanner() {
   const summary = useLivesSavedStore((s) => s.summary);
@@ -17,44 +21,42 @@ export function LivesSavedBanner() {
     refresh();
   }, [refresh]);
 
+  const last = summary?.lastOccurredAt ?? summary?.lastApprovedAt ?? null;
+
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={styles.card}
       activeOpacity={0.85}
       onPress={() => router.push('/lives-saved')}
       accessibilityRole="button"
-      accessibilityLabel="Vidas salvas. Toque para ver as histórias"
+      accessibilityLabel="Registro de vidas salvas. Toque para ver"
     >
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryDark]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.gradient}
-      >
-        <View style={styles.iconWrap}>
-          <Ionicons name="heart" size={26} color={Colors.white} />
-        </View>
-        <View style={styles.textWrap}>
-          <Text style={styles.title}>Vidas salvas</Text>
-          <Text style={styles.value}>
-            <CountUp value={summary?.total ?? 0} />
-          </Text>
-          <Text style={styles.subtitle}>
-            {summary
-              ? summary.newThisWeek > 0
-                ? `${summary.newThisWeek} nova${summary.newThisWeek > 1 ? 's' : ''} esta semana · toque para ver`
-                : 'relatos de quem aprendeu aqui · toque para ver'
-              : 'carregando…'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
-      </LinearGradient>
+      <Text style={styles.cap}>Registro de vidas salvas</Text>
+      <View style={styles.row}>
+        <Text style={styles.value}>
+          <CountUp value={summary?.total ?? 0} pad={4} />
+        </Text>
+        <Text style={styles.unit}>relatos aprovados</Text>
+      </View>
+      <View style={styles.rule} />
+      <View style={styles.foot}>
+        <Text style={styles.last} numberOfLines={1}>
+          {summary
+            ? last
+              ? `último · ${compactDate(last)}${summary.lastSpecies ? ` · ${SPECIES_LABEL[summary.lastSpecies].toLowerCase()}` : ''}`
+              : 'nenhum relato ainda'
+            : 'carregando…'}
+        </Text>
+        <Text style={styles.link}>
+          {summary && summary.newThisWeek > 0 ? `+${summary.newThisWeek} esta semana · ` : ''}ver registro ›
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 }
 
 /** Count-up de 1,2 s com easing; desliga se o sistema pede movimento reduzido. */
-export function CountUp({ value }: { value: number }) {
+export function CountUp({ value, pad }: { value: number; pad?: number }) {
   const [shown, setShown] = useState(value);
   const from = useRef(value);
   useEffect(() => {
@@ -83,47 +85,39 @@ export function CountUp({ value }: { value: number }) {
       cancelAnimationFrame(raf);
     };
   }, [value]);
-  return <>{shown.toLocaleString('pt-BR')}</>;
+  return <>{pad ? String(shown).padStart(pad, '0') : shown.toLocaleString('pt-BR')}</>;
 }
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
     marginHorizontal: Spacing['2xl'],
     marginBottom: Spacing.xl,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    ...Shadows.md,
+    padding: Spacing.lg,
+    ...Shadows.sm,
   },
-  gradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
+  cap: {
+    fontSize: FontSize.xs,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.semibold,
   },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  textWrap: { flex: 1 },
-  title: {
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-  },
+  row: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.sm, marginTop: Spacing.xs, marginBottom: Spacing.sm },
   value: {
-    fontSize: FontSize['4xl'],
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-    lineHeight: FontSize['4xl'] * 1.2,
+    fontFamily: MONO,
+    fontSize: FontSize['4xl'] + 4,
+    fontWeight: FontWeight.semibold,
+    lineHeight: (FontSize['4xl'] + 4) * 1.1,
+    color: Colors.primary,
     fontVariant: ['tabular-nums'],
   },
-  subtitle: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.85)',
-  },
+  unit: { fontSize: FontSize.md, color: Colors.textSecondary },
+  rule: { height: 1, backgroundColor: Colors.border, marginBottom: Spacing.sm },
+  foot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm },
+  last: { flex: 1, fontFamily: MONO, fontSize: FontSize.xs, color: Colors.textSecondary },
+  link: { fontSize: FontSize.sm, color: Colors.accent, fontWeight: FontWeight.semibold },
 });

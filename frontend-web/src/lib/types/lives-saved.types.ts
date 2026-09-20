@@ -1,4 +1,4 @@
-/** Espelha backend-api/src/modules/lives-saved (design 2026-09-10). */
+/** Espelha backend-api/src/modules/lives-saved (design 2026-09-10, direção C "registro clínico"). */
 
 export type LifeSavedStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type AnimalSpecies = 'CANINE' | 'FELINE' | 'EQUINE' | 'BOVINE' | 'WILD' | 'OTHER';
@@ -21,19 +21,29 @@ export const STATUS_LABEL: Record<LifeSavedStatus, string> = {
   REJECTED: 'Devolvido',
 };
 
+/** "0128" — número de ordem no registro. */
+export const padSeq = (n: number | null | undefined) => (n == null ? '—' : String(n).padStart(4, '0'));
+
 export interface LifeSavedSummary {
   total: number;
   newThisWeek: number;
   lastApprovedAt: string | null;
+  lastOccurredAt: string | null;
+  lastSpecies: AnimalSpecies | null;
   generatedAt: string;
 }
 
-export interface WallDot {
+/** Uma linha do livro de registro. Privado: procedimento e autor vêm nulos. */
+export interface WallEntry {
   id: string;
+  seq: number;
   approvedAt: string | null;
+  occurredAt: string | null;
   species: AnimalSpecies | null;
   isMine: boolean;
   isPublic: boolean;
+  procedureSummary: string | null;
+  reporterDisplay: string | null;
 }
 
 export interface LifeSavedMedia {
@@ -48,6 +58,7 @@ export interface LifeSavedMedia {
 
 export interface StoryCard {
   id: string;
+  seq?: number | null;
   species: AnimalSpecies | null;
   speciesOther: string | null;
   animalName: string | null;
