@@ -7,6 +7,7 @@ import type {
   AdminReportDetail,
   AdminReportRow,
   AdminStats,
+  DisplayToken,
   LifeSavedStatus,
   LifeSavedSummary,
   MediaKind,
@@ -112,6 +113,18 @@ export const livesSavedService = {
   },
   async adminCreate(input: ReportInput & { reporterName: string; attribution: string; onBehalfOfName?: string }) {
     return (await apiClient.post<AdminReportRow>('/admin/lives-saved', input)).data;
+  },
+
+  // ---- credenciais da tela corporativa ----
+  async displayTokens(): Promise<DisplayToken[]> {
+    return (await apiClient.get<DisplayToken[]>('/admin/lives-saved/display-tokens')).data;
+  },
+  /** O `token` em claro só vem nesta resposta; depois existe só o hash. */
+  async createDisplayToken(label: string): Promise<{ id: string; label: string; token: string }> {
+    return (await apiClient.post('/admin/lives-saved/display-tokens', { label })).data;
+  },
+  async revokeDisplayToken(id: string): Promise<void> {
+    await apiClient.delete(`/admin/lives-saved/display-tokens/${id}`);
   },
 };
 

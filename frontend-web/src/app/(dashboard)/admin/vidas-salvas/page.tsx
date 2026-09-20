@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, HeartPulse, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { Check, Copy, HeartPulse, Loader2, MonitorPlay, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,6 +31,7 @@ import {
   type AdminReportRow,
   type AdminStats,
   type AnimalSpecies,
+  type DisplayToken,
   type LifeSavedStatus,
 } from '@/lib/types/lives-saved.types';
 
@@ -45,6 +46,7 @@ export default function AdminLivesSavedPage() {
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<AdminReportDetail | null>(null);
   const [backfillOpen, setBackfillOpen] = useState(false);
+  const [screensOpen, setScreensOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,9 +84,14 @@ export default function AdminLivesSavedPage() {
             {stats ? `${stats.approved} aprovados · ${stats.pending} aguardando · ${stats.rejected} devolvidos` : ' '}
           </p>
         </div>
-        <Button onClick={() => setBackfillOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Relato histórico
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setScreensOpen(true)}>
+            <MonitorPlay className="h-4 w-4 mr-1" /> Telas
+          </Button>
+          <Button onClick={() => setBackfillOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Relato histórico
+          </Button>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
@@ -139,6 +146,7 @@ export default function AdminLivesSavedPage() {
       )}
 
       <DetailDialog detail={detail} onClose={() => setDetail(null)} onChanged={() => { setDetail(null); load(); }} />
+      <ScreensDialog open={screensOpen} onClose={() => setScreensOpen(false)} />
       <BackfillDialog open={backfillOpen} onClose={() => setBackfillOpen(false)} onCreated={() => { setBackfillOpen(false); setTab('APPROVED'); load(); }} />
     </div>
   );
@@ -335,6 +343,116 @@ function BackfillDialog({ open, onClose, onCreated }: { open: boolean; onClose: 
             {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Adicionar
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------- telas (credenciais de exibição)
+
+function ScreensDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [tokens, setTokens] = useState<DisplayToken[]>([]);
+  const [label, setLabel] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [fresh, setFresh] = useState<{ label: string; link: string } | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setTokens(await livesSavedService.displayTokens());
+    } catch (err) {
+      toast.error('Erro ao carregar telas', { description: getErrorMessage(err) });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) load();
+  }, [open, load]);
+
+  async function create() {
+    if (!label.trim()) return;
+    setBusy(true);
+    try {
+      const t = await livesSavedService.createDisplayToken(label.trim());
+      setFresh({ label: t.label, link: `${window.location.origin}/display/vidas?token=${t.token}` });
+      setLabel('');
+      load();
+    } catch (err) {
+      toast.error('Não foi possível gerar', { description: getErrorMessage(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revoke(t: DisplayToken) {
+    if (!window.confirm(`Revogar "${t.label}"? A TV que usa esse link para de atualizar.`)) return;
+    try {
+      await livesSavedService.revokeDisplayToken(t.id);
+      load();
+    } catch (err) {
+      toast.error('Não foi possível revogar', { description: getErrorMessage(err) });
+    }
+  }
+
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Link copiado');
+    } catch {
+      toast.error('Copie manualmente');
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setFresh(null); onClose(); } }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Telas corporativas</DialogTitle>
+          <DialogDescription>
+            Cada TV recebe um link próprio, válido só pra ler o contador. Abra o link uma vez na TV (Chrome em modo quiosque:
+            <code className="ml-1 text-xs">chrome --kiosk &lt;link&gt;</code>). O token aparece uma única vez.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex gap-2">
+          <Input placeholder="Nome da tela (ex.: Recepção)" value={label} onChange={(e) => setLabel(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
+          <Button disabled={busy || !label.trim()} onClick={create}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Gerar link'}
+          </Button>
+        </div>
+
+        {fresh && (
+          <div className="rounded-md border border-blue-300 bg-blue-50 dark:bg-blue-950/30 p-3 space-y-2">
+            <div className="text-sm font-medium">Link de &ldquo;{fresh.label}&rdquo; &mdash; copie agora, ele não aparece de novo.</div>
+            <div className="flex gap-2 items-center">
+              <code className="text-xs break-all flex-1">{fresh.link}</code>
+              <Button size="sm" variant="outline" onClick={() => copy(fresh.link)}>
+                <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {tokens.length > 0 && (
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase text-gray-500 border-b">
+              <tr><th className="py-2">Tela</th><th className="py-2">Criada</th><th className="py-2">Último acesso</th><th className="py-2"></th></tr>
+            </thead>
+            <tbody>
+              {tokens.map((t) => (
+                <tr key={t.id} className={`border-b last:border-0 ${t.revokedAt ? 'opacity-50' : ''}`}>
+                  <td className="py-2 font-medium">{t.label}{t.revokedAt && <Badge variant="outline" className="ml-2">revogada</Badge>}</td>
+                  <td className="py-2 text-gray-500">{fmt(t.createdAt)} · {t.createdBy.name}</td>
+                  <td className="py-2 text-gray-500">{t.lastSeenAt ? new Date(t.lastSeenAt).toLocaleString('pt-BR') : 'nunca'}</td>
+                  <td className="py-2 text-right">
+                    {!t.revokedAt && (
+                      <Button size="sm" variant="ghost" onClick={() => revoke(t)}><X className="h-4 w-4 mr-1" /> Revogar</Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </DialogContent>
     </Dialog>
   );

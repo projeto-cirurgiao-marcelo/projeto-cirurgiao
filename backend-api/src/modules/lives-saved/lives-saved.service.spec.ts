@@ -197,6 +197,26 @@ describe('LivesSavedService', () => {
     });
   });
 
+  describe('credencial de exibição', () => {
+    it('cria devolvendo o token em claro uma vez e guardando só o hash', async () => {
+      (prisma.displayToken.create as any).mockImplementation(async ({ data }: any) => ({ id: 't-1', createdAt: new Date(), ...data }));
+      const out = await service.createDisplayToken(ADMIN, 'Recepção');
+      expect(out.token).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+      const data = (prisma.displayToken.create as any).mock.calls[0][0].data;
+      expect(data.tokenHash).toBe(LivesSavedService.hashDisplayToken(out.token));
+      expect(data.tokenHash).not.toContain(out.token);
+      expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ entityType: 'display_tokens', entityId: 't-1' }));
+    });
+
+    it('revogar é idempotente', async () => {
+      prisma.displayToken.findUnique.mockResolvedValue({ id: 't-1', label: 'TV', revokedAt: new Date() } as any);
+      await service.revokeDisplayToken('t-1', ADMIN);
+      expect(prisma.displayToken.update).not.toHaveBeenCalled();
+      prisma.displayToken.findUnique.mockResolvedValue(null);
+      await expect(service.revokeDisplayToken('x', ADMIN)).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('anonymizeReporter', () => {
     it('apaga mídia no R2 e no banco e anonimiza os campos do autor', async () => {
       prisma.lifeSavedReportMedia.findMany.mockResolvedValue([{ id: 'm', r2Key: 'lives-saved/r-1/a.jpg' }] as any);

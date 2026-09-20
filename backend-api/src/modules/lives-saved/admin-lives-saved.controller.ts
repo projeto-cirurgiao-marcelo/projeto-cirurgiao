@@ -5,7 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { LivesSavedService } from './lives-saved.service';
-import { AdminCreateReportDto, AdminListQueryDto, RejectReportDto } from './dto/lives-saved.dto';
+import { AdminCreateReportDto, AdminListQueryDto, CreateDisplayTokenDto, RejectReportDto } from './dto/lives-saved.dto';
 
 /** Moderação: só ADMIN aprova, rejeita, remove mídia e faz backfill histórico. */
 @Controller('admin/lives-saved')
@@ -27,6 +27,23 @@ export class AdminLivesSavedController {
   @Post()
   create(@GetUser('id') adminId: string, @Body() dto: AdminCreateReportDto) {
     return this.service.adminCreate(adminId, dto);
+  }
+
+  /** Credenciais da tela corporativa. Estáticas antes de `:id`. */
+  @Get('display-tokens')
+  displayTokens() {
+    return this.service.listDisplayTokens();
+  }
+
+  /** Devolve o token em claro UMA vez; depois só o hash existe. */
+  @Post('display-tokens')
+  createDisplayToken(@GetUser('id') adminId: string, @Body() dto: CreateDisplayTokenDto) {
+    return this.service.createDisplayToken(adminId, dto.label);
+  }
+
+  @Delete('display-tokens/:tokenId')
+  revokeDisplayToken(@GetUser('id') adminId: string, @Param('tokenId') tokenId: string) {
+    return this.service.revokeDisplayToken(tokenId, adminId);
   }
 
   @Get(':id')

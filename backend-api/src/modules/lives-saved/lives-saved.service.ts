@@ -16,7 +16,7 @@ import {
   LifeSavedReportStatus,
   Prisma,
 } from '@prisma/client';
-import { randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { AUDIT_ACTIONS } from '../../shared/audit/audit.constants';
@@ -406,6 +406,59 @@ export class LivesSavedService {
       metadata: { onBehalfOfName: dto.onBehalfOfName ?? null },
     });
     return r;
+  }
+
+  // ============================================================
+  // Credenciais da tela corporativa (design §5.4, opção b)
+  // ============================================================
+
+  static hashDisplayToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  listDisplayTokens() {
+    return this.prisma.displayToken.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        label: true,
+        createdAt: true,
+        lastSeenAt: true,
+        revokedAt: true,
+        createdBy: { select: { name: true } },
+      },
+    });
+  }
+
+  async createDisplayToken(adminId: string, label: string) {
+    const token = randomBytes(32).toString('base64url');
+    const row = await this.prisma.displayToken.create({
+      data: { label, tokenHash: LivesSavedService.hashDisplayToken(token), createdById: adminId },
+    });
+    await this.audit.record({
+      actorId: adminId,
+      action: AUDIT_ACTIONS.LIVES_SAVED_DISPLAY_TOKEN_CREATED,
+      entityType: 'display_tokens',
+      entityId: row.id,
+      metadata: { label },
+    });
+    return { id: row.id, label: row.label, createdAt: row.createdAt, token };
+  }
+
+  async revokeDisplayToken(id: string, adminId: string) {
+    const row = await this.prisma.displayToken.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Credencial não encontrada');
+    if (!row.revokedAt) {
+      await this.prisma.displayToken.update({ where: { id }, data: { revokedAt: new Date() } });
+      await this.audit.record({
+        actorId: adminId,
+        action: AUDIT_ACTIONS.LIVES_SAVED_DISPLAY_TOKEN_REVOKED,
+        entityType: 'display_tokens',
+        entityId: id,
+        metadata: { label: row.label },
+      });
+    }
+    return { message: 'Credencial revogada' };
   }
 
   // ============================================================

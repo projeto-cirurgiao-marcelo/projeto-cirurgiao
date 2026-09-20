@@ -47,6 +47,7 @@ model User {
   profile                UserProfile?
   lifeSavedReports       LifeSavedReport[]             @relation("LifeSavedReporter")
   lifeSavedReviews       LifeSavedReport[]             @relation("LifeSavedReviewer")
+  displayTokens          DisplayToken[]
   userStreak             UserStreak?
   video_bookmarks        video_bookmarks[]
   videoLikes             VideoLike[]
@@ -1208,4 +1209,21 @@ enum LifeSavedMediaKind {
 enum LifeSavedMediaStatus {
   UPLOADING
   READY
+}
+
+/// Credencial de exibição da tela corporativa (design §5.4, opção b): a TV
+/// "loga" com um token gerado pelo admin, válido só nas rotas de leitura do
+/// contador. Guardamos o hash; o token em claro aparece uma vez na criação.
+model DisplayToken {
+  id          String    @id @default(uuid())
+  label       String
+  tokenHash   String    @unique
+  createdById String
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime?
+  revokedAt   DateTime?
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@map("display_tokens")
 }

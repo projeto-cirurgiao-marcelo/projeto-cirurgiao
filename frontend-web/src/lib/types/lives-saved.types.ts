@@ -130,3 +130,12 @@ export interface AdminStats {
   rejected: number;
   draft: number;
 }
+
+export interface DisplayToken {
+  id: string;
+  label: string;
+  createdAt: string;
+  lastSeenAt: string | null;
+  revokedAt: string | null;
+  createdBy: { name: string };
+}

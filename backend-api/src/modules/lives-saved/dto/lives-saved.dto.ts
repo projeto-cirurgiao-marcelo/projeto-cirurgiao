@@ -117,3 +117,8 @@ export class StoriesQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50)
   limit?: number = 12;
 }
+
+export class CreateDisplayTokenDto {
+  @IsString() @IsNotEmpty() @Transform(trim) @MaxLength(80)
+  label: string;
+}

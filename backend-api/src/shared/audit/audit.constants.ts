@@ -27,6 +27,8 @@ export const AUDIT_ACTIONS = {
   LIVES_SAVED_REJECT: 'lives_saved.reject',
   LIVES_SAVED_ADMIN_CREATE: 'lives_saved.admin_create',
   LIVES_SAVED_MEDIA_REMOVED: 'lives_saved.media_removed',
+  LIVES_SAVED_DISPLAY_TOKEN_CREATED: 'lives_saved.display_token_created',
+  LIVES_SAVED_DISPLAY_TOKEN_REVOKED: 'lives_saved.display_token_revoked',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -37,4 +39,5 @@ export type AuditEntityType =
   | 'videos'
   | 'users'
   | 'showcases'
-  | 'life_saved_reports';
+  | 'life_saved_reports'
+  | 'display_tokens';
