@@ -569,9 +569,9 @@ protótipo interativo com tokens Atlas/mobile validado. **Fases 1 (backend),
 aplicada pelo job migrator; web via Vercel). Smoke feito: relato criado no
 app, aprovado no admin web, contador em 1 no app. Faltam: fase 0 (CORS de
 PUT no bucket R2 pra upload pelo browser; upload pelo app não depende disso),
-fase 3 (tela corporativa + credencial de exibição) e uma build EAS nova
-(expo-image-picker é módulo nativo; a APK preview publicada ainda não tem
-a feature). Há 1 relato de TESTE aprovado em prod (conta
+fase 3 (tela corporativa + credencial de exibição). Build EAS preview
+Android com a feature publicada em 20/09 (build `39918867-e808-4670-b312-3f3ac799b31c`,
+instala com `eas build:run --platform android --latest`). Há 1 relato de TESTE aprovado em prod (conta
 gustavobressnin6) — devolver no admin pra tirar do contador antes do
 lançamento. `gcloud` nesta máquina usa `CLOUDSDK_CONFIG=C:/Users/guh_r/gcloud-config`
 (a pasta de credenciais padrão ficou com ACL quebrada). Resumo: cada vida salva é um relato moderado de um
