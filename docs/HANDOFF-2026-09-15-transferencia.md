@@ -574,9 +574,9 @@ validada em smoke local com token; a TV abre o link uma vez (Chrome `--kiosk`), 
 sessionStorage e vale só pra leitura. Falta: fase 0 (CORS do bucket R2 já
 tem PUT; adicionar a origem `https://app.projetocirurgiao.app`). Build EAS preview
 Android com a feature publicada em 20/09 (build `39918867-e808-4670-b312-3f3ac799b31c`,
-instala com `eas build:run --platform android --latest`). Há 1 relato de TESTE aprovado em prod (conta
-gustavobressnin6) — devolver no admin pra tirar do contador antes do
-lançamento. `gcloud` nesta máquina usa `CLOUDSDK_CONFIG=C:/Users/guh_r/gcloud-config`
+instala com `eas build:run --platform android --latest`). Direção visual final: C "registro clínico" (`8cdb5e4`, backend rev
+`00122-2ws`): cada vida é uma linha do registro com nº de ordem; ficha com
+carimbo; banner claro no app; TV com foto de capa. Relato de teste já devolvido. `gcloud` nesta máquina usa `CLOUDSDK_CONFIG=C:/Users/guh_r/gcloud-config`
 (a pasta de credenciais padrão ficou com ACL quebrada). Resumo: cada vida salva é um relato moderado de um
 veterinário (nome, CRMV e atribuição obrigatórios, mídia opcional via
 presigned PUT no R2), o contador é `COUNT(aprovados)`, só usuários logados
