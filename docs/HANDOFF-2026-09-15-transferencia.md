@@ -512,7 +512,7 @@ mostra.
 | T1 | Rotação de segredos + remover o device furtado (§4) |
 | T2 | Provisionar acessos (§3) e decidir Vercel Pro × truque de autoria (§3.1) |
 | T3 | Verificar a revisão do Cloud Run, as env vars e o `QUEUE_ENABLED` atuais (§2.2) |
-| T4 | Descobrir o status de submissão dos builds de 08/09 (iOS 4, Android 2) |
+| T4 | ~~Descobrir o status de submissão dos builds de 08/09~~ — apurado 20/09: nunca foram submetidos. 1ª submissão TestFlight feita em 20/09 (iOS 1.0.0 build 5, `eas submit` com chave ASC do EAS). Android segue sem submissão |
 
 ### P1 — publicação nas lojas
 
