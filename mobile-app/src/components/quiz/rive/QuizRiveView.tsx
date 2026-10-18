@@ -87,15 +87,23 @@ export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
   }, [fileError, vmError]);
 
   // --- toques da tela (triggers do Quiz)
+  // A folha de feedback e o resultado nunca são `display: none` na cena (o
+  // rive-ios não entrega toque em contêiner que nasce colapsado); fora da fase
+  // eles ficam fora do artboard, mas continuam na árvore semântica. Por isso
+  // cada trigger só vale na fase dele — um VoiceOver "ativando" um botão
+  // fora de hora não dispara nada.
   useEffect(() => {
     if (!instance) return;
-    const on = (name: string, fn: () => void) => instance.triggerProperty(name)?.addListener(fn);
+    const on = (name: string, phase: QuizViewModel['phase'] | null, fn: () => void) =>
+      instance.triggerProperty(name)?.addListener(() => {
+        if (phase === null || vmRef.current.phase === phase) fn();
+      });
     const unsubs = [
-      on(QUIZ_TRIGGERS.continue, () => cb.current.onContinue()),
-      on(QUIZ_TRIGGERS.retry, () => cb.current.onRetry()),
-      on(QUIZ_TRIGGERS.close, () => cb.current.onClose()),
+      on(QUIZ_TRIGGERS.continue, 'feedback', () => cb.current.onContinue()),
+      on(QUIZ_TRIGGERS.retry, 'result', () => cb.current.onRetry()),
+      on(QUIZ_TRIGGERS.close, null, () => cb.current.onClose()),
       ...(Object.entries(QUIZ_TRIGGERS.confidence) as [ConfidenceLevel, string][]).map(([level, name]) =>
-        on(name, () => cb.current.onConfidence(level)),
+        on(name, 'feedback', () => cb.current.onConfidence(level)),
       ),
     ];
     return () => unsubs.forEach((u) => u?.());

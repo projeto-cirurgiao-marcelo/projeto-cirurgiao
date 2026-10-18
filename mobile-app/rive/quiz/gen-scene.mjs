@@ -532,6 +532,8 @@ function anim(name, duration, keys, { loop } = {}) {
   return aid;
 }
 const K = { x: 13, y: 14, rotation: 15, scaleX: 16, scaleY: 17, opacity: 18, color: 37, display: 596 };
+/** Deslocamento em y que tira um contêiner inteiro do artboard (844 de altura). */
+const OFFSCREEN_Y = 1000;
 const hold = (obj, key, kind, value) => ({ obj, key, kind, frames: [[0, value]] });
 const show = (styleId, on) => hold(styleId, K.display, 'Uint', on ? 0 : 1);
 
@@ -818,6 +820,8 @@ const quizArtboard = (() => {
     'FeedbackSheet',
     {
       id: (S.sheet = id()),
+      opacity: 0,
+      y: OFFSCREEN_Y,
       dir: 'column',
       w: 'fill',
       h: 'hug',
@@ -844,8 +848,12 @@ const quizArtboard = (() => {
     ],
   );
   // Camadas do stack: a folha fica embaixo, alinhada pela própria camada.
-  const sheetLayer = box('SheetLayer', { styleId: (S.sheetStyle = id()), hidden: true, dir: 'column', align: 'bottomCenter', w: 'fill', h: 'fill' }, [sheet]);
-  const backdrop = box('Backdrop', { id: (S.backdrop = id()), styleId: (S.backdropStyle = id()), hidden: true, w: 'fill', h: 'fill', fill: paintFill(C.ink, { a: 0.28 }) });
+  // NUNCA `hidden` (display: none) em contêiner com botão: no rive-ios 6.28
+  // o que nasce colapsado e é exibido por animação não recebe toque (os
+  // botões de confiança não respondiam no iPhone). Fora da fase, a folha e o
+  // backdrop saem por posição/opacidade, não por display.
+  const sheetLayer = box('SheetLayer', { styleId: (S.sheetStyle = id()), dir: 'column', align: 'bottomCenter', w: 'fill', h: 'fill' }, [sheet]);
+  const backdrop = box('Backdrop', { id: (S.backdrop = id()), styleId: (S.backdropStyle = id()), opacity: 0, w: 'fill', h: 'fill', fill: paintFill(C.ink, { a: 0.28 }) });
 
   // --- resultado
   S.ringColor = id();
@@ -888,26 +896,34 @@ const quizArtboard = (() => {
     back,
     el('ScrollConstraint', { directionValue: 'vertical', physicsId: (S.physics = id()), name: 'Scroll' }),
   ]);
-  const result = box('ResultSection', { styleId: (S.result = id()), hidden: true, dir: 'column', w: 'fill', h: 'fill', clip: true }, [scrollContent]);
+  // Mesma regra da folha: a seção de resultado tem botões (Novo Quiz, Voltar),
+  // então vive numa camada própria do stack, sempre exibida, e fora da fase
+  // fica abaixo do artboard. `pt` = altura do header (py 12 + botão 36), que
+  // segue visível por cima na fase de resultado.
+  const result = box('ResultSection', { id: (S.result = id()), dir: 'column', w: 'fill', h: 'fill', clip: true, opacity: 0, y: OFFSCREEN_Y }, [scrollContent]);
+  const resultLayer = box('ResultLayer', { dir: 'column', w: 'fill', h: 'fill', pt: 60 }, [result]);
 
   // --- animações da tela
+  const offscreen = (obj, on) => [
+    hold(obj, K.y, 'Double', on ? 0 : OFFSCREEN_Y),
+    hold(obj, K.opacity, 'Double', on ? 1 : 0),
+  ];
   const phaseLook = (ph) => [
     show(S.question, ph !== 'result'),
-    show(S.result, ph === 'result'),
-    show(S.sheetStyle, ph === 'feedback'),
-    show(S.backdropStyle, ph === 'feedback'),
+    ...offscreen(S.result, ph === 'result'),
     show(S.track, ph !== 'result'),
     show(S.combo, ph !== 'result'),
     show(S.resultTitle, ph === 'result'),
   ];
   const A = {
-    question: anim('Phase Question', 1, phaseLook('question')),
+    question: anim('Phase Question', 1, [...phaseLook('question'), ...offscreen(S.sheet, false), hold(S.backdrop, K.opacity, 'Double', 0)]),
     feedback: anim('Phase Feedback', 20, [
       ...phaseLook('feedback'),
+      hold(S.sheet, K.opacity, 'Double', 1),
       { obj: S.sheet, key: K.y, kind: 'Double', frames: [[0, 420], [20, 0, true]] },
       { obj: S.backdrop, key: K.opacity, kind: 'Double', frames: [[0, 0], [14, 1, true]] },
     ]),
-    result: anim('Phase Result', 1, phaseLook('result')),
+    result: anim('Phase Result', 1, [...phaseLook('result'), ...offscreen(S.sheet, false), hold(S.backdrop, K.opacity, 'Double', 0)]),
   };
   const g = gelpiIds;
   const GA = {
@@ -990,7 +1006,8 @@ const quizArtboard = (() => {
     box('Root', { layoutTypeValue: 'stack', w: 'fill', h: 'fill' }, [
       sheetLayer,
       backdrop,
-      box('Main', { dir: 'column', w: 'fill', h: 'fill', pt: 8 }, [header, question, result]),
+      box('Main', { dir: 'column', w: 'fill', h: 'fill', pt: 8 }, [header, question]),
+      resultLayer,
     ]),
     stateMachine('Quiz SM', Q.sm, listeners, layers),
     animations.splice(0),
