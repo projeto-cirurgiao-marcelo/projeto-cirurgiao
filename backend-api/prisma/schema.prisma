@@ -847,6 +847,9 @@ model Showcase {
   /// product.id do TheMembers. Nullable: vitrine e produto nascem em
   /// momentos diferentes; sem vínculo ela só serve a cortesia/migração.
   externalProductId String?   @unique
+  /// Product ID do In-App Purchase (App Store Connect), ex. `showcase.castracao`.
+  /// Nullable: vitrine sem IAP não é vendável no iOS (card "Em breve").
+  appleProductId    String?   @unique
   /// Libera TODO o catálogo, inclusive aula publicada depois. É como a
   /// pós-graduação é modelada sem materializar 1.394 linhas.
   grantsAllContent  Boolean   @default(false)
@@ -898,6 +901,8 @@ model Entitlement {
 
   @@unique([userId, showcaseId])
   @@index([userId, revokedAt, expiresAt])
+  /// Revogação Apple (REFUND/REVOKE) chega só com originalTransactionId.
+  @@index([externalOrderId])
   @@map("entitlements")
 }
 

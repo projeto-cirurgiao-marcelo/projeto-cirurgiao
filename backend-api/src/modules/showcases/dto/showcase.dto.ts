@@ -34,6 +34,12 @@ export class CreateShowcaseDto {
   @MaxLength(120)
   externalProductId?: string;
 
+  /** Product ID do IAP no App Store Connect. Vazio = não vendável no iOS. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  appleProductId?: string;
+
   @IsOptional()
   @IsBoolean()
   grantsAllContent?: boolean;

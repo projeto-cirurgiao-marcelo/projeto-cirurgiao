@@ -56,6 +56,7 @@ export default function ShowcaseDetailPage() {
     description: '',
     thumbnail: '',
     externalProductId: '',
+    appleProductId: '',
     previewSeconds: '',
     grantsAllContent: false,
     isPublished: false,
@@ -74,6 +75,7 @@ export default function ShowcaseDetailPage() {
         description: data.description ?? '',
         thumbnail: data.thumbnail ?? '',
         externalProductId: data.externalProductId ?? '',
+        appleProductId: data.appleProductId ?? '',
         previewSeconds: data.previewSeconds?.toString() ?? '',
         grantsAllContent: data.grantsAllContent,
         isPublished: data.isPublished,
@@ -99,6 +101,7 @@ export default function ShowcaseDetailPage() {
         description: form.description.trim(),
         thumbnail: form.thumbnail,
         externalProductId: form.externalProductId.trim(),
+        appleProductId: form.appleProductId.trim(),
         previewSeconds: form.previewSeconds ? Number(form.previewSeconds) : undefined,
         grantsAllContent: form.grantsAllContent,
         isPublished: form.isPublished,
@@ -231,6 +234,22 @@ export default function ShowcaseDetailPage() {
               É o <code>product.id</code> que o TheMembers envia no webhook de
               compra — o que liga esta vitrine ao produto vendido. Errar aqui
               libera a vitrine errada para quem pagou.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>ID do produto (App Store, iOS)</Label>
+            <Input
+              value={form.appleProductId}
+              onChange={(e) =>
+                setForm({ ...form, appleProductId: e.target.value })
+              }
+              placeholder="showcase.castracao"
+            />
+            <p className="text-xs text-muted-foreground">
+              Product ID do In-App Purchase criado no App Store Connect. Sem
+              ele a vitrine aparece no iPhone como &quot;Em breve&quot;, sem
+              botão de compra. Mesma regra: errar libera a vitrine errada.
             </p>
           </div>
 

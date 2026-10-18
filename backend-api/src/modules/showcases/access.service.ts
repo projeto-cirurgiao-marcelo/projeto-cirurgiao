@@ -18,6 +18,7 @@ export interface OfferShowcase {
   slug: string;
   previewSeconds: number | null;
   externalProductId: string | null;
+  appleProductId: string | null;
 }
 
 /**
@@ -180,6 +181,7 @@ export class AccessService {
             slug: true,
             previewSeconds: true,
             externalProductId: true,
+            appleProductId: true,
           },
         },
       },
@@ -207,6 +209,7 @@ export class AccessService {
             title: offer.title,
             slug: offer.slug,
             checkoutUrl: checkoutUrlFor(offer.externalProductId),
+            appleProductId: offer.appleProductId,
           }
         : null,
     };

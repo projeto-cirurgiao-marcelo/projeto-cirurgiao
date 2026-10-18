@@ -14,6 +14,8 @@ export interface Showcase {
   isPublished: boolean;
   position: number;
   externalProductId: string | null;
+  /** Product ID do In-App Purchase (App Store Connect); null = não vendável no iOS. */
+  appleProductId: string | null;
   grantsAllContent: boolean;
   previewSeconds: number | null;
   createdAt: string;
@@ -161,6 +163,7 @@ export interface ShowcaseInput {
   description?: string;
   thumbnail?: string;
   externalProductId?: string;
+  appleProductId?: string;
   grantsAllContent?: boolean;
   isPublished?: boolean;
   previewSeconds?: number;
