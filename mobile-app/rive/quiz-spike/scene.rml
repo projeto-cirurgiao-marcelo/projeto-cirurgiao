@@ -1,0 +1,153 @@
+<Rive version="1" kind="fragment">
+    <!-- Fase 0 (viabilidade): 1 pergunta + lista de alternativas vinda do app.
+         O app preenche Quiz.header / Quiz.question / Quiz.options e escuta
+         Option.tap em cada item; Option.fill colore o card (feedback). -->
+    <Artboard defaultStateMachineId="0:7" viewModelId="0:40" viewModelInstanceId="0:49"
+              width="390" height="844" styleId="0:5" name="Quiz" id="0:2">
+        <LayoutComponentStyle flexDirectionValue="column"
+            paddingLeft="20" paddingRight="20" paddingTop="24" paddingBottom="24"
+            paddingLeftUnitsValue="points" paddingRightUnitsValue="points"
+            paddingTopUnitsValue="points" paddingBottomUnitsValue="points"
+            gapVertical="16" gapVerticalUnitsValue="points"
+            name="Quiz Style" id="0:5"/>
+        <Fill name="Background"><SolidColor colorValue="FFF5F7FA" name="C"/></Fill>
+
+        <Text wrapValue="wrap" name="Header" id="0:20">
+            <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+            <SemanticData role="text" label="" name="Sem">
+                <DataBindContext sourcePathIds="0:40-0:41" propertyKey="983"/>
+            </SemanticData>
+            <TextStylePaint fontSize="14" fontAssetId="0:90" name="S" id="0:21">
+                <Fill name="F"><SolidColor colorValue="FF64748B" name="C"/></Fill>
+            </TextStylePaint>
+            <TextValueRun styleId="0:21" text="Pergunta 1 de 5" name="R">
+                <DataBindContext sourcePathIds="0:40-0:41" propertyKey="268"/>
+            </TextValueRun>
+        </Text>
+
+        <Text wrapValue="wrap" name="Question" id="0:22">
+            <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+            <SemanticData role="text" headingLevel="1" label="" name="Sem">
+                <DataBindContext sourcePathIds="0:40-0:42" propertyKey="983"/>
+            </SemanticData>
+            <TextStylePaint fontSize="20" fontAssetId="0:90" name="S" id="0:23">
+                <Fill name="F"><SolidColor colorValue="FF1B2A4A" name="C"/></Fill>
+            </TextStylePaint>
+            <TextValueRun styleId="0:23" text="Pergunta" name="R">
+                <DataBindContext sourcePathIds="0:40-0:42" propertyKey="268"/>
+            </TextValueRun>
+        </Text>
+
+        <LayoutComponent styleId="0:11" name="Options" id="0:10">
+            <LayoutComponentStyle flexDirectionValue="column"
+                gapVertical="12" gapVerticalUnitsValue="points"
+                layoutWidthScaleType="fill" layoutHeightScaleType="hug"
+                name="Options Style" id="0:11"/>
+            <SemanticData role="list" label="Alternativas" name="Sem"/>
+            <ArtboardComponentList name="Rows" id="0:12">
+                <DataBindContext sourcePathIds="0:40-0:43" propertyKey="800"/>
+            </ArtboardComponentList>
+        </LayoutComponent>
+
+        <StateMachine name="State Machine 1" id="0:7">
+            <StateMachineLayer name="Layer 1" id="0:8"><AnyState/><ExitState/><EntryState/></StateMachineLayer>
+        </StateMachine>
+    </Artboard>
+
+    <!-- Uma alternativa. O toque (ou o "ativar" do leitor de tela) dispara Option.tap. -->
+    <Artboard isComponent="true" defaultStateMachineId="0:37" viewModelId="0:50"
+              viewModelInstanceId="0:55" width="350" height="56" styleId="0:31" name="Option" id="0:30">
+        <LayoutComponentStyle flexDirectionValue="column"
+            layoutWidthScaleType="fill" layoutHeightScaleType="hug"
+            name="Option Style" id="0:31"/>
+        <LayoutComponent styleId="0:33" name="Card" id="0:32">
+            <LayoutComponentStyle flexDirectionValue="column"
+                paddingLeft="16" paddingRight="16" paddingTop="14" paddingBottom="14"
+                paddingLeftUnitsValue="points" paddingRightUnitsValue="points"
+                paddingTopUnitsValue="points" paddingBottomUnitsValue="points"
+                layoutWidthScaleType="fill" layoutHeightScaleType="hug"
+                cornerRadiusTL="12" name="Card Style" id="0:33"/>
+            <SemanticData role="button" label="" name="Sem">
+                <DataBindContext sourcePathIds="0:50-0:51" propertyKey="983"/>
+            </SemanticData>
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFFFFF" name="C">
+                    <DataBindContext sourcePathIds="0:50-0:53" propertyKey="37"/>
+                </SolidColor>
+            </Fill>
+            <Text wrapValue="wrap" name="Label" id="0:34">
+                <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+                <TextStylePaint fontSize="16" fontAssetId="0:90" name="S" id="0:35">
+                    <Fill name="F"><SolidColor colorValue="FF1E293B" name="C"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="0:35" text="Alternativa" name="R">
+                    <DataBindContext sourcePathIds="0:50-0:51" propertyKey="268"/>
+                </TextValueRun>
+            </Text>
+        </LayoutComponent>
+
+        <StateMachine name="State Machine 1" id="0:37">
+            <StateMachineListener targetId="0:32" name="Tap" id="0:38">
+                <ListenerInputType listenerTypeValue="click"/>
+                <ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+                    <SemanticInput actionType="tap"/>
+                </ListenerInputTypeSemantic>
+                <ListenerViewModelChange>
+                    <BindablePropertyTrigger propertyValue="1">
+                        <DataBindContext sourcePathIds="0:50-0:52" propertyKey="686" direction="true"/>
+                    </BindablePropertyTrigger>
+                </ListenerViewModelChange>
+            </StateMachineListener>
+            <StateMachineLayer name="Layer 1" id="0:39"><AnyState/><ExitState/><EntryState/></StateMachineLayer>
+        </StateMachine>
+    </Artboard>
+
+    <FontAsset file="Inter.ttf" name="Inter" id="0:90"/>
+
+    <ViewModel defaultInstanceId="0:55" name="Option" id="0:50">
+        <ViewModelPropertyString name="text" id="0:51"/>
+        <ViewModelPropertyTrigger name="tap" id="0:52"/>
+        <ViewModelPropertyColor name="fill" id="0:53"/>
+        <ViewModelInstance exports="true" name="Default" id="0:55">
+            <ViewModelInstanceString propertyValue="Alternativa" viewModelPropertyId="0:51"/>
+            <ViewModelInstanceTrigger viewModelPropertyId="0:52"/>
+            <ViewModelInstanceColor propertyValue="FFFFFFFF" viewModelPropertyId="0:53"/>
+        </ViewModelInstance>
+        <ViewModelInstance exports="true" name="A" id="0:56">
+            <ViewModelInstanceString propertyValue="Ligadura dupla da artéria ovariana antes da secção" viewModelPropertyId="0:51"/>
+            <ViewModelInstanceTrigger viewModelPropertyId="0:52"/>
+            <ViewModelInstanceColor propertyValue="FFFFFFFF" viewModelPropertyId="0:53"/>
+        </ViewModelInstance>
+        <ViewModelInstance exports="true" name="B" id="0:57">
+            <ViewModelInstanceString propertyValue="Cauterização" viewModelPropertyId="0:51"/>
+            <ViewModelInstanceTrigger viewModelPropertyId="0:52"/>
+            <ViewModelInstanceColor propertyValue="FFFFFFFF" viewModelPropertyId="0:53"/>
+        </ViewModelInstance>
+        <ViewModelInstance exports="true" name="C" id="0:58">
+            <ViewModelInstanceString propertyValue="Compressão manual por 5 minutos, seguida de reavaliação do pedículo e, se necessário, nova ligadura transfixante com fio absorvível" viewModelPropertyId="0:51"/>
+            <ViewModelInstanceTrigger viewModelPropertyId="0:52"/>
+            <ViewModelInstanceColor propertyValue="FFFFFFFF" viewModelPropertyId="0:53"/>
+        </ViewModelInstance>
+        <ViewModelInstance exports="true" name="D" id="0:59">
+            <ViewModelInstanceString propertyValue="Nenhuma das anteriores" viewModelPropertyId="0:51"/>
+            <ViewModelInstanceTrigger viewModelPropertyId="0:52"/>
+            <ViewModelInstanceColor propertyValue="FFFFFFFF" viewModelPropertyId="0:53"/>
+        </ViewModelInstance>
+    </ViewModel>
+
+    <ViewModel defaultInstanceId="0:49" name="Quiz" id="0:40">
+        <ViewModelPropertyString name="header" id="0:41"/>
+        <ViewModelPropertyString name="question" id="0:42"/>
+        <ViewModelPropertyList name="options" id="0:43"/>
+        <ViewModelInstance exports="true" name="Default" id="0:49">
+            <ViewModelInstanceString propertyValue="Pergunta 1 de 5" viewModelPropertyId="0:41"/>
+            <ViewModelInstanceString propertyValue="Durante uma ovariohisterectomia em cadela, qual é a conduta indicada para controle de hemorragia no pedículo ovariano?" viewModelPropertyId="0:42"/>
+            <ViewModelInstanceList viewModelPropertyId="0:43">
+                <ViewModelInstanceListItem viewModelId="0:50" viewModelInstanceId="0:56"/>
+                <ViewModelInstanceListItem viewModelId="0:50" viewModelInstanceId="0:57"/>
+                <ViewModelInstanceListItem viewModelId="0:50" viewModelInstanceId="0:58"/>
+                <ViewModelInstanceListItem viewModelId="0:50" viewModelInstanceId="0:59"/>
+            </ViewModelInstanceList>
+        </ViewModelInstance>
+    </ViewModel>
+</Rive>

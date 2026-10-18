@@ -17,6 +17,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Arquivos .riv (Rive) entram no bundle como asset, via require().
+config.resolver.assetExts.push('riv');
+
 // 2. Habilitar lookup hierárquico
 config.resolver.disableHierarchicalLookup = false;
 
