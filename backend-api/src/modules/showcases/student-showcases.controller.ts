@@ -1,17 +1,35 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { IsString, MaxLength } from 'class-validator';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { ShowcasesService } from './showcases.service';
+import { ApplePurchasesService } from './apple-purchases.service';
+
+class ApplePurchaseDto {
+  /** `jwsRepresentation` da transação StoreKit 2 (assinado pela Apple). */
+  @IsString()
+  @MaxLength(16_000)
+  jws: string;
+}
 
 /**
- * Lado do aluno: "o que é meu". Só devolve vitrines com entitlement ativo
- * do próprio usuário — catálogo/oferta de vitrines não vendidas fica fora
- * de escopo (a venda acontece no TheMembers).
+ * Lado do aluno: "o que é meu". Vitrines com entitlement ativo, upsell das
+ * que ele não possui (checkout TheMembers no web/Android, IAP no iOS) e a
+ * confirmação da compra In-App.
  */
 @Controller('showcases')
 @UseGuards(FirebaseAuthGuard)
 export class StudentShowcasesController {
-  constructor(private readonly service: ShowcasesService) {}
+  constructor(
+    private readonly service: ShowcasesService,
+    private readonly applePurchases: ApplePurchasesService,
+  ) {}
+
+  /** iOS: o app terminou uma compra na App Store e manda a prova (JWS). */
+  @Post('purchases/apple')
+  applePurchase(@GetUser('id') userId: string, @Body() dto: ApplePurchaseDto) {
+    return this.applePurchases.verifyAndGrant(userId, dto.jws);
+  }
 
   @Get('mine')
   mine(@GetUser('id') userId: string) {

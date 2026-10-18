@@ -210,6 +210,7 @@ export class ShowcasesService {
 
   async create(dto: CreateShowcaseDto) {
     await this.assertProductIdFree(dto.externalProductId);
+    await this.assertAppleProductIdFree(dto.appleProductId);
 
     const showcase = await this.prisma.showcase.create({
       data: {
@@ -218,6 +219,7 @@ export class ShowcasesService {
         description: dto.description ?? null,
         thumbnail: dto.thumbnail ?? null,
         externalProductId: dto.externalProductId || null,
+        appleProductId: dto.appleProductId || null,
         grantsAllContent: dto.grantsAllContent ?? false,
         isPublished: dto.isPublished ?? false,
         previewSeconds: dto.previewSeconds ?? null,
@@ -238,6 +240,9 @@ export class ShowcasesService {
     if (dto.externalProductId && dto.externalProductId !== current.externalProductId) {
       await this.assertProductIdFree(dto.externalProductId);
     }
+    if (dto.appleProductId && dto.appleProductId !== current.appleProductId) {
+      await this.assertAppleProductIdFree(dto.appleProductId);
+    }
 
     return this.prisma.showcase.update({
       where: { id },
@@ -249,6 +254,9 @@ export class ShowcasesService {
         ...(dto.thumbnail !== undefined ? { thumbnail: dto.thumbnail || null } : {}),
         ...(dto.externalProductId !== undefined
           ? { externalProductId: dto.externalProductId || null }
+          : {}),
+        ...(dto.appleProductId !== undefined
+          ? { appleProductId: dto.appleProductId || null }
           : {}),
         ...(dto.grantsAllContent !== undefined
           ? { grantsAllContent: dto.grantsAllContent }
@@ -689,6 +697,7 @@ export class ShowcasesService {
         description: true,
         thumbnail: true,
         externalProductId: true,
+        appleProductId: true,
         _count: {
           select: {
             videos: { where: { video: { deletedAt: null, isPublished: true } } },
@@ -709,6 +718,7 @@ export class ShowcasesService {
         thumbnail: s.thumbnail ?? fallbacks.get(s.id) ?? null,
         videoCount: s._count.videos,
         checkoutUrl: checkoutUrlFor(s.externalProductId),
+        appleProductId: s.appleProductId,
       })),
     };
   }
@@ -946,16 +956,18 @@ export class ShowcasesService {
         description: true,
         thumbnail: true,
         externalProductId: true,
+        appleProductId: true,
         videos: this.detailVideosSelect,
       },
     });
 
     if (!showcase) throw new NotFoundException('Vitrine não encontrada');
 
-    const { externalProductId, ...rest } = showcase;
+    const { externalProductId, appleProductId, ...rest } = showcase;
     return {
       ...this.toShowcaseDetail(rest),
       checkoutUrl: checkoutUrlFor(externalProductId),
+      appleProductId,
     };
   }
 
@@ -978,6 +990,20 @@ export class ShowcasesService {
     if (taken) {
       throw new ConflictException(
         `O produto ${externalProductId} já está vinculado à vitrine "${taken.title}"`,
+      );
+    }
+  }
+
+  /** Mesma proteção pro produto IAP: compra na App Store libera a vitrine do productId. */
+  private async assertAppleProductIdFree(appleProductId?: string) {
+    if (!appleProductId) return;
+    const taken = await this.prisma.showcase.findUnique({
+      where: { appleProductId },
+      select: { title: true },
+    });
+    if (taken) {
+      throw new ConflictException(
+        `O produto IAP ${appleProductId} já está vinculado à vitrine "${taken.title}"`,
       );
     }
   }
