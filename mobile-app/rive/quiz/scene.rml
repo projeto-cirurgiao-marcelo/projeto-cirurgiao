@@ -1,6 +1,6 @@
 <Rive version="1" kind="fragment">
 <!-- GERADO por gen-scene.mjs — não editar à mão. -->
-<Artboard defaultStateMachineId="0:141" viewModelId="0:40" viewModelInstanceId="0:440" x="0" y="0" width="390" height="844" styleId="0:143" name="Quiz" id="0:142">
+<Artboard defaultStateMachineId="0:141" viewModelId="0:40" viewModelInstanceId="0:442" x="0" y="0" width="390" height="844" styleId="0:143" name="Quiz" id="0:142">
 <LayoutComponentStyle flexDirectionValue="column" name="Quiz Style" id="0:143"/>
 <Fill name="Background">
 <LinearGradient startX="0" startY="0" endX="0" endY="844" name="G">
@@ -8,11 +8,11 @@
 <GradientStop colorValue="FFE1EFFC" position="1"/>
 </LinearGradient>
 </Fill>
-<LayoutComponent clip="false" styleId="0:430" name="Root" id="0:429">
-<LayoutComponentStyle layoutTypeValue="stack" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Root Style" id="0:430"/>
+<LayoutComponent clip="false" styleId="0:432" name="Root" id="0:431">
+<LayoutComponentStyle layoutTypeValue="stack" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Root Style" id="0:432"/>
 <LayoutComponent clip="false" styleId="0:328" name="SheetLayer" id="0:329">
-<LayoutComponentStyle displayValue="none" flexDirectionValue="column" layoutAlignmentType="bottomCenter" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="SheetLayer Style" id="0:328"/>
-<LayoutComponent clip="false" styleId="0:327" name="FeedbackSheet" id="0:314">
+<LayoutComponentStyle flexDirectionValue="column" layoutAlignmentType="bottomCenter" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="SheetLayer Style" id="0:328"/>
+<LayoutComponent clip="false" y="1000" opacity="0" styleId="0:327" name="FeedbackSheet" id="0:314">
 <LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="20" paddingLeftUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingTop="18" paddingTopUnitsValue="points" paddingBottom="28" paddingBottomUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" linkCornerRadius="false" cornerRadiusTL="28" cornerRadiusTR="28" cornerRadiusBR="0" cornerRadiusBL="0" name="FeedbackSheet Style" id="0:327"/>
 <LayoutComponent clip="false" styleId="0:322" name="GelpiRow" id="0:321">
 <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" name="GelpiRow Style" id="0:322"/>
@@ -961,14 +961,14 @@
 </Stroke>
 </LayoutComponent>
 </LayoutComponent>
-<LayoutComponent clip="false" styleId="0:331" name="Backdrop" id="0:330">
-<LayoutComponentStyle displayValue="none" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Backdrop Style" id="0:331"/>
+<LayoutComponent clip="false" opacity="0" styleId="0:331" name="Backdrop" id="0:330">
+<LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Backdrop Style" id="0:331"/>
 <Fill name="Fill">
 <SolidColor colorValue="470B2845" name="C"/>
 </Fill>
 </LayoutComponent>
-<LayoutComponent clip="false" styleId="0:428" name="Main" id="0:427">
-<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" paddingTop="8" paddingTopUnitsValue="points" name="Main Style" id="0:428"/>
+<LayoutComponent clip="false" styleId="0:430" name="Main" id="0:429">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" paddingTop="8" paddingTopUnitsValue="points" name="Main Style" id="0:430"/>
 <LayoutComponent clip="false" styleId="0:165" name="Header" id="0:164">
 <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="20" paddingLeftUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingTop="12" paddingTopUnitsValue="points" paddingBottom="12" paddingBottomUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" name="Header Style" id="0:165"/>
 <LayoutComponent width="36" height="36" clip="false" styleId="0:146" name="Close" id="0:145">
@@ -1134,8 +1134,11 @@
 </Text>
 </LayoutComponent>
 </LayoutComponent>
-<LayoutComponent clip="true" styleId="0:375" name="ResultSection" id="0:376">
-<LayoutComponentStyle displayValue="none" flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="ResultSection Style" id="0:375"/>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:378" name="ResultLayer" id="0:377">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" paddingTop="60" paddingTopUnitsValue="points" name="ResultLayer Style" id="0:378"/>
+<LayoutComponent clip="true" y="1000" opacity="0" styleId="0:376" name="ResultSection" id="0:375">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="ResultSection Style" id="0:376"/>
 <LayoutComponent clip="false" styleId="0:374" name="ResultContent" id="0:373">
 <LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="20" paddingLeftUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingTop="4" paddingTopUnitsValue="points" paddingBottom="32" paddingBottomUnitsValue="points" gapHorizontal="14" gapHorizontalUnitsValue="points" gapVertical="14" gapVerticalUnitsValue="points" name="ResultContent Style" id="0:374"/>
 <LayoutComponent clip="false" styleId="0:366" name="ScoreCard" id="0:365">
@@ -1392,14 +1395,14 @@
 </BindablePropertyTrigger>
 </ListenerViewModelChange>
 </StateMachineListener>
-<StateMachineLayer name="Phase" id="0:391">
+<StateMachineLayer name="Phase" id="0:393">
 <AnyState x="0" y="-120"/>
 <ExitState x="200" y="-120"/>
 <EntryState x="-200" y="0">
-<StateTransition stateToId="0:388"/>
+<StateTransition stateToId="0:390"/>
 </EntryState>
-<AnimationState x="0" y="0" animationId="0:377" stateName="question" id="0:388">
-<StateTransition stateToId="0:389" duration="0">
+<AnimationState x="0" y="0" animationId="0:379" stateName="question" id="0:390">
+<StateTransition stateToId="0:391" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1409,7 +1412,7 @@
 <TransitionValueEnumComparator value="0:12"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:390" duration="0">
+<StateTransition stateToId="0:392" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1420,8 +1423,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="0" animationId="0:378" stateName="feedback" id="0:389">
-<StateTransition stateToId="0:388" duration="0">
+<AnimationState x="220" y="0" animationId="0:380" stateName="feedback" id="0:391">
+<StateTransition stateToId="0:390" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1431,7 +1434,7 @@
 <TransitionValueEnumComparator value="0:11"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:390" duration="0">
+<StateTransition stateToId="0:392" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1442,8 +1445,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="440" y="0" animationId="0:379" stateName="result" id="0:390">
-<StateTransition stateToId="0:388" duration="0">
+<AnimationState x="440" y="0" animationId="0:381" stateName="result" id="0:392">
+<StateTransition stateToId="0:390" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1453,7 +1456,7 @@
 <TransitionValueEnumComparator value="0:11"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:389" duration="0">
+<StateTransition stateToId="0:391" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1465,14 +1468,14 @@
 </StateTransition>
 </AnimationState>
 </StateMachineLayer>
-<StateMachineLayer name="Gelpi" id="0:395">
+<StateMachineLayer name="Gelpi" id="0:397">
 <AnyState x="0" y="180"/>
 <ExitState x="200" y="180"/>
 <EntryState x="-200" y="300">
-<StateTransition stateToId="0:392"/>
+<StateTransition stateToId="0:394"/>
 </EntryState>
-<AnimationState x="0" y="300" animationId="0:380" stateName="none" id="0:392">
-<StateTransition stateToId="0:393" duration="0">
+<AnimationState x="0" y="300" animationId="0:382" stateName="none" id="0:394">
+<StateTransition stateToId="0:395" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1482,7 +1485,7 @@
 <TransitionValueEnumComparator value="0:21"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:394" duration="0">
+<StateTransition stateToId="0:396" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1493,8 +1496,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="300" animationId="0:381" stateName="correct" id="0:393">
-<StateTransition stateToId="0:392" duration="0">
+<AnimationState x="220" y="300" animationId="0:383" stateName="correct" id="0:395">
+<StateTransition stateToId="0:394" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1504,7 +1507,7 @@
 <TransitionValueEnumComparator value="0:20"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:394" duration="0">
+<StateTransition stateToId="0:396" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1515,8 +1518,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="440" y="300" animationId="0:382" stateName="wrong" id="0:394">
-<StateTransition stateToId="0:392" duration="0">
+<AnimationState x="440" y="300" animationId="0:384" stateName="wrong" id="0:396">
+<StateTransition stateToId="0:394" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1526,7 +1529,7 @@
 <TransitionValueEnumComparator value="0:20"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:393" duration="0">
+<StateTransition stateToId="0:395" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1538,14 +1541,14 @@
 </StateTransition>
 </AnimationState>
 </StateMachineLayer>
-<StateMachineLayer name="Confidence" id="0:401">
+<StateMachineLayer name="Confidence" id="0:403">
 <AnyState x="0" y="480"/>
 <ExitState x="200" y="480"/>
 <EntryState x="-200" y="600">
-<StateTransition stateToId="0:396"/>
+<StateTransition stateToId="0:398"/>
 </EntryState>
-<AnimationState x="0" y="600" animationId="0:383" stateName="none" id="0:396">
-<StateTransition stateToId="0:397" duration="0">
+<AnimationState x="0" y="600" animationId="0:385" stateName="none" id="0:398">
+<StateTransition stateToId="0:399" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1555,7 +1558,7 @@
 <TransitionValueEnumComparator value="0:25"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:398" duration="0">
+<StateTransition stateToId="0:400" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1565,7 +1568,7 @@
 <TransitionValueEnumComparator value="0:26"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:399" duration="0">
+<StateTransition stateToId="0:401" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1575,7 +1578,7 @@
 <TransitionValueEnumComparator value="0:27"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:400" duration="0">
+<StateTransition stateToId="0:402" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1586,8 +1589,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="600" animationId="0:384" stateName="guessed" id="0:397">
-<StateTransition stateToId="0:396" duration="0">
+<AnimationState x="220" y="600" animationId="0:386" stateName="guessed" id="0:399">
+<StateTransition stateToId="0:398" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1597,7 +1600,7 @@
 <TransitionValueEnumComparator value="0:24"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:398" duration="0">
+<StateTransition stateToId="0:400" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1607,7 +1610,7 @@
 <TransitionValueEnumComparator value="0:26"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:399" duration="0">
+<StateTransition stateToId="0:401" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1617,7 +1620,7 @@
 <TransitionValueEnumComparator value="0:27"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:400" duration="0">
+<StateTransition stateToId="0:402" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1628,8 +1631,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="440" y="600" animationId="0:385" stateName="thoughtKnew" id="0:398">
-<StateTransition stateToId="0:396" duration="0">
+<AnimationState x="440" y="600" animationId="0:387" stateName="thoughtKnew" id="0:400">
+<StateTransition stateToId="0:398" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1639,7 +1642,7 @@
 <TransitionValueEnumComparator value="0:24"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:397" duration="0">
+<StateTransition stateToId="0:399" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1649,7 +1652,7 @@
 <TransitionValueEnumComparator value="0:25"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:399" duration="0">
+<StateTransition stateToId="0:401" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1659,7 +1662,7 @@
 <TransitionValueEnumComparator value="0:27"/>
 </TransitionViewModelCondition>
 </StateTransition>
-<StateTransition stateToId="0:400" duration="0">
+<StateTransition stateToId="0:402" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1670,27 +1673,7 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="660" y="600" animationId="0:386" stateName="knew" id="0:399">
-<StateTransition stateToId="0:396" duration="0">
-<TransitionViewModelCondition opValue="equal">
-<TransitionPropertyViewModelComparator>
-<BindablePropertyEnum>
-<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
-</BindablePropertyEnum>
-</TransitionPropertyViewModelComparator>
-<TransitionValueEnumComparator value="0:24"/>
-</TransitionViewModelCondition>
-</StateTransition>
-<StateTransition stateToId="0:397" duration="0">
-<TransitionViewModelCondition opValue="equal">
-<TransitionPropertyViewModelComparator>
-<BindablePropertyEnum>
-<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
-</BindablePropertyEnum>
-</TransitionPropertyViewModelComparator>
-<TransitionValueEnumComparator value="0:25"/>
-</TransitionViewModelCondition>
-</StateTransition>
+<AnimationState x="660" y="600" animationId="0:388" stateName="knew" id="0:401">
 <StateTransition stateToId="0:398" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
@@ -1698,52 +1681,72 @@
 <DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
 </BindablePropertyEnum>
 </TransitionPropertyViewModelComparator>
-<TransitionValueEnumComparator value="0:26"/>
-</TransitionViewModelCondition>
-</StateTransition>
-<StateTransition stateToId="0:400" duration="0">
-<TransitionViewModelCondition opValue="equal">
-<TransitionPropertyViewModelComparator>
-<BindablePropertyEnum>
-<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
-</BindablePropertyEnum>
-</TransitionPropertyViewModelComparator>
-<TransitionValueEnumComparator value="0:28"/>
-</TransitionViewModelCondition>
-</StateTransition>
-</AnimationState>
-<AnimationState x="880" y="600" animationId="0:387" stateName="mastered" id="0:400">
-<StateTransition stateToId="0:396" duration="0">
-<TransitionViewModelCondition opValue="equal">
-<TransitionPropertyViewModelComparator>
-<BindablePropertyEnum>
-<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
-</BindablePropertyEnum>
-</TransitionPropertyViewModelComparator>
 <TransitionValueEnumComparator value="0:24"/>
-</TransitionViewModelCondition>
-</StateTransition>
-<StateTransition stateToId="0:397" duration="0">
-<TransitionViewModelCondition opValue="equal">
-<TransitionPropertyViewModelComparator>
-<BindablePropertyEnum>
-<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
-</BindablePropertyEnum>
-</TransitionPropertyViewModelComparator>
-<TransitionValueEnumComparator value="0:25"/>
-</TransitionViewModelCondition>
-</StateTransition>
-<StateTransition stateToId="0:398" duration="0">
-<TransitionViewModelCondition opValue="equal">
-<TransitionPropertyViewModelComparator>
-<BindablePropertyEnum>
-<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
-</BindablePropertyEnum>
-</TransitionPropertyViewModelComparator>
-<TransitionValueEnumComparator value="0:26"/>
 </TransitionViewModelCondition>
 </StateTransition>
 <StateTransition stateToId="0:399" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:25"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:400" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:26"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:402" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:28"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="880" y="600" animationId="0:389" stateName="mastered" id="0:402">
+<StateTransition stateToId="0:398" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:24"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:399" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:25"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:400" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:26"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:401" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyEnum>
@@ -1755,14 +1758,14 @@
 </StateTransition>
 </AnimationState>
 </StateMachineLayer>
-<StateMachineLayer name="CanContinue" id="0:406">
+<StateMachineLayer name="CanContinue" id="0:408">
 <AnyState x="0" y="780"/>
 <ExitState x="200" y="780"/>
 <EntryState x="-200" y="900">
-<StateTransition stateToId="0:404"/>
+<StateTransition stateToId="0:406"/>
 </EntryState>
-<AnimationState x="0" y="900" animationId="0:402" stateName="false" id="0:404">
-<StateTransition stateToId="0:405" duration="0">
+<AnimationState x="0" y="900" animationId="0:404" stateName="false" id="0:406">
+<StateTransition stateToId="0:407" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1773,8 +1776,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="900" animationId="0:403" stateName="true" id="0:405">
-<StateTransition stateToId="0:404" duration="0">
+<AnimationState x="220" y="900" animationId="0:405" stateName="true" id="0:407">
+<StateTransition stateToId="0:406" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1786,14 +1789,14 @@
 </StateTransition>
 </AnimationState>
 </StateMachineLayer>
-<StateMachineLayer name="Locked" id="0:411">
+<StateMachineLayer name="Locked" id="0:413">
 <AnyState x="0" y="1080"/>
 <ExitState x="200" y="1080"/>
 <EntryState x="-200" y="1200">
-<StateTransition stateToId="0:409"/>
+<StateTransition stateToId="0:411"/>
 </EntryState>
-<AnimationState x="0" y="1200" animationId="0:407" stateName="false" id="0:409">
-<StateTransition stateToId="0:410" duration="0">
+<AnimationState x="0" y="1200" animationId="0:409" stateName="false" id="0:411">
+<StateTransition stateToId="0:412" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1804,8 +1807,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="1200" animationId="0:408" stateName="true" id="0:410">
-<StateTransition stateToId="0:409" duration="0">
+<AnimationState x="220" y="1200" animationId="0:410" stateName="true" id="0:412">
+<StateTransition stateToId="0:411" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1817,14 +1820,14 @@
 </StateTransition>
 </AnimationState>
 </StateMachineLayer>
-<StateMachineLayer name="Submitting" id="0:416">
+<StateMachineLayer name="Submitting" id="0:418">
 <AnyState x="0" y="1380"/>
 <ExitState x="200" y="1380"/>
 <EntryState x="-200" y="1500">
-<StateTransition stateToId="0:414"/>
+<StateTransition stateToId="0:416"/>
 </EntryState>
-<AnimationState x="0" y="1500" animationId="0:412" stateName="false" id="0:414">
-<StateTransition stateToId="0:415" duration="0">
+<AnimationState x="0" y="1500" animationId="0:414" stateName="false" id="0:416">
+<StateTransition stateToId="0:417" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1835,8 +1838,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="1500" animationId="0:413" stateName="true" id="0:415">
-<StateTransition stateToId="0:414" duration="0">
+<AnimationState x="220" y="1500" animationId="0:415" stateName="true" id="0:417">
+<StateTransition stateToId="0:416" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1848,14 +1851,14 @@
 </StateTransition>
 </AnimationState>
 </StateMachineLayer>
-<StateMachineLayer name="Passed" id="0:421">
+<StateMachineLayer name="Passed" id="0:423">
 <AnyState x="0" y="1680"/>
 <ExitState x="200" y="1680"/>
 <EntryState x="-200" y="1800">
-<StateTransition stateToId="0:419"/>
+<StateTransition stateToId="0:421"/>
 </EntryState>
-<AnimationState x="0" y="1800" animationId="0:417" stateName="false" id="0:419">
-<StateTransition stateToId="0:420" duration="0">
+<AnimationState x="0" y="1800" animationId="0:419" stateName="false" id="0:421">
+<StateTransition stateToId="0:422" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1866,8 +1869,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="1800" animationId="0:418" stateName="true" id="0:420">
-<StateTransition stateToId="0:419" duration="0">
+<AnimationState x="220" y="1800" animationId="0:420" stateName="true" id="0:422">
+<StateTransition stateToId="0:421" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1879,14 +1882,14 @@
 </StateTransition>
 </AnimationState>
 </StateMachineLayer>
-<StateMachineLayer name="Generating" id="0:426">
+<StateMachineLayer name="Generating" id="0:428">
 <AnyState x="0" y="1980"/>
 <ExitState x="200" y="1980"/>
 <EntryState x="-200" y="2100">
-<StateTransition stateToId="0:424"/>
+<StateTransition stateToId="0:426"/>
 </EntryState>
-<AnimationState x="0" y="2100" animationId="0:422" stateName="false" id="0:424">
-<StateTransition stateToId="0:425" duration="0">
+<AnimationState x="0" y="2100" animationId="0:424" stateName="false" id="0:426">
+<StateTransition stateToId="0:427" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1897,8 +1900,8 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
-<AnimationState x="220" y="2100" animationId="0:423" stateName="true" id="0:425">
-<StateTransition stateToId="0:424" duration="0">
+<AnimationState x="220" y="2100" animationId="0:425" stateName="true" id="0:427">
+<StateTransition stateToId="0:426" duration="0">
 <TransitionViewModelCondition opValue="equal">
 <TransitionPropertyViewModelComparator>
 <BindablePropertyBoolean>
@@ -1911,62 +1914,18 @@
 </AnimationState>
 </StateMachineLayer>
 </StateMachine>
-<LinearAnimation duration="1" name="Phase Question" id="0:377">
+<LinearAnimation duration="1" name="Phase Question" id="0:379">
 <KeyedObject objectId="0:171">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="0" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 <KeyedObject objectId="0:375">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="1000" frame="0" interpolationType="linear"/>
 </KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:328">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:331">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:147">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:153">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:160">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-</LinearAnimation>
-<LinearAnimation duration="20" name="Phase Feedback" id="0:378">
-<KeyedObject objectId="0:171">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:375">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:328">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:331">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 <KeyedObject objectId="0:147">
@@ -1986,6 +1945,52 @@
 </KeyedObject>
 <KeyedObject objectId="0:314">
 <KeyedProperty propertyKey="14">
+<KeyFrameDouble value="1000" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:330">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="20" name="Phase Feedback" id="0:380">
+<KeyedObject objectId="0:171">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:375">
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="1000" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:147">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:153">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:160">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:314">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+<KeyedProperty propertyKey="14">
 <KeyFrameDouble value="420" frame="0" interpolationType="linear"/>
 <KeyFrameDouble value="0" frame="20" interpolationType="cubic">
 <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
@@ -2001,25 +2006,18 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Phase Result" id="0:379">
+<LinearAnimation duration="1" name="Phase Result" id="0:381">
 <KeyedObject objectId="0:171">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="1" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 <KeyedObject objectId="0:375">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
 </KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:328">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
-</KeyedProperty>
-</KeyedObject>
-<KeyedObject objectId="0:331">
-<KeyedProperty propertyKey="596">
-<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 <KeyedObject objectId="0:147">
@@ -2037,15 +2035,28 @@
 <KeyFrameUint value="0" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
+<KeyedObject objectId="0:314">
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="1000" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:330">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Gelpi None" id="0:380">
+<LinearAnimation duration="1" name="Gelpi None" id="0:382">
 <KeyedObject objectId="0:232">
 <KeyedProperty propertyKey="18">
 <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="72" loopValue="loop" name="Gelpi Correct" id="0:381">
+<LinearAnimation duration="72" loopValue="loop" name="Gelpi Correct" id="0:383">
 <KeyedObject objectId="0:261">
 <KeyedProperty propertyKey="14">
 <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
@@ -2147,7 +2158,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="90" loopValue="loop" name="Gelpi Wrong" id="0:382">
+<LinearAnimation duration="90" loopValue="loop" name="Gelpi Wrong" id="0:384">
 <KeyedObject objectId="0:230">
 <KeyedProperty propertyKey="15">
 <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
@@ -2218,7 +2229,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Conf none" id="0:383">
+<LinearAnimation duration="1" name="Conf none" id="0:385">
 <KeyedObject objectId="0:281">
 <KeyedProperty propertyKey="37">
 <KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
@@ -2280,7 +2291,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Conf guessed" id="0:384">
+<LinearAnimation duration="1" name="Conf guessed" id="0:386">
 <KeyedObject objectId="0:281">
 <KeyedProperty propertyKey="37">
 <KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
@@ -2342,7 +2353,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Conf thoughtKnew" id="0:385">
+<LinearAnimation duration="1" name="Conf thoughtKnew" id="0:387">
 <KeyedObject objectId="0:281">
 <KeyedProperty propertyKey="37">
 <KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
@@ -2404,7 +2415,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Conf knew" id="0:386">
+<LinearAnimation duration="1" name="Conf knew" id="0:388">
 <KeyedObject objectId="0:281">
 <KeyedProperty propertyKey="37">
 <KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
@@ -2466,7 +2477,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Conf mastered" id="0:387">
+<LinearAnimation duration="1" name="Conf mastered" id="0:389">
 <KeyedObject objectId="0:281">
 <KeyedProperty propertyKey="37">
 <KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
@@ -2528,49 +2539,49 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Continue Off" id="0:402">
+<LinearAnimation duration="1" name="Continue Off" id="0:404">
 <KeyedObject objectId="0:309">
 <KeyedProperty propertyKey="18">
 <KeyFrameDouble value="0.45" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Continue On" id="0:403">
+<LinearAnimation duration="1" name="Continue On" id="0:405">
 <KeyedObject objectId="0:309">
 <KeyedProperty propertyKey="18">
 <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Hint On" id="0:407">
+<LinearAnimation duration="1" name="Hint On" id="0:409">
 <KeyedObject objectId="0:169">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="0" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Hint Off" id="0:408">
+<LinearAnimation duration="1" name="Hint Off" id="0:410">
 <KeyedObject objectId="0:169">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="1" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Sending Off" id="0:412">
+<LinearAnimation duration="1" name="Sending Off" id="0:414">
 <KeyedObject objectId="0:170">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="1" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Sending On" id="0:413">
+<LinearAnimation duration="1" name="Sending On" id="0:415">
 <KeyedObject objectId="0:170">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="0" frame="0" interpolationType="linear"/>
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Failed" id="0:417">
+<LinearAnimation duration="1" name="Failed" id="0:419">
 <KeyedObject objectId="0:334">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="1" frame="0" interpolationType="linear"/>
@@ -2592,7 +2603,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Passed" id="0:418">
+<LinearAnimation duration="1" name="Passed" id="0:420">
 <KeyedObject objectId="0:334">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="0" frame="0" interpolationType="linear"/>
@@ -2614,7 +2625,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Gen Off" id="0:422">
+<LinearAnimation duration="1" name="Gen Off" id="0:424">
 <KeyedObject objectId="0:349">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="0" frame="0" interpolationType="linear"/>
@@ -2626,7 +2637,7 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
-<LinearAnimation duration="1" name="Gen On" id="0:423">
+<LinearAnimation duration="1" name="Gen On" id="0:425">
 <KeyedObject objectId="0:349">
 <KeyedProperty propertyKey="596">
 <KeyFrameUint value="1" frame="0" interpolationType="linear"/>
@@ -2639,7 +2650,7 @@
 </KeyedObject>
 </LinearAnimation>
 </Artboard>
-<Artboard isComponent="true" defaultStateMachineId="0:74" viewModelId="0:29" viewModelInstanceId="0:431" x="500" y="0" width="350" height="60" styleId="0:95" name="Option" id="0:96">
+<Artboard isComponent="true" defaultStateMachineId="0:74" viewModelId="0:29" viewModelInstanceId="0:433" x="500" y="0" width="350" height="60" styleId="0:95" name="Option" id="0:96">
 <LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Option Style" id="0:95"/>
 <LayoutComponent clip="false" styleId="0:76" name="Card" id="0:75">
 <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="16" paddingLeftUnitsValue="points" paddingRight="16" paddingRightUnitsValue="points" paddingTop="14" paddingTopUnitsValue="points" paddingBottom="14" paddingBottomUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" cornerRadiusTL="14" name="Card Style" id="0:76"/>
@@ -3061,7 +3072,7 @@
 </KeyedObject>
 </LinearAnimation>
 </Artboard>
-<Artboard isComponent="true" defaultStateMachineId="0:102" viewModelId="0:33" viewModelInstanceId="0:436" x="500" y="200" width="350" height="140" styleId="0:136" name="ReviewItem" id="0:137">
+<Artboard isComponent="true" defaultStateMachineId="0:102" viewModelId="0:33" viewModelInstanceId="0:438" x="500" y="200" width="350" height="140" styleId="0:136" name="ReviewItem" id="0:137">
 <LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="ReviewItem Style" id="0:136"/>
 <LayoutComponent clip="true" styleId="0:133" name="Card" id="0:132">
 <LayoutComponentStyle flexDirectionValue="row" layoutWidthScaleType="fill" layoutHeightScaleType="hug" cornerRadiusTL="14" name="Card Style" id="0:133"/>
@@ -3282,44 +3293,44 @@
 <DataEnumValue key="knew" value="knew" id="0:27"/>
 <DataEnumValue key="mastered" value="mastered" id="0:28"/>
 </DataEnumCustom>
-<ViewModel defaultInstanceId="0:431" name="Option" id="0:29">
+<ViewModel defaultInstanceId="0:433" name="Option" id="0:29">
 <ViewModelPropertyString name="text" id="0:30"/>
 <ViewModelPropertyEnumCustom enumId="0:14" name="state" id="0:31"/>
 <ViewModelPropertyTrigger name="tap" id="0:32"/>
-<ViewModelInstance exports="true" name="Default" id="0:431">
+<ViewModelInstance exports="true" name="Default" id="0:433">
 <ViewModelInstanceString propertyValue="Alternativa" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 1" id="0:432">
+<ViewModelInstance exports="true" name="Opt 1" id="0:434">
 <ViewModelInstanceString propertyValue="Poliglecaprone 25 (absorvível monofilamentar)" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 2" id="0:433">
+<ViewModelInstance exports="true" name="Opt 2" id="0:435">
 <ViewModelInstanceString propertyValue="Seda" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 3" id="0:434">
+<ViewModelInstance exports="true" name="Opt 3" id="0:436">
 <ViewModelInstanceString propertyValue="Nylon multifilamentar, com nós externos e retirada dos pontos em 10 a 14 dias após o procedimento" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 4" id="0:435">
+<ViewModelInstance exports="true" name="Opt 4" id="0:437">
 <ViewModelInstanceString propertyValue="Categute cromado" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
 </ViewModel>
-<ViewModel defaultInstanceId="0:436" name="ReviewItem" id="0:33">
+<ViewModel defaultInstanceId="0:438" name="ReviewItem" id="0:33">
 <ViewModelPropertyString name="title" id="0:34"/>
 <ViewModelPropertyString name="question" id="0:35"/>
 <ViewModelPropertyBoolean name="isCorrect" id="0:36"/>
 <ViewModelPropertyString name="yourAnswer" id="0:37"/>
 <ViewModelPropertyString name="correctAnswer" id="0:38"/>
 <ViewModelPropertyString name="explanation" id="0:39"/>
-<ViewModelInstance exports="true" name="Default" id="0:436">
+<ViewModelInstance exports="true" name="Default" id="0:438">
 <ViewModelInstanceString propertyValue="Questão 1" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Pergunta" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
@@ -3327,7 +3338,7 @@
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:38"/>
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:39"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Rev 1" id="0:437">
+<ViewModelInstance exports="true" name="Rev 1" id="0:439">
 <ViewModelInstanceString propertyValue="QUESTÃO 1" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Qual fio é mais indicado para a sutura intradérmica após uma orquiectomia em cão?" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
@@ -3335,7 +3346,7 @@
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:38"/>
 <ViewModelInstanceString propertyValue="Absorvível e monofilamentar: menor reação tecidual e sem necessidade de retirada." viewModelPropertyId="0:39"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Rev 2" id="0:438">
+<ViewModelInstance exports="true" name="Rev 2" id="0:440">
 <ViewModelInstanceString propertyValue="QUESTÃO 2" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Tempo de jejum hídrico recomendado antes da anestesia em cães adultos saudáveis?" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:36"/>
@@ -3343,7 +3354,7 @@
 <ViewModelInstanceString propertyValue="2 horas" viewModelPropertyId="0:38"/>
 <ViewModelInstanceString propertyValue="Jejum hídrico curto reduz o risco de regurgitação sem desidratar o paciente." viewModelPropertyId="0:39"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Rev 3" id="0:439">
+<ViewModelInstance exports="true" name="Rev 3" id="0:441">
 <ViewModelInstanceString propertyValue="QUESTÃO 3" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Qual a principal função do pedículo ovariano na técnica de ovariohisterectomia?" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
@@ -3352,7 +3363,7 @@
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:39"/>
 </ViewModelInstance>
 </ViewModel>
-<ViewModel defaultInstanceId="0:440" name="Quiz" id="0:40">
+<ViewModel defaultInstanceId="0:442" name="Quiz" id="0:40">
 <ViewModelPropertyEnumCustom enumId="0:10" name="phase" id="0:41"/>
 <ViewModelPropertyString name="progressLabel" id="0:42"/>
 <ViewModelPropertyNumber name="questionNumber" id="0:43"/>
@@ -3382,17 +3393,17 @@
 <ViewModelPropertyTrigger name="continueTap" id="0:67"/>
 <ViewModelPropertyTrigger name="retryTap" id="0:68"/>
 <ViewModelPropertyTrigger name="closeTap" id="0:69"/>
-<ViewModelInstance exports="true" name="Default" id="0:440">
+<ViewModelInstance exports="true" name="Default" id="0:442">
 <ViewModelInstanceEnum propertyValue="0:11" viewModelPropertyId="0:41"/>
 <ViewModelInstanceString propertyValue="PERGUNTA 1 DE 5" viewModelPropertyId="0:42"/>
 <ViewModelInstanceNumber propertyValue="1" viewModelPropertyId="0:43"/>
 <ViewModelInstanceNumber propertyValue="5" viewModelPropertyId="0:44"/>
 <ViewModelInstanceString propertyValue="Qual fio é mais indicado para a sutura intradérmica após uma orquiectomia em cão?" viewModelPropertyId="0:45"/>
 <ViewModelInstanceList viewModelPropertyId="0:46">
-<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:432"/>
-<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:433"/>
 <ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:434"/>
 <ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:435"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:436"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:437"/>
 </ViewModelInstanceList>
 <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:47"/>
 <ViewModelInstanceNumber propertyValue="2" viewModelPropertyId="0:48"/>
@@ -3409,9 +3420,9 @@
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:59"/>
 <ViewModelInstanceString propertyValue="2 de 3 corretas" viewModelPropertyId="0:60"/>
 <ViewModelInstanceList viewModelPropertyId="0:61">
-<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:437"/>
-<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:438"/>
 <ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:439"/>
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:440"/>
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:441"/>
 </ViewModelInstanceList>
 <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:62"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:63"/>
