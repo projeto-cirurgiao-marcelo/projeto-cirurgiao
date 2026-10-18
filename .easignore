@@ -103,6 +103,8 @@ mobile-app/dist/
 mobile-app/web-build/
 mobile-app/docs/
 mobile-app/__tests__/
+# fontes e capturas das cenas Rive (o app só usa o .riv em assets/rive/)
+mobile-app/rive/
 mobile-app/**/*.log
 mobile-app/*.log
 
