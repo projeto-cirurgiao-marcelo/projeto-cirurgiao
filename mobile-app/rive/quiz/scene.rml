@@ -1,0 +1,3426 @@
+<Rive version="1" kind="fragment">
+<!-- GERADO por gen-scene.mjs — não editar à mão. -->
+<Artboard defaultStateMachineId="0:141" viewModelId="0:40" viewModelInstanceId="0:440" x="0" y="0" width="390" height="844" styleId="0:143" name="Quiz" id="0:142">
+<LayoutComponentStyle flexDirectionValue="column" name="Quiz Style" id="0:143"/>
+<Fill name="Background">
+<LinearGradient startX="0" startY="0" endX="0" endY="844" name="G">
+<GradientStop colorValue="FFF4FAFF" position="0"/>
+<GradientStop colorValue="FFE1EFFC" position="1"/>
+</LinearGradient>
+</Fill>
+<LayoutComponent clip="false" styleId="0:430" name="Root" id="0:429">
+<LayoutComponentStyle layoutTypeValue="stack" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Root Style" id="0:430"/>
+<LayoutComponent clip="false" styleId="0:328" name="SheetLayer" id="0:329">
+<LayoutComponentStyle displayValue="none" flexDirectionValue="column" layoutAlignmentType="bottomCenter" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="SheetLayer Style" id="0:328"/>
+<LayoutComponent clip="false" styleId="0:327" name="FeedbackSheet" id="0:314">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="20" paddingLeftUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingTop="18" paddingTopUnitsValue="points" paddingBottom="28" paddingBottomUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" linkCornerRadius="false" cornerRadiusTL="28" cornerRadiusTR="28" cornerRadiusBR="0" cornerRadiusBL="0" name="FeedbackSheet Style" id="0:327"/>
+<LayoutComponent clip="false" styleId="0:322" name="GelpiRow" id="0:321">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" name="GelpiRow Style" id="0:322"/>
+<LayoutComponent width="104" height="135" clip="false" styleId="0:264" name="GelpiBox" id="0:263">
+<LayoutComponentStyle layoutWidthScaleType="fixed" layoutHeightScaleType="fixed" name="GelpiBox Style" id="0:264"/>
+<Node scaleX="0.26" scaleY="0.26" name="Dr. Gelpi" id="0:183">
+<Node x="200" y="240" name="head-group">
+<Node name="head-group anim" id="0:230">
+<Node x="0" y="-16" name="mouth-group">
+<Node name="mouth-group anim" id="0:187">
+<Shape x="0" y="4" name="tongue" id="0:184">
+<Ellipse width="12" height="6" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFE84D6E" name="C"/>
+</Fill>
+</Shape>
+<Shape name="teeth" id="0:185">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-12" y="-4" inRotation="1.107" inDistance="2.981" outRotation="0.464" outDistance="8.944"/>
+<CubicDetachedVertex x="12" y="-4" inRotation="2.678" inDistance="8.944" outRotation="2.034" outDistance="2.981"/>
+<CubicDetachedVertex x="0" y="1" inRotation="-0.1" inDistance="6.7" outRotation="-3.042" outDistance="6.7"/>
+</PointsPath>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+<Shape name="mouth-open" id="0:186">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-17" y="-6" inRotation="1.406" inDistance="8.11" outRotation="0.785" outDistance="16.028"/>
+<CubicDetachedVertex x="17" y="-6" inRotation="2.356" inDistance="16.028" outRotation="1.736" outDistance="8.11"/>
+<CubicDetachedVertex x="0" y="8" inRotation="-0.133" inDistance="10.088" outRotation="-3.009" outDistance="10.088"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FF3A1414" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<SolidColor colorValue="FF5A2424" name="C"/>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Node x="0" y="0" name="mustache">
+<Node name="mustache anim" id="0:193">
+<Shape name="path" id="0:188">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="26" y="-35"/>
+<StraightVertex x="28" y="-28"/>
+</PointsPath>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFC9CDD2" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:189">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="18" y="-35"/>
+<StraightVertex x="20" y="-27"/>
+</PointsPath>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFC9CDD2" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:190">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="-17" y="-35"/>
+<StraightVertex x="-19" y="-27"/>
+</PointsPath>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFC9CDD2" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:191">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="-25" y="-35"/>
+<StraightVertex x="-28" y="-28"/>
+</PointsPath>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFC9CDD2" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:192">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-35" y="-35" inRotation="1.107" inDistance="7.454" outRotation="-0.611" outDistance="8.138"/>
+<CubicDetachedVertex x="-5" y="-38" inRotation="-2.944" inDistance="13.597" outRotation="0.54" outDistance="3.887"/>
+<CubicDetachedVertex x="5" y="-38" inRotation="2.601" inDistance="3.887" outRotation="-0.197" outDistance="13.597"/>
+<CubicDetachedVertex x="35" y="-35" inRotation="-2.531" inDistance="8.138" outRotation="2.034" outDistance="7.454"/>
+<CubicDetachedVertex x="15" y="-25" inRotation="0" inDistance="10" outRotation="-2.944" outDistance="6.799"/>
+<CubicDetachedVertex x="0" y="-25" inRotation="-0.381" inDistance="3.59" outRotation="-2.761" outDistance="3.59"/>
+<CubicDetachedVertex x="-15" y="-25" inRotation="-0.197" inDistance="6.799" outRotation="3.142" outDistance="10"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FF9CA3AB" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<SolidColor colorValue="FFFAFAFA" name="C"/>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Shape x="3" y="-45" name="ellipse" id="0:194">
+<Ellipse width="4" height="2.4" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-3" y="-45" name="ellipse" id="0:195">
+<Ellipse width="4" height="2.4" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Fill>
+</Shape>
+<Shape name="path" id="0:196">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-5" y="-65" inRotation="1.938" inDistance="9.286" outRotation="1.326" outDistance="13.744"/>
+<CubicDetachedVertex x="5" y="-65" inRotation="1.816" inDistance="13.744" outRotation="1.204" outDistance="9.286"/>
+<CubicDetachedVertex x="0" y="-40" inRotation="-0.876" inDistance="10.414" outRotation="-2.266" outDistance="10.414"/>
+</PointsPath>
+<Stroke thickness="1.2" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<SolidColor colorValue="FFF4B894" name="C"/>
+</Fill>
+</Shape>
+<Shape x="40" y="-50" name="cheek-r" id="0:197">
+<Ellipse width="28" height="18" name="Path"/>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="0" endX="11.5" endY="0" name="G">
+<GradientStop colorValue="B3FF9A8B" position="0"/>
+<GradientStop colorValue="00FF9A8B" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+<Shape x="-40" y="-50" name="cheek-l" id="0:198">
+<Ellipse width="28" height="18" name="Path"/>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="0" endX="11.5" endY="0" name="G">
+<GradientStop colorValue="B3FF9A8B" position="0"/>
+<GradientStop colorValue="00FF9A8B" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+<Node x="0" y="0" name="glasses">
+<Node name="glasses anim" id="0:206">
+<Shape opacity="0.6" name="path" id="0:199">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="15" y="-88" inRotation="0" inDistance="0" outRotation="-0.519" outDistance="5.375"/>
+<CubicDetachedVertex x="30" y="-88" inRotation="-2.678" inDistance="5.963" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Stroke>
+</Shape>
+<Shape opacity="0.6" name="path" id="0:200">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-35" y="-88" inRotation="0" inDistance="0" outRotation="-0.519" outDistance="5.375"/>
+<CubicDetachedVertex x="-20" y="-88" inRotation="-2.678" inDistance="5.963" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="line" id="0:201">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="45" y="-79"/>
+<StraightVertex x="58" y="-82"/>
+</PointsPath>
+<Stroke thickness="3" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FF2A2A2A" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="line" id="0:202">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="-45" y="-79"/>
+<StraightVertex x="-58" y="-82"/>
+</PointsPath>
+<Stroke thickness="3" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FF2A2A2A" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="line" id="0:203">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="-5" y="-79"/>
+<StraightVertex x="5" y="-79"/>
+</PointsPath>
+<Stroke thickness="3" name="Stroke">
+<SolidColor colorValue="FF2A2A2A" name="C"/>
+</Stroke>
+</Shape>
+<Shape x="25" y="-79" name="circle" id="0:204">
+<Ellipse width="40" height="40" name="Path"/>
+<Stroke thickness="3" name="Stroke">
+<SolidColor colorValue="FF2A2A2A" name="C"/>
+</Stroke>
+</Shape>
+<Shape x="-25" y="-79" name="circle" id="0:205">
+<Ellipse width="40" height="40" name="Path"/>
+<Stroke thickness="3" name="Stroke">
+<SolidColor colorValue="FF2A2A2A" name="C"/>
+</Stroke>
+</Shape>
+</Node>
+</Node>
+<Node x="0" y="0" name="eyes">
+<Node name="eyes anim" id="0:215">
+<Shape x="26" y="-82" name="circle" id="0:207">
+<Ellipse width="3.6" height="3.6" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-22" y="-82" name="circle" id="0:208">
+<Ellipse width="3.6" height="3.6" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+<Shape x="24" y="-79" name="circle" id="0:209">
+<Ellipse width="5" height="5" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF1A1208" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-24" y="-79" name="circle" id="0:210">
+<Ellipse width="5" height="5" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF1A1208" name="C"/>
+</Fill>
+</Shape>
+<Shape x="24" y="-79" name="iris-r" id="0:211">
+<Ellipse width="11" height="11" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF5C4023" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-24" y="-79" name="iris-l" id="0:212">
+<Ellipse width="11" height="11" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF5C4023" name="C"/>
+</Fill>
+</Shape>
+<Shape x="25" y="-80" name="eye-white-r" id="0:213">
+<Ellipse width="22" height="24" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-25" y="-80" name="eye-white-l" id="0:214">
+<Ellipse width="22" height="24" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Node x="0" y="-98" name="eyebrows">
+<Node name="eyebrows anim" id="0:218">
+<Shape name="brow-r" id="0:216">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="8" y="0" inRotation="0" inDistance="0" outRotation="-0.532" outDistance="13.149"/>
+<CubicDetachedVertex x="42" y="0" inRotation="-2.61" inDistance="13.149" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="7" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FFE8ECF0" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="brow-l" id="0:217">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-42" y="0" inRotation="0" inDistance="0" outRotation="-0.532" outDistance="13.149"/>
+<CubicDetachedVertex x="-8" y="0" inRotation="-2.61" inDistance="13.149" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="7" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FFE8ECF0" name="C"/>
+</Stroke>
+</Shape>
+</Node>
+</Node>
+<Node x="0" y="0" name="hair">
+<Node name="hair anim" id="0:223">
+<Shape name="path" id="0:219">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-20" y="-180" inRotation="0" inDistance="0" outRotation="-0.785" outDistance="9.428"/>
+<CubicDetachedVertex x="5" y="-182" inRotation="-2.652" inDistance="11.333" outRotation="1.966" outDistance="8.667"/>
+<CubicDetachedVertex x="-12" y="-170" inRotation="0" inDistance="8" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.2" name="Stroke">
+<SolidColor colorValue="FF9CA3AB" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+<Shape name="path" id="0:220">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="70" y="-105" inRotation="0" inDistance="0" outRotation="0.785" outDistance="9.428"/>
+<CubicDetachedVertex x="75" y="-75" inRotation="-1.326" inDistance="13.744" outRotation="-2.356" outDistance="6.6"/>
+<CubicDetachedVertex x="62" y="-90" inRotation="0.927" inDistance="6.667" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FF9CA3AB" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<LinearGradient startX="62" startY="-105" endX="62" endY="-75" name="G">
+<GradientStop colorValue="FFFAFAFA" position="0"/>
+<GradientStop colorValue="FFC9CDD2" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:221">
+<PointsPath isClosed="true" isClockwise="false" name="Path">
+<CubicDetachedVertex x="-70" y="-105" inRotation="0" inDistance="0" outRotation="2.356" outDistance="9.428"/>
+<CubicDetachedVertex x="-75" y="-75" inRotation="-1.816" inDistance="13.744" outRotation="-0.785" outDistance="6.6"/>
+<CubicDetachedVertex x="-62" y="-90" inRotation="2.214" inDistance="6.667" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FF9CA3AB" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<LinearGradient startX="-78.333" startY="-105" endX="-78.333" endY="-75" name="G">
+<GradientStop colorValue="FFFAFAFA" position="0"/>
+<GradientStop colorValue="FFC9CDD2" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:222">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-65" y="-110" inRotation="-0.972" inDistance="17.751" outRotation="-1.93" outDistance="28.48"/>
+<CubicDetachedVertex x="-55" y="-170" inRotation="2.467" inDistance="21.344" outRotation="-0.785" outDistance="14.142"/>
+<CubicDetachedVertex x="-20" y="-180" inRotation="-2.897" inDistance="13.744" outRotation="-0.588" outDistance="12.019"/>
+<CubicDetachedVertex x="20" y="-180" inRotation="-2.761" inDistance="17.951" outRotation="-0.197" outDistance="16.997"/>
+<CubicDetachedVertex x="60" y="-165" inRotation="-2.214" inDistance="16.667" outRotation="0.927" outDistance="16.667"/>
+<CubicDetachedVertex x="70" y="-110" inRotation="-1.429" inDistance="23.57" outRotation="-2.034" outDistance="14.907"/>
+<CubicDetachedVertex x="45" y="-135" inRotation="0.322" inDistance="10.541" outRotation="-2.356" outDistance="9.428"/>
+<CubicDetachedVertex x="20" y="-140" inRotation="-0.322" inDistance="10.541" outRotation="-2.652" outDistance="11.333"/>
+<CubicDetachedVertex x="-5" y="-140" inRotation="-0.675" inDistance="8.537" outRotation="-2.82" outDistance="10.541"/>
+<CubicDetachedVertex x="-35" y="-135" inRotation="-0.588" inDistance="12.019" outRotation="2.944" outDistance="10.198"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FF9CA3AB" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<LinearGradient startX="-75" startY="-186.667" endX="-75" endY="-110" name="G">
+<GradientStop colorValue="FFFAFAFA" position="0"/>
+<GradientStop colorValue="FFC9CDD2" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Shape name="path" id="0:224">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-60" y="-80" inRotation="1.571" inDistance="26.667" outRotation="-1.67" outDistance="33.5"/>
+<CubicDetachedVertex x="-25" y="-150" inRotation="2.678" inDistance="29.814" outRotation="-0.381" outDistance="17.951"/>
+<CubicDetachedVertex x="25" y="-150" inRotation="-2.761" inDistance="17.951" outRotation="0.464" outDistance="29.814"/>
+<CubicDetachedVertex x="60" y="-80" inRotation="-1.471" inDistance="33.5" outRotation="1.571" outDistance="26.667"/>
+<CubicDetachedVertex x="40" y="-25" inRotation="-0.644" inDistance="16.667" outRotation="2.678" outDistance="14.907"/>
+<CubicDetachedVertex x="0" y="-15" inRotation="0" inDistance="13.333" outRotation="3.142" outDistance="13.333"/>
+<CubicDetachedVertex x="-40" y="-25" inRotation="0.464" inDistance="14.907" outRotation="-2.498" outDistance="16.667"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="-100" endX="80.5" endY="-100" name="G">
+<GradientStop colorValue="FFFFE0CC" position="0"/>
+<GradientStop colorValue="FFF4B894" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:225">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="60" y="-87" inRotation="0" inDistance="0" outRotation="0.785" outDistance="4.714"/>
+<CubicDetachedVertex x="68" y="-87" inRotation="2.111" inDistance="3.887" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.2" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:226">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-68" y="-87" inRotation="0" inDistance="0" outRotation="0.785" outDistance="4.714"/>
+<CubicDetachedVertex x="-60" y="-87" inRotation="2.111" inDistance="3.887" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.2" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+</Shape>
+<Shape x="65" y="-85" name="ellipse" id="0:227">
+<Ellipse width="20" height="28" name="Path"/>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="-2.8" endX="14.4" endY="-2.8" name="G">
+<GradientStop colorValue="FFFFE0CC" position="0"/>
+<GradientStop colorValue="FFF4B894" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+<Shape x="-65" y="-85" name="ellipse" id="0:228">
+<Ellipse width="20" height="28" name="Path"/>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="-2.8" endX="14.4" endY="-2.8" name="G">
+<GradientStop colorValue="FFFFE0CC" position="0"/>
+<GradientStop colorValue="FFF4B894" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:229">
+<PointsPath isClosed="true" isClockwise="false" name="Path">
+<StraightVertex x="-20" y="-25"/>
+<CubicDetachedVertex x="-20" y="5" inRotation="0" inDistance="0" outRotation="0.464" outDistance="14.907"/>
+<CubicDetachedVertex x="20" y="5" inRotation="2.678" inDistance="14.907" outRotation="0" outDistance="0"/>
+<StraightVertex x="20" y="-25"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="-10.333" endX="23" endY="-10.333" name="G">
+<GradientStop colorValue="FFFFE0CC" position="0"/>
+<GradientStop colorValue="FFF4B894" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Node x="200" y="495" name="body-group">
+<Node name="body-group anim" id="0:261">
+<Node x="62" y="-227" name="arm-right">
+<Node name="arm-right anim" id="0:239">
+<Node x="25" y="-76" name="thumbs-up">
+<Node name="thumbs-up anim" id="0:236">
+<Shape x="11" y="-42" name="thumb-nail" id="0:231">
+<Ellipse width="6" height="4" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFE8DA" name="C"/>
+</Fill>
+</Shape>
+<Shape name="thumb" id="0:232">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="3" y="-12" inRotation="0" inDistance="0" outRotation="-1.67" outDistance="13.4"/>
+<CubicDetachedVertex x="5" y="-44" inRotation="1.893" inDistance="8.433" outRotation="-0.927" outDistance="6.667"/>
+<CubicDetachedVertex x="17" y="-46" inRotation="-2.356" inDistance="5.657" outRotation="1.429" outDistance="9.428"/>
+<CubicDetachedVertex x="15" y="-14" inRotation="-1.352" inDistance="12.293" outRotation="2.159" outDistance="4.807"/>
+<CubicDetachedVertex x="3" y="-10" inRotation="0.245" inDistance="5.497" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<RadialGradient startX="10" startY="-33.467" endX="27.4" endY="-33.467" name="G">
+<GradientStop colorValue="FFFFE0CC" position="0"/>
+<GradientStop colorValue="FFF4B894" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:233">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-9" y="2" inRotation="0" inDistance="0" outRotation="0.785" outDistance="3.771"/>
+<CubicDetachedVertex x="-1" y="2" inRotation="2.356" inDistance="3.771" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:234">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-9" y="-4" inRotation="0" inDistance="0" outRotation="-0.785" outDistance="3.771"/>
+<CubicDetachedVertex x="-1" y="-4" inRotation="-2.356" inDistance="3.771" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+</Shape>
+<Shape x="0" y="-2" name="ellipse" id="0:235">
+<Ellipse width="32" height="28" name="Path"/>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="-2.8" endX="18" endY="-2.8" name="G">
+<GradientStop colorValue="FFFFE0CC" position="0"/>
+<GradientStop colorValue="FFF4B894" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Shape x="25" y="-68" name="ellipse" id="0:237">
+<Ellipse width="28" height="12" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFA8CDF0" name="C"/>
+</Fill>
+</Shape>
+<Shape name="path" id="0:238">
+<PointsPath isClosed="true" isClockwise="false" name="Path">
+<CubicDetachedVertex x="13" y="2" inRotation="0" inDistance="0" outRotation="0.785" outDistance="18.856"/>
+<CubicDetachedVertex x="28" y="-18" inRotation="1.446" inDistance="26.874" outRotation="-1.637" outDistance="20.044"/>
+<CubicDetachedVertex x="13" y="-68" inRotation="0.994" inDistance="15.902" outRotation="-2.82" outDistance="10.541"/>
+<CubicDetachedVertex x="-10" y="-53" inRotation="-1.19" inDistance="14.36" outRotation="1.651" outDistance="16.72"/>
+<CubicDetachedVertex x="-7" y="2" inRotation="-1.736" inDistance="20.276" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFB8C8D8" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<LinearGradient startX="-11.333" startY="-71.333" endX="-11.333" endY="15.333" name="G">
+<GradientStop colorValue="FFFFFFFF" position="0"/>
+<GradientStop colorValue="FFDCE7F2" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Node x="-65" y="-220" name="arm-left">
+<Node name="arm-left anim" id="0:242">
+<Shape x="-3" y="137" name="circle" id="0:240">
+<Ellipse width="28" height="28" name="Path"/>
+<Stroke thickness="1.5" name="Stroke">
+<SolidColor colorValue="FFD49A77" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<RadialGradient startX="0" startY="-2.8" endX="16.8" endY="-2.8" name="G">
+<GradientStop colorValue="FFFFE0CC" position="0"/>
+<GradientStop colorValue="FFF4B894" position="1"/>
+</RadialGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:241">
+<PointsPath isClosed="true" isClockwise="false" name="Path">
+<CubicDetachedVertex x="-10" y="-5" inRotation="0.245" inDistance="13.744" outRotation="1.899" outDistance="35.207"/>
+<CubicDetachedVertex x="-23" y="105" inRotation="-1.637" inDistance="40.089" outRotation="1.504" outDistance="20.044"/>
+<CubicDetachedVertex x="-5" y="140" inRotation="-2.839" inDistance="11.175" outRotation="0" outDistance="10"/>
+<CubicDetachedVertex x="10" y="120" inRotation="1.571" inDistance="13.333" outRotation="-1.571" outDistance="30"/>
+<CubicDetachedVertex x="10" y="25" inRotation="1.571" inDistance="33.333" outRotation="-1.571" outDistance="16.667"/>
+</PointsPath>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFB8C8D8" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<LinearGradient startX="-25.667" startY="-5" endX="-25.667" endY="140" name="G">
+<GradientStop colorValue="FFFFFFFF" position="0"/>
+<GradientStop colorValue="FFDCE7F2" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+</Node>
+</Node>
+<Node x="0" y="0" name="stethoscope">
+<Node name="stethoscope anim" id="0:248">
+<Shape x="34" y="-180" name="circle" id="0:243">
+<Ellipse width="6" height="6" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF9A9A9A" name="C"/>
+</Fill>
+</Shape>
+<Shape x="37" y="-177" name="circle" id="0:244">
+<Ellipse width="18" height="18" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF5A5A5A" name="C"/>
+</Fill>
+</Shape>
+<Shape x="37" y="-177" name="circle" id="0:245">
+<Ellipse width="28" height="28" name="Path"/>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FF7A7A7A" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<SolidColor colorValue="FFC0C0C0" name="C"/>
+</Fill>
+</Shape>
+<Shape name="path" id="0:246">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<CubicDetachedVertex x="28" y="-170" inRotation="0" inDistance="0" outRotation="-1.571" outDistance="3.333"/>
+<CubicDetachedVertex x="32" y="-177" inRotation="2.678" inDistance="2.981" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="6" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FF2A2A2A" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:247">
+<PointsPath isClosed="false" isClockwise="false" name="Path">
+<CubicDetachedVertex x="-30" y="-245" inRotation="0" inDistance="0" outRotation="2.159" outDistance="24.037"/>
+<CubicDetachedVertex x="-55" y="-175" inRotation="-1.446" inDistance="26.874" outRotation="1.67" outDistance="20.1"/>
+<CubicDetachedVertex x="-35" y="-130" inRotation="-2.564" inDistance="18.306" outRotation="0.54" outDistance="19.437"/>
+<CubicDetachedVertex x="10" y="-130" inRotation="2.498" inDistance="16.667" outRotation="-0.644" outDistance="16.667"/>
+<CubicDetachedVertex x="28" y="-170" inRotation="1.491" inDistance="16.72" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="6" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FF2A2A2A" name="C"/>
+</Stroke>
+</Shape>
+</Node>
+</Node>
+<Shape x="-50" y="-160" name="rect" id="0:249">
+<Rectangle width="4" height="18" originX="0" originY="0" cornerRadiusTL="1" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFE84D4D" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-58" y="-160" name="rect" id="0:250">
+<Rectangle width="4" height="18" originX="0" originY="0" cornerRadiusTL="1" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF1E6FD9" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-65" y="-155" name="rect" id="0:251">
+<Rectangle width="38" height="42" originX="0" originY="0" cornerRadiusTL="3" name="Path"/>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFC5D2E0" name="C"/>
+</Stroke>
+</Shape>
+<Shape name="path" id="0:252">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<StraightVertex x="-5" y="-255"/>
+<StraightVertex x="5" y="-255"/>
+<StraightVertex x="7" y="-247"/>
+<StraightVertex x="-7" y="-247"/>
+</PointsPath>
+<Fill name="Fill">
+<SolidColor colorValue="FF0A3D80" name="C"/>
+</Fill>
+</Shape>
+<Shape name="path" id="0:253">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<StraightVertex x="-5" y="-255"/>
+<StraightVertex x="5" y="-255"/>
+<StraightVertex x="8" y="-245"/>
+<StraightVertex x="3" y="-175"/>
+<StraightVertex x="0" y="-165"/>
+<StraightVertex x="-3" y="-175"/>
+<StraightVertex x="-8" y="-245"/>
+</PointsPath>
+<Fill name="Fill">
+<LinearGradient startX="-8" startY="-255" endX="-8" endY="-165" name="G">
+<GradientStop colorValue="FF1E6FD9" position="0"/>
+<GradientStop colorValue="FF0E4FAA" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:254">
+<PointsPath isClosed="true" isClockwise="false" name="Path">
+<CubicDetachedVertex x="-35" y="-263" inRotation="0" inDistance="0" outRotation="1.318" outDistance="39.939"/>
+<CubicDetachedVertex x="0" y="-205" inRotation="3.142" inDistance="13.333" outRotation="0" outDistance="13.333"/>
+<CubicDetachedVertex x="35" y="-263" inRotation="1.824" inDistance="39.939" outRotation="0" outDistance="0"/>
+<CubicDetachedVertex x="25" y="-255" inRotation="0" inDistance="0" outRotation="1.695" outDistance="26.874"/>
+<CubicDetachedVertex x="0" y="-215" inRotation="0" inDistance="13.333" outRotation="3.142" outDistance="13.333"/>
+<CubicDetachedVertex x="-25" y="-255" inRotation="1.446" inDistance="26.874" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Fill name="Fill">
+<LinearGradient startX="-35" startY="-263" endX="-35" endY="-205" name="G">
+<GradientStop colorValue="FFA8CDF0" position="0"/>
+<GradientStop colorValue="FF7FB0DD" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+<Shape name="path" id="0:255">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="-80" y="-235" inRotation="0" inDistance="0" outRotation="-1.571" outDistance="13.333"/>
+<CubicDetachedVertex x="-55" y="-260" inRotation="2.944" inDistance="16.997" outRotation="0" outDistance="0"/>
+<CubicDetachedVertex x="-35" y="-263" inRotation="0" inDistance="0" outRotation="1.195" outDistance="27.236"/>
+<CubicDetachedVertex x="0" y="-225" inRotation="3.142" inDistance="13.333" outRotation="0" outDistance="13.333"/>
+<CubicDetachedVertex x="35" y="-263" inRotation="1.947" inDistance="27.236" outRotation="0" outDistance="0"/>
+<CubicDetachedVertex x="55" y="-260" inRotation="0" inDistance="0" outRotation="0.197" outDistance="16.997"/>
+<CubicDetachedVertex x="80" y="-235" inRotation="-1.571" inDistance="13.333" outRotation="0" outDistance="0"/>
+<CubicDetachedVertex x="90" y="-45" inRotation="0" inDistance="0" outRotation="1.571" outDistance="6.667"/>
+<CubicDetachedVertex x="80" y="-35" inRotation="0" inDistance="6.667" outRotation="0" outDistance="0"/>
+<CubicDetachedVertex x="-80" y="-35" inRotation="0" inDistance="0" outRotation="3.142" outDistance="6.667"/>
+<CubicDetachedVertex x="-90" y="-45" inRotation="1.571" inDistance="6.667" outRotation="0" outDistance="0"/>
+</PointsPath>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFB8C8D8" name="C"/>
+</Stroke>
+<Fill name="Fill">
+<LinearGradient startX="-90" startY="-263" endX="-90" endY="-35" name="G">
+<GradientStop colorValue="FFFFFFFF" position="0"/>
+<GradientStop colorValue="FFDCE7F2" position="1"/>
+</LinearGradient>
+</Fill>
+</Shape>
+<Node x="0" y="0" name="legs">
+<Node name="legs anim" id="0:260">
+<Shape x="17" y="0" name="ellipse" id="0:256">
+<Ellipse width="44" height="16" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF3A2414" name="C"/>
+</Fill>
+</Shape>
+<Shape x="-17" y="0" name="ellipse" id="0:257">
+<Ellipse width="44" height="16" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF3A2414" name="C"/>
+</Fill>
+</Shape>
+<Shape name="path" id="0:258">
+<PointsPath isClosed="true" isClockwise="false" name="Path">
+<StraightVertex x="0" y="-55"/>
+<CubicDetachedVertex x="0" y="-7" inRotation="0" inDistance="0" outRotation="1.571" outDistance="4.667"/>
+<CubicDetachedVertex x="5" y="0" inRotation="3.142" inDistance="3.333" outRotation="0" outDistance="0"/>
+<CubicDetachedVertex x="25" y="0" inRotation="0" inDistance="0" outRotation="0" outDistance="6.667"/>
+<CubicDetachedVertex x="35" y="-7" inRotation="1.571" inDistance="4.667" outRotation="0" outDistance="0"/>
+<StraightVertex x="30" y="-55"/>
+</PointsPath>
+<Fill name="Fill">
+<SolidColor colorValue="FF6B4528" name="C"/>
+</Fill>
+</Shape>
+<Shape name="path" id="0:259">
+<PointsPath isClosed="true" isClockwise="false" name="Path">
+<StraightVertex x="-30" y="-55"/>
+<CubicDetachedVertex x="-35" y="-7" inRotation="0" inDistance="0" outRotation="1.571" outDistance="4.667"/>
+<CubicDetachedVertex x="-25" y="0" inRotation="3.142" inDistance="6.667" outRotation="0" outDistance="0"/>
+<CubicDetachedVertex x="-5" y="0" inRotation="0" inDistance="0" outRotation="0" outDistance="3.333"/>
+<CubicDetachedVertex x="0" y="-7" inRotation="1.571" inDistance="4.667" outRotation="0" outDistance="0"/>
+<StraightVertex x="0" y="-55"/>
+</PointsPath>
+<Fill name="Fill">
+<SolidColor colorValue="FF5C3A24" name="C"/>
+</Fill>
+</Shape>
+</Node>
+</Node>
+</Node>
+</Node>
+<Shape x="200" y="500" opacity="0.18" name="ground-shadow" id="0:262">
+<Ellipse width="200" height="28" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF0E4FAA" name="C"/>
+</Fill>
+</Shape>
+</Node>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:320" name="FbText" id="0:319">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="4" gapHorizontalUnitsValue="points" gapVertical="4" gapVerticalUnitsValue="points" name="FbText Style" id="0:320"/>
+<Text wrapValue="wrap" name="FbTitle" id="0:315">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="" name="Sem" headingLevel="2">
+<DataBindContext sourcePathIds="0:40-0:51" propertyKey="983"/>
+</SemanticData>
+<TextStylePaint fontSize="21" fontAssetId="0:73" name="FbTitle Style" id="0:316">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C" id="0:265"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:316" text="Excelente, doutor!" name="Run">
+<DataBindContext sourcePathIds="0:40-0:51" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<Text wrapValue="wrap" name="FbSubtitle" id="0:317">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="" name="Sem">
+<DataBindContext sourcePathIds="0:40-0:52" propertyKey="983"/>
+</SemanticData>
+<TextStylePaint fontSize="14" fontAssetId="0:73" name="FbSubtitle Style" id="0:318">
+<Fill name="F">
+<SolidColor colorValue="FF6F8AA8" name="C" id="0:266"/>
+</Fill>
+</TextStylePaint>
+<TextValueRun styleId="0:318" text="" name="Run">
+<DataBindContext sourcePathIds="0:40-0:52" propertyKey="268"/>
+</TextValueRun>
+</Text>
+</LayoutComponent>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:280" name="Rewards" id="0:279">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="8" gapHorizontalUnitsValue="points" gapVertical="8" gapVerticalUnitsValue="points" name="Rewards Style" id="0:280"/>
+<LayoutComponent height="30" clip="false" styleId="0:267" name="XpPill" id="0:270">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" layoutWidthScaleType="hug" layoutHeightScaleType="fixed" paddingLeft="12" paddingLeftUnitsValue="points" paddingRight="12" paddingRightUnitsValue="points" cornerRadiusTL="15" name="XpPill Style" id="0:267"/>
+<Text wrapValue="noWrap" name="XpPillT" id="0:268">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="13" fontAssetId="0:73" name="XpPillT Style" id="0:269">
+<Fill name="F">
+<SolidColor colorValue="FFC77F00" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:269" text="+" name="Run"/>
+<TextValueRun styleId="0:269" text="0" name="Run">
+<DataBindContext sourcePathIds="0:40-0:53" propertyKey="268" converterId="0:70"/>
+</TextValueRun>
+<TextValueRun styleId="0:269" text=" XP" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFF4D6" name="C"/>
+</Fill>
+</LayoutComponent>
+<LayoutComponent height="30" clip="false" styleId="0:274" name="ComboPill" id="0:273">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" layoutWidthScaleType="hug" layoutHeightScaleType="fixed" paddingLeft="12" paddingLeftUnitsValue="points" paddingRight="12" paddingRightUnitsValue="points" cornerRadiusTL="15" name="ComboPill Style" id="0:274"/>
+<Text wrapValue="noWrap" name="ComboPillT" id="0:271">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="13" fontAssetId="0:73" name="ComboPillT Style" id="0:272">
+<Fill name="F">
+<SolidColor colorValue="FFC2410C" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:272" text="Combo " name="Run"/>
+<TextValueRun styleId="0:272" text="0" name="Run">
+<DataBindContext sourcePathIds="0:40-0:48" propertyKey="268" converterId="0:70"/>
+</TextValueRun>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFE9DA" name="C"/>
+</Fill>
+</LayoutComponent>
+<LayoutComponent height="30" clip="false" styleId="0:278" name="AccPill" id="0:277">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" layoutWidthScaleType="hug" layoutHeightScaleType="fixed" paddingLeft="12" paddingLeftUnitsValue="points" paddingRight="12" paddingRightUnitsValue="points" cornerRadiusTL="15" name="AccPill Style" id="0:278"/>
+<Text wrapValue="noWrap" name="AccPillT" id="0:275">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="13" fontAssetId="0:73" name="AccPillT Style" id="0:276">
+<Fill name="F">
+<SolidColor colorValue="FF1E6FD9" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:276" text="0" name="Run">
+<DataBindContext sourcePathIds="0:40-0:54" propertyKey="268" converterId="0:70"/>
+</TextValueRun>
+<TextValueRun styleId="0:276" text="% de acerto" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFF0F7FF" name="C"/>
+</Fill>
+</LayoutComponent>
+</LayoutComponent>
+<Text wrapValue="wrap" name="ConfQ" id="0:323">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="13" fontAssetId="0:73" name="ConfQ Style" id="0:324">
+<Fill name="F">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:324" text="Quão confiante você estava?" name="Run"/>
+</Text>
+<LayoutComponent clip="false" styleId="0:326" name="ConfRow" id="0:325">
+<LayoutComponentStyle flexDirectionValue="row" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="8" gapHorizontalUnitsValue="points" gapVertical="8" gapVerticalUnitsValue="points" name="ConfRow Style" id="0:326"/>
+<LayoutComponent height="54" clip="false" styleId="0:287" name="Conf guessed" id="0:286">
+<LayoutComponentStyle flexDirectionValue="column" layoutAlignmentType="center" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" paddingLeft="4" paddingLeftUnitsValue="points" paddingRight="4" paddingRightUnitsValue="points" cornerRadiusTL="12" name="Conf guessed Style" id="0:287"/>
+<SemanticData role="button" label="Chutei" name="Sem"/>
+<Text wrapValue="wrap" alignValue="center" name="ConfL guessed" id="0:284">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="12" fontAssetId="0:73" name="ConfL guessed Style" id="0:285">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C" id="0:283"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:285" text="Chutei" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C" id="0:281"/>
+</Fill>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C" id="0:282"/>
+</Stroke>
+</LayoutComponent>
+<LayoutComponent height="54" clip="false" styleId="0:294" name="Conf thoughtKnew" id="0:293">
+<LayoutComponentStyle flexDirectionValue="column" layoutAlignmentType="center" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" paddingLeft="4" paddingLeftUnitsValue="points" paddingRight="4" paddingRightUnitsValue="points" cornerRadiusTL="12" name="Conf thoughtKnew Style" id="0:294"/>
+<SemanticData role="button" label="Achei que sabia" name="Sem"/>
+<Text wrapValue="wrap" alignValue="center" name="ConfL thoughtKnew" id="0:291">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="12" fontAssetId="0:73" name="ConfL thoughtKnew Style" id="0:292">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C" id="0:290"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:292" text="Achei que sabia" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C" id="0:288"/>
+</Fill>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C" id="0:289"/>
+</Stroke>
+</LayoutComponent>
+<LayoutComponent height="54" clip="false" styleId="0:301" name="Conf knew" id="0:300">
+<LayoutComponentStyle flexDirectionValue="column" layoutAlignmentType="center" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" paddingLeft="4" paddingLeftUnitsValue="points" paddingRight="4" paddingRightUnitsValue="points" cornerRadiusTL="12" name="Conf knew Style" id="0:301"/>
+<SemanticData role="button" label="Sabia" name="Sem"/>
+<Text wrapValue="wrap" alignValue="center" name="ConfL knew" id="0:298">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="12" fontAssetId="0:73" name="ConfL knew Style" id="0:299">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C" id="0:297"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:299" text="Sabia" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C" id="0:295"/>
+</Fill>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C" id="0:296"/>
+</Stroke>
+</LayoutComponent>
+<LayoutComponent height="54" clip="false" styleId="0:308" name="Conf mastered" id="0:307">
+<LayoutComponentStyle flexDirectionValue="column" layoutAlignmentType="center" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" paddingLeft="4" paddingLeftUnitsValue="points" paddingRight="4" paddingRightUnitsValue="points" cornerRadiusTL="12" name="Conf mastered Style" id="0:308"/>
+<SemanticData role="button" label="Dominei" name="Sem"/>
+<Text wrapValue="wrap" alignValue="center" name="ConfL mastered" id="0:305">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="12" fontAssetId="0:73" name="ConfL mastered Style" id="0:306">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C" id="0:304"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:306" text="Dominei" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C" id="0:302"/>
+</Fill>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C" id="0:303"/>
+</Stroke>
+</LayoutComponent>
+</LayoutComponent>
+<LayoutComponent height="52" clip="false" styleId="0:313" name="Continue" id="0:309">
+<LayoutComponentStyle layoutAlignmentType="center" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="14" name="Continue Style" id="0:313"/>
+<ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+<SemanticData role="button" label="Continuar" name="Sem"/>
+<Text wrapValue="noWrap" name="ContinueT" id="0:311">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="16" fontAssetId="0:73" name="ContinueT Style" id="0:312">
+<Fill name="F">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:312" text="Continuar →" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FF1E6FD9" name="C" id="0:310"/>
+</Fill>
+</LayoutComponent>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C"/>
+</Stroke>
+</LayoutComponent>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:331" name="Backdrop" id="0:330">
+<LayoutComponentStyle displayValue="none" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Backdrop Style" id="0:331"/>
+<Fill name="Fill">
+<SolidColor colorValue="470B2845" name="C"/>
+</Fill>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:428" name="Main" id="0:427">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" paddingTop="8" paddingTopUnitsValue="points" name="Main Style" id="0:428"/>
+<LayoutComponent clip="false" styleId="0:165" name="Header" id="0:164">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="20" paddingLeftUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingTop="12" paddingTopUnitsValue="points" paddingBottom="12" paddingBottomUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" name="Header Style" id="0:165"/>
+<LayoutComponent width="36" height="36" clip="false" styleId="0:146" name="Close" id="0:145">
+<LayoutComponentStyle layoutWidthScaleType="fixed" layoutHeightScaleType="fixed" cornerRadiusTL="18" layoutAlignmentType="center" name="Close Style" id="0:146"/>
+<SemanticData role="button" label="Fechar o quiz" name="Sem"/>
+<Node x="18" y="18" name="Close Art">
+<Shape x="0" y="0" name="X" id="0:144">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="-5" y="-5"/>
+<StraightVertex x="5" y="5"/>
+</PointsPath>
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="5" y="-5"/>
+<StraightVertex x="-5" y="5"/>
+</PointsPath>
+<Stroke thickness="2.6" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Stroke>
+</Shape>
+</Node>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C"/>
+</Stroke>
+</LayoutComponent>
+<LayoutComponent height="10" clip="true" styleId="0:147" name="Track" id="0:152">
+<LayoutComponentStyle flexDirectionValue="row" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="5" name="Track Style" id="0:147"/>
+<LayoutComponent clip="false" styleId="0:149" name="Done" id="0:148">
+<LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" cornerRadiusTL="5" name="Done Style" id="0:149"/>
+<DataBindContext sourcePathIds="0:40-0:49" propertyKey="706"/>
+<Fill name="Fill">
+<LinearGradient startX="0" startY="0" endX="200" endY="0" name="G">
+<GradientStop colorValue="FF1E6FD9" position="0"/>
+<GradientStop colorValue="FF4FA8E8" position="1"/>
+</LinearGradient>
+</Fill>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:151" name="Rest" id="0:150">
+<LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Rest Style" id="0:151"/>
+<DataBindContext sourcePathIds="0:40-0:49" propertyKey="706" converterId="0:71"/>
+</LayoutComponent>
+<Fill name="Fill">
+<SolidColor colorValue="FFD6E4F3" name="C"/>
+</Fill>
+</LayoutComponent>
+<LayoutComponent height="30" clip="false" styleId="0:153" name="Combo" id="0:159">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" layoutWidthScaleType="hug" layoutHeightScaleType="fixed" paddingLeft="10" paddingLeftUnitsValue="points" paddingRight="10" paddingRightUnitsValue="points" gapHorizontal="4" gapHorizontalUnitsValue="points" gapVertical="4" gapVerticalUnitsValue="points" cornerRadiusTL="15" name="Combo Style" id="0:153"/>
+<SemanticData role="text" label="Sequência de acertos" name="Sem"/>
+<LayoutComponent width="18" height="18" clip="false" styleId="0:156" name="FlameBox" id="0:155">
+<LayoutComponentStyle layoutWidthScaleType="fixed" layoutHeightScaleType="fixed" layoutAlignmentType="center" name="FlameBox Style" id="0:156"/>
+<Node x="9" y="9" name="FlameBox Art">
+<Shape x="0" y="0" name="Flame" id="0:154">
+<PointsPath isClosed="true" isClockwise="true" name="Path">
+<CubicDetachedVertex x="0" y="-9" inRotation="1.893" inDistance="6.325" outRotation="1.326" outDistance="4.123"/>
+<CubicDetachedVertex x="6" y="2" inRotation="-1.571" inDistance="5" outRotation="1.571" outDistance="4"/>
+<CubicDetachedVertex x="0" y="9" inRotation="0" inDistance="3" outRotation="3.142" outDistance="3"/>
+<CubicDetachedVertex x="-6" y="2" inRotation="1.571" inDistance="4" outRotation="-1.571" outDistance="4"/>
+</PointsPath>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+</Node>
+</LayoutComponent>
+<Text wrapValue="noWrap" name="ComboN" id="0:157">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="15" fontAssetId="0:73" name="ComboN Style" id="0:158">
+<Fill name="F">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:158" text="0" name="Run">
+<DataBindContext sourcePathIds="0:40-0:48" propertyKey="268" converterId="0:70"/>
+</TextValueRun>
+</Text>
+<Fill name="Fill">
+<LinearGradient startX="0" startY="0" endX="60" endY="30" name="G">
+<GradientStop colorValue="FFFF8B3D" position="0"/>
+<GradientStop colorValue="FFFFB020" position="1"/>
+</LinearGradient>
+</Fill>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:160" name="ResultTitleBox" id="0:163">
+<LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" layoutAlignmentType="center" displayValue="none" name="ResultTitleBox Style" id="0:160"/>
+<Text wrapValue="noWrap" name="ResultTitle" id="0:161">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="Resultado" name="Sem" headingLevel="1"/>
+<TextStylePaint fontSize="17" fontAssetId="0:73" name="ResultTitle Style" id="0:162">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:162" text="Resultado" name="Run"/>
+</Text>
+</LayoutComponent>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:171" name="QuestionSection" id="0:182">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" paddingLeft="20" paddingLeftUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingTop="8" paddingTopUnitsValue="points" paddingBottom="8" paddingBottomUnitsValue="points" gapHorizontal="14" gapHorizontalUnitsValue="points" gapVertical="14" gapVerticalUnitsValue="points" name="QuestionSection Style" id="0:171"/>
+<Text wrapValue="wrap" name="ProgressLabel" id="0:172">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="" name="Sem">
+<DataBindContext sourcePathIds="0:40-0:42" propertyKey="983"/>
+</SemanticData>
+<TextStylePaint fontSize="12" letterSpacing="1.2" fontAssetId="0:73" name="ProgressLabel Style" id="0:173">
+<Fill name="F">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:173" text="Pergunta 1 de 5" name="Run">
+<DataBindContext sourcePathIds="0:40-0:42" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<Text wrapValue="wrap" name="QuestionText" id="0:174">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="" name="Sem" headingLevel="1">
+<DataBindContext sourcePathIds="0:40-0:45" propertyKey="983"/>
+</SemanticData>
+<TextStylePaint fontSize="20" lineHeight="26" fontAssetId="0:73" name="QuestionText Style" id="0:175">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:175" text="Pergunta" name="Run">
+<DataBindContext sourcePathIds="0:40-0:45" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<LayoutComponent clip="false" styleId="0:168" name="Options" id="0:167">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="10" gapHorizontalUnitsValue="points" gapVertical="10" gapVerticalUnitsValue="points" name="Options Style" id="0:168"/>
+<SemanticData role="list" label="Alternativas" name="Sem"/>
+<ArtboardComponentList name="Rows" id="0:166">
+<DataBindContext sourcePathIds="0:40-0:46" propertyKey="800"/>
+</ArtboardComponentList>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:169" name="HintBox" id="0:178">
+<LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" layoutAlignmentType="center" paddingTop="0" paddingTopUnitsValue="points" name="HintBox Style" id="0:169"/>
+<Text wrapValue="noWrap" name="Hint" id="0:176">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="13" fontAssetId="0:73" name="Hint Style" id="0:177">
+<Fill name="F">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Fill>
+</TextStylePaint>
+<TextValueRun styleId="0:177" text="Toque em uma alternativa para responder" name="Run"/>
+</Text>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:170" name="SendingBox" id="0:181">
+<LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" layoutAlignmentType="center" displayValue="none" name="SendingBox Style" id="0:170"/>
+<Text wrapValue="noWrap" name="Sending" id="0:179">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="13" fontAssetId="0:73" name="Sending Style" id="0:180">
+<Fill name="F">
+<SolidColor colorValue="FF1E6FD9" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="600" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:180" text="Enviando…" name="Run"/>
+</Text>
+</LayoutComponent>
+</LayoutComponent>
+<LayoutComponent clip="true" styleId="0:375" name="ResultSection" id="0:376">
+<LayoutComponentStyle displayValue="none" flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="ResultSection Style" id="0:375"/>
+<LayoutComponent clip="false" styleId="0:374" name="ResultContent" id="0:373">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="20" paddingLeftUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingTop="4" paddingTopUnitsValue="points" paddingBottom="32" paddingBottomUnitsValue="points" gapHorizontal="14" gapHorizontalUnitsValue="points" gapVertical="14" gapVerticalUnitsValue="points" name="ResultContent Style" id="0:374"/>
+<LayoutComponent clip="false" styleId="0:366" name="ScoreCard" id="0:365">
+<LayoutComponentStyle flexDirectionValue="column" layoutAlignmentType="topCenter" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingTop="20" paddingTopUnitsValue="points" paddingRight="20" paddingRightUnitsValue="points" paddingBottom="20" paddingBottomUnitsValue="points" paddingLeft="20" paddingLeftUnitsValue="points" gapHorizontal="10" gapHorizontalUnitsValue="points" gapVertical="10" gapVerticalUnitsValue="points" cornerRadiusTL="20" name="ScoreCard Style" id="0:366"/>
+<LayoutComponent width="132" height="132" clip="false" styleId="0:339" name="Ring" id="0:338">
+<LayoutComponentStyle layoutWidthScaleType="fixed" layoutHeightScaleType="fixed" layoutAlignmentType="center" name="Ring Style" id="0:339"/>
+<Node x="66" y="66" name="Ring Art">
+<Shape rotation="-1.5708" name="Progress">
+<Ellipse width="116" height="116" name="Path"/>
+<Stroke thickness="12" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FF22C55E" name="C" id="0:332"/>
+<TrimPath start="0" end="0.5" name="Trim" id="0:333">
+<DataBindContext sourcePathIds="0:40-0:58" propertyKey="115" converterId="0:72"/>
+</TrimPath>
+</Stroke>
+</Shape>
+<Shape name="Groove">
+<Ellipse width="116" height="116" name="Path"/>
+<Stroke thickness="12" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C"/>
+</Stroke>
+</Shape>
+</Node>
+<Text wrapValue="noWrap" name="Score" id="0:336">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="Nota" name="Sem"/>
+<TextStylePaint fontSize="30" fontAssetId="0:73" name="Score Style" id="0:337">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:337" text="0" name="Run">
+<DataBindContext sourcePathIds="0:40-0:58" propertyKey="268" converterId="0:70"/>
+</TextValueRun>
+<TextValueRun styleId="0:337" text="%" name="Run"/>
+</Text>
+</LayoutComponent>
+<LayoutComponent height="30" clip="false" styleId="0:348" name="Badge" id="0:347">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" layoutWidthScaleType="hug" layoutHeightScaleType="fixed" paddingLeft="14" paddingLeftUnitsValue="points" paddingRight="14" paddingRightUnitsValue="points" cornerRadiusTL="15" name="Badge Style" id="0:348"/>
+<LayoutComponent clip="false" styleId="0:334" name="OkBox" id="0:343">
+<LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="OkBox Style" id="0:334"/>
+<Text wrapValue="noWrap" name="Ok" id="0:341">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="14" fontAssetId="0:73" name="Ok Style" id="0:342">
+<Fill name="F">
+<SolidColor colorValue="FF15803D" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:342" text="Aprovado!" name="Run"/>
+</Text>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:335" name="BadBox" id="0:346">
+<LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" displayValue="none" name="BadBox Style" id="0:335"/>
+<Text wrapValue="noWrap" name="Bad" id="0:344">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="14" fontAssetId="0:73" name="Bad Style" id="0:345">
+<Fill name="F">
+<SolidColor colorValue="FFB91C1C" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:345" text="Reprovado" name="Run"/>
+</Text>
+</LayoutComponent>
+<Fill name="Fill">
+<SolidColor colorValue="FFECFDF5" name="C" id="0:340"/>
+</Fill>
+</LayoutComponent>
+<Text wrapValue="noWrap" name="Summary" id="0:363">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="" name="Sem">
+<DataBindContext sourcePathIds="0:40-0:60" propertyKey="983"/>
+</SemanticData>
+<TextStylePaint fontSize="15" fontAssetId="0:73" name="Summary Style" id="0:364">
+<Fill name="F">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="600" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:364" text="0 de 0 corretas" name="Run">
+<DataBindContext sourcePathIds="0:40-0:60" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C"/>
+</Stroke>
+</LayoutComponent>
+<Text wrapValue="wrap" name="ReviewTitle" id="0:367">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="Revisão das questões" name="Sem" headingLevel="2"/>
+<TextStylePaint fontSize="17" fontAssetId="0:73" name="ReviewTitle Style" id="0:368">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:368" text="Revisão das questões" name="Run"/>
+</Text>
+<LayoutComponent clip="false" styleId="0:371" name="Review" id="0:370">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="10" gapHorizontalUnitsValue="points" gapVertical="10" gapVerticalUnitsValue="points" name="Review Style" id="0:371"/>
+<ArtboardComponentList name="ReviewRows" id="0:369">
+<DataBindContext sourcePathIds="0:40-0:61" propertyKey="800"/>
+</ArtboardComponentList>
+</LayoutComponent>
+<LayoutComponent height="52" clip="false" styleId="0:358" name="Retry" id="0:351">
+<LayoutComponentStyle layoutAlignmentType="center" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="14" name="Retry Style" id="0:358"/>
+<SemanticData role="button" label="Novo Quiz" name="Sem"/>
+<LayoutComponent clip="false" styleId="0:349" name="RetryLBox" id="0:354">
+<LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="RetryLBox Style" id="0:349"/>
+<Text wrapValue="noWrap" name="RetryL" id="0:352">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="16" fontAssetId="0:73" name="RetryL Style" id="0:353">
+<Fill name="F">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:353" text="Novo Quiz" name="Run"/>
+</Text>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:350" name="GenLBox" id="0:357">
+<LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" displayValue="none" name="GenLBox Style" id="0:350"/>
+<Text wrapValue="noWrap" name="GenL" id="0:355">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="16" fontAssetId="0:73" name="GenL Style" id="0:356">
+<Fill name="F">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="800" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:356" text="Gerando…" name="Run"/>
+</Text>
+</LayoutComponent>
+<Fill name="Fill">
+<SolidColor colorValue="FF1E6FD9" name="C"/>
+</Fill>
+</LayoutComponent>
+<LayoutComponent height="52" clip="false" styleId="0:362" name="Back" id="0:359">
+<LayoutComponentStyle layoutAlignmentType="center" layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="14" name="Back Style" id="0:362"/>
+<SemanticData role="button" label="Voltar para a aula" name="Sem"/>
+<Text wrapValue="noWrap" name="BackL" id="0:360">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="16" fontAssetId="0:73" name="BackL Style" id="0:361">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:361" text="Voltar para a aula" name="Run"/>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C"/>
+</Stroke>
+</LayoutComponent>
+<ScrollConstraint directionValue="vertical" physicsId="0:372" name="Scroll"/>
+</LayoutComponent>
+</LayoutComponent>
+</LayoutComponent>
+</LayoutComponent>
+<StateMachine name="Quiz SM" id="0:141">
+<StateMachineListener targetId="0:145" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:69" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineListener targetId="0:286" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:63" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineListener targetId="0:293" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:64" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineListener targetId="0:300" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:65" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineListener targetId="0:307" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:66" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineListener targetId="0:309" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:67" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineListener targetId="0:351" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:68" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineListener targetId="0:359" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:40-0:69" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineLayer name="Phase" id="0:391">
+<AnyState x="0" y="-120"/>
+<ExitState x="200" y="-120"/>
+<EntryState x="-200" y="0">
+<StateTransition stateToId="0:388"/>
+</EntryState>
+<AnimationState x="0" y="0" animationId="0:377" stateName="question" id="0:388">
+<StateTransition stateToId="0:389" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:41" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:12"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:390" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:41" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:13"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="0" animationId="0:378" stateName="feedback" id="0:389">
+<StateTransition stateToId="0:388" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:41" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:11"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:390" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:41" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:13"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="440" y="0" animationId="0:379" stateName="result" id="0:390">
+<StateTransition stateToId="0:388" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:41" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:11"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:389" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:41" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:12"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="Gelpi" id="0:395">
+<AnyState x="0" y="180"/>
+<ExitState x="200" y="180"/>
+<EntryState x="-200" y="300">
+<StateTransition stateToId="0:392"/>
+</EntryState>
+<AnimationState x="0" y="300" animationId="0:380" stateName="none" id="0:392">
+<StateTransition stateToId="0:393" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:50" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:21"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:394" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:50" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:22"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="300" animationId="0:381" stateName="correct" id="0:393">
+<StateTransition stateToId="0:392" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:50" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:20"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:394" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:50" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:22"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="440" y="300" animationId="0:382" stateName="wrong" id="0:394">
+<StateTransition stateToId="0:392" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:50" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:20"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:393" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:50" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:21"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="Confidence" id="0:401">
+<AnyState x="0" y="480"/>
+<ExitState x="200" y="480"/>
+<EntryState x="-200" y="600">
+<StateTransition stateToId="0:396"/>
+</EntryState>
+<AnimationState x="0" y="600" animationId="0:383" stateName="none" id="0:396">
+<StateTransition stateToId="0:397" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:25"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:398" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:26"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:399" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:27"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:400" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:28"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="600" animationId="0:384" stateName="guessed" id="0:397">
+<StateTransition stateToId="0:396" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:24"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:398" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:26"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:399" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:27"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:400" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:28"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="440" y="600" animationId="0:385" stateName="thoughtKnew" id="0:398">
+<StateTransition stateToId="0:396" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:24"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:397" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:25"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:399" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:27"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:400" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:28"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="660" y="600" animationId="0:386" stateName="knew" id="0:399">
+<StateTransition stateToId="0:396" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:24"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:397" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:25"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:398" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:26"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:400" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:28"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="880" y="600" animationId="0:387" stateName="mastered" id="0:400">
+<StateTransition stateToId="0:396" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:24"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:397" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:25"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:398" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:26"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:399" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:40-0:55" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:27"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="CanContinue" id="0:406">
+<AnyState x="0" y="780"/>
+<ExitState x="200" y="780"/>
+<EntryState x="-200" y="900">
+<StateTransition stateToId="0:404"/>
+</EntryState>
+<AnimationState x="0" y="900" animationId="0:402" stateName="false" id="0:404">
+<StateTransition stateToId="0:405" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:56" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="true"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="900" animationId="0:403" stateName="true" id="0:405">
+<StateTransition stateToId="0:404" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:56" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="false"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="Locked" id="0:411">
+<AnyState x="0" y="1080"/>
+<ExitState x="200" y="1080"/>
+<EntryState x="-200" y="1200">
+<StateTransition stateToId="0:409"/>
+</EntryState>
+<AnimationState x="0" y="1200" animationId="0:407" stateName="false" id="0:409">
+<StateTransition stateToId="0:410" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:47" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="true"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="1200" animationId="0:408" stateName="true" id="0:410">
+<StateTransition stateToId="0:409" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:47" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="false"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="Submitting" id="0:416">
+<AnyState x="0" y="1380"/>
+<ExitState x="200" y="1380"/>
+<EntryState x="-200" y="1500">
+<StateTransition stateToId="0:414"/>
+</EntryState>
+<AnimationState x="0" y="1500" animationId="0:412" stateName="false" id="0:414">
+<StateTransition stateToId="0:415" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:57" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="true"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="1500" animationId="0:413" stateName="true" id="0:415">
+<StateTransition stateToId="0:414" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:57" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="false"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="Passed" id="0:421">
+<AnyState x="0" y="1680"/>
+<ExitState x="200" y="1680"/>
+<EntryState x="-200" y="1800">
+<StateTransition stateToId="0:419"/>
+</EntryState>
+<AnimationState x="0" y="1800" animationId="0:417" stateName="false" id="0:419">
+<StateTransition stateToId="0:420" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:59" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="true"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="1800" animationId="0:418" stateName="true" id="0:420">
+<StateTransition stateToId="0:419" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:59" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="false"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="Generating" id="0:426">
+<AnyState x="0" y="1980"/>
+<ExitState x="200" y="1980"/>
+<EntryState x="-200" y="2100">
+<StateTransition stateToId="0:424"/>
+</EntryState>
+<AnimationState x="0" y="2100" animationId="0:422" stateName="false" id="0:424">
+<StateTransition stateToId="0:425" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:62" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="true"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="2100" animationId="0:423" stateName="true" id="0:425">
+<StateTransition stateToId="0:424" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:40-0:62" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="false"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+</StateMachine>
+<LinearAnimation duration="1" name="Phase Question" id="0:377">
+<KeyedObject objectId="0:171">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:375">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:328">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:331">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:147">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:153">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:160">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="20" name="Phase Feedback" id="0:378">
+<KeyedObject objectId="0:171">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:375">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:328">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:331">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:147">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:153">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:160">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:314">
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="420" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="0" frame="20" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:330">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="1" frame="14" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Phase Result" id="0:379">
+<KeyedObject objectId="0:171">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:375">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:328">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:331">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:147">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:153">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:160">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Gelpi None" id="0:380">
+<KeyedObject objectId="0:232">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="72" loopValue="loop" name="Gelpi Correct" id="0:381">
+<KeyedObject objectId="0:261">
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="-14" frame="18" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="36" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="-8" frame="54" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="72" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:230">
+<KeyedProperty propertyKey="15">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="0.07" frame="18" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="-0.07" frame="54" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="72" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:239">
+<KeyedProperty propertyKey="15">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="-0.22" frame="12" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="24" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="-0.22" frame="36" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="48" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:236">
+<KeyedProperty propertyKey="15">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="0.25" frame="10" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="20" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:218">
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="-5" frame="18" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="36" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:232">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:231">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:187">
+<KeyedProperty propertyKey="17">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:265">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:266">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF6F8AA8" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:267">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="90" loopValue="loop" name="Gelpi Wrong" id="0:382">
+<KeyedObject objectId="0:230">
+<KeyedProperty propertyKey="15">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="-0.1" frame="10" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0.1" frame="22" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="-0.06" frame="34" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="44" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="90" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:261">
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="4" frame="45" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="0" frame="90" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:239">
+<KeyedProperty propertyKey="15">
+<KeyFrameDouble value="2.6" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:232">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:231">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:218">
+<KeyedProperty propertyKey="14">
+<KeyFrameDouble value="4" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:187">
+<KeyedProperty propertyKey="17">
+<KeyFrameDouble value="0.45" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:265">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF5A3520" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:266">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFB8825C" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:267">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Conf none" id="0:383">
+<KeyedObject objectId="0:281">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:282">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:283">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:288">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:289">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:290">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:295">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:296">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:297">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:302">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:303">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:304">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Conf guessed" id="0:384">
+<KeyedObject objectId="0:281">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:282">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:283">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:288">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:289">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:290">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:295">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:296">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:297">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:302">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:303">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:304">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Conf thoughtKnew" id="0:385">
+<KeyedObject objectId="0:281">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:282">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:283">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:288">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:289">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:290">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:295">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:296">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:297">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:302">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:303">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:304">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Conf knew" id="0:386">
+<KeyedObject objectId="0:281">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:282">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:283">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:288">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:289">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:290">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:295">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:296">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:297">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:302">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:303">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:304">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Conf mastered" id="0:387">
+<KeyedObject objectId="0:281">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:282">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:283">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:288">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:289">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:290">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:295">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:296">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:297">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:302">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:303">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:304">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Continue Off" id="0:402">
+<KeyedObject objectId="0:309">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0.45" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Continue On" id="0:403">
+<KeyedObject objectId="0:309">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Hint On" id="0:407">
+<KeyedObject objectId="0:169">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Hint Off" id="0:408">
+<KeyedObject objectId="0:169">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Sending Off" id="0:412">
+<KeyedObject objectId="0:170">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Sending On" id="0:413">
+<KeyedObject objectId="0:170">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Failed" id="0:417">
+<KeyedObject objectId="0:334">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:335">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:332">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFEF4444" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:340">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFEF2F2" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Passed" id="0:418">
+<KeyedObject objectId="0:334">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:335">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:332">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF22C55E" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:340">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFECFDF5" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Gen Off" id="0:422">
+<KeyedObject objectId="0:349">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:350">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Gen On" id="0:423">
+<KeyedObject objectId="0:349">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:350">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+</Artboard>
+<Artboard isComponent="true" defaultStateMachineId="0:74" viewModelId="0:29" viewModelInstanceId="0:431" x="500" y="0" width="350" height="60" styleId="0:95" name="Option" id="0:96">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Option Style" id="0:95"/>
+<LayoutComponent clip="false" styleId="0:76" name="Card" id="0:75">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="16" paddingLeftUnitsValue="points" paddingRight="16" paddingRightUnitsValue="points" paddingTop="14" paddingTopUnitsValue="points" paddingBottom="14" paddingBottomUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" cornerRadiusTL="14" name="Card Style" id="0:76"/>
+<ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+<SemanticData role="button" label="" name="Sem">
+<DataBindContext sourcePathIds="0:29-0:30" propertyKey="983"/>
+</SemanticData>
+<LayoutComponent width="28" height="28" clip="false" styleId="0:80" name="Badge" id="0:79">
+<LayoutComponentStyle layoutWidthScaleType="fixed" layoutHeightScaleType="fixed" cornerRadiusTL="8" layoutAlignmentType="center" name="Badge Style" id="0:80"/>
+<Node x="14" y="14" name="Icons">
+<Shape name="Ring" id="0:82">
+<Ellipse width="12" height="12" name="Path"/>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Stroke>
+</Shape>
+<Shape opacity="0" name="Dot" id="0:83">
+<Ellipse width="10" height="10" name="Path"/>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+</Shape>
+<Node opacity="0" name="CheckWrap" id="0:84">
+<Shape x="0" y="0" name="Check" id="0:88">
+<PointsPath isClosed="false" isClockwise="false" name="Path">
+<StraightVertex x="-6" y="0"/>
+<StraightVertex x="-2" y="4"/>
+<StraightVertex x="6" y="-5"/>
+</PointsPath>
+<Stroke thickness="2.6" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Stroke>
+</Shape>
+</Node>
+<Node opacity="0" name="XWrap" id="0:85">
+<Shape x="0" y="0" name="X" id="0:89">
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="-4.5" y="-4.5"/>
+<StraightVertex x="4.5" y="4.5"/>
+</PointsPath>
+<PointsPath isClosed="false" isClockwise="true" name="Path">
+<StraightVertex x="4.5" y="-4.5"/>
+<StraightVertex x="-4.5" y="4.5"/>
+</PointsPath>
+<Stroke thickness="2.6" cap="round" join="round" name="Stroke">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Stroke>
+</Shape>
+</Node>
+</Node>
+<Fill name="Fill">
+<SolidColor colorValue="FFF0F5FB" name="C" id="0:81"/>
+</Fill>
+</LayoutComponent>
+<Text wrapValue="wrap" name="Label" id="0:86">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="15" fontAssetId="0:73" name="Label Style" id="0:90">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C" id="0:87"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="600" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:90" text="Alternativa" name="Run">
+<DataBindContext sourcePathIds="0:29-0:30" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C" id="0:77"/>
+</Fill>
+<Stroke thickness="2" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C" id="0:78"/>
+</Stroke>
+</LayoutComponent>
+<StateMachine name="Option SM" id="0:74">
+<StateMachineListener targetId="0:75" name="Tap">
+<ListenerInputType listenerTypeValue="click"/>
+<ListenerInputTypeSemantic listenerTypeValue="semanticAction">
+<SemanticInput actionType="tap"/>
+</ListenerInputTypeSemantic>
+<ListenerViewModelChange>
+<BindablePropertyTrigger propertyValue="1">
+<DataBindContext sourcePathIds="0:29-0:32" propertyKey="686" direction="true"/>
+</BindablePropertyTrigger>
+</ListenerViewModelChange>
+</StateMachineListener>
+<StateMachineLayer name="State" id="0:101">
+<AnyState x="0" y="-120"/>
+<ExitState x="200" y="-120"/>
+<EntryState x="-200" y="0">
+<StateTransition stateToId="0:97"/>
+</EntryState>
+<AnimationState x="0" y="0" animationId="0:91" stateName="idle" id="0:97">
+<StateTransition stateToId="0:98" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:16"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:99" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:17"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:100" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:18"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="0" animationId="0:92" stateName="selected" id="0:98">
+<StateTransition stateToId="0:97" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:15"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:99" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:17"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:100" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:18"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="440" y="0" animationId="0:93" stateName="correct" id="0:99">
+<StateTransition stateToId="0:97" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:15"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:98" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:16"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:100" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:18"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="660" y="0" animationId="0:94" stateName="wrong" id="0:100">
+<StateTransition stateToId="0:97" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:15"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:98" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:16"/>
+</TransitionViewModelCondition>
+</StateTransition>
+<StateTransition stateToId="0:99" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyEnum>
+<DataBindContext sourcePathIds="0:29-0:31" propertyKey="637"/>
+</BindablePropertyEnum>
+</TransitionPropertyViewModelComparator>
+<TransitionValueEnumComparator value="0:17"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+</StateMachine>
+<LinearAnimation duration="1" name="Option Idle" id="0:91">
+<KeyedObject objectId="0:77">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:78">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFE1EAF3" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:81">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFF0F5FB" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:87">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:82">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:83">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:84">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:85">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Option Selected" id="0:92">
+<KeyedObject objectId="0:77">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFF0F7FF" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:78">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:81">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF1E6FD9" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:87">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF0B2845" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:82">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:83">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:84">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:85">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="24" name="Option Correct" id="0:93">
+<KeyedObject objectId="0:77">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFECFDF5" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:78">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF22C55E" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:81">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF22C55E" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:87">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF15803D" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:82">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:83">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:84">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:85">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:75">
+<KeyedProperty propertyKey="16">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="1.03" frame="8" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="1" frame="24" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+<KeyedProperty propertyKey="17">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="1.03" frame="8" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+<KeyFrameDouble value="1" frame="24" interpolationType="cubic">
+<CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+</KeyFrameDouble>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="24" name="Option Wrong" id="0:94">
+<KeyedObject objectId="0:77">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFFEF2F2" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:78">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFEF4444" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:81">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFEF4444" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:87">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFB91C1C" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:82">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:83">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:84">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:85">
+<KeyedProperty propertyKey="18">
+<KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:75">
+<KeyedProperty propertyKey="13">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="-7" frame="4" interpolationType="linear"/>
+<KeyFrameDouble value="7" frame="8" interpolationType="linear"/>
+<KeyFrameDouble value="-5" frame="12" interpolationType="linear"/>
+<KeyFrameDouble value="5" frame="16" interpolationType="linear"/>
+<KeyFrameDouble value="-2" frame="20" interpolationType="linear"/>
+<KeyFrameDouble value="0" frame="24" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+</Artboard>
+<Artboard isComponent="true" defaultStateMachineId="0:102" viewModelId="0:33" viewModelInstanceId="0:436" x="500" y="200" width="350" height="140" styleId="0:136" name="ReviewItem" id="0:137">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="ReviewItem Style" id="0:136"/>
+<LayoutComponent clip="true" styleId="0:133" name="Card" id="0:132">
+<LayoutComponentStyle flexDirectionValue="row" layoutWidthScaleType="fill" layoutHeightScaleType="hug" cornerRadiusTL="14" name="Card Style" id="0:133"/>
+<LayoutComponent width="4" clip="false" styleId="0:131" name="Bar" id="0:103">
+<LayoutComponentStyle layoutWidthScaleType="fixed" layoutHeightScaleType="fill" name="Bar Style" id="0:131"/>
+<Fill name="Fill">
+<SolidColor colorValue="FF22C55E" name="C" id="0:104"/>
+</Fill>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:130" name="Content" id="0:129">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingTop="14" paddingTopUnitsValue="points" paddingRight="14" paddingRightUnitsValue="points" paddingBottom="14" paddingBottomUnitsValue="points" paddingLeft="14" paddingLeftUnitsValue="points" gapHorizontal="6" gapHorizontalUnitsValue="points" gapVertical="6" gapVerticalUnitsValue="points" name="Content Style" id="0:130"/>
+<LayoutComponent clip="false" styleId="0:119" name="Head" id="0:118">
+<LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="spaceBetweenCenter" layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Head Style" id="0:119"/>
+<Text wrapValue="noWrap" name="Title" id="0:110">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="12" letterSpacing="1" fontAssetId="0:73" name="Title Style" id="0:111">
+<Fill name="F">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:111" text="Questão 1" name="Run">
+<DataBindContext sourcePathIds="0:33-0:34" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<LayoutComponent clip="false" styleId="0:108" name="OkBox" id="0:114">
+<LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="OkBox Style" id="0:108"/>
+<Text wrapValue="noWrap" name="Acertou" id="0:112">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="12" fontAssetId="0:73" name="Acertou Style" id="0:113">
+<Fill name="F">
+<SolidColor colorValue="FF15803D" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:113" text="Acertou" name="Run"/>
+</Text>
+</LayoutComponent>
+<LayoutComponent clip="false" styleId="0:109" name="BadBox" id="0:117">
+<LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="BadBox Style" id="0:109"/>
+<Text wrapValue="noWrap" name="Errou" id="0:115">
+<LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="12" fontAssetId="0:73" name="Errou Style" id="0:116">
+<Fill name="F">
+<SolidColor colorValue="FFB91C1C" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="700" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:116" text="Errou" name="Run"/>
+</Text>
+</LayoutComponent>
+</LayoutComponent>
+<Text wrapValue="wrap" name="Question" id="0:120">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<SemanticData role="text" label="" name="Sem">
+<DataBindContext sourcePathIds="0:33-0:35" propertyKey="983"/>
+</SemanticData>
+<TextStylePaint fontSize="15" fontAssetId="0:73" name="Question Style" id="0:121">
+<Fill name="F">
+<SolidColor colorValue="FF0B2845" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="600" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:121" text="Pergunta" name="Run">
+<DataBindContext sourcePathIds="0:33-0:35" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<LayoutComponent clip="false" styleId="0:107" name="Answers" id="0:126">
+<LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" gapHorizontal="4" gapHorizontalUnitsValue="points" gapVertical="4" gapVerticalUnitsValue="points" name="Answers Style" id="0:107"/>
+<Text wrapValue="wrap" name="Yours" id="0:122">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="14" fontAssetId="0:73" name="Yours Style" id="0:123">
+<Fill name="F">
+<SolidColor colorValue="FFB91C1C" name="C"/>
+</Fill>
+</TextStylePaint>
+<TextValueRun styleId="0:123" text="Sua resposta: " name="Run"/>
+<TextValueRun styleId="0:123" text="—" name="Run">
+<DataBindContext sourcePathIds="0:33-0:37" propertyKey="268"/>
+</TextValueRun>
+</Text>
+<Text wrapValue="wrap" name="Correct" id="0:124">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="14" fontAssetId="0:73" name="Correct Style" id="0:125">
+<Fill name="F">
+<SolidColor colorValue="FF15803D" name="C"/>
+</Fill>
+<TextStyleAxis tag="2003265652" axisValue="600" name="Weight"/>
+</TextStylePaint>
+<TextValueRun styleId="0:125" text="Correta: " name="Run"/>
+<TextValueRun styleId="0:125" text="—" name="Run">
+<DataBindContext sourcePathIds="0:33-0:38" propertyKey="268"/>
+</TextValueRun>
+</Text>
+</LayoutComponent>
+<Text wrapValue="wrap" name="Explanation" id="0:127">
+<LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="L"/>
+<TextStylePaint fontSize="13" lineHeight="18" fontAssetId="0:73" name="Explanation Style" id="0:128">
+<Fill name="F">
+<SolidColor colorValue="FF6F8AA8" name="C"/>
+</Fill>
+</TextStylePaint>
+<TextValueRun styleId="0:128" text="" name="Run">
+<DataBindContext sourcePathIds="0:33-0:39" propertyKey="268"/>
+</TextValueRun>
+</Text>
+</LayoutComponent>
+<Fill name="Fill">
+<SolidColor colorValue="FFFFFFFF" name="C"/>
+</Fill>
+<Stroke thickness="1" name="Stroke">
+<SolidColor colorValue="FFE1EAF3" name="C"/>
+</Stroke>
+</LayoutComponent>
+<StateMachine name="ReviewItem SM" id="0:102">
+<StateMachineLayer name="Correct" id="0:140">
+<AnyState x="0" y="-120"/>
+<ExitState x="200" y="-120"/>
+<EntryState x="-200" y="0">
+<StateTransition stateToId="0:138"/>
+</EntryState>
+<AnimationState x="0" y="0" animationId="0:135" stateName="false" id="0:138">
+<StateTransition stateToId="0:139" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:33-0:36" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="true"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+<AnimationState x="220" y="0" animationId="0:134" stateName="true" id="0:139">
+<StateTransition stateToId="0:138" duration="0">
+<TransitionViewModelCondition opValue="equal">
+<TransitionPropertyViewModelComparator>
+<BindablePropertyBoolean>
+<DataBindContext sourcePathIds="0:33-0:36" propertyKey="634"/>
+</BindablePropertyBoolean>
+</TransitionPropertyViewModelComparator>
+<TransitionValueBooleanComparator value="false"/>
+</TransitionViewModelCondition>
+</StateTransition>
+</AnimationState>
+</StateMachineLayer>
+</StateMachine>
+<LinearAnimation duration="1" name="Review Ok" id="0:134">
+<KeyedObject objectId="0:104">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FF22C55E" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:107">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:108">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:109">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+<LinearAnimation duration="1" name="Review Bad" id="0:135">
+<KeyedObject objectId="0:104">
+<KeyedProperty propertyKey="37">
+<KeyFrameColor value="FFEF4444" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:107">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:108">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="1" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+<KeyedObject objectId="0:109">
+<KeyedProperty propertyKey="596">
+<KeyFrameUint value="0" frame="0" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
+</Artboard>
+<ElasticScrollPhysics name="Physics" id="0:372"/>
+<FontAsset file="Inter.ttf" name="Inter" id="0:73"/>
+<DataConverterToString decimals="0" round="true" name="Inteiro" id="0:70"/>
+<DataConverterRangeMapper minInput="0" maxInput="100" minOutput="100" maxOutput="0" clampLower="true" clampUpper="true" name="Resto" id="0:71"/>
+<DataConverterRangeMapper minInput="0" maxInput="100" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="Anel" id="0:72"/>
+<DataEnumCustom name="QuizPhase" id="0:10">
+<DataEnumValue key="question" value="question" id="0:11"/>
+<DataEnumValue key="feedback" value="feedback" id="0:12"/>
+<DataEnumValue key="result" value="result" id="0:13"/>
+</DataEnumCustom>
+<DataEnumCustom name="OptionState" id="0:14">
+<DataEnumValue key="idle" value="idle" id="0:15"/>
+<DataEnumValue key="selected" value="selected" id="0:16"/>
+<DataEnumValue key="correct" value="correct" id="0:17"/>
+<DataEnumValue key="wrong" value="wrong" id="0:18"/>
+</DataEnumCustom>
+<DataEnumCustom name="FeedbackKind" id="0:19">
+<DataEnumValue key="none" value="none" id="0:20"/>
+<DataEnumValue key="correct" value="correct" id="0:21"/>
+<DataEnumValue key="wrong" value="wrong" id="0:22"/>
+</DataEnumCustom>
+<DataEnumCustom name="ConfidenceKey" id="0:23">
+<DataEnumValue key="none" value="none" id="0:24"/>
+<DataEnumValue key="guessed" value="guessed" id="0:25"/>
+<DataEnumValue key="thoughtKnew" value="thoughtKnew" id="0:26"/>
+<DataEnumValue key="knew" value="knew" id="0:27"/>
+<DataEnumValue key="mastered" value="mastered" id="0:28"/>
+</DataEnumCustom>
+<ViewModel defaultInstanceId="0:431" name="Option" id="0:29">
+<ViewModelPropertyString name="text" id="0:30"/>
+<ViewModelPropertyEnumCustom enumId="0:14" name="state" id="0:31"/>
+<ViewModelPropertyTrigger name="tap" id="0:32"/>
+<ViewModelInstance exports="true" name="Default" id="0:431">
+<ViewModelInstanceString propertyValue="Alternativa" viewModelPropertyId="0:30"/>
+<ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
+</ViewModelInstance>
+<ViewModelInstance exports="true" name="Opt 1" id="0:432">
+<ViewModelInstanceString propertyValue="Poliglecaprone 25 (absorvível monofilamentar)" viewModelPropertyId="0:30"/>
+<ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
+</ViewModelInstance>
+<ViewModelInstance exports="true" name="Opt 2" id="0:433">
+<ViewModelInstanceString propertyValue="Seda" viewModelPropertyId="0:30"/>
+<ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
+</ViewModelInstance>
+<ViewModelInstance exports="true" name="Opt 3" id="0:434">
+<ViewModelInstanceString propertyValue="Nylon multifilamentar, com nós externos e retirada dos pontos em 10 a 14 dias após o procedimento" viewModelPropertyId="0:30"/>
+<ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
+</ViewModelInstance>
+<ViewModelInstance exports="true" name="Opt 4" id="0:435">
+<ViewModelInstanceString propertyValue="Categute cromado" viewModelPropertyId="0:30"/>
+<ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
+</ViewModelInstance>
+</ViewModel>
+<ViewModel defaultInstanceId="0:436" name="ReviewItem" id="0:33">
+<ViewModelPropertyString name="title" id="0:34"/>
+<ViewModelPropertyString name="question" id="0:35"/>
+<ViewModelPropertyBoolean name="isCorrect" id="0:36"/>
+<ViewModelPropertyString name="yourAnswer" id="0:37"/>
+<ViewModelPropertyString name="correctAnswer" id="0:38"/>
+<ViewModelPropertyString name="explanation" id="0:39"/>
+<ViewModelInstance exports="true" name="Default" id="0:436">
+<ViewModelInstanceString propertyValue="Questão 1" viewModelPropertyId="0:34"/>
+<ViewModelInstanceString propertyValue="Pergunta" viewModelPropertyId="0:35"/>
+<ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:37"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:38"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:39"/>
+</ViewModelInstance>
+<ViewModelInstance exports="true" name="Rev 1" id="0:437">
+<ViewModelInstanceString propertyValue="QUESTÃO 1" viewModelPropertyId="0:34"/>
+<ViewModelInstanceString propertyValue="Qual fio é mais indicado para a sutura intradérmica após uma orquiectomia em cão?" viewModelPropertyId="0:35"/>
+<ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:37"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:38"/>
+<ViewModelInstanceString propertyValue="Absorvível e monofilamentar: menor reação tecidual e sem necessidade de retirada." viewModelPropertyId="0:39"/>
+</ViewModelInstance>
+<ViewModelInstance exports="true" name="Rev 2" id="0:438">
+<ViewModelInstanceString propertyValue="QUESTÃO 2" viewModelPropertyId="0:34"/>
+<ViewModelInstanceString propertyValue="Tempo de jejum hídrico recomendado antes da anestesia em cães adultos saudáveis?" viewModelPropertyId="0:35"/>
+<ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:36"/>
+<ViewModelInstanceString propertyValue="Nenhum" viewModelPropertyId="0:37"/>
+<ViewModelInstanceString propertyValue="2 horas" viewModelPropertyId="0:38"/>
+<ViewModelInstanceString propertyValue="Jejum hídrico curto reduz o risco de regurgitação sem desidratar o paciente." viewModelPropertyId="0:39"/>
+</ViewModelInstance>
+<ViewModelInstance exports="true" name="Rev 3" id="0:439">
+<ViewModelInstanceString propertyValue="QUESTÃO 3" viewModelPropertyId="0:34"/>
+<ViewModelInstanceString propertyValue="Qual a principal função do pedículo ovariano na técnica de ovariohisterectomia?" viewModelPropertyId="0:35"/>
+<ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:37"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:38"/>
+<ViewModelInstanceString propertyValue="" viewModelPropertyId="0:39"/>
+</ViewModelInstance>
+</ViewModel>
+<ViewModel defaultInstanceId="0:440" name="Quiz" id="0:40">
+<ViewModelPropertyEnumCustom enumId="0:10" name="phase" id="0:41"/>
+<ViewModelPropertyString name="progressLabel" id="0:42"/>
+<ViewModelPropertyNumber name="questionNumber" id="0:43"/>
+<ViewModelPropertyNumber name="questionCount" id="0:44"/>
+<ViewModelPropertyString name="questionText" id="0:45"/>
+<ViewModelPropertyList name="options" id="0:46"/>
+<ViewModelPropertyBoolean name="locked" id="0:47"/>
+<ViewModelPropertyNumber name="combo" id="0:48"/>
+<ViewModelPropertyNumber name="xpProgress" id="0:49"/>
+<ViewModelPropertyEnumCustom enumId="0:19" name="feedbackKind" id="0:50"/>
+<ViewModelPropertyString name="feedbackTitle" id="0:51"/>
+<ViewModelPropertyString name="feedbackSubtitle" id="0:52"/>
+<ViewModelPropertyNumber name="xpGained" id="0:53"/>
+<ViewModelPropertyNumber name="accuracy" id="0:54"/>
+<ViewModelPropertyEnumCustom enumId="0:23" name="confidence" id="0:55"/>
+<ViewModelPropertyBoolean name="canContinue" id="0:56"/>
+<ViewModelPropertyBoolean name="submitting" id="0:57"/>
+<ViewModelPropertyNumber name="score" id="0:58"/>
+<ViewModelPropertyBoolean name="passed" id="0:59"/>
+<ViewModelPropertyString name="resultSummary" id="0:60"/>
+<ViewModelPropertyList name="review" id="0:61"/>
+<ViewModelPropertyBoolean name="generating" id="0:62"/>
+<ViewModelPropertyTrigger name="pickGuessed" id="0:63"/>
+<ViewModelPropertyTrigger name="pickThoughtKnew" id="0:64"/>
+<ViewModelPropertyTrigger name="pickKnew" id="0:65"/>
+<ViewModelPropertyTrigger name="pickMastered" id="0:66"/>
+<ViewModelPropertyTrigger name="continueTap" id="0:67"/>
+<ViewModelPropertyTrigger name="retryTap" id="0:68"/>
+<ViewModelPropertyTrigger name="closeTap" id="0:69"/>
+<ViewModelInstance exports="true" name="Default" id="0:440">
+<ViewModelInstanceEnum propertyValue="0:11" viewModelPropertyId="0:41"/>
+<ViewModelInstanceString propertyValue="PERGUNTA 1 DE 5" viewModelPropertyId="0:42"/>
+<ViewModelInstanceNumber propertyValue="1" viewModelPropertyId="0:43"/>
+<ViewModelInstanceNumber propertyValue="5" viewModelPropertyId="0:44"/>
+<ViewModelInstanceString propertyValue="Qual fio é mais indicado para a sutura intradérmica após uma orquiectomia em cão?" viewModelPropertyId="0:45"/>
+<ViewModelInstanceList viewModelPropertyId="0:46">
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:432"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:433"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:434"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:435"/>
+</ViewModelInstanceList>
+<ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:47"/>
+<ViewModelInstanceNumber propertyValue="2" viewModelPropertyId="0:48"/>
+<ViewModelInstanceNumber propertyValue="40" viewModelPropertyId="0:49"/>
+<ViewModelInstanceEnum propertyValue="0:20" viewModelPropertyId="0:50"/>
+<ViewModelInstanceString propertyValue="Excelente, doutor!" viewModelPropertyId="0:51"/>
+<ViewModelInstanceString propertyValue="Resposta certeira — diagnóstico em segundos." viewModelPropertyId="0:52"/>
+<ViewModelInstanceNumber propertyValue="17" viewModelPropertyId="0:53"/>
+<ViewModelInstanceNumber propertyValue="67" viewModelPropertyId="0:54"/>
+<ViewModelInstanceEnum propertyValue="0:24" viewModelPropertyId="0:55"/>
+<ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:56"/>
+<ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:57"/>
+<ViewModelInstanceNumber propertyValue="67" viewModelPropertyId="0:58"/>
+<ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:59"/>
+<ViewModelInstanceString propertyValue="2 de 3 corretas" viewModelPropertyId="0:60"/>
+<ViewModelInstanceList viewModelPropertyId="0:61">
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:437"/>
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:438"/>
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:439"/>
+</ViewModelInstanceList>
+<ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:62"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:63"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:64"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:65"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:66"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:67"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:68"/>
+<ViewModelInstanceTrigger viewModelPropertyId="0:69"/>
+</ViewModelInstance>
+</ViewModel>
+</Rive>
