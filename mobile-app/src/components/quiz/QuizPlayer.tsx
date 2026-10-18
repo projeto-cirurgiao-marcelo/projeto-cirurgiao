@@ -8,6 +8,8 @@ import {
   Alert,
   Modal,
   StatusBar,
+  AccessibilityInfo,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +39,8 @@ import {
   GelpiCelebrateModal,
   type GelpiCelebrateKind,
 } from '../juice/GelpiCelebrateModal';
+import { QuizRiveView, QUIZ_RIVE_ENABLED } from './rive/QuizRiveView';
+import { toQuizViewModel } from './rive/quiz-view-model';
 
 export interface QuizPlayerProps {
   videoId: string;
@@ -140,6 +144,17 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
 
   // Result state
   const [result, setResult] = useState<QuizResultType | null>(null);
+
+  // Quiz em Rive atrás do toggle. No Android o TalkBack não lê o Rive (o
+  // runtime só expõe semântica no iOS), então com leitor de tela fica a UI antiga.
+  const [screenReaderOn, setScreenReaderOn] = useState(false);
+  useEffect(() => {
+    if (!QUIZ_RIVE_ENABLED || Platform.OS !== 'android') return;
+    AccessibilityInfo.isScreenReaderEnabled().then(setScreenReaderOn);
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', setScreenReaderOn);
+    return () => sub.remove();
+  }, []);
+  const riveMode = QUIZ_RIVE_ENABLED && !screenReaderOn;
 
   useEffect(() => {
     loadQuiz();
@@ -609,31 +624,61 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom']}>
           <StatusBar barStyle="dark-content" backgroundColor={colors.card} />
-          <ScreenShake trigger={shakeTrigger}>
-            {phase === 'play' && renderPlayPhase()}
-            {phase === 'result' && renderResultPhase()}
-          </ScreenShake>
+          {riveMode ? (
+            <QuizRiveView
+              vm={toQuizViewModel({
+                phase: phase === 'result' ? 'result' : 'play',
+                questions: quiz?.questions ?? [],
+                currentQuestionIndex,
+                selectedOption,
+                lastAnswerCorrect: lottieKind === null ? null : lottieKind === 'correct',
+                selectedConfidence,
+                combo,
+                correctCount,
+                accuracyPct,
+                xpGained: xpBurstValue,
+                submitting,
+                result,
+                generating,
+              })}
+              onOptionTap={handleSelectOption}
+              onConfidence={handleConfidenceTap}
+              onContinue={handleContinue}
+              onRetry={handleRetryNewQuiz}
+              onClose={handleCloseModal}
+            />
+          ) : (
+            <ScreenShake trigger={shakeTrigger}>
+              {phase === 'play' && renderPlayPhase()}
+              {phase === 'result' && renderResultPhase()}
+            </ScreenShake>
+          )}
 
-          {/* Overlays — outside ScreenShake so they don't shake with content */}
-          {phase === 'play' && <ComboMeter combo={combo} />}
-          <XpBurst
-            xp={xpBurstValue}
-            visible={xpBurstVisible}
-            onDone={() => setXpBurstVisible(false)}
-          />
+          {/* Overlays — outside ScreenShake so they don't shake with content.
+              No modo Rive, combo, XP e o Dr. Gelpi já estão na cena. */}
+          {phase === 'play' && !riveMode && <ComboMeter combo={combo} />}
+          {!riveMode && (
+            <XpBurst
+              xp={xpBurstValue}
+              visible={xpBurstVisible}
+              onDone={() => setXpBurstVisible(false)}
+            />
+          )}
           <ConfettiSkia
             active={confettiActive}
             count={result?.score === 100 ? 120 : 60}
           />
-          <GelpiCelebrateModal
-            kind={lottieKind}
-            xpGained={lottieKind === 'wrong' ? 0 : xpBurstValue}
-            comboValue={combo}
-            accuracyPct={accuracyPct}
-            selectedConfidence={selectedConfidence}
-            onSelectConfidence={handleConfidenceTap}
-            onContinue={handleContinue}
-          />
+          {!riveMode && (
+            <GelpiCelebrateModal
+              kind={lottieKind}
+              xpGained={lottieKind === 'wrong' ? 0 : xpBurstValue}
+              comboValue={combo}
+              accuracyPct={accuracyPct}
+              selectedConfidence={selectedConfidence}
+              onSelectConfidence={handleConfidenceTap}
+              onContinue={handleContinue}
+            />
+          )}
         </SafeAreaView>
       </Modal>
     </View>
