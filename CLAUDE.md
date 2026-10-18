@@ -1,13 +1,5 @@
 # Projeto Cirurgião — Contexto do Agent Team
 
-> **📍 Documento de entrada → `docs/HANDOFF-2026-09-15-transferencia.md`.**
-> Handoff completo para transferência a novo desenvolvedor: estado verificado,
-> contas e acessos, segurança obrigatória na transferência (rotação de
-> segredos), arquitetura, deploy, operação e pendências priorizadas.
-> Última feature (vitrines, com adendos até 08/09): `docs/HANDOFF-2026-08-14-vitrines.md`.
-> Rodada anterior (review pré-live): `docs/HANDOFF-2026-08-11-pre-live-execucao.md`.
-> Design das vitrines: `docs/plans/2026-08-12-vitrines-controle-acesso-design.md`.
-
 ## O que é
 SaaS de educação em cirurgia veterinária. Monorepo manual (sem workspaces; scripts na raiz só fazem `cd`) com quatro componentes que sobem em serviços separados.
 
@@ -34,6 +26,7 @@ Auth: JWT (access 15min / refresh 7d) + Firebase ID token. Estado em Zustand + p
 - **Reuso de aula entre módulos:** `@@unique([r2Basename, moduleId])` (composto). A mesma aula R2 pode ser registrada em N módulos = N Videos com mesmo `r2Basename`. **Quiz, Materials, Captions e Progresso do aluno são por-Video**, não por-source — cada placement é independente.
 - **Pipeline de vídeo:** roda no serviço `video-processor` (Cloud Run GPU, `europe-west1`), código em `video-pipeline/cloud-run/server.py`. FFmpeg + NVENC → HLS multi-bitrate; Whisper L4 → VTT pt-BR; upload R2. Disparado pelo Worker `video-processor-trigger` (eventos R2 → Queue → dispatch fire-and-forget). Cap de largura NVENC = 4096px (sources >4K passam por mezzanine CPU). O agent pode mexer aqui — não é mais externo.
 - **Players já adaptados** pro R2 HLS: web `hls-video-player.tsx`, mobile `expo-video` em `VideoPlayer.tsx`.
+- **Quiz mobile em Rive (PR #71, 18/10/2026), atrás do toggle `EXPO_PUBLIC_QUIZ_RIVE=1`** — ligado só no profile `preview` do `eas.json`; `production` ainda usa o quiz antigo (QuestionCard + GelpiCelebrateModal em WebView), **não apagar a UI antiga** enquanto o toggle não for pra produção e a camada TalkBack (branch local `feat/quiz-rive-talkback`) não entrar. `QuizPlayer.tsx` continua dono da lógica e em `riveMode` renderiza `quiz/rive/QuizRiveView.tsx`; o contrato é `quiz/rive/quiz-view-model.ts` e tem que bater com os nomes gerados por `mobile-app/rive/quiz/gen-scene.mjs` (`scene.rml` é gerado, não editar). Deps nativas fixas (`@rive-app/react-native@0.5.5`, `react-native-nitro-modules@0.35.10`): mudança = build EAS novo, não sai por OTA. Android com leitor de tela cai na UI antiga (semantics do Rive só no iOS). Detalhes e pegadinhas: `docs/HANDOFF-2026-10-18-quiz-rive.md`.
 - **5 fontes em `Video.videoSource`:** `cloudflare`, `youtube`, `vimeo`, `external`, `r2_hls`. Cloudflare Stream = legado em descontinuação (manter válido até migração R2 100%); `r2_hls` = destino final.
   - Legendas: fluxo Cloudflare gera via `CloudflareStreamService.generateCaptions()` → VTT em R2. Fluxo R2 já vem pronto do pipeline (`subtitles_pt.vtt` + `subtitles.m3u8` no master playlist).
 
@@ -45,7 +38,7 @@ Auth: JWT (access 15min / refresh 7d) + Firebase ID token. Estado em Zustand + p
 
 ## 🔴 Gotchas operacionais (ignore = quebra deploy/processo)
 - **Vercel Hobby trava deploy por autoria.** Commitar como `xoiurp <102543650+xoiurp@users.noreply.github.com>` (`git commit --author=...`) e mergear PR com `gh pr merge --rebase` (não squash, que sobrescreve autoria). Sem isso o build do frontend não dispara.
-- **`.easignore` da raiz desliga TODOS os `.gitignore` no empacotamento do EAS.** O `eas-cli` lê o da **raiz do repo**, não o de `mobile-app/`. Tudo que o `.gitignore` protegia volta a subir pros servidores da Expo a menos que esteja repetido lá — foi assim que um dump de banco de prod e a chave SA do GCP vazaram (04/08/2026). Agravante: `!mobile-app/**` re-inclui o que veio antes, então **re-exclusões de arquivo sensível têm que vir depois dessa linha**. Validar sem gastar build minutes: `eas build:inspect --platform android --stage archive`.
+- **`.easignore` da raiz desliga TODOS os `.gitignore` no empacotamento do EAS.** O `eas-cli` lê o da **raiz do repo**, não o de `mobile-app/`. Tudo que o `.gitignore` protegia sobe pros servidores da Expo a menos que esteja repetido lá, e como `!mobile-app/**` re-inclui o que veio antes, **re-exclusões de arquivo sensível têm que vir depois dessa linha**. Validar sem gastar build minutes: `eas build:inspect --platform android --stage archive`. (Vazamento de 04/08/2026 por isso: ver handoff.)
 - **Registro público de conta está DESATIVADO no console Firebase** (acesso é por convite/Admin SDK). Reativar exige antes o fix de `firebaseUid @unique` no guard — hoje a identidade é vinculada só por e-mail (`firebase-auth.guard.ts:44-56`), e reabrir sem o fix permite takeover de conta, inclusive ADMIN. Detalhe no handoff §5.3.
 - **Domínios web:** `app.projetocirurgiao.app` (canônico) **e** `www.projetocirurgiao.app` servem o app; apex faz 307 → `www`. Os alunos vinham usando `www` — não assumir que só o canônico está em uso.
 - **`video-pipeline/` está no `.gitignore` raiz.** Arquivos desse dir só entram com `git add -f`. (Débito de processo conhecido — idealmente mover o código rastreado pra fora ou remover a regra.)
@@ -60,6 +53,7 @@ Auth: JWT (access 15min / refresh 7d) + Firebase ID token. Estado em Zustand + p
 5. **Commits pequenos e descritivos:** `feat(área): descrição`, `fix(área): …`, `chore(área): …`.
 6. **Console.log:** remover ou converter pra logger dedicado antes de marcar tarefa como pronta.
 7. **Credenciais:** já estão no Secret Manager (verificado 2026-08-12). Segredo novo entra como secret ref, nunca como env var plaintext. E ao adicionar arquivo de credencial no `backend-api/`, repetir a regra **nos dois** ignore-files — `.dockerignore` (imagem) **e** `.gcloudignore` (tarball do Cloud Build); cobrir só um deixa a chave em repouso no bucket de staging.
+8. **Plan mode antes de mudança estrutural:** alteração em `prisma/schema.prisma`, contrato de API ou fluxo de auth começa em plan mode (Shift+Tab). Complementa a regra 4.
 
 ## Comandos frequentes
 ```bash
@@ -82,9 +76,15 @@ cd video-pipeline/cloud-run && python -m pytest test_encode_fallback.py
 ## Débito técnico consciente
 - `noImplicitAny: false` / `strictBindCallApply: false` no backend — relaxados (strictNullChecks já está ligado).
 - `KnowledgeChunk.embedding` em JSON (alvo: pgvector, track backend).
-- ~~Credenciais em env var plaintext no Cloud Run~~ — **feito.** Verificado em 2026-08-12 (finding A7): os 9 segredos (`DATABASE_URL`, JWT, tokens Cloudflare/R2, Vertex, webhook) são secret refs do Secret Manager. As 15 env vars plaintext restantes são config não-sensível (IDs de projeto, URLs de bucket/CDN, `CORS_ORIGINS`). O que segue aberto é a **rotação**, que é risco aceito — ver `docs/TECH-DEBT.md`.
+- Rotação dos segredos do Secret Manager (risco aceito): ver `docs/TECH-DEBT.md`. Os 9 segredos já são secret refs, verificado 2026-08-12 (`HANDOFF-2026-08-11`, finding A7).
 - Sem CI/CD de backend (deploy manual via PowerShell; idealmente GitHub Actions + Cloud Build em push pra `main`).
 - Cobertura de testes baixa — meta do sprint é cobertura mínima por camada, não 100%. (Já existe `video-pipeline/cloud-run/test_encode_fallback.py`.)
 
 ---
+## Documentos de entrada (atualizar a cada handoff)
+- **Handoff de transferência** → `docs/HANDOFF-2026-09-15-transferencia.md`: estado verificado, contas e acessos, rotação de segredos, arquitetura, deploy, operação, pendências priorizadas.
+- Última feature (vitrines, adendos até 08/09): `docs/HANDOFF-2026-08-14-vitrines.md`.
+- Review pré-live: `docs/HANDOFF-2026-08-11-pre-live-execucao.md`.
+- Design das vitrines: `docs/plans/2026-08-12-vitrines-controle-acesso-design.md`.
+
 *Histórico de sessões em `docs/HANDOFF-*.md`. Backup da versão anterior deste arquivo: `docs/CLAUDE-2026-05-04.md.bak`.*
