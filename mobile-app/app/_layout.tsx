@@ -12,6 +12,7 @@ import { OfflineBanner } from '../src/components/ui/OfflineBanner';
 import { GamificationCelebrationProvider } from '../src/components/gamification/GamificationCelebrationProvider';
 import { initSentry } from '../src/config/sentry';
 import useAuthStore from '../src/stores/auth-store';
+import { startIapSession } from '../src/services/iap';
 
 // Error tracking — no-op sem EXPO_PUBLIC_SENTRY_DSN. Uma vez, no load do módulo.
 initSentry();
@@ -35,6 +36,12 @@ export default function RootLayout() {
     });
     return () => { active = false; };
   }, [hasHydrated]);
+
+  // iOS: ouve compras In-App (inclusive pendentes de sessões anteriores).
+  // Só autenticado: a confirmação no backend precisa do token do aluno.
+  useEffect(() => {
+    if (isAuthenticated) void startIapSession();
+  }, [isAuthenticated]);
 
   if (!sessionReady) {
     return <View style={[styles.container, styles.loading]}><ActivityIndicator /></View>;

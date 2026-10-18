@@ -4,9 +4,11 @@
  * cada uma assistível até `previewSeconds`) — a "visão do curso" antes do
  * checkout. O CTA "Como acessar?" abre a Central de Ajuda do web na
  * pergunta "Como desbloquear mais cursos?" daquela vitrine — é a página web
- * que aponta pro checkout, nunca o app (App Store 3.1.1). Sem checkoutUrl
- * (produto ainda não vendável) o CTA vira "Em breve", mas a prévia continua
- * acessível. Visual na linha do ShowcaseCard.
+ * que aponta pro checkout, nunca o app (App Store 3.1.1). No iOS a venda é
+ * por In-App Purchase: o CTA leva à prévia, onde fica o botão de compra com
+ * o preço da App Store. Sem produto vendável na plataforma (checkoutUrl ou
+ * appleProductId) o CTA vira "Em breve", mas a prévia continua acessível.
+ * Visual na linha do ShowcaseCard.
  */
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
@@ -20,7 +22,13 @@ import {
   BorderRadius,
   Shadows,
 } from '../../constants/colors';
+import { USE_NATIVE_IAP } from '../../constants/store-policy';
 import type { AvailableShowcase } from '../../services/api/showcases.service';
+
+/** A vitrine tem como ser comprada NESTA plataforma? */
+export function isSellableHere(s: { checkoutUrl?: string | null; appleProductId?: string | null }): boolean {
+  return USE_NATIVE_IAP ? !!s.appleProductId : !!s.checkoutUrl;
+}
 
 /**
  * Abre a Central de Ajuda (WebView) na pergunta de desbloqueio da vitrine.
@@ -59,15 +67,20 @@ export function LockedShowcaseCard({ showcase }: { showcase: AvailableShowcase }
             Não disponível · {showcase.videoCount} aula{showcase.videoCount !== 1 ? 's' : ''}
           </Text>
         </View>
-        {showcase.checkoutUrl ? (
+        {isSellableHere(showcase) ? (
           <TouchableOpacity
             style={styles.ctaRow}
-            onPress={() => openUnlockHelp(showcase.slug)}
+            // iOS: a compra (IAP) fica na tela de prévia; Android: Central de Ajuda.
+            onPress={() => (USE_NATIVE_IAP ? openPreview() : openUnlockHelp(showcase.slug))}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             accessibilityRole="button"
           >
-            <Text style={styles.ctaText}>Saiba mais</Text>
-            <Ionicons name="help-circle-outline" size={13} color={Colors.accent} />
+            <Text style={styles.ctaText}>{USE_NATIVE_IAP ? 'Ver e comprar' : 'Saiba mais'}</Text>
+            <Ionicons
+              name={USE_NATIVE_IAP ? 'cart-outline' : 'help-circle-outline'}
+              size={13}
+              color={Colors.accent}
+            />
           </TouchableOpacity>
         ) : (
           <Text style={styles.soonText}>Em breve</Text>

@@ -271,3 +271,19 @@ console.error = (...args: unknown[]) => {
   if (msg.includes('not wrapped in act(')) return;
   originalError(...(args as []));
 };
+
+// ---------------------------------------------------------------------------
+// expo-iap (StoreKit 2) — módulo nativo. Stub inerte: nenhuma compra acontece
+// no Jest; o teste do serviço (`__tests__/services/iap.test.ts`) sobrescreve.
+// ---------------------------------------------------------------------------
+jest.mock('expo-iap', () => ({
+  ErrorCode: { UserCancelled: 'user-cancelled' },
+  initConnection: jest.fn(async () => true),
+  endConnection: jest.fn(async () => true),
+  fetchProducts: jest.fn(async () => []),
+  requestPurchase: jest.fn(async () => null),
+  finishTransaction: jest.fn(async () => undefined),
+  getAvailablePurchases: jest.fn(async () => []),
+  purchaseUpdatedListener: jest.fn(() => ({ remove: jest.fn() })),
+  purchaseErrorListener: jest.fn(() => ({ remove: jest.fn() })),
+}));

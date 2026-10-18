@@ -12,7 +12,9 @@ import { VideoQuiz } from '../../../../src/components/video/VideoQuiz';
 import { VideoActionBar } from '../../../../src/components/video/VideoActionBar';
 import { ExpandableFAB } from '../../../../src/components/chat/ExpandableFAB';
 import { ChatModal } from '../../../../src/components/chat/ChatModal';
-import { openUnlockHelp } from '../../../../src/components/course/LockedShowcaseCard';
+import { isSellableHere, openUnlockHelp } from '../../../../src/components/course/LockedShowcaseCard';
+import { USE_NATIVE_IAP } from '../../../../src/constants/store-policy';
+import { buyShowcase, onPurchaseGranted } from '../../../../src/services/iap';
 import useChatStore from '../../../../src/stores/chat-store';
 import type { ChatType } from '../../../../src/types/chat.types';
 import { CustomTabView } from '../../../../src/components/ui/CustomTabView';
@@ -121,6 +123,14 @@ export default function WatchVideoScreen() {
 
   useEffect(() => {
     loadVideoData();
+  }, [videoId]);
+
+  // iOS: compra In-App liberada → recarrega a aula sem o gate de prévia.
+  useEffect(() => {
+    return onPurchaseGranted(() => {
+      loadVideoData();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
   const { onlineSince } = useNetworkStatus();
@@ -371,11 +381,14 @@ export default function WatchVideoScreen() {
               initialPosition={initialPosition}
               previewSeconds={video.hasAccess === false ? video.previewSeconds : undefined}
               offerTitle={video.offerShowcase?.title}
-              // Só oferece o CTA se a vitrine está à venda; ele abre a Central
-              // de Ajuda (web) na pergunta de desbloqueio, não o checkout.
+              // Só oferece o CTA se a vitrine está à venda nesta plataforma.
+              // iOS: compra In-App; Android: Central de Ajuda (web), não o checkout.
               onOfferPress={
-                video.offerShowcase?.checkoutUrl
-                  ? () => openUnlockHelp(video.offerShowcase!.slug)
+                video.offerShowcase && isSellableHere(video.offerShowcase)
+                  ? () =>
+                      USE_NATIVE_IAP
+                        ? void buyShowcase(video.offerShowcase!.appleProductId!).catch(() => {})
+                        : openUnlockHelp(video.offerShowcase!.slug)
                   : undefined
               }
             />
