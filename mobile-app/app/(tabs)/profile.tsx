@@ -16,6 +16,8 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import useAuthStore from '../../src/stores/auth-store';
+import { USE_NATIVE_IAP } from '../../src/constants/store-policy';
+import { restorePurchases } from '../../src/services/iap';
 import { profileService } from '../../src/services/api/profile.service';
 import { useGamificationStore } from '../../src/stores/gamification-store';
 import {
@@ -59,6 +61,22 @@ export default function ProfileScreen() {
 
   const roleLabel = ROLE_LABELS[user?.role || 'STUDENT'] || 'Estudante';
   const roleIcon = ROLE_ICONS[user?.role || 'STUDENT'] || 'school-outline';
+
+  // iOS: exigência da Apple pra compra não consumível. Reconfirma no backend
+  // tudo que a conta Apple já comprou (troca de aparelho, reinstalação).
+  const handleRestorePurchases = async () => {
+    try {
+      const granted = await restorePurchases();
+      Alert.alert(
+        'Restaurar compras',
+        granted > 0
+          ? `${granted} curso${granted > 1 ? 's' : ''} restaurado${granted > 1 ? 's' : ''}.`
+          : 'Nenhuma compra pendente nesta conta da App Store.',
+      );
+    } catch {
+      Alert.alert('Restaurar compras', 'Não foi possível consultar a App Store agora.');
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -127,6 +145,9 @@ export default function ProfileScreen() {
     { icon: 'notifications-outline' as const, title: 'Notificações', subtitle: 'Configurar alertas', route: '/profile/notifications' },
     { icon: 'help-circle-outline' as const, title: 'Ajuda e Suporte', subtitle: 'Suporte, FAQ e dicas', route: '/profile/help' },
     { icon: 'chatbubble-ellipses-outline' as const, title: 'Perguntas Frequentes', subtitle: '12 perguntas respondidas', route: '/profile/faq' },
+    ...(USE_NATIVE_IAP
+      ? [{ icon: 'refresh-outline' as const, title: 'Restaurar compras', subtitle: 'Cursos comprados na App Store', route: null, onPress: handleRestorePurchases }]
+      : []),
   ];
 
   const legalItems = [
@@ -217,7 +238,9 @@ export default function ProfileScreen() {
               style={styles.menuItem}
               activeOpacity={0.7}
               onPress={() => {
-                if (item.route) {
+                if ('onPress' in item && item.onPress) {
+                  void item.onPress();
+                } else if (item.route) {
                   router.push(item.route as any);
                 } else {
                   Alert.alert('Em breve', 'Funcionalidade em desenvolvimento');

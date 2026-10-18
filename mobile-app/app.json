@@ -62,7 +62,8 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "newArchEnabled": true,
     "experiments": {

@@ -97,6 +97,8 @@ export interface Video {
     slug: string;
     /** URL de checkout TheMembers. null = produto ainda não vendável. */
     checkoutUrl?: string | null;
+    /** Product ID do In-App Purchase (iOS). null = não vendável no iPhone. */
+    appleProductId?: string | null;
   } | null;
 }
 

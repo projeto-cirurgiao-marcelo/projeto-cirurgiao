@@ -25,7 +25,9 @@ import {
   type MyShowcaseDetail,
   type MyShowcaseVideo,
 } from '../../../src/services/api/showcases.service';
-import { openUnlockHelp } from '../../../src/components/course/LockedShowcaseCard';
+import { isSellableHere, openUnlockHelp } from '../../../src/components/course/LockedShowcaseCard';
+import { USE_NATIVE_IAP } from '../../../src/constants/store-policy';
+import { buyShowcase, loadPrices, onPurchaseGranted } from '../../../src/services/iap';
 import { logger } from '../../../src/lib/logger';
 import { Colors as colors } from '../../../src/constants/colors';
 
@@ -44,6 +46,8 @@ export default function ShowcaseLessonsScreen() {
   const locked = lockedParam === '1';
   const [showcase, setShowcase] = useState<ShowcaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [price, setPrice] = useState<string | null>(null);
+  const [buying, setBuying] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -56,8 +60,38 @@ export default function ShowcaseLessonsScreen() {
       .finally(() => setLoading(false));
   }, [slug, locked]);
 
-  const checkoutUrl =
-    locked && showcase && 'checkoutUrl' in showcase ? showcase.checkoutUrl : null;
+  const appleProductId =
+    locked && showcase && 'appleProductId' in showcase ? showcase.appleProductId : null;
+  const sellable = locked && showcase ? isSellableHere(showcase as AvailableShowcaseDetail) : false;
+
+  // iOS: preço da App Store no botão (Apple exige o preço antes da compra).
+  useEffect(() => {
+    if (!USE_NATIVE_IAP || !appleProductId) return;
+    loadPrices([appleProductId]).then((p) => setPrice(p.get(appleProductId) ?? null));
+  }, [appleProductId]);
+
+  // Compra liberada pelo backend → reabre a vitrine como possuída.
+  useEffect(() => {
+    if (!locked || !slug) return;
+    return onPurchaseGranted((grantedSlug) => {
+      if (grantedSlug === slug) router.replace(`/courses/showcase/${slug}`);
+    });
+  }, [locked, slug, router]);
+
+  const handleUnlock = async () => {
+    if (!slug) return;
+    if (!USE_NATIVE_IAP) return openUnlockHelp(slug);
+    if (!appleProductId) return;
+    setBuying(true);
+    try {
+      await buyShowcase(appleProductId);
+    } catch (error) {
+      // Cancelamento e erros de loja já são tratados no listener do serviço.
+      logger.warn('[Showcase] requestPurchase:', error);
+    } finally {
+      setBuying(false);
+    }
+  };
 
   const renderItem = ({ item, index }: { item: MyShowcaseVideo; index: number }) => (
     <TouchableOpacity
@@ -114,17 +148,24 @@ export default function ShowcaseLessonsScreen() {
             <Text style={styles.lockedBannerText}>
               Você pode assistir a uma prévia de cada aula para conhecer o conteúdo.
             </Text>
-            {checkoutUrl ? (
-              // Abre a Central de Ajuda (web) na pergunta de desbloqueio —
-              // o app não aponta pro checkout diretamente.
+            {sellable ? (
+              // iOS: compra In-App com o preço da App Store. Android: abre a
+              // Central de Ajuda (web) — o app não aponta pro checkout.
               <TouchableOpacity
-                style={styles.unlockButton}
+                style={[styles.unlockButton, buying && { opacity: 0.6 }]}
                 activeOpacity={0.85}
-                onPress={() => slug && openUnlockHelp(slug)}
+                onPress={handleUnlock}
+                disabled={buying}
                 accessibilityRole="button"
               >
-                <Text style={styles.unlockButtonText}>Saiba mais</Text>
-                <Ionicons name="help-circle-outline" size={15} color="#fff" />
+                <Text style={styles.unlockButtonText}>
+                  {USE_NATIVE_IAP ? (price ? `Comprar por ${price}` : 'Comprar') : 'Saiba mais'}
+                </Text>
+                <Ionicons
+                  name={USE_NATIVE_IAP ? 'cart-outline' : 'help-circle-outline'}
+                  size={15}
+                  color="#fff"
+                />
               </TouchableOpacity>
             ) : (
               <Text style={styles.soonText}>Este curso ainda não está disponível.</Text>

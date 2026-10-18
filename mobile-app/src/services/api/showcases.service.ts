@@ -30,8 +30,10 @@ export interface AvailableShowcase {
   description: string | null;
   thumbnail: string | null;
   videoCount: number;
-  /** URL de checkout TheMembers. null = produto ainda não vendável ("Em breve"). */
+  /** URL de checkout TheMembers (web/Android). null = produto ainda não vendável ("Em breve"). */
   checkoutUrl: string | null;
+  /** Product ID do In-App Purchase (iOS). null = não vendável no iPhone ("Em breve"). */
+  appleProductId: string | null;
 }
 
 export interface AvailableShowcases {
@@ -60,6 +62,7 @@ export interface MyShowcaseDetail extends Omit<MyShowcase, 'videoCount'> {
  */
 export interface AvailableShowcaseDetail extends MyShowcaseDetail {
   checkoutUrl: string | null;
+  appleProductId: string | null;
 }
 
 export const showcasesService = {
