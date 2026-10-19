@@ -226,7 +226,16 @@ export function QuizPlayer({ videoId, onClose }: QuizPlayerProps) {
       setGenerationStatus(null);
     } catch (error) {
       logger.error('Erro ao gerar quiz:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o quiz. Verifique se o vídeo possui transcrição.');
+      // Só fala em legenda quando o backend disse isso; qualquer outra falha
+      // (IA, rede) é transitória e o aluno pode tentar de novo.
+      const message = error instanceof Error ? error.message : '';
+      const noCaptions = /legenda|transcri|vtt/i.test(message);
+      Alert.alert(
+        noCaptions ? 'Aula sem legenda' : 'Não foi possível gerar o quiz',
+        noCaptions
+          ? 'Esta aula ainda não tem legenda, que é a base do quiz. Avise o suporte.'
+          : 'Houve uma falha temporária na geração. Tente novamente em instantes.',
+      );
       setGenerationStatus(null);
     } finally {
       setGenerating(false);

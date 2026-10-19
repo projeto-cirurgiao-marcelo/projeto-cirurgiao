@@ -48,6 +48,10 @@ export class QuizGeneratorService {
           maxOutputTokens: 8192,
           temperature: 0.7,
           topP: 0.9,
+          // O modelo devolve JSON estrito (sem prosa, sem ``` e sem vírgula
+          // sobrando). Era a causa do "Unexpected token ']'" esporádico, que
+          // o app mostrava como "vídeo sem legenda" (19/10/2026).
+          responseMimeType: 'application/json',
         },
       });
 
@@ -148,6 +152,9 @@ ${content.substring(0, 15000)} ${content.length > 15000 ? '...(conteúdo truncad
       if (jsonMatch) {
         cleanedResponse = jsonMatch[0];
       }
+
+      // Vírgula antes de ] ou } é o deslize mais comum do modelo e não é JSON.
+      cleanedResponse = cleanedResponse.replace(/,\s*([\]}])/g, '$1');
 
       const parsed = JSON.parse(cleanedResponse);
 
