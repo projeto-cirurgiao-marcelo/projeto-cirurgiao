@@ -11,6 +11,7 @@ import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { Role } from '@prisma/client';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 import { resolveFirebaseUser } from '../firebase/resolve-firebase-user';
+import { DevicesService, DeviceInfo } from '../firebase/devices.service';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private firebaseAdmin: FirebaseAdminService,
+    private devices: DevicesService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -132,11 +134,12 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, deviceId: string | null = null) {
     await this.prisma.refreshToken.updateMany({
       where: { userId, isRevoked: false },
       data: { isRevoked: true },
     });
+    if (deviceId) await this.devices.revokeByDeviceId(userId, deviceId);
 
     return { message: 'Logout realizado com sucesso' };
   }
@@ -182,7 +185,7 @@ export class AuthService {
    * Login com Firebase Authentication
    * Verifica o token Firebase e sincroniza com o banco PostgreSQL
    */
-  async firebaseLogin(firebaseLoginDto: FirebaseLoginDto) {
+  async firebaseLogin(firebaseLoginDto: FirebaseLoginDto, device: DeviceInfo | null = null) {
     this.logger.log('Tentativa de login via Firebase');
 
     // Verifica o token Firebase
@@ -214,6 +217,9 @@ export class AuthService {
     }
 
     this.logger.log(`Login Firebase bem sucedido para: ${user.email}`);
+
+    // Login (re)ativa o dispositivo e derruba o mais antigo se passou do limite.
+    if (device) await this.devices.register(user.id, user.role, device);
 
     // Busca o perfil para verificar se o onboarding foi completado
     const profile = await this.prisma.userProfile.findUnique({

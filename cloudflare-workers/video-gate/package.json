@@ -1,0 +1,21 @@
+{
+  "name": "video-gate-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker — serve cdn.projetocirurgiao.app/videos/* só com token de playback assinado pelo backend",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail --format=pretty",
+    "secret": "wrangler secret put VIDEO_TOKEN_SECRET",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20260526.1",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4",
+    "wrangler": "4.94.0"
+  }
+}

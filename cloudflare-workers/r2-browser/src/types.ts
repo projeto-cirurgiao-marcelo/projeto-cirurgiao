@@ -5,6 +5,8 @@ export interface Env {
   BACKEND_API_URL: string;
   ALLOWED_ORIGINS: string;
   INDEX_PREFIX?: string;
+  /** Mesmo segredo do backend e do Worker video-gate; sem ele /signed-url devolve a URL crua. */
+  VIDEO_TOKEN_SECRET?: string;
 }
 
 export interface FolderNode {

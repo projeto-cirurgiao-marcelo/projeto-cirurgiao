@@ -8,6 +8,7 @@ import {
 import { FirebaseAdminService } from '../firebase-admin.service';
 import { resolveFirebaseUser } from '../resolve-firebase-user';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
+import { DevicesService } from '../devices.service';
 
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
@@ -16,6 +17,7 @@ export class FirebaseAuthGuard implements CanActivate {
   constructor(
     private readonly firebaseAdmin: FirebaseAdminService,
     private readonly prisma: PrismaService,
+    private readonly devices: DevicesService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -53,6 +55,20 @@ export class FirebaseAuthGuard implements CanActivate {
         throw new UnauthorizedException('Usuário desativado');
       }
 
+      // Dispositivo (X-Device-Id). Sem header = cliente antigo, passa.
+      // Revogado (limite de dispositivos ou derrubado pelo aluno) = 401 com
+      // code DEVICE_REVOKED; o cliente desloga e pede login de novo.
+      const deviceInfo = DevicesService.fromHeaders(request.headers);
+      if (deviceInfo) {
+        const device = await this.devices.touch(user.id, deviceInfo);
+        if (device.revokedAt) {
+          throw new UnauthorizedException({
+            message: 'Esta conta foi usada em outro aparelho. Entre novamente.',
+            code: 'DEVICE_REVOKED',
+          });
+        }
+      }
+
       // Adiciona informações ao request
       request.user = {
         userId: user.id, // Mudado de 'id' para 'userId' para consistência
@@ -62,6 +78,7 @@ export class FirebaseAuthGuard implements CanActivate {
         role: user.role,
         firebaseUid: decodedToken.uid,
         emailVerified: decodedToken.email_verified,
+        deviceId: deviceInfo?.deviceId ?? null,
       };
 
       return true;

@@ -6,13 +6,17 @@ import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
+import { DevicesService } from '../firebase/devices.service';
 
 @ApiTags('users')
 @Controller('users')
 @UseGuards(FirebaseAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly devices: DevicesService,
+  ) {}
 
   @Get('students/overview')
   @Roles(Role.ADMIN)
@@ -83,6 +87,21 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Administradores não podem se autoexcluir' })
   deleteOwnAccount(@Request() req: any) {
     return this.usersService.deleteOwnAccount(req.user.userId);
+  }
+
+  @Get(':id/devices')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Dispositivos ativos de um usuário' })
+  listDevices(@Param('id') id: string) {
+    return this.devices.list(id, null);
+  }
+
+  @Delete(':id/devices/:deviceId')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Derrubar um dispositivo de um usuário' })
+  async revokeDevice(@Param('id') id: string, @Param('deviceId') deviceId: string) {
+    await this.devices.revoke(id, deviceId);
+    return { ok: true };
   }
 
   @Delete(':id')

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { checkoutUrlFor } from './checkout-url';
+import { VideoTokenService } from './video-token.service';
 
 /** Default global do preview quando a vitrine não define o dela. */
 export const DEFAULT_PREVIEW_SECONDS = 120;
@@ -38,7 +39,10 @@ const EMPTY = new Set<string>();
  */
 @Injectable()
 export class AccessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly videoToken: VideoTokenService,
+  ) {}
 
   /**
    * Uma query por request: entitlements ativos do usuário → Set dos videoIds
@@ -190,10 +194,17 @@ export class AccessService {
   }
 
   /** Payload do endpoint de vídeo: hasAccess e, se bloqueado, o preview e a oferta. */
-  async decorateVideo<T extends { id: string; duration?: number | null }>(
+  async decorateVideo<T extends { id: string; duration?: number | null; playback?: { playbackUrl: string | null } }>(
     video: T,
     user: { userId: string; role: Role | string },
   ) {
+    // URL do CDN sai assinada por aluno (Worker video-gate exige o token).
+    if (video.playback?.playbackUrl) {
+      video = {
+        ...video,
+        playback: { ...video.playback, playbackUrl: this.videoToken.withToken(video.playback.playbackUrl, user.userId) },
+      };
+    }
     const access = await this.getAccess(user);
     if (this.hasAccess(access, video.id)) {
       return { ...video, hasAccess: true as const };

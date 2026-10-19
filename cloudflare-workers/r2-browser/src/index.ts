@@ -1,3 +1,4 @@
+import { signToken } from './video-token';
 import type { Env, ListResponse, ObjectMeta, SearchResponse } from './types';
 import { unauthorized, verifyAdmin } from './auth';
 import { getOrBuildIndex, reindexChunk, reindexFolder } from './folder-indexer';
@@ -187,18 +188,25 @@ async function handleSignedUrl(req: Request, env: Env): Promise<Response> {
   const ttlRaw = parseInt(url.searchParams.get('ttl') ?? `${SIGNED_URL_DEFAULT_TTL}`, 10);
   const ttl = Math.min(Math.max(ttlRaw || SIGNED_URL_DEFAULT_TTL, 60), SIGNED_URL_MAX_TTL);
 
-  // Strategy: serve via public CDN (custom domain on bucket)
-  // Worker does NOT generate signed URLs because the bucket is fronted by
-  // the public CDN at CDN_BASE_URL. If you need true presigned URLs later,
-  // swap to AWS SigV4 for R2 (requires access keys, not the binding).
+  // O CDN (custom domain do bucket) tem o Worker video-gate em /videos/*,
+  // que exige o token de playback do backend. Aqui o admin ganha o mesmo
+  // token (u = "admin") pra prévia; fora de /videos/ a URL continua pública.
   const cdn = env.CDN_BASE_URL.replace(/\/+$/, '');
-  const cdnUrl = `${cdn}/${encodeURI(key)}`;
+  const cdnUrl = new URL(`${cdn}/${encodeURI(key)}`);
+  const signed = Boolean(env.VIDEO_TOKEN_SECRET) && cdnUrl.pathname.startsWith('/videos/');
+  if (signed) {
+    const dir = cdnUrl.pathname.slice(0, cdnUrl.pathname.lastIndexOf('/') + 1);
+    cdnUrl.searchParams.set(
+      't',
+      await signToken(env.VIDEO_TOKEN_SECRET!, { u: 'admin', p: dir, e: Math.floor(Date.now() / 1000) + ttl }),
+    );
+  }
 
   return json({
     key,
-    url: cdnUrl,
+    url: cdnUrl.toString(),
     expiresAt: Date.now() + ttl * 1000,
-    public: true,
+    public: !signed,
   });
 }
 
