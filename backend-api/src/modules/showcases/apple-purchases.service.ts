@@ -11,6 +11,10 @@ import { AccessService } from './access.service';
 import { APPLE_ROOT_CERTS } from './apple-root-certs';
 
 /** Tipos de notificação que tiram o direito. Tudo o mais só fica registrado. */
+/** VerificationException da lib vem sem message; o status é o que explica. */
+const describe = (e: unknown) =>
+  e instanceof Error ? `${e.message || e.constructor.name} status=${(e as { status?: number }).status ?? '-'}` : String(e);
+
 const REVOKING: ReadonlySet<string> = new Set([
   NotificationTypeV2.REFUND,
   NotificationTypeV2.REVOKE,
@@ -24,12 +28,12 @@ const REVOKING: ReadonlySet<string> = new Set([
  * A prova de compra é o JWS assinado pela Apple (StoreKit 2). Validamos
  * assinatura, bundleId e ambiente aqui — nunca confiar no app.
  * Env: APPLE_BUNDLE_ID, APPLE_APP_ID (Apple ID numérico do app no ASC),
- * APPLE_IAP_ENV = Production | Sandbox.
+ * APPLE_IAP_ENV = Production | Sandbox (só define qual ambiente tenta primeiro).
  */
 @Injectable()
 export class ApplePurchasesService {
   private readonly logger = new Logger(ApplePurchasesService.name);
-  private verifier?: SignedDataVerifier;
+  private verifiers?: SignedDataVerifier[];
 
   constructor(
     private readonly prisma: PrismaService,
@@ -37,21 +41,50 @@ export class ApplePurchasesService {
     private readonly config: ConfigService,
   ) {}
 
-  private getVerifier(): SignedDataVerifier {
-    if (this.verifier) return this.verifier;
+  /**
+   * Produção primeiro, Sandbox depois. O App Review testa a compra no build
+   * de produção usando o ambiente Sandbox, e o TestFlight também — então o
+   * servidor de produção tem que aceitar os dois (recomendação da Apple).
+   * APPLE_IAP_ENV=Sandbox só inverte a ordem.
+   */
+  private getVerifiers(): SignedDataVerifier[] {
+    if (this.verifiers) return this.verifiers;
     const bundleId = this.config.get<string>('APPLE_BUNDLE_ID');
     const appAppleId = Number(this.config.get<string>('APPLE_APP_ID'));
-    const env =
-      this.config.get<string>('APPLE_IAP_ENV') === 'Sandbox'
-        ? Environment.SANDBOX
-        : Environment.PRODUCTION;
     if (!bundleId || !appAppleId) {
       throw new Error('APPLE_BUNDLE_ID / APPLE_APP_ID não configurados');
     }
+    const envs =
+      this.config.get<string>('APPLE_IAP_ENV') === 'Sandbox'
+        ? [Environment.SANDBOX, Environment.PRODUCTION]
+        : [Environment.PRODUCTION, Environment.SANDBOX];
     // enableOnlineChecks=false: sem OCSP por request (latência); a assinatura
     // e a cadeia até a raiz da Apple continuam verificadas.
-    this.verifier = new SignedDataVerifier(APPLE_ROOT_CERTS, false, env, bundleId, appAppleId);
-    return this.verifier;
+    this.verifiers = envs.map(
+      (env) => new SignedDataVerifier(APPLE_ROOT_CERTS, false, env, bundleId, appAppleId),
+    );
+    return this.verifiers;
+  }
+
+  /** Tenta cada ambiente; devolve o primeiro que valida. */
+  private async decode<T>(fn: (v: SignedDataVerifier) => Promise<T>): Promise<T> {
+    let lastError: unknown;
+    for (const v of this.getVerifiers()) {
+      try {
+        return await fn(v);
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError;
+  }
+
+  private decodeTransaction(jws: string) {
+    return this.decode((v) => v.verifyAndDecodeTransaction(jws));
+  }
+
+  private decodeNotification(payload: string) {
+    return this.decode((v) => v.verifyAndDecodeNotification(payload));
   }
 
   /**
@@ -61,9 +94,9 @@ export class ApplePurchasesService {
   async verifyAndGrant(userId: string, jws: string): Promise<{ ok: true; showcaseSlug: string; deduped?: boolean }> {
     let tx: Awaited<ReturnType<SignedDataVerifier['verifyAndDecodeTransaction']>>;
     try {
-      tx = await this.getVerifier().verifyAndDecodeTransaction(jws);
+      tx = await this.decodeTransaction(jws);
     } catch (e) {
-      this.logger.warn(`JWS de transação inválido (user ${userId}): ${(e as Error).message}`);
+      this.logger.warn(`JWS de transação inválido (user ${userId}): ${describe(e)}`);
       throw new BadRequestException('Transação inválida');
     }
 
@@ -123,7 +156,7 @@ export class ApplePurchasesService {
       .catch(() => undefined);
     await this.access.reconcileEnrollments(userId);
 
-    this.logger.log(`IAP liberado: user ${userId} -> "${showcase.title}" (tx ${transactionId})`);
+    this.logger.log(`IAP liberado: user ${userId} -> "${showcase.title}" (tx ${transactionId}, ${tx.environment ?? 'env?'})`);
     return { ok: true, showcaseSlug: showcase.slug };
   }
 
@@ -134,9 +167,9 @@ export class ApplePurchasesService {
   async handleNotification(signedPayload: string): Promise<{ ok: true; deduped?: boolean; ignored?: boolean; error?: string }> {
     let note: Awaited<ReturnType<SignedDataVerifier['verifyAndDecodeNotification']>>;
     try {
-      note = await this.getVerifier().verifyAndDecodeNotification(signedPayload);
+      note = await this.decodeNotification(signedPayload);
     } catch (e) {
-      this.logger.warn(`Notificação Apple inválida: ${(e as Error).message}`);
+      this.logger.warn(`Notificação Apple inválida: ${describe(e)}`);
       return { ok: true, error: 'invalid signature' };
     }
 
@@ -171,7 +204,7 @@ export class ApplePurchasesService {
     try {
       const signedTx = note.data?.signedTransactionInfo;
       if (!signedTx) throw new Error('notificação sem signedTransactionInfo');
-      const tx = await this.getVerifier().verifyAndDecodeTransaction(signedTx);
+      const tx = await this.decodeTransaction(signedTx);
       const originalTransactionId = tx.originalTransactionId ?? tx.transactionId;
       if (!originalTransactionId) throw new Error('transação sem originalTransactionId');
 

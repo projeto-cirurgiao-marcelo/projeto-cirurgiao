@@ -57,6 +57,19 @@ describe('ApplePurchasesService', () => {
   });
 
   describe('verifyAndGrant', () => {
+    it('aceita JWS de Sandbox quando Produção recusa (App Review / TestFlight)', async () => {
+      verifyAndDecodeTransaction
+        .mockRejectedValueOnce(Object.assign(new Error(''), { status: 4 }))
+        .mockResolvedValueOnce({ ...tx, environment: 'Sandbox' });
+      prisma.showcase.findUnique.mockResolvedValue({ id: 's1', slug: 'castracao', title: 'C' } as never);
+      prisma.webhookEvent.create.mockResolvedValue({} as never);
+      prisma.entitlement.upsert.mockResolvedValue({} as never);
+      prisma.webhookEvent.update.mockResolvedValue({} as never);
+
+      await expect(service.verifyAndGrant('u1', 'jws')).resolves.toMatchObject({ ok: true, showcaseSlug: 'castracao' });
+      expect(verifyAndDecodeTransaction).toHaveBeenCalledTimes(2);
+    });
+
     it('concede a vitrine do productId e realinha matrículas', async () => {
       verifyAndDecodeTransaction.mockResolvedValue(tx);
       prisma.showcase.findUnique.mockResolvedValue({ id: 's1', slug: 'castracao', title: 'Castração' } as never);
