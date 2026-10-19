@@ -150,6 +150,16 @@ export default function WatchVideoScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineSince]);
 
+  // Token de playback (12 h) expirou com a aula aberta: recarrega uma vez
+  // (a URL nova vem assinada). Qualquer outro erro de fonte também tenta.
+  const sourceReloadedRef = useRef(false);
+  const handleSourceError = useCallback(() => {
+    if (sourceReloadedRef.current) return;
+    sourceReloadedRef.current = true;
+    void loadVideoData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadVideoData = async () => {
     try {
       setLoading(true);
@@ -385,6 +395,7 @@ export default function WatchVideoScreen() {
               offerTitle={video.offerShowcase?.title}
               // Tocar no vídeo recolhe a área inferior; tocar nela expande.
               onUserTap={collapseTabs}
+              onSourceError={handleSourceError}
               // Só oferece o CTA se a vitrine está à venda nesta plataforma.
               // iOS: compra In-App; Android: Central de Ajuda (web), não o checkout.
               onOfferPress={

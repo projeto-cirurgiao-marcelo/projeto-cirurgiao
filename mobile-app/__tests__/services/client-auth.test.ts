@@ -73,7 +73,9 @@ it('uses Firebase on every request, never the persisted token or a caller header
   expect(getIdToken.mock.calls).toEqual([[], []]);
   expect(adapter.mock.calls.map(([config]) => config.headers.get('Authorization')))
     .toEqual(['Bearer firebase-current', 'Bearer firebase-new']);
-  expect(storage.getItem).not.toHaveBeenCalled();
+  // O token persistido nunca é lido; o único getItem permitido é o deviceId (X-Device-Id).
+  expect(storage.getItem.mock.calls.filter(([key]) => key === 'firebaseToken')).toHaveLength(0);
+  expect(adapter.mock.calls[0][0].headers.get('X-Device-Id')).toBe(values.get('deviceId'));
   expect(values.get('firebaseToken')).toBe('firebase-new');
   expect(onTokenChanged.mock.calls).toEqual([['firebase-current'], ['firebase-new']]);
 });

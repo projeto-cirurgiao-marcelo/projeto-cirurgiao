@@ -19,7 +19,7 @@ Decisão do Gustavo em 19/10/2026 depois do levantamento: hoje não havia defesa
 - `DevicesService` (`backend-api/src/modules/firebase/devices.service.ts`, exportado pelo `FirebaseModule` global):
   - `register` no `POST /auth/firebase-login`: (re)ativa o dispositivo e, para STUDENT, revoga os mais antigos por `lastSeenAt` além de `MAX_ACTIVE_DEVICES` (default 3). ADMIN/INSTRUCTOR sem limite.
   - `touch` no `FirebaseAuthGuard` a cada request: cria se não existe (cliente que logou antes da feature), grava `lastSeenAt` no máximo a cada 5 min; **revogado → 401 `{ code: "DEVICE_REVOKED" }`**. Sem header → passa (clientes antigos). `request.user.deviceId` fica disponível.
-  - `POST /auth/logout` revoga o dispositivo atual. `GET /auth/devices` (com `current`), `DELETE /auth/devices/:id`. Admin: `GET /users/:id/devices`, `DELETE /users/:id/devices/:deviceId`.
+  - `POST /auth/logout` revoga o dispositivo atual **quando chamado** — hoje app e web deslogam só no Firebase e não chamam essa rota (no app a chamada quebrava os testes de concorrência do auth-store); o aparelho some da lista quando cai pelo limite ou é desconectado por outro. `GET /auth/devices` (com `current`), `DELETE /auth/devices/:id`. Admin: `GET /users/:id/devices`, `DELETE /users/:id/devices/:deviceId`.
 - Clientes tratam `DEVICE_REVOKED`: logout local + "Esta conta foi usada em outro aparelho. Entre novamente." Tela "Dispositivos conectados" no perfil (app e web).
 - Limitação aceita: um dispositivo derrubado ainda toca um vídeo cujo token já tinha (até 12 h); o token não carrega `deviceId` porque o Worker não consulta o banco.
 - Apple: limite e derrubada são aceitos desde que o aluno veja e gerencie os aparelhos; a compra IAP não depende disso.

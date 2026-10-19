@@ -142,6 +142,7 @@ export default function ProfileScreen() {
     { icon: 'heart-outline' as const, title: 'Vidas salvas', subtitle: 'Relate uma vida salva e veja as histórias', route: '/lives-saved' },
     { icon: 'person-outline' as const, title: 'Editar Perfil', subtitle: 'Nome, profissão e especializações', route: '/profile/edit' },
     { icon: 'lock-closed-outline' as const, title: 'Alterar Senha', subtitle: 'Atualizar credenciais', route: '/profile/change-password' },
+    { icon: 'phone-portrait-outline' as const, title: 'Dispositivos conectados', subtitle: 'Aparelhos com acesso a esta conta', route: '/profile/devices' },
     { icon: 'notifications-outline' as const, title: 'Notificações', subtitle: 'Configurar alertas', route: '/profile/notifications' },
     { icon: 'help-circle-outline' as const, title: 'Ajuda e Suporte', subtitle: 'Suporte, FAQ e dicas', route: '/profile/help' },
     { icon: 'chatbubble-ellipses-outline' as const, title: 'Perguntas Frequentes', subtitle: '12 perguntas respondidas', route: '/profile/faq' },

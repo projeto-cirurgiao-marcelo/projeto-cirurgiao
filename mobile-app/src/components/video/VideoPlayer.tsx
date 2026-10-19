@@ -49,6 +49,12 @@ interface VideoPlayerProps {
   onOfferPress?: () => void;
   /** Toque do usuario na area do video (a tela pai usa pra recolher a area inferior). */
   onUserTap?: () => void;
+  /**
+   * O player nao conseguiu carregar a fonte (ex.: 403 do CDN porque o token
+   * de playback de 12 h expirou). A tela pai recarrega a aula e passa uma
+   * streamUrl nova. Chamado uma vez por fonte.
+   */
+  onSourceError?: () => void;
 }
 
 export interface VideoPlayerRef {
@@ -87,7 +93,7 @@ function formatTime(seconds: number): string {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
-  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle, onOfferPress, onUserTap },
+  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle, onOfferPress, onUserTap, onSourceError },
   ref
 ) {
   const videoViewRef = useRef<VideoView>(null);
@@ -175,6 +181,23 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     // @ts-ignore
     const subscription = player.addListener('playingChange', (event: any) => {
       setIsPlaying(event?.isPlaying ?? false);
+    });
+    return () => subscription.remove();
+  }, [player]);
+
+  // Fonte com erro (token do CDN expirado, rede): avisa a tela uma vez.
+  const onSourceErrorRef = useRef(onSourceError);
+  onSourceErrorRef.current = onSourceError;
+  useEffect(() => {
+    if (!player) return;
+    let reported = false;
+    // @ts-ignore
+    const subscription = player.addListener('statusChange', (event: any) => {
+      if (event?.status === 'error' && !reported) {
+        reported = true;
+        logger.warn('[VideoPlayer] fonte com erro', event?.error?.message);
+        onSourceErrorRef.current?.();
+      }
     });
     return () => subscription.remove();
   }, [player]);
