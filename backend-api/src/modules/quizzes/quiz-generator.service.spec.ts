@@ -20,9 +20,10 @@ describe('QuizGeneratorService.parseQuizFromResponse', () => {
   it('tolera cerca ```json, prosa em volta e vírgula sobrando antes de ] e }', () => {
     const sloppy =
       'Aqui está o quiz:\n```json\n{ "questions": [ ' +
+      JSON.stringify(question) + ', ' +
       JSON.stringify(question).replace(/}$/, ', }') +
       ', ] , }\n```\nBons estudos!';
-    expect(parse(sloppy).questions).toHaveLength(1);
+    expect(parse(sloppy).questions).toHaveLength(2);
   });
 
   it('rejeita resposta sem questions', () => {
