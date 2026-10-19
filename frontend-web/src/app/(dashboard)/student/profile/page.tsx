@@ -18,6 +18,7 @@ import {
   AtlasPageHeader,
   atlasToast,
 } from '@/components/atlas';
+import { ConnectedDevicesCard } from '@/components/student/connected-devices-card';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Textarea } from '@/components/ui/textarea';
@@ -486,6 +487,8 @@ export default function StudentProfilePage() {
             </div>
           </AtlasCardContent>
         </AtlasCard>
+
+        <ConnectedDevicesCard />
 
         {/* Exclusão de conta */}
         <AtlasCard>

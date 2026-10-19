@@ -204,6 +204,20 @@ export default function VideoPlayerPage() {
     };
   }, [videoId, isCompleted, saveProgressOnExit]);
 
+  // Token de playback (12 h) expirou com a aba aberta: busca a aula de novo
+  // (vem com token novo) uma única vez, mantendo a posição salva.
+  const sourceReloadedRef = useRef(false);
+  const handleSourceExpired = useCallback(async () => {
+    if (sourceReloadedRef.current) return;
+    sourceReloadedRef.current = true;
+    try {
+      const fresh = await videosService.findOne(videoId);
+      setCurrentVideo(fresh);
+    } catch (e) {
+      logger.warn('[Watch] falha ao renovar URL do vídeo', e);
+    }
+  }, [videoId]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -712,6 +726,7 @@ export default function VideoPlayerPage() {
                 <HlsVideoPlayer
                   ref={hlsPlayerRef}
                   src={currentVideo.playback.playbackUrl}
+                  onSourceExpired={handleSourceExpired}
                   initialTime={savedWatchTime}
                   autoPlay={autoplayEnabled}
                   onTimeUpdate={handleHlsTimeUpdate}

@@ -72,6 +72,11 @@ interface HlsVideoPlayerProps {
    * de passar (fetch via apiClient na page + URL.createObjectURL).
    */
   externalCaptionsUrl?: string;
+  /**
+   * O CDN recusou a URL (403): o token de playback de 12 h expirou. A page
+   * recarrega a aula no backend e passa um `src` novo. Chamado uma vez por src.
+   */
+  onSourceExpired?: () => void;
   externalCaptionsLang?: string; // default 'pt'
   externalCaptionsLabel?: string; // default 'Portugues'
   /**
@@ -103,6 +108,7 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
       onPause,
       className,
       externalCaptionsUrl,
+      onSourceExpired,
       externalCaptionsLang = 'pt',
       externalCaptionsLabel = 'Portugues',
       previewSeconds,
@@ -151,6 +157,9 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
     // Quality levels state (popover custom — media-chrome nao expoe menu HLS)
     const [qualities, setQualities] = useState<QualityLevel[]>([]);
     const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = auto
+
+    const onSourceExpiredRef = useRef(onSourceExpired);
+    onSourceExpiredRef.current = onSourceExpired;
 
     // Expose imperative API
     useImperativeHandle(ref, () => ({
@@ -224,6 +233,12 @@ const HlsVideoPlayer = forwardRef<HlsPlayerRef, HlsVideoPlayerProps>(
           if (!data.fatal) return; // Ignorar erros nao-fatais silenciosamente
 
           logger.warn('[HlsPlayer] Fatal error:', data.type, data.details);
+
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.response?.code === 403) {
+            hls.destroy();
+            onSourceExpiredRef.current?.();
+            return;
+          }
 
           recoverAttempts++;
           if (recoverAttempts > MAX_RECOVER) {

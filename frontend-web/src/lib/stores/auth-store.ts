@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { getDeviceHeaders } from '../device';
 import { firebaseAuthService, type FirebaseAuthUser } from '../firebase/auth.service';
 import { logger } from '../logger';
 import { maskEmail } from '../utils/mask-pii';
@@ -135,9 +136,11 @@ export const useAuthStore = create<AuthStore>()(
           logger.log('🔄 [Backend] Sincronizando usuário...');
 
           // 2. Sincroniza com backend e busca role
-          const backendResponse = await axios.post(`${API_URL}/auth/firebase-login`, {
-            firebaseToken: firebaseResult.token,
-          });
+          const backendResponse = await axios.post(
+            `${API_URL}/auth/firebase-login`,
+            { firebaseToken: firebaseResult.token },
+            { headers: getDeviceHeaders() },
+          );
 
           const backendUser = backendResponse.data.user;
 
@@ -200,9 +203,11 @@ export const useAuthStore = create<AuthStore>()(
           logger.log('🔄 [Backend] Sincronizando usuário...');
 
           // 2. Sincroniza com backend
-          const backendResponse = await axios.post(`${API_URL}/auth/firebase-login`, {
-            firebaseToken: firebaseResult.token,
-          });
+          const backendResponse = await axios.post(
+            `${API_URL}/auth/firebase-login`,
+            { firebaseToken: firebaseResult.token },
+            { headers: getDeviceHeaders() },
+          );
 
           const backendUser = backendResponse.data.user;
 

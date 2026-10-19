@@ -46,6 +46,8 @@ function showRateLimitToast(retryAfterSec: number | null) {
   });
 }
 
+import { getDeviceHeaders } from '../device';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 /**
@@ -78,6 +80,8 @@ function applyAuthInterceptors(client: AxiosInstance) {
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // Limite de dispositivos por conta (backend: DevicesService).
+      for (const [k, v] of Object.entries(getDeviceHeaders())) config.headers.set(k, v);
       return config;
     },
     (error: AxiosError) => Promise.reject(error),
@@ -89,6 +93,19 @@ function applyAuthInterceptors(client: AxiosInstance) {
       const originalRequest = error.config as
         | (InternalAxiosRequestConfig & { _retry?: boolean })
         | undefined;
+
+      // Este navegador foi desconectado (limite de dispositivos ou pelo
+      // próprio aluno em outro aparelho). Não adianta renovar token.
+      if (
+        error.response?.status === 401 &&
+        (error.response.data as { code?: string } | undefined)?.code === 'DEVICE_REVOKED'
+      ) {
+        toast.error('Esta conta foi usada em outro aparelho.', {
+          description: 'Entre novamente para continuar.',
+        });
+        useAuthStore.getState().logout();
+        return Promise.reject(error);
+      }
 
       if (
         error.response?.status === 401 &&
