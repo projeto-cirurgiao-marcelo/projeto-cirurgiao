@@ -1,6 +1,6 @@
 <Rive version="1" kind="fragment">
 <!-- GERADO por gen-scene.mjs — não editar à mão. -->
-<Artboard defaultStateMachineId="0:141" viewModelId="0:40" viewModelInstanceId="0:442" x="0" y="0" width="390" height="844" styleId="0:143" name="Quiz" id="0:142">
+<Artboard defaultStateMachineId="0:141" viewModelId="0:40" viewModelInstanceId="0:446" x="0" y="0" width="390" height="844" styleId="0:143" name="Quiz" id="0:142">
 <LayoutComponentStyle flexDirectionValue="column" name="Quiz Style" id="0:143"/>
 <Fill name="Background">
 <LinearGradient startX="0" startY="0" endX="0" endY="844" name="G">
@@ -1306,6 +1306,7 @@
 </LayoutComponent>
 </LayoutComponent>
 </LayoutComponent>
+<Node x="0" y="0" name="Pump" id="0:433"/>
 <StateMachine name="Quiz SM" id="0:141">
 <StateMachineListener targetId="0:145" name="Tap">
 <ListenerInputType listenerTypeValue="click"/>
@@ -1912,6 +1913,14 @@
 </TransitionViewModelCondition>
 </StateTransition>
 </AnimationState>
+</StateMachineLayer>
+<StateMachineLayer name="Pump" id="0:436">
+<AnyState x="0" y="2280"/>
+<ExitState x="200" y="2280"/>
+<EntryState x="-200" y="2400">
+<StateTransition stateToId="0:435"/>
+</EntryState>
+<AnimationState x="0" y="2400" animationId="0:434" stateName="pump" id="0:435"/>
 </StateMachineLayer>
 </StateMachine>
 <LinearAnimation duration="1" name="Phase Question" id="0:379">
@@ -2649,8 +2658,16 @@
 </KeyedProperty>
 </KeyedObject>
 </LinearAnimation>
+<LinearAnimation duration="60" loopValue="loop" name="Pump" id="0:434">
+<KeyedObject objectId="0:433">
+<KeyedProperty propertyKey="13">
+<KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+<KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+</KeyedProperty>
+</KeyedObject>
+</LinearAnimation>
 </Artboard>
-<Artboard isComponent="true" defaultStateMachineId="0:74" viewModelId="0:29" viewModelInstanceId="0:433" x="500" y="0" width="350" height="60" styleId="0:95" name="Option" id="0:96">
+<Artboard isComponent="true" defaultStateMachineId="0:74" viewModelId="0:29" viewModelInstanceId="0:437" x="500" y="0" width="350" height="60" styleId="0:95" name="Option" id="0:96">
 <LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Option Style" id="0:95"/>
 <LayoutComponent clip="false" styleId="0:76" name="Card" id="0:75">
 <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="centerLeft" layoutWidthScaleType="fill" layoutHeightScaleType="hug" paddingLeft="16" paddingLeftUnitsValue="points" paddingRight="16" paddingRightUnitsValue="points" paddingTop="14" paddingTopUnitsValue="points" paddingBottom="14" paddingBottomUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" cornerRadiusTL="14" name="Card Style" id="0:76"/>
@@ -3072,7 +3089,7 @@
 </KeyedObject>
 </LinearAnimation>
 </Artboard>
-<Artboard isComponent="true" defaultStateMachineId="0:102" viewModelId="0:33" viewModelInstanceId="0:438" x="500" y="200" width="350" height="140" styleId="0:136" name="ReviewItem" id="0:137">
+<Artboard isComponent="true" defaultStateMachineId="0:102" viewModelId="0:33" viewModelInstanceId="0:442" x="500" y="200" width="350" height="140" styleId="0:136" name="ReviewItem" id="0:137">
 <LayoutComponentStyle flexDirectionValue="column" layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="ReviewItem Style" id="0:136"/>
 <LayoutComponent clip="true" styleId="0:133" name="Card" id="0:132">
 <LayoutComponentStyle flexDirectionValue="row" layoutWidthScaleType="fill" layoutHeightScaleType="hug" cornerRadiusTL="14" name="Card Style" id="0:133"/>
@@ -3293,44 +3310,44 @@
 <DataEnumValue key="knew" value="knew" id="0:27"/>
 <DataEnumValue key="mastered" value="mastered" id="0:28"/>
 </DataEnumCustom>
-<ViewModel defaultInstanceId="0:433" name="Option" id="0:29">
+<ViewModel defaultInstanceId="0:437" name="Option" id="0:29">
 <ViewModelPropertyString name="text" id="0:30"/>
 <ViewModelPropertyEnumCustom enumId="0:14" name="state" id="0:31"/>
 <ViewModelPropertyTrigger name="tap" id="0:32"/>
-<ViewModelInstance exports="true" name="Default" id="0:433">
+<ViewModelInstance exports="true" name="Default" id="0:437">
 <ViewModelInstanceString propertyValue="Alternativa" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 1" id="0:434">
+<ViewModelInstance exports="true" name="Opt 1" id="0:438">
 <ViewModelInstanceString propertyValue="Poliglecaprone 25 (absorvível monofilamentar)" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 2" id="0:435">
+<ViewModelInstance exports="true" name="Opt 2" id="0:439">
 <ViewModelInstanceString propertyValue="Seda" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 3" id="0:436">
+<ViewModelInstance exports="true" name="Opt 3" id="0:440">
 <ViewModelInstanceString propertyValue="Nylon multifilamentar, com nós externos e retirada dos pontos em 10 a 14 dias após o procedimento" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Opt 4" id="0:437">
+<ViewModelInstance exports="true" name="Opt 4" id="0:441">
 <ViewModelInstanceString propertyValue="Categute cromado" viewModelPropertyId="0:30"/>
 <ViewModelInstanceEnum propertyValue="0:15" viewModelPropertyId="0:31"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:32"/>
 </ViewModelInstance>
 </ViewModel>
-<ViewModel defaultInstanceId="0:438" name="ReviewItem" id="0:33">
+<ViewModel defaultInstanceId="0:442" name="ReviewItem" id="0:33">
 <ViewModelPropertyString name="title" id="0:34"/>
 <ViewModelPropertyString name="question" id="0:35"/>
 <ViewModelPropertyBoolean name="isCorrect" id="0:36"/>
 <ViewModelPropertyString name="yourAnswer" id="0:37"/>
 <ViewModelPropertyString name="correctAnswer" id="0:38"/>
 <ViewModelPropertyString name="explanation" id="0:39"/>
-<ViewModelInstance exports="true" name="Default" id="0:438">
+<ViewModelInstance exports="true" name="Default" id="0:442">
 <ViewModelInstanceString propertyValue="Questão 1" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Pergunta" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
@@ -3338,7 +3355,7 @@
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:38"/>
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:39"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Rev 1" id="0:439">
+<ViewModelInstance exports="true" name="Rev 1" id="0:443">
 <ViewModelInstanceString propertyValue="QUESTÃO 1" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Qual fio é mais indicado para a sutura intradérmica após uma orquiectomia em cão?" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
@@ -3346,7 +3363,7 @@
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:38"/>
 <ViewModelInstanceString propertyValue="Absorvível e monofilamentar: menor reação tecidual e sem necessidade de retirada." viewModelPropertyId="0:39"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Rev 2" id="0:440">
+<ViewModelInstance exports="true" name="Rev 2" id="0:444">
 <ViewModelInstanceString propertyValue="QUESTÃO 2" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Tempo de jejum hídrico recomendado antes da anestesia em cães adultos saudáveis?" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:36"/>
@@ -3354,7 +3371,7 @@
 <ViewModelInstanceString propertyValue="2 horas" viewModelPropertyId="0:38"/>
 <ViewModelInstanceString propertyValue="Jejum hídrico curto reduz o risco de regurgitação sem desidratar o paciente." viewModelPropertyId="0:39"/>
 </ViewModelInstance>
-<ViewModelInstance exports="true" name="Rev 3" id="0:441">
+<ViewModelInstance exports="true" name="Rev 3" id="0:445">
 <ViewModelInstanceString propertyValue="QUESTÃO 3" viewModelPropertyId="0:34"/>
 <ViewModelInstanceString propertyValue="Qual a principal função do pedículo ovariano na técnica de ovariohisterectomia?" viewModelPropertyId="0:35"/>
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:36"/>
@@ -3363,7 +3380,7 @@
 <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:39"/>
 </ViewModelInstance>
 </ViewModel>
-<ViewModel defaultInstanceId="0:442" name="Quiz" id="0:40">
+<ViewModel defaultInstanceId="0:446" name="Quiz" id="0:40">
 <ViewModelPropertyEnumCustom enumId="0:10" name="phase" id="0:41"/>
 <ViewModelPropertyString name="progressLabel" id="0:42"/>
 <ViewModelPropertyNumber name="questionNumber" id="0:43"/>
@@ -3393,17 +3410,17 @@
 <ViewModelPropertyTrigger name="continueTap" id="0:67"/>
 <ViewModelPropertyTrigger name="retryTap" id="0:68"/>
 <ViewModelPropertyTrigger name="closeTap" id="0:69"/>
-<ViewModelInstance exports="true" name="Default" id="0:442">
+<ViewModelInstance exports="true" name="Default" id="0:446">
 <ViewModelInstanceEnum propertyValue="0:11" viewModelPropertyId="0:41"/>
 <ViewModelInstanceString propertyValue="PERGUNTA 1 DE 5" viewModelPropertyId="0:42"/>
 <ViewModelInstanceNumber propertyValue="1" viewModelPropertyId="0:43"/>
 <ViewModelInstanceNumber propertyValue="5" viewModelPropertyId="0:44"/>
 <ViewModelInstanceString propertyValue="Qual fio é mais indicado para a sutura intradérmica após uma orquiectomia em cão?" viewModelPropertyId="0:45"/>
 <ViewModelInstanceList viewModelPropertyId="0:46">
-<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:434"/>
-<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:435"/>
-<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:436"/>
-<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:437"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:438"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:439"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:440"/>
+<ViewModelInstanceListItem viewModelId="0:29" viewModelInstanceId="0:441"/>
 </ViewModelInstanceList>
 <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:47"/>
 <ViewModelInstanceNumber propertyValue="2" viewModelPropertyId="0:48"/>
@@ -3420,9 +3437,9 @@
 <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:59"/>
 <ViewModelInstanceString propertyValue="2 de 3 corretas" viewModelPropertyId="0:60"/>
 <ViewModelInstanceList viewModelPropertyId="0:61">
-<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:439"/>
-<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:440"/>
-<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:441"/>
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:443"/>
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:444"/>
+<ViewModelInstanceListItem viewModelId="0:33" viewModelInstanceId="0:445"/>
 </ViewModelInstanceList>
 <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:62"/>
 <ViewModelInstanceTrigger viewModelPropertyId="0:63"/>

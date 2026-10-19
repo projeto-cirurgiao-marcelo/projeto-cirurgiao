@@ -10,7 +10,8 @@
       "channel": "development",
       "env": {
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3000/api/v1",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "USE_RIVE_LEGACY": "1"
       },
       "android": {
         "resourceClass": "medium"
@@ -28,7 +29,7 @@
         "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1",
         "EXPO_PUBLIC_QUIZ_RIVE": "1",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_QUIZ_RIVE_DEBUG": "1"
+        "USE_RIVE_LEGACY": "1"
       },
       "android": {
         "buildType": "apk",
@@ -44,19 +45,14 @@
       "environment": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://projeto-cirurgiao-api-81746498042.southamerica-east1.run.app/api/v1",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "USE_RIVE_LEGACY": "1"
       },
       "android": {
         "resourceClass": "medium"
       },
       "ios": {
         "resourceClass": "m-medium"
-      }
-    },
-    "preview-legacy": {
-      "extends": "preview",
-      "env": {
-        "USE_RIVE_LEGACY": "1"
       }
     }
   },

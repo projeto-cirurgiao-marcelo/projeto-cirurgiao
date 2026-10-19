@@ -10,7 +10,7 @@
  * - Fast Refresh fecha as instâncias nativas; recarregar a tela resolve.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
   Fit,
   RiveView,
@@ -26,8 +26,6 @@ import { QUIZ_TRIGGERS, type QuizViewModel } from './quiz-view-model';
 
 /** Liga o quiz em Rive (build com EXPO_PUBLIC_QUIZ_RIVE=1). Desligado = quiz antigo. */
 export const QUIZ_RIVE_ENABLED = process.env.EXPO_PUBLIC_QUIZ_RIVE === '1';
-/** Sonda de diagnóstico (só build preview): mostra fase, montagens e o último trigger recebido. */
-const QUIZ_RIVE_DEBUG = process.env.EXPO_PUBLIC_QUIZ_RIVE_DEBUG === '1';
 
 export interface QuizRiveViewProps {
   vm: QuizViewModel;
@@ -70,24 +68,9 @@ function setProp(inst: ViewModelInstance, name: string, kind: Kind, value: unkno
 }
 
 const QUIZ_FILE = require('../../../../assets/rive/quiz.riv');
-// Sonda iOS (temporária): variantes da cena pra isolar o que bloqueia o toque.
-// 0 = cena da main (folha/backdrop hidden), 1 = fix atual, 2 = sem backdrop,
-// 3 = sem backdrop e camada da folha só do tamanho da folha, 4 = fix + camada 'Pump' em loop.
-const QUIZ_VARIANTS = QUIZ_RIVE_DEBUG
-  ? [
-      require('../../../../assets/rive/quiz-v0.riv'),
-      require('../../../../assets/rive/quiz-v1.riv'),
-      require('../../../../assets/rive/quiz-v2.riv'),
-      require('../../../../assets/rive/quiz-v3.riv'),
-      require('../../../../assets/rive/quiz-v4.riv'),
-    ]
-  : [QUIZ_FILE];
 
 export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
-  const [variant, setVariant] = useState(QUIZ_RIVE_DEBUG ? 1 : 0);
-  const [fitLayout, setFitLayout] = useState(true);
-  const [semOn, setSemOn] = useState(true);
-  const { riveFile, error: fileError } = useRiveFile(QUIZ_VARIANTS[variant] ?? QUIZ_FILE);
+  const { riveFile, error: fileError } = useRiveFile(QUIZ_FILE);
   const { instance, error: vmError } = useViewModelInstance(riveFile, {
     async: true,
   });
@@ -110,21 +93,13 @@ export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
   // cada trigger só vale na fase dele — um VoiceOver "ativando" um botão
   // fora de hora não dispara nada.
   //
-  // Reassinado a cada montagem do RiveView (mountedKey): no iOS o stream de um
-  // trigger da instância raiz pode morrer quando o RiveView anterior é
-  // destruído; as linhas das listas não sofrem disso porque nascem de novo.
+  // Reassinado a cada montagem do RiveView (mountedKey), como as linhas das
+  // listas, que nascem de novo a cada montagem.
   const [mountedKey, setMountedKey] = useState<string | null>(null);
-  const [debug, setDebug] = useState({ mounts: 0, last: '' });
-  const trace = (what: string) => {
-    if (!QUIZ_RIVE_DEBUG) return;
-    logger.info(`[QuizRiveView] ${what}`);
-    setDebug((d) => ({ ...d, last: `${what} @${new Date().toISOString().slice(11, 19)}` }));
-  };
   useEffect(() => {
     if (!instance || !mountedKey) return;
     const on = (name: string, phase: QuizViewModel['phase'] | null, fn: () => void) =>
       instance.triggerProperty(name)?.addListener(() => {
-        trace(`trigger ${name} (fase ${vmRef.current.phase})`);
         if (phase === null || vmRef.current.phase === phase) fn();
       });
     const unsubs = [
@@ -135,7 +110,6 @@ export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
         on(name, 'feedback', () => cb.current.onConfidence(level)),
       ),
     ];
-    if (QUIZ_RIVE_DEBUG) setDebug((d) => ({ ...d, mounts: d.mounts + 1 }));
     return () => unsubs.forEach((u) => u?.());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instance, mountedKey]);
@@ -189,13 +163,7 @@ export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
         row.stringProperty('text')?.set(opts[i].text);
         row.enumProperty('state')?.set(opts[i].state);
         const tap = row.triggerProperty(QUIZ_TRIGGERS.optionTap);
-        if (tap)
-          unsubs.push(
-            tap.addListener(() => {
-              trace(`option ${i}`);
-              cb.current.onOptionTap(i);
-            }),
-          );
+        if (tap) unsubs.push(tap.addListener(() => cb.current.onOptionTap(i)));
         newRows.push({ inst: row, state: opts[i].state });
         await options.addInstanceAsync(row);
       }
@@ -232,39 +200,18 @@ export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
   }, [vm.options, mountedKey]);
 
   return (
-    <View
-      style={styles.root}
-      onTouchStart={QUIZ_RIVE_DEBUG ? (e) => trace(`touch ${Math.round(e.nativeEvent.locationX)},${Math.round(e.nativeEvent.locationY)}`) : undefined}
-    >
+    <View style={styles.root}>
       {riveFile && instance && mountedKey === listsKey ? (
         <RiveView
           key={listsKey}
           file={riveFile}
           dataBind={instance}
-          fit={fitLayout ? Fit.Layout : Fit.Contain}
+          fit={Fit.Layout}
           autoPlay
-          semantics={semOn ? Semantics.Automatic : Semantics.Off}
+          semantics={Semantics.Automatic}
           style={StyleSheet.absoluteFill}
           onError={(e) => logger.error('[QuizRiveView] RiveView', e)}
         />
-      ) : null}
-      {QUIZ_RIVE_DEBUG ? (
-        <View style={styles.debug}>
-          <Text style={styles.debugText}>
-            {`fase ${vm.phase} · mont ${debug.mounts} · ${debug.last || 'nenhum trigger'}`}
-          </Text>
-          <View style={styles.debugRow}>
-            <Pressable style={styles.debugBtn} onPress={() => setVariant((v) => (v + 1) % QUIZ_VARIANTS.length)}>
-              <Text style={styles.debugText}>{`cena V${variant}`}</Text>
-            </Pressable>
-            <Pressable style={styles.debugBtn} onPress={() => setFitLayout((f) => !f)}>
-              <Text style={styles.debugText}>{`fit ${fitLayout ? 'layout' : 'contain'}`}</Text>
-            </Pressable>
-            <Pressable style={styles.debugBtn} onPress={() => setSemOn((x) => !x)}>
-              <Text style={styles.debugText}>{`sem ${semOn ? 'auto' : 'off'}`}</Text>
-            </Pressable>
-          </View>
-        </View>
       ) : null}
     </View>
   );
@@ -273,16 +220,4 @@ export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
 const styles = StyleSheet.create({
   // Mesma cor do topo do fundo da cena: a remontagem entre perguntas não pisca branco.
   root: { flex: 1, backgroundColor: '#F4FAFF' },
-  debug: {
-    position: 'absolute',
-    top: 56,
-    left: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    padding: 2,
-    gap: 2,
-  },
-  debugText: { fontSize: 10, color: '#B00020' },
-  debugRow: { flexDirection: 'row', gap: 6 },
-  debugBtn: { borderWidth: 1, borderColor: '#B00020', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
 });

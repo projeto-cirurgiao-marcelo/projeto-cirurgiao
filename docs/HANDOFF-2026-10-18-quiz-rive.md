@@ -43,3 +43,13 @@ Hoje **nada**. Tudo fica atrás do toggle `EXPO_PUBLIC_QUIZ_RIVE=1`, ligado só 
 5. Só depois de 1 e 2: apagar a UI antiga (QuestionCard, QuizResult, GelpiCelebrateModal + `juice/dom`, ComboMeter, XpBurst, ScreenShake).
 
 Obs.: durante o teste, um quiz foi gerado na aula "Apresentação da plataforma Projeto Cirurgião" e uma tentativa registrada na conta do Gustavo, com autorização dele.
+
+## Adendo 19/10/2026 — toque no iOS (PR #73)
+
+**Sintoma:** no iPhone 8, build preview, os botões da folha de feedback (Chutei…) não respondiam; depois, com a folha sempre presente na cena, nada respondia após alguns toques, e qualquer remontagem do RiveView "resetava" por mais alguns toques. Android e o Rive CLI (`--pointer=click@x,y --data-dump`) disparavam tudo.
+
+**Causa (apurada com build de sonda, cenas V0–V4 e dois backends):** no backend iOS **novo** do `@rive-app/react-native` (padrão, baseado no command server do rive-ios 6.28), as assinaturas dos triggers do view model deixam de entregar ao app depois de alguns eventos; não é a cena (V0–V3 iguais), nem state machine assentada (V4 com camada em loop não mudou). No backend **legado** todos os triggers chegam, mas ele para o render quando a state machine assenta e uma escrita de dados do app não o acorda (rive-ios #383): a alternativa só pintava no toque seguinte.
+
+**Fix:** (1) `USE_RIVE_LEGACY=1` no `env` de todos os profiles do `eas.json` (o podspec lê no `pod install`; Android ignora); (2) camada `Pump` sempre em loop no `gen-scene.mjs` (nó invisível, 60 frames), que mantém o render vivo no legado; (3) folha/backdrop/resultado nunca `display:none`, saem por y/opacidade; (4) listeners dos triggers da raiz reassinados a cada montagem. Validado no iPhone 8 em 19/10: quiz inteiro, inclusive reabrir.
+
+**Consequências:** o backend legado **não tem semantics** (VoiceOver); `QuizPlayer` já cai na UI antiga com leitor de tela em qualquer plataforma. A camada TalkBack/VoiceOver pendente passa a valer para os dois sistemas. Build local (`npx expo run:ios`) precisa de `USE_RIVE_LEGACY=1` no ambiente do `pod install`. Reavaliar o backend novo quando o pacote/rive-ios corrigir a entrega dos triggers (acompanhar issues do rive-nitro-react-native).
