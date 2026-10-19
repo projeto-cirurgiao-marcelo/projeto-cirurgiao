@@ -6,6 +6,7 @@ import {
 import Slider from '@react-native-community/slider';
 import { BlurView } from 'expo-blur';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { Image } from 'expo-image';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from '../../types/course.types';
@@ -46,6 +47,8 @@ interface VideoPlayerProps {
    * checkout). Sem ela o overlay é só informativo (produto não vendável).
    */
   onOfferPress?: () => void;
+  /** Toque do usuario na area do video (a tela pai usa pra recolher a area inferior). */
+  onUserTap?: () => void;
 }
 
 export interface VideoPlayerRef {
@@ -84,7 +87,7 @@ function formatTime(seconds: number): string {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
-  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle, onOfferPress },
+  { video, streamUrl, playbackKind, fillContainer = false, onEnded, onProgressUpdate, autoPlay = false, initialPosition = 0, previewSeconds, offerTitle, onOfferPress, onUserTap },
   ref
 ) {
   const videoViewRef = useRef<VideoView>(null);
@@ -107,6 +110,11 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   const [showCcMenu, setShowCcMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
+  // Pôster (thumbnail da aula) até o primeiro play: sem ele o player fica preto.
+  const [hasStarted, setHasStarted] = useState(autoPlay);
+  useEffect(() => {
+    if (isPlaying) setHasStarted(true);
+  }, [isPlaying]);
   const [displayTime, setDisplayTime] = useState(0);
   const [displayDuration, setDisplayDuration] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
@@ -149,25 +157,14 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
     return () => sub.remove();
   }, [player, initialPosition]);
 
-  // Detectar tracks disponiveis via sourceLoad + auto-selecionar pt-BR quando existir.
-  // O usuario pode depois mudar manualmente via menu CC.
+  // Detectar tracks disponiveis via sourceLoad. Legenda começa DESLIGADA
+  // (decisão de produto, 19/10/2026); o usuario liga pelo botao CC.
   useEffect(() => {
     if (!player) return;
     // @ts-ignore
     const subscription = player.addListener('sourceLoad', (event: any) => {
       const subs = event?.availableSubtitleTracks;
-      if (subs && subs.length > 0) {
-        setSubtitleTracks(subs);
-        const ptTrack = subs.find((t: SubtitleTrackInfo) =>
-          t.language === 'pt' || t.language === 'por' ||
-          t.label?.toLowerCase().includes('portugu')
-        );
-        if (ptTrack) {
-          // @ts-ignore
-          player.subtitleTrack = ptTrack;
-          setActiveTrack(ptTrack);
-        }
-      }
+      if (subs && subs.length > 0) setSubtitleTracks(subs);
     });
     return () => subscription.remove();
   }, [player]);
@@ -250,13 +247,14 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   }, [isPlaying]);
 
   const handleVideoTap = useCallback(() => {
+    onUserTap?.();
     if (showOverlay) {
       setShowOverlay(false);
       if (overlayTimeoutRef.current) clearTimeout(overlayTimeoutRef.current);
     } else {
       resetOverlayTimeout();
     }
-  }, [showOverlay, resetOverlayTimeout]);
+  }, [showOverlay, resetOverlayTimeout, onUserTap]);
 
   // Mostrar overlay ao pausar
   useEffect(() => {
@@ -604,6 +602,15 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
           onFullscreenExit={handleFullscreenExit}
         />
 
+        {!hasStarted && video.thumbnailUrl ? (
+          <Image
+            source={{ uri: video.thumbnailUrl }}
+            style={styles.poster}
+            contentFit="cover"
+            pointerEvents="none"
+          />
+        ) : null}
+
         {/* Overlay Liquid Glass */}
         {!isFullscreen && (
           <Pressable style={styles.overlay} onPress={handleVideoTap}>
@@ -884,6 +891,10 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  poster: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 5,
   },
   // Overlay
   overlay: {
