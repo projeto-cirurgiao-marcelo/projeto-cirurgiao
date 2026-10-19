@@ -31,10 +31,11 @@ Decisão do Gustavo em 19/10/2026 depois do levantamento: hoje não havia defesa
 |---|---|
 | Backend (schema, guard, rotas, assinatura) | **em produção 19/10** (rev `00127-4jv`, secret `VIDEO_TOKEN_SECRET`, envs `VIDEO_CDN_HOST`/`MAX_ACTIVE_DEVICES`) |
 | Worker `video-gate` (ENFORCE=0) + `r2-browser` assinando | **em produção 19/10** (versão `8bd69a47` / `65863145`); verificado: master, variante, segmento e legenda com `?t=` → 200; sem token → 200 (observação) |
-| Web (headers, DEVICE_REVOKED, tela, 403 do player) | pendente |
-| Mobile (idem, PR separado; produção só depois da aprovação do build 8) | pendente |
+| Web (headers, DEVICE_REVOKED, tela, 403 do player) | em produção 19/10 (PR #76, Vercel) |
+| Mobile (idem) | na `main` 19/10, testado no iPhone 8 (build preview `f0876769`); produção só depois da aprovação do build 8 |
 | `ENFORCE=1` + guard exigindo `X-Device-Id` para STUDENT | depois dos apps nas lojas |
 
 ## Próximos (fora do escopo de 19/10)
+- Gustavo (19/10): as regras de multi-login vão ficar **mais rígidas** numa próxima fase (limite menor, exigir `X-Device-Id`, uso simultâneo). O desenho atual já suporta: `MAX_ACTIVE_DEVICES` é env, e o guard só precisa deixar de aceitar request sem header.
 - Detecção de uso simultâneo (heartbeat do player em dois IPs) e marca d'água visível com nome do aluno.
 - Termos de uso com licença pessoal e CPF no cadastro.
