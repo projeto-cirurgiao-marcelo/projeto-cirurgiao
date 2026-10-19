@@ -10,6 +10,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+// Sonda iOS (temporária): QUIZ_VARIANT=2 tira o backdrop; =3 também encolhe a
+// camada da folha pra só cobrir a folha. Vazio = cena normal.
+const VARIANT = process.env.QUIZ_VARIANT ?? '';
+const HAS_BACKDROP = !['2', '3'].includes(VARIANT);
+const SHEET_LAYER_HUG = VARIANT === '3';
 
 // ---------------------------------------------------------------- XML básico
 let next = 10;
@@ -852,7 +857,7 @@ const quizArtboard = (() => {
   // o que nasce colapsado e é exibido por animação não recebe toque (os
   // botões de confiança não respondiam no iPhone). Fora da fase, a folha e o
   // backdrop saem por posição/opacidade, não por display.
-  const sheetLayer = box('SheetLayer', { styleId: (S.sheetStyle = id()), dir: 'column', align: 'bottomCenter', w: 'fill', h: 'fill' }, [sheet]);
+  const sheetLayer = box('SheetLayer', { styleId: (S.sheetStyle = id()), dir: 'column', align: 'bottomCenter', w: 'fill', h: SHEET_LAYER_HUG ? 'hug' : 'fill' }, [sheet]);
   const backdrop = box('Backdrop', { id: (S.backdrop = id()), styleId: (S.backdropStyle = id()), opacity: 0, w: 'fill', h: 'fill', fill: paintFill(C.ink, { a: 0.28 }) });
 
   // --- resultado
@@ -904,6 +909,7 @@ const quizArtboard = (() => {
   const resultLayer = box('ResultLayer', { dir: 'column', w: 'fill', h: 'fill', pt: 60 }, [result]);
 
   // --- animações da tela
+  const bd = (k) => (HAS_BACKDROP ? [k] : []);
   const offscreen = (obj, on) => [
     hold(obj, K.y, 'Double', on ? 0 : OFFSCREEN_Y),
     hold(obj, K.opacity, 'Double', on ? 1 : 0),
@@ -916,14 +922,14 @@ const quizArtboard = (() => {
     show(S.resultTitle, ph === 'result'),
   ];
   const A = {
-    question: anim('Phase Question', 1, [...phaseLook('question'), ...offscreen(S.sheet, false), hold(S.backdrop, K.opacity, 'Double', 0)]),
+    question: anim('Phase Question', 1, [...phaseLook('question'), ...offscreen(S.sheet, false), ...bd(hold(S.backdrop, K.opacity, 'Double', 0))]),
     feedback: anim('Phase Feedback', 20, [
       ...phaseLook('feedback'),
       hold(S.sheet, K.opacity, 'Double', 1),
       { obj: S.sheet, key: K.y, kind: 'Double', frames: [[0, 420], [20, 0, true]] },
-      { obj: S.backdrop, key: K.opacity, kind: 'Double', frames: [[0, 0], [14, 1, true]] },
+      ...bd({ obj: S.backdrop, key: K.opacity, kind: 'Double', frames: [[0, 0], [14, 1, true]] }),
     ]),
-    result: anim('Phase Result', 1, [...phaseLook('result'), ...offscreen(S.sheet, false), hold(S.backdrop, K.opacity, 'Double', 0)]),
+    result: anim('Phase Result', 1, [...phaseLook('result'), ...offscreen(S.sheet, false), ...bd(hold(S.backdrop, K.opacity, 'Double', 0))]),
   };
   const g = gelpiIds;
   const GA = {
@@ -1003,9 +1009,9 @@ const quizArtboard = (() => {
     el('LayoutComponentStyle', { ...styleAttrs({ dir: 'column' }), name: 'Quiz Style', id: Q.style }),
     el('Fill', { name: 'Background' }, el('LinearGradient', { startX: 0, startY: 0, endX: 0, endY: 844, name: 'G' }, el('GradientStop', { colorValue: argb(C.bgTop), position: 0 }), el('GradientStop', { colorValue: argb(C.bgBottom), position: 1 }))),
     // stack: as três camadas ocupam a mesma célula; a primeira declarada fica por cima
-    box('Root', { layoutTypeValue: 'stack', w: 'fill', h: 'fill' }, [
+    box('Root', { layoutTypeValue: 'stack', w: 'fill', h: 'fill', ...(SHEET_LAYER_HUG ? { align: 'bottomCenter' } : {}) }, [
       sheetLayer,
-      backdrop,
+      ...(HAS_BACKDROP ? [backdrop] : []),
       box('Main', { dir: 'column', w: 'fill', h: 'fill', pt: 8 }, [header, question]),
       resultLayer,
     ]),

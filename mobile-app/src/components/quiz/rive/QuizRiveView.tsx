@@ -10,7 +10,7 @@
  * - Fast Refresh fecha as instâncias nativas; recarregar a tela resolve.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   Fit,
   RiveView,
@@ -70,9 +70,23 @@ function setProp(inst: ViewModelInstance, name: string, kind: Kind, value: unkno
 }
 
 const QUIZ_FILE = require('../../../../assets/rive/quiz.riv');
+// Sonda iOS (temporária): variantes da cena pra isolar o que bloqueia o toque.
+// 0 = cena da main (folha/backdrop hidden), 1 = fix atual, 2 = sem backdrop,
+// 3 = sem backdrop e camada da folha só do tamanho da folha.
+const QUIZ_VARIANTS = QUIZ_RIVE_DEBUG
+  ? [
+      require('../../../../assets/rive/quiz-v0.riv'),
+      require('../../../../assets/rive/quiz-v1.riv'),
+      require('../../../../assets/rive/quiz-v2.riv'),
+      require('../../../../assets/rive/quiz-v3.riv'),
+    ]
+  : [QUIZ_FILE];
 
 export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
-  const { riveFile, error: fileError } = useRiveFile(QUIZ_FILE);
+  const [variant, setVariant] = useState(QUIZ_RIVE_DEBUG ? 1 : 0);
+  const [fitLayout, setFitLayout] = useState(true);
+  const [semOn, setSemOn] = useState(true);
+  const { riveFile, error: fileError } = useRiveFile(QUIZ_VARIANTS[variant] ?? QUIZ_FILE);
   const { instance, error: vmError } = useViewModelInstance(riveFile, {
     async: true,
   });
@@ -217,23 +231,39 @@ export function QuizRiveView({ vm, ...callbacks }: QuizRiveViewProps) {
   }, [vm.options, mountedKey]);
 
   return (
-    <View style={styles.root}>
+    <View
+      style={styles.root}
+      onTouchStart={QUIZ_RIVE_DEBUG ? (e) => trace(`touch ${Math.round(e.nativeEvent.locationX)},${Math.round(e.nativeEvent.locationY)}`) : undefined}
+    >
       {riveFile && instance && mountedKey === listsKey ? (
         <RiveView
           key={listsKey}
           file={riveFile}
           dataBind={instance}
-          fit={Fit.Layout}
+          fit={fitLayout ? Fit.Layout : Fit.Contain}
           autoPlay
-          semantics={Semantics.Automatic}
+          semantics={semOn ? Semantics.Automatic : Semantics.Off}
           style={StyleSheet.absoluteFill}
           onError={(e) => logger.error('[QuizRiveView] RiveView', e)}
         />
       ) : null}
       {QUIZ_RIVE_DEBUG ? (
-        <Text style={styles.debug} pointerEvents="none">
-          {`rive dbg · fase ${vm.phase} · montagens ${debug.mounts} · ${debug.last || 'nenhum trigger'}`}
-        </Text>
+        <View style={styles.debug}>
+          <Text style={styles.debugText}>
+            {`fase ${vm.phase} · mont ${debug.mounts} · ${debug.last || 'nenhum trigger'}`}
+          </Text>
+          <View style={styles.debugRow}>
+            <Pressable style={styles.debugBtn} onPress={() => setVariant((v) => (v + 1) % QUIZ_VARIANTS.length)}>
+              <Text style={styles.debugText}>{`cena V${variant}`}</Text>
+            </Pressable>
+            <Pressable style={styles.debugBtn} onPress={() => setFitLayout((f) => !f)}>
+              <Text style={styles.debugText}>{`fit ${fitLayout ? 'layout' : 'contain'}`}</Text>
+            </Pressable>
+            <Pressable style={styles.debugBtn} onPress={() => setSemOn((x) => !x)}>
+              <Text style={styles.debugText}>{`sem ${semOn ? 'auto' : 'off'}`}</Text>
+            </Pressable>
+          </View>
+        </View>
       ) : null}
     </View>
   );
@@ -247,9 +277,11 @@ const styles = StyleSheet.create({
     top: 56,
     left: 8,
     right: 8,
-    fontSize: 10,
-    color: '#B00020',
     backgroundColor: 'rgba(255,255,255,0.85)',
     padding: 2,
+    gap: 2,
   },
+  debugText: { fontSize: 10, color: '#B00020' },
+  debugRow: { flexDirection: 'row', gap: 6 },
+  debugBtn: { borderWidth: 1, borderColor: '#B00020', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
 });
