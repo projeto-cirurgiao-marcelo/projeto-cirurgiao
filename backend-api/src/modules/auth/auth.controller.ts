@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Delete, Param, Headers, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -13,11 +13,15 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { GetUser } from './decorators/get-user.decorator';
 import { Role } from '@prisma/client';
+import { DevicesService } from '../firebase/devices.service';
 
 @ApiTags('auth')
 @Controller()
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly devices: DevicesService,
+  ) {}
 
   /**
    * Rota de registro - cria usuário no Firebase + PostgreSQL
@@ -54,8 +58,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Login com Firebase' })
   @ApiResponse({ status: 200, description: 'Login Firebase realizado com sucesso' })
   @ApiResponse({ status: 401, description: 'Token Firebase inválido' })
-  async firebaseLogin(@Body() firebaseLoginDto: FirebaseLoginDto) {
-    return this.authService.firebaseLogin(firebaseLoginDto);
+  async firebaseLogin(
+    @Body() firebaseLoginDto: FirebaseLoginDto,
+    @Headers() headers: Record<string, unknown>,
+  ) {
+    return this.authService.firebaseLogin(firebaseLoginDto, DevicesService.fromHeaders(headers));
   }
 
   @Post('auth/refresh')
@@ -93,8 +100,25 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Fazer logout' })
   @ApiResponse({ status: 200, description: 'Logout realizado com sucesso' })
-  async logout(@GetUser('userId') userId: string) {
-    return this.authService.logout(userId);
+  async logout(@GetUser('userId') userId: string, @GetUser('deviceId') deviceId: string | null) {
+    return this.authService.logout(userId, deviceId ?? null);
+  }
+
+  @Get('auth/devices')
+  @UseGuards(FirebaseAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Dispositivos conectados a esta conta' })
+  listDevices(@GetUser('userId') userId: string, @GetUser('deviceId') deviceId: string | null) {
+    return this.devices.list(userId, deviceId ?? null);
+  }
+
+  @Delete('auth/devices/:id')
+  @UseGuards(FirebaseAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Desconectar um dispositivo desta conta' })
+  async revokeDevice(@GetUser('userId') userId: string, @Param('id') id: string) {
+    await this.devices.revoke(userId, id);
   }
 
   @Get('auth/me')

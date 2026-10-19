@@ -27,6 +27,7 @@ npx wrangler kv:namespace create INDEX_KV
 
 # Secrets (não commitar)
 npx wrangler secret put CDN_BASE_URL   # ex: https://cdn.projetocirurgiao.app
+npx wrangler secret put VIDEO_TOKEN_SECRET   # mesmo do backend/video-gate: /signed-url devolve a prévia assinada
 # BACKEND_API_URL fica em wrangler.toml [vars] — não é secret
 
 # Dev local

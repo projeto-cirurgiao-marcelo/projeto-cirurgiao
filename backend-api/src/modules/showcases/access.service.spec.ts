@@ -3,6 +3,7 @@ import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 
 import { AccessService, DEFAULT_PREVIEW_SECONDS } from './access.service';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { VideoTokenService } from './video-token.service';
 
 describe('AccessService', () => {
   let service: AccessService;
@@ -13,7 +14,11 @@ describe('AccessService', () => {
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AccessService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AccessService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: VideoTokenService, useValue: { withToken: (url: string | null) => url } },
+      ],
     }).compile();
     service = module.get(AccessService);
   });

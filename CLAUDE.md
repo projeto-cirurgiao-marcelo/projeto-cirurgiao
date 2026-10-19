@@ -43,6 +43,7 @@ Auth: JWT (access 15min / refresh 7d) + Firebase ID token. Estado em Zustand + p
 - **Domínios web:** `app.projetocirurgiao.app` (canônico) **e** `www.projetocirurgiao.app` servem o app; apex faz 307 → `www`. Os alunos vinham usando `www` — não assumir que só o canônico está em uso.
 - **`video-pipeline/` está no `.gitignore` raiz.** Arquivos desse dir só entram com `git add -f`. (Débito de processo conhecido — idealmente mover o código rastreado pra fora ou remover a regra.)
 - **Prisma:** rodar `npx prisma generate` após qualquer mudança de schema. Migrations aplicam sozinhas no cold start do backend (`prisma migrate deploy` na CMD do Dockerfile + Cloud Run Job `cirurgiao-api-migrator`).
+- **Vídeo do CDN só toca com token.** `cdn.projetocirurgiao.app/videos/*` passa pelo Worker `cloudflare-workers/video-gate` que exige `?t=` assinado pelo backend (`VideoTokenService`, segredo `VIDEO_TOKEN_SECRET` igual nos dois lados e no `r2-browser`). `ENFORCE=0` no `wrangler.toml` = só loga (fica assim até os apps das lojas mandarem token). Nunca montar URL de aula no cliente: sempre a `playback.playbackUrl` do `GET /videos/:id`. Dispositivos por conta (`X-Device-Id`, 401 `DEVICE_REVOKED`): `docs/HANDOFF-2026-10-19-anti-compartilhamento.md`.
 - **Reorder de listas** (Module/Video/Course): sempre dentro de `prisma.$transaction`, com offset gigante temporário (`-1_000_000_000`) na fase 1. Partial unique indexes `WHERE deletedAt IS NULL` evitam soft-deletes ocupando slot.
 
 ## Regras pros teammates
@@ -83,6 +84,7 @@ cd video-pipeline/cloud-run && python -m pytest test_encode_fallback.py
 ---
 ## Documentos de entrada (atualizar a cada handoff)
 - **Handoff de transferência** → `docs/HANDOFF-2026-09-15-transferencia.md`: estado verificado, contas e acessos, rotação de segredos, arquitetura, deploy, operação, pendências priorizadas.
+- Anti-compartilhamento (vídeo assinado + dispositivos, 19/10): `docs/HANDOFF-2026-10-19-anti-compartilhamento.md`.
 - Última feature (vitrines, adendos até 08/09): `docs/HANDOFF-2026-08-14-vitrines.md`.
 - Review pré-live: `docs/HANDOFF-2026-08-11-pre-live-execucao.md`.
 - Design das vitrines: `docs/plans/2026-08-12-vitrines-controle-acesso-design.md`.

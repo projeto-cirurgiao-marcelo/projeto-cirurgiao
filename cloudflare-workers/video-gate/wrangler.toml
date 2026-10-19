@@ -1,0 +1,25 @@
+name = "video-gate"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# Rota na zona projetocirurgiao.app: tem precedência sobre o custom domain do
+# bucket, mas só para /videos/*. Thumbnails e o resto do host seguem no bucket.
+routes = [
+  { pattern = "cdn.projetocirurgiao.app/videos/*", zone_name = "projetocirurgiao.app" }
+]
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "s3-projeto-cirurgiao"
+preview_bucket_name = "s3-projeto-cirurgiao"
+
+[vars]
+ALLOWED_ORIGINS = "https://app.projetocirurgiao.app,https://projetocirurgiao.app,https://www.projetocirurgiao.app,http://localhost:3001,http://localhost:3000"
+# "0" = observação (serve sem token e loga). Virar "1" só quando os apps das
+# lojas já mandarem token (ver docs/HANDOFF-2026-10-19-anti-compartilhamento.md).
+ENFORCE = "0"
+
+# Segredo: `npx wrangler secret put VIDEO_TOKEN_SECRET` (mesmo valor do backend).
+
+[observability]
+enabled = true

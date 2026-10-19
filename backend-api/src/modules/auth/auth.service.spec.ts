@@ -7,6 +7,7 @@ import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { DevicesService } from '../firebase/devices.service';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 
 // Regressão do acesso por convite: token Firebase válido SEM User no
@@ -26,6 +27,7 @@ describe('AuthService.firebaseLogin', () => {
         { provide: JwtService, useValue: mockDeep<JwtService>() },
         { provide: ConfigService, useValue: mockDeep<ConfigService>() },
         { provide: FirebaseAdminService, useValue: firebaseAdmin },
+        { provide: DevicesService, useValue: mockDeep<DevicesService>() },
       ],
     }).compile();
     service = module.get(AuthService);
@@ -102,6 +104,7 @@ describe('AuthService.redeemInvite', () => {
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: { get: () => SECRET } },
         { provide: FirebaseAdminService, useValue: firebaseAdmin },
+        { provide: DevicesService, useValue: mockDeep<DevicesService>() },
       ],
     }).compile();
     service = module.get(AuthService);
