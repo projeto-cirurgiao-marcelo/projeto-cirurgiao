@@ -67,6 +67,8 @@ export default function WatchVideoScreen() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isTabsExpanded, setIsTabsExpanded] = useState(false);
+  const expandTabs = useCallback(() => setIsTabsExpanded(true), []);
+  const collapseTabs = useCallback(() => setIsTabsExpanded(false), []);
   /**
    * Esconde header (back + título) quando device está em landscape ou
    * fullscreen — antes o header continuava visível recortando parte do
@@ -381,6 +383,8 @@ export default function WatchVideoScreen() {
               initialPosition={initialPosition}
               previewSeconds={video.hasAccess === false ? video.previewSeconds : undefined}
               offerTitle={video.offerShowcase?.title}
+              // Tocar no vídeo recolhe a área inferior; tocar nela expande.
+              onUserTap={collapseTabs}
               // Só oferece o CTA se a vitrine está à venda nesta plataforma.
               // iOS: compra In-App; Android: Central de Ajuda (web), não o checkout.
               onOfferPress={
@@ -495,10 +499,12 @@ export default function WatchVideoScreen() {
 
       {/* Tabs de conteúdo — só portrait */}
       {!isLandscape && (
-        <CustomTabView
-          routes={TAB_ROUTES}
-          renderScene={renderScene}
-        />
+        <View style={{ flex: 1 }} onTouchStart={expandTabs}>
+          <CustomTabView
+            routes={TAB_ROUTES}
+            renderScene={renderScene}
+          />
+        </View>
       )}
 
       {/* FAB IA expandível */}
