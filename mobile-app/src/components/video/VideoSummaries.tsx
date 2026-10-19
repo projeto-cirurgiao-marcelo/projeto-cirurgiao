@@ -15,6 +15,7 @@ import {
   RemainingGenerationsResponse,
 } from '../../services/api/summaries.service';
 import { logger } from '../../lib/logger';
+import { MarkdownText } from '../chat/MarkdownText';
 import { Colors as colors } from '../../constants/colors';
 
 interface VideoSummariesProps {
@@ -203,7 +204,9 @@ export function VideoSummaries({ videoId }: VideoSummariesProps) {
             </Text>
           </View>
           <View style={styles.summaryTextContainer}>
-            <Text style={styles.summaryText}>{selectedSummary.content}</Text>
+            {/* O resumo vem em markdown (títulos, listas, negrito): mesmo
+                renderer do chat, senão aparece com # e ** crus. */}
+            <MarkdownText style={styles.summaryText}>{selectedSummary.content}</MarkdownText>
           </View>
         </View>
       ) : (
