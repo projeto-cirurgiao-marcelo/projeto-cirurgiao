@@ -5,6 +5,7 @@
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import secureStorage from '../../lib/secure-storage';
+import { getDeviceHeaders } from '../../lib/device';
 import { auth } from '../firebase';
 import Toast from 'react-native-toast-message';
 
@@ -125,6 +126,8 @@ apiClient.interceptors.request.use(
         await persistToken(token, version);
         if (version !== sessionVersion) throw new axios.CanceledError('Session changed');
         config.headers.set('Authorization', `Bearer ${token}`);
+        // Limite de dispositivos por conta (backend: DevicesService).
+        for (const [k, v] of Object.entries(await getDeviceHeaders())) config.headers.set(k, v);
         // This endpoint validates the body, not the Authorization header.
         if (config.url === '/auth/firebase-login') {
           config.data = { firebaseToken: token };
@@ -157,6 +160,23 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as SessionRequest | undefined;
     const version = originalRequest?._sessionVersion;
+
+    // Este aparelho foi desconectado (limite de dispositivos ou pelo aluno em
+    // outro aparelho). Renovar token não resolve: desloga e avisa.
+    if (
+      error.response?.status === 401 &&
+      version === sessionVersion &&
+      (error.response.data as { code?: string } | undefined)?.code === 'DEVICE_REVOKED'
+    ) {
+      Toast.show({
+        type: 'error',
+        text1: 'Esta conta foi usada em outro aparelho',
+        text2: 'Entre novamente para continuar.',
+        visibilityTime: 6000,
+      });
+      await authHandlers?.onSessionExpired();
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && originalRequest && version === sessionVersion) {
       const user = auth.currentUser;
