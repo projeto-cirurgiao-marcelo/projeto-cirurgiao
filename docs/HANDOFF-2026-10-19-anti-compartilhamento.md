@@ -9,6 +9,7 @@ Decisão do Gustavo em 19/10/2026 depois do levantamento: hoje não havia defesa
 - **Quem assina:** `AccessService.decorateVideo` (payload do `GET /videos/:id`), tanto com acesso quanto na prévia de 120 s. Só URLs do host `VIDEO_CDN_HOST`; Cloudflare Stream/YouTube passam intactas. Sem `VIDEO_TOKEN_SECRET`/`VIDEO_CDN_HOST` o backend devolve a URL crua (ambiente local).
 - **Playlists** saem do Worker com `?t=` anexado em cada URI relativa (variantes, segmentos, `URI="..."` de legenda). Segmentos usam `caches.default` com chave sem o token.
 - **`ENFORCE`** (var do `wrangler.toml`): `"0"` = observação — sem token válido ainda serve, mas loga `{"msg":"token rejeitado","reason":…}`. `"1"` = 403. **Fica em 0 até os apps das lojas mandarem token** (não há OTA; o iOS build 8 em revisão na Apple e o Android publicado usam URL crua). Virar para 1 quando `npx wrangler tail` mostrar só `reason` ausente para clientes antigos já fora de uso.
+- **Wrangler nesta máquina:** há `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` globais de outro projeto sem permissão; rodar `env -u CLOUDFLARE_API_TOKEN -u CLOUDFLARE_ACCOUNT_ID -u CLOUDFLARE_GATEWAY_ID npx wrangler …` (login OAuth já feito na conta do Gustavo, `ad41f4e2…`).
 - Segredos: backend (Secret Manager → env `VIDEO_TOKEN_SECRET`; envs `VIDEO_CDN_HOST=cdn.projetocirurgiao.app`, `MAX_ACTIVE_DEVICES=3`), `npx wrangler secret put VIDEO_TOKEN_SECRET` em `video-gate` **e** em `r2-browser`.
 - Expirou (12 h de aba aberta): o player recebe 403 e recarrega a aula do backend uma vez (web e mobile).
 
@@ -28,8 +29,8 @@ Decisão do Gustavo em 19/10/2026 depois do levantamento: hoje não havia defesa
 
 | Passo | Estado |
 |---|---|
-| Backend (schema, guard, rotas, assinatura) | código pronto 19/10 |
-| Worker `video-gate` (ENFORCE=0) + `r2-browser` assinando | código pronto 19/10 |
+| Backend (schema, guard, rotas, assinatura) | **em produção 19/10** (rev `00127-4jv`, secret `VIDEO_TOKEN_SECRET`, envs `VIDEO_CDN_HOST`/`MAX_ACTIVE_DEVICES`) |
+| Worker `video-gate` (ENFORCE=0) + `r2-browser` assinando | **em produção 19/10** (versão `8bd69a47` / `65863145`); verificado: master, variante, segmento e legenda com `?t=` → 200; sem token → 200 (observação) |
 | Web (headers, DEVICE_REVOKED, tela, 403 do player) | pendente |
 | Mobile (idem, PR separado; produção só depois da aprovação do build 8) | pendente |
 | `ENFORCE=1` + guard exigindo `X-Device-Id` para STUDENT | depois dos apps nas lojas |
