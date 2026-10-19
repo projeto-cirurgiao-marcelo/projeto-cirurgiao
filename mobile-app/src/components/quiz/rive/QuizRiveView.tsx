@@ -72,13 +72,14 @@ function setProp(inst: ViewModelInstance, name: string, kind: Kind, value: unkno
 const QUIZ_FILE = require('../../../../assets/rive/quiz.riv');
 // Sonda iOS (temporária): variantes da cena pra isolar o que bloqueia o toque.
 // 0 = cena da main (folha/backdrop hidden), 1 = fix atual, 2 = sem backdrop,
-// 3 = sem backdrop e camada da folha só do tamanho da folha.
+// 3 = sem backdrop e camada da folha só do tamanho da folha, 4 = fix + camada 'Pump' em loop.
 const QUIZ_VARIANTS = QUIZ_RIVE_DEBUG
   ? [
       require('../../../../assets/rive/quiz-v0.riv'),
       require('../../../../assets/rive/quiz-v1.riv'),
       require('../../../../assets/rive/quiz-v2.riv'),
       require('../../../../assets/rive/quiz-v3.riv'),
+      require('../../../../assets/rive/quiz-v4.riv'),
     ]
   : [QUIZ_FILE];
 

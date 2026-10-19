@@ -52,6 +52,12 @@
       "ios": {
         "resourceClass": "m-medium"
       }
+    },
+    "preview-legacy": {
+      "extends": "preview",
+      "env": {
+        "USE_RIVE_LEGACY": "1"
+      }
     }
   },
   "submit": {
