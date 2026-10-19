@@ -15,6 +15,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const VARIANT = process.env.QUIZ_VARIANT ?? '';
 const HAS_BACKDROP = !['2', '3'].includes(VARIANT);
 const SHEET_LAYER_HUG = VARIANT === '3';
+// =4: camada 'Pump' sempre em loop (rive-ios #383: state machine assentada para de bombear mensagens).
+const PUMP = VARIANT === '4';
 
 // ---------------------------------------------------------------- XML básico
 let next = 10;
@@ -1015,7 +1017,11 @@ const quizArtboard = (() => {
       box('Main', { dir: 'column', w: 'fill', h: 'fill', pt: 8 }, [header, question]),
       resultLayer,
     ]),
-    stateMachine('Quiz SM', Q.sm, listeners, layers),
+    PUMP ? el('Node', { x: 0, y: 0, name: 'Pump', id: (S.pump = id()) }) : null,
+    stateMachine('Quiz SM', Q.sm, listeners, [
+      ...layers,
+      ...(PUMP ? [layer('Pump', [{ name: 'pump', anim: anim('Pump', 60, [{ obj: S.pump, key: K.x, kind: 'Double', frames: [[0, 0], [60, 1]] }], { loop: true }) }], 2400)] : []),
+    ]),
     animations.splice(0),
   );
 })();
