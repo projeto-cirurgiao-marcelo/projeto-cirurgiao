@@ -139,7 +139,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold mb-3">8. Exclusão de Conta</h2>
+            <h2 id="exclusao-de-conta" className="text-xl font-bold mb-3 scroll-mt-24">8. Exclusão de Conta</h2>
             <p className="text-muted-foreground leading-relaxed">
               Você pode excluir sua conta sozinho, sem precisar falar com o suporte:
             </p>
