@@ -27,23 +27,6 @@ import {
   BorderRadius,
 } from '../../src/constants/colors';
 
-function getFirebaseErrorMessage(error: any): string {
-  const code = error?.code || error?.message || '';
-  if (code.includes('auth/invalid-credential') || code.includes('auth/wrong-password'))
-    return 'E-mail ou senha incorretos.';
-  if (code.includes('auth/user-not-found'))
-    return 'Nenhuma conta encontrada com este e-mail.';
-  if (code.includes('auth/too-many-requests'))
-    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-  if (code.includes('auth/user-disabled'))
-    return 'Esta conta foi desativada. Entre em contato com o suporte.';
-  if (code.includes('auth/network-request-failed'))
-    return 'Sem conexão com a internet. Verifique sua rede.';
-  if (code.includes('auth/invalid-email'))
-    return 'O endereço de e-mail é inválido.';
-  return 'Não foi possível fazer login. Tente novamente.';
-}
-
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,7 +51,7 @@ export default function LoginScreen() {
         router.replace('/(tabs)');
       }
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: 'Erro no login', text2: getFirebaseErrorMessage(err) });
+      Toast.show({ type: 'error', text1: 'Erro no login', text2: err?.message || 'Não foi possível fazer login. Tente novamente.' });
     }
   };
 
@@ -110,6 +93,9 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="email"
+                textContentType="username"
+                smartInsertDelete={false}
                 editable={!isLoading}
                 onFocus={() => setEmailFocused(true)}
                 onBlur={() => setEmailFocused(false)}
@@ -134,6 +120,10 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password"
+                textContentType="password"
+                smartInsertDelete={false}
                 editable={!isLoading}
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
