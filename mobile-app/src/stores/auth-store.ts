@@ -19,6 +19,7 @@ import {
 import { auth } from '../services/firebase';
 import { User, AuthState, LoginCredentials } from '../types';
 import { apiClient, configureApiAuth, resetApiSession } from '../services/api/client';
+import * as Sentry from '@sentry/react-native';
 import { logger } from '../lib/logger';
 
 interface AuthActions {
@@ -62,7 +63,8 @@ function getFirebaseErrorMessage(errorCode: string): string {
     'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
   };
 
-  return errorMessages[errorCode] || 'Ocorreu um erro. Tente novamente.';
+  // Código desconhecido vai na mensagem: é o que aparece no print de quem relata o erro.
+  return errorMessages[errorCode] || `Ocorreu um erro (${errorCode}). Tente novamente.`;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -85,7 +87,8 @@ export const useAuthStore = create<AuthStore>()(
           // 1. Login no Firebase
           const userCredential = await signInWithEmailAndPassword(
             auth,
-            credentials.email,
+            // Colar no iOS/iPadOS pode trazer espaço junto (revisão Apple 21/10/2026)
+            credentials.email.trim(),
             credentials.password
           );
           // 2. Sincroniza com backend (mesmo endpoint do web)
@@ -121,7 +124,13 @@ export const useAuthStore = create<AuthStore>()(
             message = error.response.data.message;
           } else if (error.code) {
             message = getFirebaseErrorMessage(error.code);
+          } else if (error.message) {
+            message = `Erro ao fazer login (${error.message})`;
           }
+          // Falha de login não é crash: sem isto o Sentry não vê (revisão Apple 21/10/2026).
+          Sentry.captureException(error, {
+            tags: { flow: 'login', code: String(error.code ?? error.response?.status ?? 'unknown') },
+          });
 
           set({
             isLoading: false,
