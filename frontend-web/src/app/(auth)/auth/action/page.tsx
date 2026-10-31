@@ -136,10 +136,10 @@ function ActionHandler() {
   };
 
   const inputProps = {
-    className: 'bg-gray-900 border-gray-700 text-white placeholder:text-gray-500',
+    className: 'h-12 bg-black border-gray-800 text-white placeholder:text-gray-500',
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = '#FF005C';
-      e.target.style.boxShadow = '0 0 0 1px #FF005C';
+      e.target.style.borderColor = '#2563EB';
+      e.target.style.boxShadow = '0 0 0 1px #2563EB';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
       e.target.style.borderColor = '';
@@ -148,19 +148,17 @@ function ActionHandler() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black p-8">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex justify-center">
-          <Image
-            src="/imgi_1_xvG8OSQtsPXQpn0XwJgs0Bx8jbRd32wOPHhuuitH.webp"
-            alt="Projeto Cirurgião"
-            width={600}
-            height={60}
-            className="h-12 w-auto"
-            priority
-          />
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4 sm:p-8">
+      <Image
+        src="/imgi_1_xvG8OSQtsPXQpn0XwJgs0Bx8jbRd32wOPHhuuitH.webp"
+        alt="Projeto Cirurgião"
+        width={525}
+        height={69}
+        className="mb-8 h-7 w-auto"
+        priority
+      />
 
+      <div className="w-full max-w-md rounded-2xl border border-gray-800 bg-gray-950 p-6 sm:p-8">
         {screen === 'validating' && (
           <div className="text-center text-gray-400">
             <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin" />
@@ -173,9 +171,9 @@ function ActionHandler() {
             <h1 className="mb-2 text-center text-2xl font-bold text-white">
               Crie sua senha
             </h1>
-            <p className="mb-8 text-center text-sm text-gray-400">
+            <p className="mb-8 text-center text-sm leading-relaxed text-gray-400">
               Bem-vindo(a) ao Projeto Cirurgião! Defina a senha de acesso para{' '}
-              <span className="text-white">{email}</span>
+              <span className="break-all font-medium text-white">{email}</span>
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
