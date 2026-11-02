@@ -104,3 +104,20 @@ export interface UpdateUserDto {
   role?: UserRole;
   isActive?: boolean;
 }
+
+export interface InviteStudentDto {
+  email: string;
+  name?: string;
+  sendEmail?: boolean;
+}
+
+export interface InviteStudentResponse {
+  user: Pick<User, 'id' | 'email' | 'name' | 'isActive'>;
+  /** Presente só na criação (POST /auth/invite). */
+  created?: boolean;
+  /** Link de convite (uso único, 7 dias) pra enviar por WhatsApp. */
+  inviteUrl: string;
+  expiresAt: string;
+  /** false quando o e-mail do Firebase falhou — o link continua válido. */
+  emailSent: boolean;
+}

@@ -1,5 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
@@ -159,5 +164,101 @@ describe('AuthService.redeemInvite', () => {
       UnauthorizedException,
     );
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService.inviteStudent / resendInvite', () => {
+  const SECRET = 'test-secret';
+  let service: AuthService;
+  let prisma: DeepMockProxy<PrismaService>;
+  let firebaseAdmin: DeepMockProxy<FirebaseAdminService>;
+  let jwtService: JwtService;
+
+  beforeEach(async () => {
+    prisma = mockDeep<PrismaService>();
+    firebaseAdmin = mockDeep<FirebaseAdminService>();
+    jwtService = new JwtService({});
+    const module = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: JwtService, useValue: jwtService },
+        { provide: ConfigService, useValue: { get: () => SECRET } },
+        { provide: FirebaseAdminService, useValue: firebaseAdmin },
+        { provide: DevicesService, useValue: mockDeep<DevicesService>() },
+      ],
+    }).compile();
+    service = module.get(AuthService);
+  });
+
+  const student = {
+    id: 'u1',
+    email: 'aluno@example.com',
+    name: 'Aluno',
+    password: '',
+    role: 'STUDENT',
+    isActive: true,
+    firebaseUid: 'fb-1',
+    deletedAt: null,
+  } as any;
+
+  it('cria Firebase + Postgres quando o aluno não existe e devolve link resgatável', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    firebaseAdmin.getUserByEmail.mockResolvedValue(null);
+    firebaseAdmin.createUser.mockResolvedValue({ uid: 'fb-new' } as any);
+    prisma.user.create.mockResolvedValue({ ...student, firebaseUid: 'fb-new' });
+    firebaseAdmin.sendPasswordResetEmail.mockResolvedValue(undefined);
+
+    const result = await service.inviteStudent({ email: 'Aluno@Example.com' });
+
+    expect(result.created).toBe(true);
+    expect(result.emailSent).toBe(true);
+    const create = prisma.user.create.mock.calls[0][0] as any;
+    expect(create.data).toMatchObject({ email: 'aluno@example.com', role: 'STUDENT', firebaseUid: 'fb-new' });
+    expect(create.data.name).toBe('Aluno');
+    expect(result.inviteUrl).toContain('/auth/action?mode=invite&token=');
+
+    // O link gerado precisa ser aceito pelo redeem.
+    const token = result.inviteUrl.split('token=')[1];
+    prisma.user.findUnique.mockResolvedValue({ ...student, firebaseUid: 'fb-new' });
+    firebaseAdmin.getUserByEmail.mockResolvedValue({ uid: 'fb-new' } as any);
+    await expect(service.redeemInvite(token, 'SenhaForte1')).resolves.toEqual({ email: 'aluno@example.com' });
+  });
+
+  it('é idempotente: não recria conta existente e não quebra se o e-mail falhar', async () => {
+    prisma.user.findUnique.mockResolvedValue(student);
+    firebaseAdmin.getUserByEmail.mockResolvedValue({ uid: 'fb-1' } as any);
+    firebaseAdmin.sendPasswordResetEmail.mockRejectedValue(new Error('smtp down'));
+
+    const result = await service.inviteStudent({ email: 'aluno@example.com' });
+
+    expect(result.created).toBe(false);
+    expect(result.emailSent).toBe(false);
+    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(firebaseAdmin.createUser).not.toHaveBeenCalled();
+    expect(result.inviteUrl).toContain('token=');
+  });
+
+  it('recusa convidar e-mail de conta ADMIN', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...student, role: 'ADMIN' });
+    await expect(service.inviteStudent({ email: 'aluno@example.com' })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('resendInvite gera link novo sem enviar e-mail quando sendEmail=false', async () => {
+    prisma.user.findUnique.mockResolvedValue(student);
+    firebaseAdmin.getUserByEmail.mockResolvedValue({ uid: 'fb-1' } as any);
+
+    const result = await service.resendInvite('u1', false);
+
+    expect(result.emailSent).toBe(false);
+    expect(firebaseAdmin.sendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(result.inviteUrl).toContain('token=');
+  });
+
+  it('resendInvite rejeita usuário inativo e inexistente', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...student, isActive: false });
+    await expect(service.resendInvite('u1')).rejects.toBeInstanceOf(BadRequestException);
+    prisma.user.findUnique.mockResolvedValue(null);
+    await expect(service.resendInvite('nope')).rejects.toBeInstanceOf(NotFoundException);
   });
 });

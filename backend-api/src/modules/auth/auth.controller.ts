@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { RedeemInviteDto } from './dto/redeem-invite.dto';
+import { InviteStudentDto, ResendInviteDto } from './dto/invite-student.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { FirebaseAuthGuard } from '../firebase/guards/firebase-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -82,6 +83,32 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Solicitação recebida com sucesso' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('auth/invite')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Convidar aluno (apenas ADMIN): cria a conta se não existir, gera link de convite (7 dias) e envia e-mail',
+  })
+  @ApiResponse({ status: 201, description: 'Convite gerado; inviteUrl no corpo' })
+  @ApiResponse({ status: 403, description: 'Sem permissão (requer ADMIN)' })
+  @ApiResponse({ status: 409, description: 'E-mail pertence a conta que não é de aluno' })
+  async inviteStudent(@Body() dto: InviteStudentDto) {
+    return this.authService.inviteStudent(dto);
+  }
+
+  @Post('auth/invite/:userId/resend')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reenviar convite para um aluno existente (apenas ADMIN)' })
+  @ApiResponse({ status: 200, description: 'Novo link de convite gerado' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async resendInvite(@Param('userId') userId: string, @Body() dto: ResendInviteDto) {
+    return this.authService.resendInvite(userId, dto?.sendEmail);
   }
 
   @Post('auth/invite/redeem')

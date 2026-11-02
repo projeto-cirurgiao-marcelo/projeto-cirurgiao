@@ -1,5 +1,12 @@
-import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
-import { createHash } from 'crypto';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
+import { createHash, randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -8,6 +15,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
+import { InviteStudentDto } from './dto/invite-student.dto';
 import { Role } from '@prisma/client';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 import { resolveFirebaseUser } from '../firebase/resolve-firebase-user';
@@ -352,6 +360,142 @@ export class AuthService {
 
     this.logger.log(`Convite resgatado: ${user.email}`);
     return { email: user.email };
+  }
+
+  /**
+   * Convite pelo painel admin — mesma mecânica do script
+   * create-test-students, só que acionável pelo ADMIN sem acesso ao servidor.
+   *
+   * Idempotente: cria a conta no Firebase (senha descartável aleatória) e no
+   * Postgres só se ainda não existirem; grava o firebaseUid se faltava.
+   * Sempre devolve um link de convite novo (JWT próprio, 7 dias, uso único
+   * via claim `pv`) pra copiar e mandar por WhatsApp, e opcionalmente dispara
+   * o e-mail de criação de senha pelo template do Firebase.
+   */
+  async inviteStudent(dto: InviteStudentDto) {
+    const email = dto.email.trim().toLowerCase();
+    const name = dto.name?.trim() || this.nameFromEmail(email);
+
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    if (user && user.role !== Role.STUDENT) {
+      throw new ConflictException('E-mail já pertence a uma conta que não é de aluno');
+    }
+
+    const firebaseUid = await this.ensureFirebaseAccount(email, name);
+    let created = false;
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name,
+          password: '', // Firebase gerencia a senha
+          role: Role.STUDENT,
+          isActive: true,
+          firebaseUid,
+        },
+      });
+      created = true;
+      this.logger.log(`Aluno convidado (conta criada): ${email}`);
+    } else if (!user.firebaseUid) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { firebaseUid },
+      });
+    }
+
+    const { inviteUrl, expiresAt } = await this.buildInviteLink(user);
+    const emailSent = await this.maybeSendInviteEmail(email, dto.sendEmail);
+
+    return {
+      user: { id: user.id, email: user.email, name: user.name, isActive: user.isActive },
+      created,
+      inviteUrl,
+      expiresAt,
+      emailSent,
+    };
+  }
+
+  /** Reenvio pra quem já existe mas não recebeu/perdeu o convite. */
+  async resendInvite(userId: string, sendEmail?: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    if (user.role !== Role.STUDENT) {
+      throw new BadRequestException('Convite só pode ser reenviado para alunos');
+    }
+    if (!user.isActive) {
+      throw new BadRequestException('Usuário inativo — ative a conta antes de reenviar o convite');
+    }
+
+    const firebaseUid = await this.ensureFirebaseAccount(user.email, user.name);
+    if (!user.firebaseUid) {
+      await this.prisma.user.update({ where: { id: user.id }, data: { firebaseUid } });
+    }
+
+    const { inviteUrl, expiresAt } = await this.buildInviteLink(user);
+    const emailSent = await this.maybeSendInviteEmail(user.email, sendEmail);
+    this.logger.log(`Convite reenviado: ${user.email}`);
+
+    return {
+      user: { id: user.id, email: user.email, name: user.name, isActive: user.isActive },
+      inviteUrl,
+      expiresAt,
+      emailSent,
+    };
+  }
+
+  private async ensureFirebaseAccount(email: string, name: string): Promise<string> {
+    const existing = await this.firebaseAdmin.getUserByEmail(email);
+    if (existing) return existing.uid;
+    const created = await this.firebaseAdmin.createUser(
+      email,
+      // Senha descartável — o aluno define a dele pelo link do convite.
+      randomBytes(24).toString('base64url'),
+      name,
+    );
+    if (!created) {
+      throw new ConflictException('Erro ao criar conta no Firebase');
+    }
+    return created.uid;
+  }
+
+  private async buildInviteLink(user: { id: string; email: string; password: string }) {
+    const expiresInSeconds = 7 * 24 * 60 * 60;
+    const token = await this.jwtService.signAsync(
+      { sub: user.id, email: user.email, purpose: 'invite', pv: this.inviteBinding(user) },
+      { secret: this.configService.get('JWT_SECRET'), expiresIn: expiresInSeconds },
+    );
+    const base = (
+      this.configService.get<string>('FRONTEND_URL') || 'https://www.projetocirurgiao.app'
+    ).replace(/\/+$/, '');
+    return {
+      inviteUrl: `${base}/auth/action?mode=invite&token=${token}`,
+      expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
+    };
+  }
+
+  /** Falha no e-mail não invalida o convite: o link já foi gerado e é devolvido. */
+  private async maybeSendInviteEmail(email: string, sendEmail?: boolean): Promise<boolean> {
+    if (sendEmail === false) return false;
+    try {
+      await this.firebaseAdmin.sendPasswordResetEmail(email);
+      return true;
+    } catch (error) {
+      this.logger.warn(`Convite: e-mail não enviado para ${email}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /** "dra.lucimarazanolla" -> "Dra Lucimarazanolla" (aluno ajusta no perfil) */
+  private nameFromEmail(email: string): string {
+    const name = email
+      .split('@')[0]
+      .split(/[._\-\d]+/)
+      .filter(Boolean)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(' ');
+    return name || email;
   }
 
   private async generateTokens(userId: string, email: string, role: Role) {
