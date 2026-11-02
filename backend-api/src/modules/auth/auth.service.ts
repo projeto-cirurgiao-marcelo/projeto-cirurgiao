@@ -403,6 +403,7 @@ export class AuthService {
       });
     }
 
+    const accessGranted = await this.grantFullAccess(user.id);
     const { inviteUrl, expiresAt } = await this.buildInviteLink(user);
     const emailSent = await this.maybeSendInviteEmail(email, dto.sendEmail);
 
@@ -412,7 +413,29 @@ export class AuthService {
       inviteUrl,
       expiresAt,
       emailSent,
+      accessGranted,
     };
+  }
+
+  /**
+   * Aluno convidado pelo painel acessa tudo: entitlement ADMIN sem vencimento
+   * na vitrine de acesso completo. `update: {}` não mexe em acesso existente
+   * (vencimento dos importados, revogação proposital).
+   */
+  private async grantFullAccess(userId: string): Promise<boolean> {
+    const showcase = await this.prisma.showcase.findUnique({
+      where: { slug: 'acesso-completo-legado' },
+    });
+    if (!showcase?.grantsAllContent || showcase.deletedAt) {
+      this.logger.error('Convite: vitrine acesso-completo-legado ausente; aluno ficou sem acesso');
+      return false;
+    }
+    await this.prisma.entitlement.upsert({
+      where: { userId_showcaseId: { userId, showcaseId: showcase.id } },
+      create: { userId, showcaseId: showcase.id, source: 'ADMIN', expiresAt: null },
+      update: {},
+    });
+    return true;
   }
 
   /** Reenvio pra quem já existe mas não recebeu/perdeu o convite. */
@@ -433,6 +456,7 @@ export class AuthService {
       await this.prisma.user.update({ where: { id: user.id }, data: { firebaseUid } });
     }
 
+    const accessGranted = await this.grantFullAccess(user.id);
     const { inviteUrl, expiresAt } = await this.buildInviteLink(user);
     const emailSent = await this.maybeSendInviteEmail(user.email, sendEmail);
     this.logger.log(`Convite reenviado: ${user.email}`);
@@ -442,6 +466,7 @@ export class AuthService {
       inviteUrl,
       expiresAt,
       emailSent,
+      accessGranted,
     };
   }
 

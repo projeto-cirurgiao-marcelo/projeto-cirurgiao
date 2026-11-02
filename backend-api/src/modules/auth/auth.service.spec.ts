@@ -189,6 +189,11 @@ describe('AuthService.inviteStudent / resendInvite', () => {
       ],
     }).compile();
     service = module.get(AuthService);
+    prisma.showcase.findUnique.mockResolvedValue({
+      id: 'sc-all',
+      grantsAllContent: true,
+      deletedAt: null,
+    } as any);
   });
 
   const student = {
@@ -237,6 +242,34 @@ describe('AuthService.inviteStudent / resendInvite', () => {
     expect(prisma.user.create).not.toHaveBeenCalled();
     expect(firebaseAdmin.createUser).not.toHaveBeenCalled();
     expect(result.inviteUrl).toContain('token=');
+  });
+
+  it('libera acesso completo sem vencimento e não altera acesso já existente', async () => {
+    prisma.user.findUnique.mockResolvedValue(student);
+    firebaseAdmin.getUserByEmail.mockResolvedValue({ uid: 'fb-1' } as any);
+
+    const invited = await service.inviteStudent({ email: 'aluno@example.com', sendEmail: false });
+    const resent = await service.resendInvite('u1', false);
+
+    expect(invited.accessGranted).toBe(true);
+    expect(resent.accessGranted).toBe(true);
+    expect(prisma.entitlement.upsert).toHaveBeenCalledWith({
+      where: { userId_showcaseId: { userId: 'u1', showcaseId: 'sc-all' } },
+      create: { userId: 'u1', showcaseId: 'sc-all', source: 'ADMIN', expiresAt: null },
+      update: {},
+    });
+  });
+
+  it('sem a vitrine de acesso completo o convite sai mesmo assim, com accessGranted=false', async () => {
+    prisma.showcase.findUnique.mockResolvedValue(null);
+    prisma.user.findUnique.mockResolvedValue(student);
+    firebaseAdmin.getUserByEmail.mockResolvedValue({ uid: 'fb-1' } as any);
+
+    const result = await service.inviteStudent({ email: 'aluno@example.com', sendEmail: false });
+
+    expect(result.accessGranted).toBe(false);
+    expect(result.inviteUrl).toContain('token=');
+    expect(prisma.entitlement.upsert).not.toHaveBeenCalled();
   });
 
   it('recusa convidar e-mail de conta ADMIN', async () => {
