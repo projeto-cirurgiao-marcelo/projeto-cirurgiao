@@ -38,7 +38,10 @@ import {
   GraduationCap,
   BookOpen,
   BarChart3,
+  Send,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { InviteStudentDialog } from '@/components/admin/invite-student-dialog';
 import { usersService } from '@/lib/api/users.service';
 import { getErrorMessage } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
@@ -125,6 +128,14 @@ export default function AdminStudentsPage() {
     }
   };
 
+  // Convite de aluno (novo ou reenvio)
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteTarget, setInviteTarget] = useState<StudentWithStats | null>(null);
+  const openInvite = (student: StudentWithStats | null) => {
+    setInviteTarget(student);
+    setInviteOpen(true);
+  };
+
   // Menu de acoes (dropdown com posicao fixa)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
@@ -180,15 +191,28 @@ export default function AdminStudentsPage() {
   return (
     <>
       {/* Page Title */}
-      <div className="mb-8">
-        <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · ALUNOS</div>
-        <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">
-          Alunos
-        </h1>
-        <p className="mt-1 text-[13px] text-atlas-muted">
-          Gerencie sua base de alunos e acompanhe o progresso de cada um.
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <div className="atlas-caps text-atlas-muted mb-1.5">ADMIN · ALUNOS</div>
+          <h1 className="font-serif text-[22px] sm:text-[26px] font-medium tracking-[-0.015em] leading-[1.15] text-atlas-ink">
+            Alunos
+          </h1>
+          <p className="mt-1 text-[13px] text-atlas-muted">
+            Gerencie sua base de alunos e acompanhe o progresso de cada um.
+          </p>
+        </div>
+        <Button onClick={() => openInvite(null)}>
+          <UserPlus className="h-4 w-4" />
+          <span className="ml-1.5">Convidar aluno</span>
+        </Button>
       </div>
+
+      <InviteStudentDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        student={inviteTarget}
+        onInvited={loadData}
+      />
 
       {/* KPIs Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -401,7 +425,7 @@ export default function AdminStudentsPage() {
                               const btn = menuBtnRefs.current[student.id];
                               if (btn) {
                                 const rect = btn.getBoundingClientRect();
-                                const menuHeight = 88; // altura aprox. do menu
+                                const menuHeight = 124; // altura aprox. do menu (3 itens)
                                 const spaceBelow = window.innerHeight - rect.bottom;
                                 setMenuPos({
                                   top: spaceBelow < menuHeight
@@ -444,6 +468,17 @@ export default function AdminStudentsPage() {
                     >
                       <Eye className="h-4 w-4" />
                       Ver Detalhes
+                    </button>
+                    <button
+                      onClick={() => {
+                        const s = students.find((st) => st.id === openMenuId);
+                        setOpenMenuId(null);
+                        if (s) openInvite(s);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-atlas-ink-2 dark:text-atlas-muted-2 hover:bg-atlas-surface-2 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <Send className="h-4 w-4" />
+                      Reenviar Convite
                     </button>
                     <button
                       onClick={() => {
