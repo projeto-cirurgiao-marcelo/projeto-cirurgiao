@@ -563,13 +563,17 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoP
   }, []);
 
   // Sincronizar estado ao entrar/sair do fullscreen. expo-video dispara
-  // onFullscreenExit tanto via botao nativo quanto gesto. Ao sair, volta pra portrait.
+  // onFullscreenExit tanto via botao nativo quanto gesto. Ao sair, volta pra portrait
+  // e LIBERA a rotação de novo: se ficar travado, o próximo giro pra landscape não
+  // gera evento e o auto-fullscreen só funcionava na primeira vez.
   const handleFullscreenExit = useCallback(() => {
     isFullscreenRef.current = false;
     setIsFullscreen(false);
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch((err) => {
-      logger.warn('[VideoPlayer] Falha ao voltar pra portrait:', err);
-    });
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
+      .then(() => ScreenOrientation.unlockAsync())
+      .catch((err) => {
+        logger.warn('[VideoPlayer] Falha ao restaurar orientação:', err);
+      });
   }, []);
 
   const handleFullscreenEnter = useCallback(() => {
